@@ -42,8 +42,10 @@ review = "takes/review"
 ## The GitHub workflow
 
 1. Copy [examples/github/reshoot.yml](../examples/github/reshoot.yml) to `.github/workflows/reshoot.yml`.
-2. Add the steps your app needs before it can start (installing packages, a demo database).
-3. Change the marked lines: where the shoot file is, the takes folder, and where `[keep]` copies files.
+2. Let workflows open pull requests: in the repo's Settings, Actions, General, turn on "Allow GitHub Actions to
+   create and approve pull requests". It's off by default, and the pull request step fails without it.
+3. Add the steps your app needs before it can start (installing packages, a demo database).
+4. Change the marked lines: where the shoot file is, the takes folder, and where `[keep]` copies files.
 
 On each release (or when started by hand), it:
 

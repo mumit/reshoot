@@ -172,10 +172,14 @@ def window_clip(mov, bg_png, x, y, out, width=None, radius=None):
 
 
 def font(size, weight=600):
-    """The system font at a size (and weight, where the font has a weight axis)."""
+    """The system font at a size and weight. SF on macOS has a weight axis; DejaVu on Linux has no axis but a
+    separate bold file, used from weight 600 up."""
     from PIL import ImageFont
     for path in FONTS:
         if Path(path).exists():
+            bold = path.replace("DejaVuSans.ttf", "DejaVuSans-Bold.ttf")
+            if weight >= 600 and bold != path and Path(bold).exists():
+                path = bold
             f = ImageFont.truetype(path, size)
             try:  # SF on macOS: width, optical size, grade, weight
                 f.set_variation_by_axes([100, max(17, min(96, size)), 400, weight])

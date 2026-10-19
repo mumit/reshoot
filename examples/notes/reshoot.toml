@@ -19,6 +19,6 @@ args = ["takes/notes.mp4", "takes/terminal.mp4"]
 sources = ["takes/notes.assets.json", "takes/notes-final.mp4"]
 review = "takes/review"
 
-[keep]
-"takes/notes-final.mp4" = "takes/keep/notes.mp4"
-"takes/notes.gif" = "takes/keep/notes.gif"
+[keep]  # the finished files reshoot's own README shows, kept in the repo
+"takes/notes-final.mp4" = "docs/demo/notes.mp4"
+"takes/notes.gif" = "docs/demo/notes.gif"

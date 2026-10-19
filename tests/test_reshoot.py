@@ -30,6 +30,22 @@ def test_encode_holds_each_frame_until_the_next_and_the_last_until_the_end(tmp_p
     assert g > 100 and r < 60 and b < 60
 
 
+def test_bold_text_uses_dejavus_bold_file_where_theres_no_weight_axis(tmp_path, monkeypatch):
+    regular = tmp_path / "DejaVuSans.ttf"
+    bold = tmp_path / "DejaVuSans-Bold.ttf"
+    regular.touch(); bold.touch()
+    monkeypatch.setattr(cut, "FONTS", [str(regular)])
+    opened = []
+
+    class Font:  # stands in for a font file with no weight axis
+        def set_variation_by_axes(self, axes):
+            raise OSError("no axes")
+
+    monkeypatch.setattr("PIL.ImageFont.truetype", lambda path, size: opened.append(Path(path).name) or Font())
+    cut.font(40, 700); cut.font(40, 450)
+    assert opened == ["DejaVuSans-Bold.ttf", "DejaVuSans.ttf"]
+
+
 def test_size_parsing():
     assert web.parse_size("390x844@3") == (390, 844, 3.0)
     assert web.parse_size("1280x720") == (1280, 720, 1.0)

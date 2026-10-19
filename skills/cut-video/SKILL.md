@@ -46,6 +46,8 @@ cut.Card(1920, 1080, bg).text(None, 400, "Title", 112, 700).badge(None, 600, "8x
 ## Pitfalls
 
 - **Joining clips of different sizes** fails or looks wrong. `cut.concat` refuses them; make every part the same size.
+- **Colours change when joined.** A clip in full colour range (a camera clip, or one made outside these helpers)
+  makes the clips after it look washed out. `cut.concat` refuses a mix; run such a clip through `cut.trim` first.
 - **Odd sizes.** H.264 in yuv420p needs even widths and heights. Scale to `-2` (as the helpers do).
 - **GIF colours.** The default palette bands badly. `cut.gif` makes a palette for each GIF.
 - **Fonts.** Cards use SF on macOS, and DejaVu Sans on Linux if installed.

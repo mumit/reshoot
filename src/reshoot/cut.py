@@ -3,14 +3,17 @@
 Each project writes its own short edit script from these, since the order of takes and the words on screen differ
 from one video to the next. examples/notes/edit.py is a small one to start from.
 
-Every clip made here is 60 fps H.264 in yuv420p with no sound, so clips of the same size can be joined without
-encoding them again.
+Every clip made here is 60 fps H.264 in yuv420p, standard range, with no sound, so clips of the same size can be
+joined without encoding them again.
 """
 import json, re, subprocess, tempfile
 from pathlib import Path
 
 FPS = 60
-ENC = ["-r", str(FPS), "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-an"]
+# Standard ("tv") range for every clip. Chrome's frames are JPEGs in full range, and a joined video is read with
+# its first clip's range, so one full-range clip at the start made every card after it look washed out.
+ENC = ["-r", str(FPS), "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-color_range", "tv",
+       "-an"]
 FONTS = ["/System/Library/Fonts/SFNS.ttf", "/System/Library/Fonts/Helvetica.ttc",
          "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/TTF/DejaVuSans.ttf"]
 GIF_PALETTE = ("split[a][b];[a]palettegen=stats_mode=diff:max_colors=200[p];"
@@ -22,13 +25,18 @@ def ff(*args):
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", *map(str, args)], check=True)
 
 
+def _probe(f):
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                        "stream=width,height,color_range:format=duration", "-of", "json", str(f)],
+                       capture_output=True, text=True, check=True)
+    j = json.loads(r.stdout)
+    return j["streams"][0], float(j["format"]["duration"])
+
+
 def probe(f):
     """(width, height, seconds) of a video."""
-    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
-                        "stream=width,height:format=duration", "-of", "json", str(f)], capture_output=True, text=True, check=True)
-    j = json.loads(r.stdout)
-    s = j["streams"][0]
-    return s["width"], s["height"], float(j["format"]["duration"])
+    s, d = _probe(f)
+    return s["width"], s["height"], d
 
 
 def duration(f):
@@ -80,10 +88,16 @@ def vertical(src, bg_png, out, y=None):
 
 
 def concat(parts, out):
-    """Joins clips end to end without encoding again. They must share size, frame rate and pixel format."""
-    sizes = {probe(p)[:2] for p in parts}
+    """Joins clips end to end without encoding again. They must share size, frame rate, pixel format and colour
+    range, as the clips made here do."""
+    info = [_probe(p)[0] for p in parts]
+    sizes = {(s["width"], s["height"]) for s in info}
     if len(sizes) > 1:
         raise ValueError(f"clips of different sizes can't be joined as they are: {sorted(sizes)}")
+    ranges = {s.get("color_range") if s.get("color_range") in ("pc", "tv") else "tv" for s in info}  # unmarked is tv
+    if len(ranges) > 1:
+        raise ValueError(f"clips with different colour ranges ({', '.join(sorted(ranges))}) would change colour when "
+                         "joined: make each one with the helpers here, such as cut.trim")
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
         f.write("".join(f"file '{Path(p).resolve()}'\n" for p in parts))
     try:

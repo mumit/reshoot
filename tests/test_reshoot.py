@@ -54,6 +54,19 @@ def test_cut_pieces_join_and_make_gifs(tmp_path):
 
 
 @needs_ffmpeg
+def test_joined_cards_keep_their_colour_after_a_web_take(tmp_path):
+    web.encode([(0.0, jpg((14, 13, 12))), (1.0, None)], tmp_path / "web.mp4", size="320:180")  # full-range JPEGs
+    card = cut.still(cut.Card(320, 180, (14, 13, 12)).save(tmp_path / "c.png"), 1, tmp_path / "card.mp4", fade_in=0)
+    cut.concat([tmp_path / "web.mp4", card], tmp_path / "j.mp4")
+    cut.ff("-ss", 1.5, "-i", tmp_path / "j.mp4", "-frames:v", 1, tmp_path / "f.png")
+    assert max(Image.open(tmp_path / "f.png").convert("RGB").getpixel((160, 90))) < 20  # not lifted to grey
+    full = tmp_path / "full.mp4"
+    cut.ff("-f", "lavfi", "-i", "color=size=320x180:duration=1", "-pix_fmt", "yuvj420p", "-color_range", "pc", full)
+    with pytest.raises(ValueError, match="colour ranges"):
+        cut.concat([full, card], tmp_path / "bad.mp4")
+
+
+@needs_ffmpeg
 def test_last_change_finds_where_the_picture_stops_changing(tmp_path):
     src = tmp_path / "s.mp4"
     cut.ff("-f", "lavfi", "-i", "testsrc2=size=320x180:rate=30:duration=2", "-f", "lavfi", "-i",

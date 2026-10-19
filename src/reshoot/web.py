@@ -217,8 +217,8 @@ def encode(frames, out, fps=60, size="1920:1080"):
         # The last file is listed twice so its duration counts, and the second copy adds time of its own: -t cuts it.
         total = max(end or 0, frames[-1][0] + 1 / fps) - frames[0][0]
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(tmp / "list.txt"), "-t", f"{total:.3f}",
-                        "-vf", f"fps={fps},scale={size}:flags=lanczos,format=yuv420p", "-c:v", "libx264", "-preset", "slow",
-                        "-crf", "17", "-movflags", "+faststart", str(out)], check=True)
+                        "-vf", f"fps={fps},scale={size}:flags=lanczos:out_range=tv,format=yuv420p", "-color_range", "tv",
+                        "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-movflags", "+faststart", str(out)], check=True)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

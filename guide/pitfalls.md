@@ -68,6 +68,9 @@ but it helps to know why.
 
 - **Clips of different sizes don't join.** A 1280x720 terminal take and a 1920x1080 web take can't be joined as
   they are. `cut.concat` refuses them. I place the smaller one on a full-size card with `cut.place` first.
+- **Washed-out cards after a web take.** Chrome's frames are full-range JPEGs, and a joined video is read with its
+  first clip's range, so the dark cards after the web take came out grey. Fixed in reshoot: every clip is made in
+  standard range, and `cut.concat` refuses clips whose ranges differ.
 - **An extra second at the end of a web take.** ffmpeg's concat list gives the repeated last frame time of its own.
   Fixed in reshoot: the output is cut at the take's real length.
 - **The first beat starts before the first frame.** Fixed in reshoot: its start is 0, not a little below.

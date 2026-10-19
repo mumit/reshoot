@@ -1,0 +1,27 @@
+[project]
+name = "reshoot"
+version = "0.1.0"
+description = "Demo videos of software, made from scripts so you can shoot them again when the app changes"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "pillow>=10.1",
+    "websockets>=12",
+    "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
+]
+
+[project.scripts]
+reshoot = "reshoot.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+markers = ["browser: records a real page in headless Chrome (slow)"]
+addopts = "-m 'not browser'"

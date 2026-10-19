@@ -1,0 +1,48 @@
+"""Cuts the notes example into a finished video: the web take up to its end beat, then the terminal take (if given)
+on a card with a label, then an end card. Also a 9:16 version and one GIF. A starting point for your own edit script.
+
+    reshoot edit examples/notes/edit.py takes/notes.mp4 [takes/terminal.mp4]
+
+Writes notes-final.mp4, notes-vertical.mp4 and notes.gif next to the web take.
+"""
+import sys, tempfile
+from pathlib import Path
+
+from reshoot import cut
+
+# The words on screen
+TITLE, TAGLINE = "Notes", "a made-up app for trying reshoot"
+TERMINAL = "Or from the terminal"
+BG, GREY, ACCENT = (14, 13, 12), (170, 170, 170), (245, 180, 60)
+W, H = 1920, 1080  # every part is this size, so they can be joined
+
+
+def main(web, terminal=None):
+    web = Path(web)
+    b = cut.beats(web)
+    out = web.parent
+    with tempfile.TemporaryDirectory() as t:
+        t = Path(t)
+        parts = [cut.trim(web, 0, b["end"], t / "web.mp4", fade_out=0.4)]  # the take's own end card is replaced below
+
+        if terminal:
+            # Cut where it finished (plus a moment to read the result), on a card with a label. The terminal is
+            # 1280x720, so it's placed at a width that leaves room for the label.
+            done = cut.last_change(terminal) + 1.2
+            term = cut.trim(terminal, 0, done, t / "term-cut.mp4", fade_in=0.3)
+            card = cut.Card(W, H, BG).text(None, 70, TERMINAL, 56, 700).save(t / "term-bg.png")
+            parts.append(cut.place(card, term, (W - 1500) // 2, 170, t / "term.mp4", width=1500))
+
+        end = cut.Card(W, H, BG).text(None, 420, TITLE, 112, 700).text(None, 580, TAGLINE, 44, 500, GREY)
+        parts.append(cut.still(end.save(t / "end.png"), 3, t / "end.mp4"))
+        final = cut.concat(parts, out / "notes-final.mp4")
+
+        tall = cut.Card(1080, 1920, BG).text(None, 520, TITLE, 84, 700).text(None, 1360, TAGLINE, 36, 500, ACCENT)
+        cut.vertical(final, tall.save(t / "tall.png"), out / "notes-vertical.mp4")
+    cut.gif(web, b["type"], b["end"] - 0.1, out / "notes.gif")
+    for f in ("notes-final.mp4", "notes-vertical.mp4", "notes.gif"):
+        print(f"  {out / f}  {cut.duration(out / f):5.1f}s")
+
+
+if __name__ == "__main__":
+    main(*(sys.argv[1:] or ["takes/notes.mp4"]))

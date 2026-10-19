@@ -1,0 +1,15 @@
+{
+  "name": "reshoot",
+  "description": "Skills and tools for making demo videos of software from scripts.",
+  "owner": {
+    "name": "Mumit Khan",
+    "url": "https://github.com/mumit"
+  },
+  "plugins": [
+    {
+      "name": "reshoot",
+      "source": "./",
+      "description": "Make demo videos of software from scripts, and shoot them again when the app changes."
+    }
+  ]
+}

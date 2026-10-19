@@ -26,6 +26,7 @@ what I learned into this repo. It has:
 | Record an app window | `reshoot window TextEdit takes/app.mov` records one window on macOS, never the whole screen. |
 | Check | `reshoot check takes/web.assets.json takes/web.mp4` makes numbered sheets of every image the take can show, to look at before sharing. A scan flags emails, keys, paths, addresses, faces and your own watch-for words first. `BLUR` hides what has to stay in the app. |
 | Cut | A short Python edit script with `reshoot.cut`: trims at beat names, title and end cards, sped-up parts, a 9:16 version and GIFs. |
+| Sound and subtitles | `VOICE` in the storyboard adds a voiceover, with music under it if you like. Every cut gets an `.srt` file. |
 | Keep it current | `reshoot run` does the whole shoot from a `reshoot.toml`. A GitHub Action reshoots on each release and opens a pull request ([guide](guide/ci.md)). |
 
 ## Install

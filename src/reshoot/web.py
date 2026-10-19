@@ -15,6 +15,7 @@ storyboard may also set:
     ASSETS  parts of URLs to list, such as ["/uploads/"]; by default every image and media file the page loads
     ZOOM    True to zoom in on clicks and typing (see zoom.py for the settings)
     BLUR    selectors to blur on every page for the whole take, such as [".avatar", "#account-email"]
+    VOICE   a voiceover: {beat name: words to say as it starts}, with VOICE_ENGINE to choose the voice (voice.py)
 
 Every frame Chrome paints is kept with its time, and ffmpeg turns them into a steady 60 fps video. Next to OUT.mp4 it
 writes OUT.assets.json (every image and media URL the page loaded, to check before sharing), OUT.beats.json (when
@@ -64,6 +65,7 @@ class Page:
         self.beats = {}  # name: when the beat started (seconds since epoch, like the frames)
         self.events = []  # (when, what the page reported): actions and captions, for zooming afterwards
         self.calls = []  # (when, what) from other bindings, such as the recorder's
+        self.clock = None  # this clock minus Chrome's, for frame times
         self.loaded = asyncio.Event()  # cleared when the tab starts loading a new page, set when it's loaded
         self.loaded.set()
 
@@ -81,7 +83,13 @@ class Page:
                 self.waiting.pop(m["id"]).set_result(m)
             elif m.get("method") == "Page.screencastFrame":
                 p = m["params"]
-                self.frames.append((p["metadata"]["timestamp"], base64.b64decode(p["data"])))
+                # Chrome's frame times are precise about the gaps between frames, but they're on its own clock. The
+                # beats and the end of recording are timed here, so Chrome's times are moved onto this clock,
+                # matched at the first frame. Both clocks stop while the computer sleeps (time.monotonic, not
+                # time.time), so a take that spans a sleep doesn't gain the sleep as a frozen frame.
+                if self.clock is None:
+                    self.clock = time.monotonic() - p["metadata"]["timestamp"]
+                self.frames.append((p["metadata"]["timestamp"] + self.clock, base64.b64decode(p["data"])))
                 await self.ws.send(json.dumps(dict(id=0, method="Page.screencastFrameAck", params=dict(sessionId=p["sessionId"]))))
             elif m.get("method") == "Network.requestWillBeSent":  # what the video can show
                 url, kind = m["params"]["request"]["url"], m["params"].get("type")
@@ -95,7 +103,7 @@ class Page:
                 self.loaded.clear()
             elif m.get("method") == "Runtime.bindingCalled":
                 p = m["params"]
-                (self.events if p["name"] == "__reshoot" else self.calls).append((time.time(), json.loads(p["payload"])))
+                (self.events if p["name"] == "__reshoot" else self.calls).append((time.monotonic(), json.loads(p["payload"])))
             elif m.get("method") == "Page.loadEventFired":
                 self.loaded.set()
             elif m.get("method") == "Runtime.exceptionThrown":
@@ -133,10 +141,12 @@ class Page:
             await self.cmd("Page.navigate", url=view)
 
 
-async def play(page, beats, quiet=False):
-    """Runs beats: each one's JavaScript, then a wait for any page it opened, then its hold."""
+async def play(page, beats, quiet=False, need=None):
+    """Runs beats: each one's JavaScript, then a wait for any page it opened, then its hold. need is the least time a
+    beat takes, {name: seconds}, such as how long its voiceover line lasts."""
+    need = need or {}
     for name, js, hold in beats:
-        t = page.beats[name] = time.time()
+        t = page.beats[name] = time.monotonic()
         if js:
             try:
                 await page.run(js)
@@ -147,9 +157,9 @@ async def play(page, beats, quiet=False):
                 await asyncio.wait_for(page.loaded.wait(), 20)
             except TimeoutError:
                 print(f"  note: the page {name!r} opened took over 20 s to load")
-        await asyncio.sleep(hold)
+        await asyncio.sleep(max(hold, need.get(name, 0) - (time.monotonic() - t)))
         if not quiet:
-            print(f"  {name:22} {time.time() - t:5.1f}s", flush=True)
+            print(f"  {name:22} {time.monotonic() - t:5.1f}s", flush=True)
 
 
 def start_chrome(w, h, headless=True):
@@ -178,7 +188,7 @@ def stop_chrome(chrome, profile):
 
 
 async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=False, settle=4, assets=(), setup=(),
-                 post_captions=False, blur=()):
+                 post_captions=False, blur=(), need=None):
     import websockets
     chrome, profile, ws_url = start_chrome(w, h)
     try:
@@ -221,8 +231,8 @@ async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=Fa
                 print(f"  note: the page is {got[1]} px wide, not {w}")
             page.events.clear()  # what SETUP and WARM did isn't in the take
             await page.cmd("Page.startScreencast", format="jpeg", quality=92, maxWidth=int(w * dpr), maxHeight=int(h * dpr))
-            await play(page, beats)
-            frames.append((time.time(), None))  # when recording stopped: the last frame holds until here
+            await play(page, beats, need=need)
+            frames.append((time.monotonic(), None))  # when recording stopped: the last frame holds until here
             await page.cmd("Page.stopScreencast")
             await asyncio.sleep(0.3)
             reader.cancel()
@@ -272,17 +282,28 @@ def main(a):
     cap_dpr = min(dpr * min(z["scale"], 2), 4) if z else dpr
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    lines = board.get("VOICE") or {}
+    if unknown := [b for b in lines if b not in {name for name, _, _ in board["BEATS"]}]:
+        raise SystemExit(f"VOICE has lines for beats the storyboard doesn't have: {', '.join(unknown)}")
+    spoken = {}
+    if lines:  # spoken first, so each beat can wait for its line to finish
+        from reshoot import voice
+        spoken = voice.prepare(lines, out.with_suffix(".voice"), board.get("VOICE_ENGINE"))
     frames = []
     errors, assets, starts, events = asyncio.run(record(
         board["BEATS"], url, w, h, cap_dpr, frames, theme, board.get("WARM", ()), a.mobile or board.get("MOBILE", False),
         board.get("SETTLE", 4), board.get("ASSETS", ()), board.get("SETUP", ()), post_captions=bool(z),
-        blur=board.get("BLUR", ())))
+        blur=board.get("BLUR", ()), need={b: s + 0.3 for b, (_, s) in spoken.items()}))
     out.with_suffix(".assets.json").write_text(json.dumps(sorted(assets), indent=1))
     if not any(jpg for _, jpg in frames):  # a still page sends one frame, which is enough: it's held to the end
         raise SystemExit("no frames captured: did the page draw anything?")
     t0 = frames[0][0]
     out.with_suffix(".beats.json").write_text(json.dumps({n: max(0, round(t - t0, 3)) for n, t in starts.items()}, indent=1))
     out.with_suffix(".events.json").write_text(json.dumps([{"t": round(t - t0, 3), **ev} for t, ev in events], indent=1))
+    if spoken:  # where each line goes in this take, for the cut (cut.voice_track) and subtitles
+        out.with_suffix(".voice.json").write_text(json.dumps(
+            [{"beat": b, "t": max(0, round(starts[b] - t0, 3)), "text": lines[b], "file": f, "seconds": round(s, 3)}
+             for b, (f, s) in spoken.items()], indent=1))
     span = frames[-1][0] - frames[0][0]
     gaps = sorted(b[0] - a_[0] for a_, b in zip(frames[:-1], frames[1:-1])) or [span]
     print(f"{len(frames) - 1} frames over {span:.1f}s: {(len(frames) - 1) / max(span, 0.001):.0f} fps on average, "

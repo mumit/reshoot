@@ -29,6 +29,7 @@ WARM = ["#map"]                # views to open before recording, so their data i
 ASSETS = ["/uploads/"]         # optional: only list URLs containing these
 ZOOM = True                    # zoom in on clicks and typing; or {"scale": 1.8, "quiet": 4.0, ...} (see below)
 BLUR = [".avatar"]             # blurred on every page for the whole take
+VOICE = {"home": "Notes keeps your lists in one place."}  # a voiceover: a line as each named beat starts
 BEATS = [
     ("home",   "__demo.caption('Find any note', 'works offline')", 2.0),
     ("type",   "__demo.caption(null); await __demo.type('#q', 'bikes')", 0.4),
@@ -79,6 +80,20 @@ wide as the page isn't zoomed, so phone layouts mostly stay as they are.
 - The page is recorded at up to twice its pixel ratio, so zoomed text stays sharp.
 - Captions are drawn after the zoom, so they stay put. They're plain text there: tags such as `<i>` are dropped.
 - It takes longer: about 2.5 times the length of the take, against about 1.5 without zoom.
+
+## Voiceover
+
+`VOICE = {beat name: words}` adds a voiceover. Each line is spoken before recording, so reshoot knows how long it
+takes, and its beat waits until the line is done: a voiceover never runs into the next beat. The clips go in
+`OUT.voice/`, and `OUT.voice.json` says when each starts in the take. The cut adds them (cut-video).
+
+- The voice is macOS's `say` by default, or `espeak-ng` on Linux. `VOICE_ENGINE = "say -v Samantha"` picks a macOS
+  voice. Any other text-to-speech is a command with `{out}` for the sound file and the text on stdin, such as
+  `VOICE_ENGINE = "python3 tools/demo/tts.py {out}"`; that command handles any service key itself.
+- Lines are spoken again only when their words or the engine change.
+- Keep lines short and plain, one per beat that needs it. The captions still say the main point on screen, since
+  most people watch muted.
+- `../../examples/notes/voiced.py` is the notes example with a voiceover.
 
 A beat can follow a link to a new page. The overlay is added to every page, the cursor keeps its place, and the hold
 starts once the new page has loaded. Code after the click in the same beat doesn't run, since its page is gone, so

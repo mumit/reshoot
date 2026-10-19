@@ -29,6 +29,9 @@ but it helps to know why.
 
 - **Chrome sends no frames while the page is still.** The last frame (the end card) got almost no time in the
   video. Fixed in reshoot: each frame is held until the next, and the last until recording stops.
+- **A 5-second take came out 389 seconds long.** The Mac went to sleep during it. The beats and the end of recording
+  were timed with the system clock, which keeps counting through sleep; Chrome's frame times don't. Fixed in
+  reshoot: it times everything with a clock that stops during sleep too, matched to Chrome's at the first frame.
 - **The frame rate goes up and down.** Chrome paints about 45 to 50 frames a second while things move, and none
   when still. Fixed in reshoot: frames keep their times, and ffmpeg makes a steady 60 fps.
 - **Blank views when first shown.** Each take starts with a fresh browser profile, so nothing is cached. A map's

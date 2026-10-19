@@ -80,6 +80,8 @@ BEATS = [
 - Give a caption about 1.5 seconds to be read, and a result 2.5 seconds or more.
 - If the app needs a login, log in with a demo account in `SETUP` beats. They run before recording starts.
 - Anything private that's part of the app, like the account name in a header, goes in `BLUR`.
+- For a voiceover, add `VOICE = {"home": "What I'd say here."}`, a line for each beat that needs one. See
+  [examples/notes/voiced.py](../examples/notes/voiced.py).
 - Views that load slowly the first time (maps, charts, big images) go in `WARM`, so they're ready when shown.
 - `ZOOM = True` zooms in on each click and bit of typing, then back out, so the video is readable on a phone.
 
@@ -151,7 +153,8 @@ reshoot window TextEdit takes/app.mov -s 8
    reshoot edit tools/demo/edit.py takes/web.mp4 takes/cli.mp4
    ```
 
-   The example writes the finished video, a 9:16 version and a GIF next to the web take.
+   The example writes the finished video, a 9:16 version, a GIF and subtitles (`.srt`) next to the web take. If
+   the take has a voiceover, it's added; set `MUSIC` in the edit script for music under it.
 3. Watch all of it. Read any text on screen, including what an AI agent wrote in a terminal take.
 
 ## All at once

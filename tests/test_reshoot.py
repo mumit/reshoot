@@ -1,12 +1,12 @@
 """Fast tests use made-up frames and images. The browser test records the notes example in headless Chrome."""
-import http.server, io, json, shutil, threading
+import http.server, io, json, re, shutil, subprocess, threading
 from functools import partial
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
-from reshoot import check, cut, rec, scan, web, zoom
+from reshoot import check, cut, rec, scan, voice, web, zoom
 from reshoot.cli import main as cli
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -172,6 +172,58 @@ def test_rec_joins_typing_drops_the_focusing_click_and_hides_passwords(tmp_path)
     board = __import__("runpy").run_path(str(out))
     assert board["URL"] == "http://localhost:8000/" and board["BEATS"][-1][0] == "end" and len(board["BEATS"]) == 6
     assert "put the demo account's password here" in out.read_text()
+
+
+TONE = "ffmpeg -loglevel error -y -f lavfi -i sine=frequency=440:duration=1.5 -f wav {out} && cat > /dev/null"
+
+
+@needs_ffmpeg
+def test_voice_lines_are_spoken_once_and_kept(tmp_path, capsys):
+    got = voice.prepare({"home": "Hello there."}, tmp_path / "v", TONE)
+    assert got["home"][1] == pytest.approx(1.5, abs=0.05) and Path(got["home"][0]).exists()
+    assert "speaking 'home'" in capsys.readouterr().out
+    voice.prepare({"home": "Hello there."}, tmp_path / "v", TONE)
+    assert "speaking" not in capsys.readouterr().out  # the same words again: not spoken again
+    voice.prepare({"home": "Hello again."}, tmp_path / "v", TONE)
+    assert "speaking 'home'" in capsys.readouterr().out
+    with pytest.raises(SystemExit, match="needs"):
+        voice.engine_command("my-tts --fast")
+
+
+def test_subtitles_come_from_the_voice_or_else_the_captions(tmp_path):
+    take = tmp_path / "web.mp4"
+    take.with_suffix(".events.json").write_text(json.dumps([
+        {"t": 0.5, "kind": "caption", "text": "Find <i>any</i> note", "sub": "offline"},
+        {"t": 2.0, "kind": "caption", "text": None}, {"t": 4.0, "kind": "caption", "text": "The end", "sub": None}]))
+    assert cut.cues(take, 0, 6) == [(0.5, 2.0, "Find any note (offline)"), (4.0, 6, "The end")]
+    assert cut.cues(take, 1, 3, offset=10) == [(10, 11, "Find any note (offline)")]  # cut to the part, then moved
+    take.with_suffix(".voice.json").write_text(json.dumps([{"beat": "a", "t": 1.0, "text": "Hello.", "file": "a.wav", "seconds": 1.2},
+                                                            {"beat": "b", "t": 5.0, "text": "Bye.", "file": "b.wav", "seconds": 0.5}]))
+    assert cut.cues(take, 0, 6) == [(1.0, 2.2, "Hello."), (5.0, 5.5, "Bye.")]
+    assert cut.lines(take, 2, None, offset=1) == [(4.0, 0.5, "Bye.", "b.wav")]
+    srt = cut.write_srt([(1.0, 2.25, "Hello."), (3661.5, 3662, "Bye.")], tmp_path / "s.srt").read_text()
+    assert srt == "1\n00:00:01,000 --> 00:00:02,250\nHello.\n\n2\n01:01:01,500 --> 01:01:02,000\nBye.\n\n"
+
+
+@needs_ffmpeg
+def test_add_audio_lays_the_voice_on_time_with_music_that_fades(tmp_path):
+    video = tmp_path / "v.mp4"
+    cut.ff("-f", "lavfi", "-i", "color=size=320x180:rate=60:duration=6", *cut.ENC, video)
+    clip = tmp_path / "line.wav"
+    cut.ff("-f", "lavfi", "-i", "sine=frequency=800:duration=1", clip)
+    music = tmp_path / "music.wav"
+    cut.ff("-f", "lavfi", "-i", "sine=frequency=220:duration=2", music)  # shorter than the video: it loops
+    track = cut.voice_track([(2.0, 1.0, "Hi.", str(clip))], tmp_path / "voice.wav", 6)
+    out = cut.add_audio(video, tmp_path / "out.mp4", voice=track, music=music)
+    assert cut.duration(out) == pytest.approx(6, abs=0.1)
+    def level(a, b):  # loudest sample in [a, b), in dB
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-ss", str(a), "-t", str(b - a), "-i", str(out), "-af", "astats",
+                            "-f", "null", "-"], capture_output=True, text=True)
+        return float(re.findall(r"Peak level dB: (-?[\d.]+|-inf)", r.stderr)[-1].replace("-inf", "-200"))
+    assert level(2.2, 2.8) > level(0.5, 1.5) + 3  # the voice is there, on time, over the music
+    assert level(5.85, 6.0) < level(3.5, 4.0) - 6  # the music fades out at the end
+    silent_voice = cut.add_audio(video, tmp_path / "voice-only.mp4", voice=track)
+    assert level.__call__ and cut.duration(silent_voice) == pytest.approx(6, abs=0.1)
 
 
 def test_size_parsing():
@@ -489,6 +541,17 @@ def test_rec_writes_a_storyboard_that_replays(tmp_path, notes_app):
 @needs_ffmpeg
 def test_blur_hides_elements_including_ones_added_later(tmp_path, notes_app):
     assert record(ROOT / "tests/boards/blur.py", tmp_path / "blur.mp4", notes_app) == 0  # each beat checks itself
+
+
+@pytest.mark.browser
+@needs_ffmpeg
+def test_each_beat_waits_for_its_voiceover_line(tmp_path, notes_app):
+    out = tmp_path / "v.mp4"
+    assert record(ROOT / "tests/boards/voice.py", out, notes_app) == 0
+    beats = cut.beats(out)
+    assert beats["second"] - beats["first"] >= 2.2 and beats["end"] - beats["second"] >= 2.2  # not the 0.2 s holds
+    said = json.loads(out.with_suffix(".voice.json").read_text())
+    assert [v["beat"] for v in said] == ["first", "second"] and said[1]["t"] == pytest.approx(beats["second"], abs=0.05)
 
 
 @pytest.mark.browser

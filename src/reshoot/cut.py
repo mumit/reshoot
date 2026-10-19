@@ -6,7 +6,7 @@ from one video to the next. examples/notes/edit.py is a small one to start from.
 Every clip made here is 60 fps H.264 in yuv420p, standard range, with no sound, so clips of the same size can be
 joined without encoding them again.
 """
-import json, re, subprocess, tempfile
+import json, math, re, subprocess, tempfile
 from pathlib import Path
 
 FPS = 60
@@ -40,7 +40,10 @@ def probe(f):
 
 
 def duration(f):
-    return probe(f)[2]
+    """Seconds, for a video or a sound file."""
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(f)],
+                       capture_output=True, text=True, check=True)
+    return float(r.stdout)
 
 
 def beats(take):
@@ -227,3 +230,85 @@ def gifs_main(a):
     gif(a.take, at(a.start), end - 0.1, a.out, a.fps, a.width)
     print("wrote", a.out)
 
+
+
+def lines(take, start=0, end=None, offset=0):
+    """The voiceover lines of a take that fall in [start, end), moved to start at offset in the finished video:
+    [(at, seconds, text, file)]. Empty if the take has no VOICE."""
+    p = Path(take).with_suffix(".voice.json")
+    if not p.exists():
+        return []
+    end = math.inf if end is None else end
+    return [(v["t"] - start + offset, v["seconds"], v["text"], v["file"]) for v in json.loads(p.read_text())
+            if start <= v["t"] < end]
+
+
+def cues(take, start=0, end=None, offset=0):
+    """Subtitles for part of a take, moved like lines(): [(from, to, text)]. They're the voiceover when there is
+    one; otherwise the captions, which are on screen already but can't be read by a screen reader or searched."""
+    if said := lines(take, start, end, offset):
+        return [(at, at + s, text) for at, s, text, _ in said]
+    p = Path(take).with_suffix(".events.json")
+    events = json.loads(p.read_text()) if p.exists() else []
+    end = math.inf if end is None else end
+    out, cur = [], None
+    for e in events + [{"t": math.inf, "kind": "caption", "text": None}]:
+        if e.get("kind") != "caption":
+            continue
+        if cur:
+            a, b = max(cur[0], start), min(e["t"], end)
+            if a < b:
+                out.append((a - start + offset, b - start + offset, cur[1]))
+        text = re.sub(r"<[^>]+>", "", e.get("text") or "")
+        cur = (e["t"], text + (f" ({re.sub(r'<[^>]+>', '', e['sub'])})" if e.get("sub") else "")) if text else None
+    return out
+
+
+def write_srt(cues, path):
+    """An .srt subtitle file, which LinkedIn, YouTube and most players take alongside the video."""
+    def stamp(t):
+        ms = round(t * 1000)
+        return f"{ms // 3600000:02}:{ms // 60000 % 60:02}:{ms // 1000 % 60:02},{ms % 1000:03}"
+    Path(path).write_text("".join(f"{i}\n{stamp(a)} --> {stamp(b)}\n{text}\n\n" for i, (a, b, text) in enumerate(cues, 1)))
+    return path
+
+
+def voice_track(said, out, total):
+    """A sound track `total` seconds long with each line at its time: said is lines() from one or more takes."""
+    if not said:
+        raise ValueError("no voiceover lines to put in the track")
+    inputs, chain = [], []
+    for k, (at, _, _, f) in enumerate(said, 1):
+        inputs += ["-i", f]
+        ms = max(0, round(at * 1000))
+        chain.append(f"[{k}:a]adelay={ms}|{ms}[a{k}]")
+    mix = "".join(f"[a{k}]" for k in range(1, len(said) + 1))
+    ff("-f", "lavfi", "-t", total, "-i", "anullsrc=r=48000:cl=mono", *inputs, "-filter_complex",
+       ";".join(chain) + f";[0:a]{mix}amix=inputs={len(said) + 1}:normalize=0:duration=first[out]", "-map", "[out]", out)
+    return out
+
+
+def add_audio(video, out, voice=None, music=None, music_volume=0.25):
+    """The video with sound: a voice track, music, or both. Music loops to the video's length, fades out over its
+    last 2 seconds, and gets quieter while the voice speaks."""
+    d = duration(video)
+    args, n = ["-i", video], 1
+    if voice:
+        args += ["-i", voice]; vi = n; n += 1
+    if music:
+        args += ["-stream_loop", "-1", "-i", music]; mi = n
+    parts = []
+    if music:
+        parts.append(f"[{mi}:a]aresample=48000,volume={music_volume},afade=t=out:st={max(0, d - 2)}:d=2[m]")
+    if voice and music:  # the music ducks under the voice
+        parts += [f"[{vi}:a]aresample=48000,asplit[v1][v2]", "[m][v1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[md]",
+                  "[md][v2]amix=inputs=2:normalize=0[a]"]
+    elif voice:
+        parts.append(f"[{vi}:a]aresample=48000[a]")
+    elif music:
+        parts.append("[m]anull[a]")
+    else:
+        raise ValueError("give a voice track, music, or both")
+    ff(*args, "-filter_complex", ";".join(parts), "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
+       "-t", d, "-movflags", "+faststart", out)
+    return out

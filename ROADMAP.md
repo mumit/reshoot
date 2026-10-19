@@ -7,9 +7,7 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
 
 ## Next
 
-1. **Subtitles and voiceover.** Write the captions to an `.srt` file, since most sites play videos muted. The
-   captions and their times are already in each take's `.events.json`. Add an
-   optional voiceover from text, timed to the beats, and music that gets quieter under it.
+Everything from the first plan is done. The next items come from Later, when they're picked.
 
 ## Later
 
@@ -31,6 +29,9 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
 
 ## Done
 
+- **Subtitles and voiceover:** `VOICE` in a storyboard speaks a line as each beat starts (macOS `say`, `espeak-ng`,
+  or any command), and each beat waits for its line. The cut adds the voice and optional music that ducks under it
+  and fades out, and writes an `.srt` from the voiceover or the captions.
 - **Automatic privacy checks:** `reshoot check` scans every image and frame for emails, phone numbers, keys, paths
   with a user name, street addresses and watch-for words (Vision on macOS, Tesseract elsewhere), and for faces and
   people (macOS). Flags come first on the sheets, boxed in red, with what was found masked in the output.

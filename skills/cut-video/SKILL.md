@@ -27,6 +27,11 @@ cut.last_change(take)                                  # when a terminal take fi
 cut.window_clip(mov, bg_png, x, y, out, width=None)    # a window recording, cropped, corners rounded, on a card
 cut.window_box(mov)                                    # (w, h, x, y) of a window in its shadow
 cut.Card(1920, 1080, bg).text(None, 400, "Title", 112, 700).badge(None, 600, "8x speed").save(png)
+
+said = cut.lines(take, start, end, offset)             # a take's voiceover lines in [start, end), moved to offset
+cut.voice_track(said, wav, total)                      # those lines laid out on a track `total` seconds long
+cut.add_audio(video, out, voice=wav, music=None, music_volume=0.25)   # music loops, fades, ducks under the voice
+cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceover, or else the captions
 ```
 
 `cut.ff(...)` runs any other ffmpeg command. Every clip made by these is 60 fps H.264 in yuv420p with no sound.
@@ -40,7 +45,10 @@ cut.Card(1920, 1080, bg).text(None, 400, "Title", 112, 700).badge(None, 600, "8x
    take is its tape's `Width` and `Height`. Place smaller takes on a full-size card with `cut.place`.
 5. Make the 9:16 version: the landscape video on a 1080x1920 card, with the name above and the link below.
 6. Make one GIF per section, from beat to beat.
-7. Watch the whole thing. Check the end card's spelling and link. Then give the person the files and say where they
+7. Add sound last, to the finished video: `cut.add_audio` with the voice track (if the storyboard had `VOICE`)
+   and any music. Give each part's lines its place in the finished video with `offset`: a part that starts 12 s
+   in uses `cut.lines(take, a, b, offset=12)`. Write subtitles the same way.
+8. Watch the whole thing, with sound if it has any. Check the end card's spelling and link. Then give the person the files and say where they
    are. Don't post them.
 
 ## Pitfalls
@@ -52,4 +60,9 @@ cut.Card(1920, 1080, bg).text(None, 400, "Title", 112, 700).badge(None, 600, "8x
 - **GIF colours.** The default palette bands badly. `cut.gif` makes a palette for each GIF.
 - **Fonts.** Cards use SF on macOS, and DejaVu Sans on Linux if installed.
 - **Faststart.** Joined videos are written with `+faststart`, so they play in a browser before they finish loading.
+- **Joining clips with sound.** `cut.concat` joins video only. Join the silent parts first, then add the sound.
+- **Subtitles and burned-in captions.** Captions on screen can't be read by a screen reader or searched, so the
+  `.srt` carries them too. With a voiceover, it carries what's said instead. Upload it with the video where the site
+  allows.
+- **Music you can use.** Only use music you have the right to post. Keep it quiet (`music_volume` 0.15 to 0.3).
 - **Limits for posting.** Sites limit size and length, and change them. Check before uploading.

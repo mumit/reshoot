@@ -73,10 +73,14 @@ Python, so they should work on Linux too, but nobody has tried yet. Recording an
 | App window takes | yes | no | no |
 | Check and cut | yes | should work, not tried | not tried |
 
-## Sound
+## Sound and subtitles
 
-The takes have no sound, and most social sites start videos muted. Captions on screen carry the words. If you want
-music or a voiceover, add it to the finished cut in a video editor, or with ffmpeg.
+Most social sites start videos muted, so the captions on screen carry the main point. Sound is optional:
+
+- **A voiceover:** a line for some beats, spoken by macOS's `say`, `espeak-ng`, or any text-to-speech command.
+  Each beat waits for its line to finish, so the voice never runs into the next part.
+- **Music,** looped to the video's length, quieter while the voice speaks, and faded out at the end.
+- **Subtitles:** an `.srt` file with the voiceover, or the captions if there's no voice, to upload with the video.
 
 ## How long it takes
 

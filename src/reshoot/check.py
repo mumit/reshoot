@@ -65,8 +65,11 @@ def open_image(data):
     return ImageOps.exif_transpose(im).convert("RGB")
 
 
-def mask(part):
-    """Enough of what was found to recognise it, not enough to use it."""
+def mask(why, part):
+    """Enough of what was found to recognise it, not enough to use it. A face or a person has only how sure the scan
+    is, which isn't private."""
+    if why in ("a face", "a person"):
+        return f"({part})"
     return part[:4] + "•••" if len(part) > 6 else "•••"
 
 
@@ -95,7 +98,7 @@ def sheets(todo, review):
             d.text((x + 8, y + 8), label + (" !" if flags else ""), fill="white")
             key[label] = [src, h]
             if flags:
-                flagged[label] = [[why, mask(part)] for _, why, part in flags]
+                flagged[label] = [[why, mask(why, part)] for _, why, part in flags]
         sheet.save(review / f"{s // 4 + 1:02}.jpg", quality=92)
     (review / "key.json").write_text(json.dumps(key, indent=1))
     (review / "flags.json").write_text(json.dumps(flagged, indent=1, ensure_ascii=False))

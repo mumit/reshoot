@@ -270,6 +270,12 @@ def test_scan_flags_what_looks_private_and_leaves_ordinary_text_alone():
         assert found(ordinary) == [], ordinary
 
 
+def test_masks_hide_finds_but_not_how_sure_the_scan_is():
+    assert check.mask("email", "jane.roe@gmail.com") == "jane•••"
+    assert check.mask("key or token", "sk-1") == "•••"
+    assert check.mask("a face", "83% sure") == "(83% sure)"
+
+
 def text_image(path, line):
     from PIL import ImageDraw
     im = Image.new("RGB", (1600, 400), (14, 13, 12))

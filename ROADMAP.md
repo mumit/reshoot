@@ -36,9 +36,10 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
 - **Write the storyboard by clicking:** `reshoot rec URL OUT.py` opens Chrome with a fresh profile and writes a
   beat for each click and run of typing, with stable selectors and holds from the pauses. Passwords become a
   placeholder.
-- **Zoom on clicks:** `ZOOM = True` or `--zoom`. The view moves in on clicks and typing and back out, worked out
-  after recording so it lands on each click; actions close together share one view; captions are drawn after the
-  zoom. `__demo.zoom()` and `zoomOut()` for exact control.
+- **Zoom on clicks:** `ZOOM = True` or `--zoom`. The view moves in on clicks and typing, worked out after
+  recording so it lands on each click. It stays through pauses while the next action is in view, and moves out for
+  a long quiet spell, a new caption, an action far away, or a change outside the view (seen in the frames).
+  Captions are drawn after the zoom. `__demo.zoom()` and `zoomOut()` for exact control.
 - **Reshoot in CI:** `reshoot run` does a whole shoot from a `reshoot.toml`, and `action.yml` runs it on GitHub's
   Linux and macOS runners. The example workflow reshoots on each release and opens a pull request with the new
   files for a person to check. reshoot reshoots its own notes example this way.

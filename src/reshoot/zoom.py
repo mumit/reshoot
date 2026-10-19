@@ -1,21 +1,25 @@
 """Zoom on clicks, done after recording: the view moves in on what's being clicked or typed, follows the cursor from
 one action to the next, and moves back out when things go quiet.
 
-The page reports each action with where its element is (overlay.js). Actions close together share one view that
-holds all of them, so typing in a field and clicking its button keep the whole row, and what changes near it, in
-view. Since the zoom is worked out afterwards, it
+The page reports each action with where its element is (overlay.js). Zooming out and back in for nothing is
+distracting, so the view only moves when it has to: when the next action is out of view, after a long quiet spell,
+at a new caption, or when something outside the view changes. Since the zoom is worked out afterwards, it
 can start before a click and land as the click happens. The page is recorded at a higher pixel density, so text
 stays sharp when enlarged. Captions are drawn after the zoom, so they stay in place.
 
     ZOOM = True                                   # in a storyboard, or `reshoot web --zoom`
-    ZOOM = {"scale": 1.8, "lead": 0.7, "hold": 1.0, "idle": 1.2}
+    ZOOM = {"scale": 1.8, "lead": 0.7, "hold": 1.0, "quiet": 4.0, "watch": True, "show": 1.0}
 
 scale is the most it enlarges; lead is how many seconds before an action the zoom starts; hold is how long it
-stays after the last action; actions closer together than idle seconds share one zoom.
+stays after the last action. A zoom stays while the next action is already in view, however long the pause; it
+widens to take in an action just out of view; it ends after quiet seconds with nothing done, when a new caption
+starts, or when the next action is far away. With watch on, it also ends (once the action
+under way is done) when something changes outside the view, such as a new item in a list, and stays out for show
+seconds, so the change is seen.
 """
 import bisect, io, math, re, subprocess
 
-DEFAULTS = {"scale": 1.8, "lead": 0.7, "hold": 1.0, "idle": 1.2}
+DEFAULTS = {"scale": 1.8, "lead": 0.7, "hold": 1.0, "quiet": 4.0, "watch": True, "show": 1.0}
 FPS = 60
 
 
@@ -57,15 +61,63 @@ def union(rects):
     return [x0, y0, x1 - x0, y1 - y0]
 
 
-def targets(events, w, h, z):
-    """Where the camera should be over time: [(from, to, (cx, cy, s))], everything else being the whole page."""
+def view_of(cam, w, h):
+    """The part of the page a camera (cx, cy, s) shows: [x, y, w, h], kept inside the page."""
+    cx, cy, s = cam
+    vw, vh = w / s, h / s
+    cx, cy = min(max(cx, vw / 2), w - vw / 2), min(max(cy, vh / 2), h - vh / 2)
+    return [cx - vw / 2, cy - vh / 2, vw, vh]
+
+
+def inside(rect, view, margin=0.03):
+    x, y, rw, rh = rect
+    vx, vy, vw, vh = view
+    mx, my = vw * margin, vh * margin
+    return x >= vx + mx and y >= vy + my and x + rw <= vx + vw - mx and y + rh <= vy + vh - my
+
+
+def targets(events, w, h, z, changed=None):
+    """Where the camera should be over time: [(from, to, (cx, cy, s))], everything else being the whole page.
+
+    A zoom stays while the next action is already in view, however long the pause. It widens to take in the next
+    action if that's just out of view and the wider view still enlarges (1.2x or more). It ends after `quiet`
+    seconds with nothing done, when a new caption starts, or when the next action is far away. And if
+    changed(start, end, view) finds something changing outside the view, it ends once the action under way is done,
+    so the change can be seen."""
     acts, out = actions(events), []
-    i = 0
-    while i < len(acts):  # actions close together share one view that holds them all
-        j = i
-        while j + 1 < len(acts) and acts[j + 1][0] - acts[j][1] < z["idle"]:
-            j += 1
-        out.append((acts[i][0] - z["lead"], acts[j][1] + z["hold"], fit(union([a[2] for a in acts[i:j + 1]]), w, h, z["scale"])))
+    caps = [t for t, ev in events if ev.get("kind") == "caption" and ev.get("text")]
+    i, rest = 0, -math.inf  # rest: after zooming out to show a change, stay out until then
+    while i < len(acts):
+        rects, j = [acts[i][2]], i
+        cam = fit(rects[0], w, h, z["scale"])
+        start = max(acts[i][0] - z["lead"], rest)
+        scanned = acts[i][0] - z["lead"]
+        while True:
+            nxt = acts[j + 1] if j + 1 < len(acts) else None
+            until = nxt[0] if nxt else acts[j][1] + z["hold"]
+            tc = changed(scanned, until, view_of(cam, w, h)) if changed and cam[2] > 1 else None
+            if tc is not None:  # something outside the view changed: show it once the action under way is done,
+                doing = next((a for a in acts[i:j + 1] if a[0] <= tc <= a[1]), None)  # or a moment before it
+                end = doing[1] + 0.3 if doing else tc - 0.4  # happens, so a new page appears already zoomed out
+                rest = end + z["show"]  # and leave time to see it, such as a new page, before zooming in again
+                break
+            scanned = until
+            end = acts[j][1] + z["hold"]
+            if not nxt:
+                break
+            gap = nxt[0] - acts[j][1]
+            if gap > z["quiet"] or any(acts[j][1] < c < nxt[0] for c in caps):
+                break
+            if inside(nxt[2], view_of(cam, w, h)):
+                j += 1  # already in view: stay
+                continue
+            wider = fit(union(rects + [nxt[2]]), w, h, z["scale"])
+            if wider[2] >= 1.2:
+                rects.append(nxt[2]); cam = wider; j += 1  # close by: widen to take it in, smoother than out and in
+                continue
+            break
+        if start < end:
+            out.append((start, end, cam))
         i = j + 1
     manual, at = [], None  # __demo.zoom() ... zoomOut(): these win over the automatic zoom
     for t, ev in events:
@@ -79,9 +131,9 @@ def targets(events, w, h, z):
     return out, manual
 
 
-def camera_path(n, events, w, h, z):
+def camera_path(n, events, w, h, z, changed=None):
     """The camera for each of n frames at 60 fps: a spring that follows the target, so moves ease in and out."""
-    auto, manual = targets(events, w, h, z)
+    auto, manual = targets(events, w, h, z, changed)
     full = (w / 2, h / 2, 1.0)
 
     def target(t):
@@ -106,6 +158,35 @@ def camera_path(n, events, w, h, z):
         cy = min(max(pos[1], vh / 2), h - vh / 2)
         path.append((cx - vw / 2, cy - vh / 2, vw, vh))
     return path
+
+
+def change_finder(frames, w, h):
+    """changed(start, end, view): the first time in [start, end) when something sizeable changed outside view on
+    the page, or None. Frames are compared small (8 CSS pixels to a cell), so the text caret, the cursor and a click's
+    ripple don't count; a new list item or a page load does."""
+    from PIL import Image, ImageChops
+    gw, gh = max(1, w // 8), max(1, h // 8)
+    small, diffs = None, []  # (time, mask of changed cells)
+    for t, jpg in frames:
+        im = Image.open(io.BytesIO(jpg))
+        im.draft("L", (gw * 2, gh * 2))  # JPEG decodes small, quickly
+        im = im.convert("L").resize((gw, gh), Image.BILINEAR)
+        if small is not None:
+            diffs.append((t, ImageChops.difference(im, small).point(lambda v: 255 if v > 24 else 0)))
+        small = im
+    least = 0.004 * gw * gh  # 0.4% of the page: about a line of text across a third of it
+    times = [t for t, _ in diffs]
+
+    def changed(start, end, view):
+        x, y, vw, vh = view
+        box = (int(x / 8), int(y / 8), int(math.ceil((x + vw) / 8)), int(math.ceil((y + vh) / 8)))
+        for k in range(bisect.bisect_left(times, start), bisect.bisect_left(times, end)):
+            t, mask = diffs[k]
+            total = mask.histogram()[255]
+            if total >= least and total - mask.crop(box).histogram()[255] >= least:
+                return t
+        return None
+    return changed
 
 
 def captions(events):
@@ -163,7 +244,8 @@ def render(frames, events, out, css_w, css_h, out_w, out_h, z):
     total = max((end or 0) - t0, times[-1] + 1 / FPS)
     n = max(1, round(total * FPS))
     events = [(t - t0, ev) for t, ev in events]
-    path = camera_path(n, events, css_w, css_h, z)
+    changed = change_finder([(t - t0, jpg) for t, jpg in frames], css_w, css_h) if z.get("watch", True) else None
+    path = camera_path(n, events, css_w, css_h, z, changed)
     caps = [(a, b, caption_image(text, sub, out_w, css_w)) for a, b, text, sub in captions(events)]
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s",
                            f"{out_w}x{out_h}", "-r", str(FPS), "-i", "-", "-vf", "format=yuv420p", "-color_range", "tv",

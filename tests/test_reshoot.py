@@ -50,21 +50,67 @@ def act(t0, t1, rect):
     return [(t0, {"kind": "act", "phase": "start", "rect": rect}), (t1, {"kind": "act", "phase": "end", "rect": rect})]
 
 
-def test_zoom_frames_nearby_actions_together_and_moves_out_when_quiet():
+def test_zoom_stays_in_through_a_pause_when_the_next_action_is_in_view():
     z = zoom.settings(True)
-    events = act(1, 2, [100, 100, 200, 40]) + act(2.5, 3, [320, 100, 60, 40]) + act(8, 9, [500, 500, 100, 40])
-    auto, manual = zoom.targets(events, 1280, 720, z)
-    assert len(auto) == 2 and not manual  # the first two are 0.5 s apart, so they share one view
-    (a, b, (cx, cy, s)), second = auto
-    assert a == pytest.approx(1 - z["lead"]) and b == pytest.approx(3 + z["hold"])
-    assert (cx, cy) == (240, 120) and s == pytest.approx(1.8)  # the middle of both, enlarged as far as allowed
-    path = zoom.camera_path(12 * 60, events, 1280, 720, z)
-    assert path[0] == (0, 0, 1280, 720)  # starts with the whole page
-    assert path[int(2.8 * 60)][2] < 1280 / 1.6  # zoomed in by the end of the second action
-    assert path[int(6.5 * 60)][2] > 1280 * 0.95  # back out while nothing happens
+    # typing in a field, then a 3 s pause, then its button: someone finding the button, not a new scene
+    events = act(1, 2, [276, 121, 650, 50]) + act(5, 5.8, [937, 121, 66, 50]) + act(12, 13, [276, 600, 300, 40])
+    auto, _ = zoom.targets(events, 1280, 720, z)
+    assert len(auto) == 2  # the first two share a zoom; the third comes after a quiet spell
+    (a, b, cam), _ = auto
+    assert a == pytest.approx(1 - z["lead"]) and b == pytest.approx(5.8 + z["hold"])
+    path = zoom.camera_path(15 * 60, events, 1280, 720, z)
+    widths = [p[2] for p in path]
+    assert max(widths[int(2.5 * 60):int(5 * 60)]) < 1280 * 0.85  # stayed zoomed in through the pause
+    assert widths[int(10 * 60)] > 1280 * 0.95  # out again while nothing happens
     xs = [p[0] for p in path]
     assert max(abs(b - a) for a, b in zip(xs, xs[1:])) < 20  # moves smoothly, no jumps
     assert all(0 <= x and x + w <= 1280 + 1e-6 for x, _, w, _ in path)  # never looks past the page
+
+
+def test_zoom_widens_for_a_nearby_action_and_moves_on_for_one_far_away():
+    z = zoom.settings(True)
+    near = act(1, 2, [100, 100, 200, 40]) + act(4.5, 5, [800, 100, 60, 40])  # out of view, but close, after a pause
+    (only,), _ = zoom.targets(near, 1280, 720, z)
+    assert only[2][0] == pytest.approx(480) and only[2][2] > 1.2  # one wider view that holds both
+    far = act(1, 2, [100, 100, 200, 40]) + act(2.5, 3, [1100, 650, 60, 40])  # the other corner
+    assert len(zoom.targets(far, 1280, 720, z)[0]) == 2
+
+
+def test_zoom_moves_out_at_a_new_caption_or_a_change_outside_the_view():
+    z = zoom.settings(True)
+    events = act(1, 2, [276, 121, 650, 50]) + act(3, 3.8, [937, 121, 66, 50])
+    assert len(zoom.targets(events + [(2.5, {"kind": "caption", "text": "Next part"})], 1280, 720, z)[0]) == 2
+    seen = []
+    def changed(a, b, view):  # a new list item appears below the row at 3.4 s, during the click
+        seen.append(view)
+        return 3.4 if a <= 3.4 < b else None
+    (first, *rest), _ = zoom.targets(events, 1280, 720, z, changed)
+    assert first[1] == pytest.approx(3.8 + 0.3)  # out once the click is done, not after the usual hold
+    assert seen and all(v[2] < 1280 for v in seen)
+    (first, *_), _ = zoom.targets(events, 1280, 720, z, lambda a, b, v: 4.2 if a <= 4.2 < b else None)
+    assert first[1] == pytest.approx(4.2 - 0.4)  # a change after the click (a new page): out just before it
+    after = events + act(4.5, 5, [100, 400, 80, 20])  # the next click comes soon after, on the new content
+    (first, second), _ = zoom.targets(after, 1280, 720, z, lambda a, b, v: 3.4 if a <= 3.4 < b else None)
+    assert second[0] == pytest.approx(first[1] + z["show"])  # stays out for a moment first, to show the change
+
+
+@needs_ffmpeg
+def test_zoom_notices_a_big_change_outside_the_view_but_not_a_caret(tmp_path):
+    from PIL import ImageDraw
+    def frame(row=False, caret=False):
+        im = Image.new("RGB", (640, 360), (14, 13, 12))
+        d = ImageDraw.Draw(im)
+        if row:
+            d.rectangle((40, 250, 600, 290), fill=(40, 40, 40)); d.text((50, 260), "Pick up the bikes", fill="white")
+        if caret:
+            d.rectangle((120, 60, 121, 80), fill="white")
+        b = io.BytesIO(); im.save(b, "JPEG"); return b.getvalue()
+    frames = [(0.0, frame()), (0.5, frame(caret=True)), (1.0, frame()), (1.5, frame(row=True))]
+    changed = zoom.change_finder(frames, 640, 360)
+    view = [0, 0, 320, 180]  # zoomed on the top left, where the caret blinks
+    assert changed(0, 1.2, view) is None  # the caret blinking is too small to count
+    assert changed(0, 2, view) == 1.5  # the new row, outside the view
+    assert changed(0, 2, [0, 0, 640, 360]) is None  # nothing outside the whole page
 
 
 def test_zoom_wont_crop_a_big_target_and_manual_zoom_wins():

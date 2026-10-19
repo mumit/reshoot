@@ -27,7 +27,7 @@ SETUP = [                      # run before recording: log in, clear what the la
 ]
 WARM = ["#map"]                # views to open before recording, so their data is loaded
 ASSETS = ["/uploads/"]         # optional: only list URLs containing these
-ZOOM = True                    # zoom in on clicks and typing; or {"scale": 1.8, "lead": 0.7, "hold": 1.0, "idle": 1.2}
+ZOOM = True                    # zoom in on clicks and typing; or {"scale": 1.8, "quiet": 4.0, ...} (see below)
 BEATS = [
     ("home",   "__demo.caption('Find any note', 'works offline')", 2.0),
     ("type",   "__demo.caption(null); await __demo.type('#q', 'bikes')", 0.4),
@@ -56,14 +56,24 @@ A beat may also call the app's own functions, or set `location.hash`, when that'
 
 ## Zoom on clicks
 
-With `ZOOM = True` (or `--zoom`), the view moves in on what's being clicked or typed, then back out once nothing
-happens for a moment. It's worked out after recording, from where each action happened, so it starts just before a
-click and lands as the click happens. Actions close together share one view that holds all of them, so a field and
-its button stay in view together with what changes next to them. A target already as wide as the page isn't
-zoomed, so phone layouts mostly stay as they are.
+With `ZOOM = True` (or `--zoom`), the view moves in on what's being clicked or typed. It's worked out after
+recording, from where each action happened and from the frames, so it starts just before a click and lands as the
+click happens. The view moves only when it has to, since zooming out and back in for nothing is distracting:
 
-- `scale` (1.8) is the most it enlarges, `lead` (0.7 s) how early it starts, `hold` (1.0 s) how long it stays after
-  the last action, and `idle` (1.2 s) how close actions must be to share a view.
+| Next thing | What the view does |
+|---|---|
+| An action already in view, after any pause (up to `quiet`) | stays |
+| An action just out of view, if a wider view still enlarges 1.2x or more | widens to take it in |
+| An action far away | moves out, then in on the new place |
+| Nothing for `quiet` seconds, or a new caption | moves out |
+| Something sizeable changes outside the view (a new list item, a new page) | moves out once the action under way is done (just before, for a new page) and stays out for `show` seconds |
+
+Small changes, like the text caret, the cursor and a click's ripple, don't count as changes. A target already as
+wide as the page isn't zoomed, so phone layouts mostly stay as they are.
+
+- Settings: `scale` (1.8) is the most it enlarges, `lead` (0.7 s) how early it starts, `hold` (1.0 s) how long it
+  stays after the last action, `quiet` (4 s) how long a pause ends a zoom, `show` (1 s) how long it stays out to
+  show a change, and `watch` (on) whether it looks at the frames for changes.
 - The page is recorded at up to twice its pixel ratio, so zoomed text stays sharp.
 - Captions are drawn after the zoom, so they stay put. They're plain text there: tags such as `<i>` are dropped.
 - It takes longer: about 2.5 times the length of the take, against about 1.5 without zoom.
@@ -103,8 +113,11 @@ put it in the next beat.
   check, not just the first.
 - **The last frame.** Chrome sends no frames while the page is still. reshoot holds each frame until the next, and
   the last until recording stops, so the end card gets its full time.
-- **Zooming hides a result.** If something appears far from what was clicked, it may be out of view while zoomed.
-  Raise `idle` or lower `hold`, or call `__demo.zoomOut()` in the beat that shows the result.
+- **Zooming hides a result.** A result that appears outside the view is normally caught by watching the frames.
+  One that's small (a short line of text, a little icon) may not count as a change. Call `__demo.zoomOut()` in the
+  beat that shows it.
+- **Zooming in and out too often.** Usually a long hold in a recorded storyboard: a pause spent finding the next
+  button. If the next action is far away, shorten that hold. Or raise `quiet`.
 - **A recorded storyboard is a draft.** `reshoot rec` turns a password into a placeholder, skips ids that look made
   up by a framework, and finds a button by its words when it can. Read the selectors anyway: one that matches only
   by its place in the page breaks first when the page changes.

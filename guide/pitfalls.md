@@ -47,6 +47,13 @@ but it helps to know why.
 - **A small page on a phone.** A full-width page in a 16:9 video is hard to read on a phone. `ZOOM = True` zooms in
   on each action. The first try zoomed right in on a small button and cut off the new note it added. Fixed in
   reshoot: actions close together share one view that holds them all.
+- **Zooming out and back in for a pause.** In a recorded storyboard, a 3 s pause between typing a note and clicking
+  Add made the view zoom out and straight back in. A pause isn't a reason to move. Fixed in reshoot: the view stays
+  while the next action is in view (or just out of it), and moves out only for a long quiet spell, a new caption,
+  an action far away, or a change outside the view.
+- **Staying zoomed hides results.** With the view staying put, a search that filtered a list below stayed out of
+  sight, and a new page appeared zoomed on an old spot. Fixed in reshoot: it compares the frames, moves out when
+  something sizeable changes outside the view (just before it, for a new page), and stays out for a second.
 - **Zooming the live page breaks it.** Scaling the page itself moves fixed headers and pushes captions off screen.
   reshoot zooms afterwards, from where each action was, and draws captions after the zoom.
 - **Enter recorded twice.** Pressing Enter in a form makes the browser click the form's button too. Recording both

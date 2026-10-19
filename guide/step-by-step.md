@@ -70,6 +70,7 @@ BEATS = [
 - Give a caption about 1.5 seconds to be read, and a result 2.5 seconds or more.
 - If the app needs a login, log in with a demo account in `SETUP` beats. They run before recording starts.
 - Views that load slowly the first time (maps, charts, big images) go in `WARM`, so they're ready when shown.
+- `ZOOM = True` zooms in on each click and bit of typing, then back out, so the video is readable on a phone.
 
 ## Record the web take
 

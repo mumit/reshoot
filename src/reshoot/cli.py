@@ -14,6 +14,8 @@ def main(argv=None):
     p.add_argument("--size", help="CSS width x height @ device pixel ratio, such as 390x844@3 (default 1280x720@1.5)")
     p.add_argument("--theme", choices=["dark", "light"])
     p.add_argument("--mobile", action="store_true", help="a phone: touch and a mobile viewport")
+    p.add_argument("--zoom", nargs="?", type=float, const=True, metavar="SCALE",
+                   help="zoom in on clicks and typing, enlarging up to SCALE (default 1.8)")
     p.set_defaults(run=web.main)
 
     p = sub.add_parser("window", help="record one app window on macOS, never the whole screen",

@@ -40,7 +40,7 @@ single window, and check every frame before sharing.
 2. **Set up demo data.** The app runs on its own database, folder or account, with only things anyone may see.
 3. **Record the takes.**
    - **Web:** headless Chrome opens the page and plays the storyboard. A drawn cursor glides and clicks, text is
-     typed at a person's pace, and captions fade in. Only the page is captured.
+     typed at a person's pace, and captions fade in. The view can zoom in on each click. Only the page is captured.
    - **Terminal:** VHS plays a tape in its own terminal, starting from a clean shell.
    - **App window:** on macOS, `screencapture` records one window by its id. Never the whole screen.
 4. **Check.** Every image a take can show, and frames from each take, go on numbered sheets. I look at each one at

@@ -72,13 +72,39 @@ window.__demo = window.__demo || (() => {
     });
   }
 
+  // Tells reshoot what happened and where, for zooming afterwards and for captions drawn after the zoom.
+  // reshoot adds window.__reshoot while recording; without it (a page opened by hand) this does nothing.
+  function report(ev) {
+    try { window.__reshoot && window.__reshoot(JSON.stringify(ev)); } catch {}
+  }
+  const box = e => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; };
+
+  // An action (moving to, clicking, typing) is reported once, with where its element is, when it starts and ends.
+  let acting = 0;
+  async function act(e, run) {
+    if (!acting) report({ kind: "act", phase: "start", rect: box(e) });
+    acting++;
+    try { return await run(); }
+    finally { if (!--acting) report({ kind: "act", phase: "end", rect: box(e) }); }
+  }
+
   async function to(sel, { dx = 0.5, dy = 0.5, ms } = {}) {
     const e = el(sel);
     e.scrollIntoView({ block: "nearest", inline: "nearest" });
-    const r = e.getBoundingClientRect();
-    await moveTo(r.left + r.width * dx, r.top + r.height * dy, ms);
-    return e;
+    return act(e, async () => {
+      const r = e.getBoundingClientRect();
+      await moveTo(r.left + r.width * dx, r.top + r.height * dy, ms);
+      return e;
+    });
   }
+
+  // Zooms in on sel until zoomOut(), whatever the automatic zoom would do. scale is how much to enlarge.
+  function zoom(sel, { scale } = {}) {
+    const e = el(sel);
+    e.scrollIntoView({ block: "nearest", inline: "nearest" });
+    report({ kind: "zoom", rect: box(e), scale: scale ?? null });
+  }
+  const zoomOut = () => report({ kind: "zoom-out" });
 
   // The events a real click sends, in order. e.click() alone skips pointerdown and mousedown, which many apps use.
   function press(e) {
@@ -92,7 +118,13 @@ window.__demo = window.__demo || (() => {
   }
 
   async function click(sel, opts) {
-    const e = await to(sel, opts);
+    const e = el(sel);
+    e.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return act(e, () => clickNow(e, opts));
+  }
+
+  async function clickNow(e, opts) {
+    await to(e, opts);
     await sleep(90);
     cur.classList.add("down");
     const ring = document.createElement("div");
@@ -111,8 +143,14 @@ window.__demo = window.__demo || (() => {
   }
 
   // Types like a person: an uneven rhythm, a little longer after a space.
-  async function type(sel, text, { cps = 13, clear = false } = {}) {
-    const e = await click(sel);
+  async function type(sel, text, opts) {
+    const e = el(sel);
+    e.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return act(e, () => typeNow(e, text, opts));
+  }
+
+  async function typeNow(e, text, { cps = 13, clear = false } = {}) {
+    await click(e);
     e.focus();
     if (clear && !e.isContentEditable) { setValue(e, ""); e.dispatchEvent(new Event("input", { bubbles: true })); }
     for (const ch of text) {
@@ -148,8 +186,11 @@ window.__demo = window.__demo || (() => {
     });
   }
 
+  // With zoom on, reshoot draws captions after zooming, so they stay put; the page only reports them.
   function caption(text, sub) {
     ready();
+    report({ kind: "caption", text: text || null, sub: sub || null });
+    if (window.__reshootPostCaptions) return;
     if (!text) return cap.classList.remove("on");
     cap.innerHTML = text + (sub ? `<small>${sub}</small>` : "");
     cap.classList.add("on");
@@ -157,5 +198,5 @@ window.__demo = window.__demo || (() => {
 
   const hide = () => { cur.style.opacity = 0; };
   const show = () => { cur.style.opacity = 1; };
-  return { moveTo, to, click, type, key, scroll, waitFor, caption, sleep, hide, show };
+  return { moveTo, to, click, type, key, scroll, waitFor, caption, sleep, hide, show, zoom, zoomOut };
 })();

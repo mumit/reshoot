@@ -6,6 +6,7 @@
 
 URL = "http://localhost:8000/"
 SIZE = "1280x720@1.5"
+ZOOM = True  # zoom in on the typing and clicks, then back out
 
 BEATS = [
     ("home", "__demo.caption('Notes that are easy to find')", 1.8),

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from reshoot import check, cut, web
+from reshoot import check, cut, web, zoom
 from reshoot.cli import main as cli
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -44,6 +44,65 @@ def test_bold_text_uses_dejavus_bold_file_where_theres_no_weight_axis(tmp_path, 
     monkeypatch.setattr("PIL.ImageFont.truetype", lambda path, size: opened.append(Path(path).name) or Font())
     cut.font(40, 700); cut.font(40, 450)
     assert opened == ["DejaVuSans-Bold.ttf", "DejaVuSans.ttf"]
+
+
+def act(t0, t1, rect):
+    return [(t0, {"kind": "act", "phase": "start", "rect": rect}), (t1, {"kind": "act", "phase": "end", "rect": rect})]
+
+
+def test_zoom_frames_nearby_actions_together_and_moves_out_when_quiet():
+    z = zoom.settings(True)
+    events = act(1, 2, [100, 100, 200, 40]) + act(2.5, 3, [320, 100, 60, 40]) + act(8, 9, [500, 500, 100, 40])
+    auto, manual = zoom.targets(events, 1280, 720, z)
+    assert len(auto) == 2 and not manual  # the first two are 0.5 s apart, so they share one view
+    (a, b, (cx, cy, s)), second = auto
+    assert a == pytest.approx(1 - z["lead"]) and b == pytest.approx(3 + z["hold"])
+    assert (cx, cy) == (240, 120) and s == pytest.approx(1.8)  # the middle of both, enlarged as far as allowed
+    path = zoom.camera_path(12 * 60, events, 1280, 720, z)
+    assert path[0] == (0, 0, 1280, 720)  # starts with the whole page
+    assert path[int(2.8 * 60)][2] < 1280 / 1.6  # zoomed in by the end of the second action
+    assert path[int(6.5 * 60)][2] > 1280 * 0.95  # back out while nothing happens
+    xs = [p[0] for p in path]
+    assert max(abs(b - a) for a, b in zip(xs, xs[1:])) < 20  # moves smoothly, no jumps
+    assert all(0 <= x and x + w <= 1280 + 1e-6 for x, _, w, _ in path)  # never looks past the page
+
+
+def test_zoom_wont_crop_a_big_target_and_manual_zoom_wins():
+    z = zoom.settings(2.5)
+    assert zoom.fit([0, 0, 1200, 600], 1280, 720, z["scale"])[2] == 1.0
+    events = act(1, 2, [100, 100, 50, 20]) + [(1.5, {"kind": "zoom", "rect": [900, 500, 100, 50], "scale": 2}),
+                                               (5, {"kind": "zoom-out"})]
+    auto, manual = zoom.targets(events, 1280, 720, z)
+    assert manual == [(1.5 - z["lead"], 5, (950, 525, 2))]
+
+
+def test_captions_come_from_the_pages_reports_as_plain_text():
+    events = [(0.5, {"kind": "caption", "text": "Search by what&rsquo;s <i>in</i> them", "sub": "on &amp; off"}),
+              (2.0, {"kind": "caption", "text": None}), (3.0, {"kind": "caption", "text": "The end", "sub": None})]
+    assert zoom.captions(events) == [(0.5, 2.0, "Search by what&rsquo;s in them", "on & off"), (3.0, zoom.math.inf, "The end", None)]
+
+
+@needs_ffmpeg
+def test_zoom_render_enlarges_the_target_and_draws_the_caption(tmp_path):
+    from PIL import ImageDraw
+    im = Image.new("RGB", (640, 360), "black")
+    ImageDraw.Draw(im).rectangle((300, 160, 340, 200), fill="red")  # the thing clicked
+    b = io.BytesIO(); im.save(b, "JPEG")
+    frames = [(0.0, b.getvalue()), (4.0, None)]
+    events = act(1.5, 2.5, [300, 160, 40, 40]) + [(0.2, {"kind": "caption", "text": "Hello", "sub": None})]
+    out = tmp_path / "z.mp4"
+    zoom.render(frames, events, out, 640, 360, 640, 360, zoom.settings(2))
+    assert cut.duration(out) == pytest.approx(4, abs=0.05)
+    cut.ff("-ss", 0.1, "-i", out, "-frames:v", 1, tmp_path / "a.png")
+    cut.ff("-ss", 2.8, "-i", out, "-frames:v", 1, tmp_path / "b.png")
+
+    def red(p):
+        b = Image.open(p).convert("RGB").tobytes()
+        return sum(1 for i in range(0, len(b), 3) if b[i] > 150 and b[i + 1] < 80)
+
+    assert red(tmp_path / "b.png") > 3 * red(tmp_path / "a.png")  # about 4 times the area at 2x
+    bottom = Image.open(tmp_path / "b.png").convert("L").crop((200, 300, 440, 340))
+    assert bottom.getextrema()[1] > 200  # the caption's white text
 
 
 def test_size_parsing():
@@ -211,6 +270,20 @@ def test_records_the_notes_example(tmp_path, notes_app):
     assert list(beats) == ["home", "type", "add", "search", "end"] and beats["home"] == 0
     assert cut.probe(out)[:2] == (640, 360)
     assert cut.duration(out) == pytest.approx(beats["end"] + 2.5, abs=0.5)
+
+
+@pytest.mark.browser
+@needs_ffmpeg
+def test_zoomed_take_reports_its_actions(tmp_path, notes_app):
+    out = tmp_path / "zoom.mp4"
+    with pytest.raises(SystemExit) as e:
+        cli(["web", str(ROOT / "examples/notes/storyboard.py"), str(out), "--url", notes_app, "--size", "640x360@1",
+             "--zoom"])
+    assert e.value.code == 0
+    events = json.loads(out.with_suffix(".events.json").read_text())
+    assert [e["phase"] for e in events if e["kind"] == "act"] == ["start", "end"] * 3  # type, click Add, type
+    assert any(e["kind"] == "caption" and e["text"] for e in events)
+    assert cut.probe(out)[:2] == (640, 360)
 
 
 @pytest.mark.browser

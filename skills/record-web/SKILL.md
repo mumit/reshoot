@@ -9,7 +9,8 @@ description: Record a web page or web app acting out a storyboard in headless Ch
 
 - `OUT.mp4`: 60 fps, at the page size times the pixel ratio (1280x720@1.5 gives 1920x1080);
 - `OUT.beats.json`: when each beat starts, for cutting;
-- `OUT.assets.json`: every image and media URL the page loaded, for check-privacy.
+- `OUT.assets.json`: every image and media URL the page loaded, for check-privacy;
+- `OUT.events.json`: each action and caption, with where and when.
 
 Only the page is captured, so nothing else on the screen can show.
 
@@ -26,6 +27,7 @@ SETUP = [                      # run before recording: log in, clear what the la
 ]
 WARM = ["#map"]                # views to open before recording, so their data is loaded
 ASSETS = ["/uploads/"]         # optional: only list URLs containing these
+ZOOM = True                    # zoom in on clicks and typing; or {"scale": 1.8, "lead": 0.7, "hold": 1.0, "idle": 1.2}
 BEATS = [
     ("home",   "__demo.caption('Find any note', 'works offline')", 2.0),
     ("type",   "__demo.caption(null); await __demo.type('#q', 'bikes')", 0.4),
@@ -47,8 +49,23 @@ Each beat is (name, JavaScript, seconds to hold after it). The JavaScript runs i
 | `await __demo.to(sel)` / `moveTo(x, y)` | moves the cursor without clicking |
 | `__demo.caption(text, small)` / `caption(null)` | shows or hides a caption |
 | `__demo.hide()` / `show()` | hides or shows the cursor |
+| `__demo.zoom(sel, {scale})` / `zoomOut()` | with `ZOOM` on: zooms in on sel until `zoomOut()`, over the automatic zoom |
 
 A beat may also call the app's own functions, or set `location.hash`, when that's simpler than clicking.
+
+## Zoom on clicks
+
+With `ZOOM = True` (or `--zoom`), the view moves in on what's being clicked or typed, then back out once nothing
+happens for a moment. It's worked out after recording, from where each action happened, so it starts just before a
+click and lands as the click happens. Actions close together share one view that holds all of them, so a field and
+its button stay in view together with what changes next to them. A target already as wide as the page isn't
+zoomed, so phone layouts mostly stay as they are.
+
+- `scale` (1.8) is the most it enlarges, `lead` (0.7 s) how early it starts, `hold` (1.0 s) how long it stays after
+  the last action, and `idle` (1.2 s) how close actions must be to share a view.
+- The page is recorded at up to twice its pixel ratio, so zoomed text stays sharp.
+- Captions are drawn after the zoom, so they stay put. They're plain text there: tags such as `<i>` are dropped.
+- It takes longer: about 2.5 times the length of the take, against about 1.5 without zoom.
 
 A beat can follow a link to a new page. The overlay is added to every page, the cursor keeps its place, and the hold
 starts once the new page has loaded. Code after the click in the same beat doesn't run, since its page is gone, so
@@ -80,4 +97,6 @@ put it in the next beat.
   check, not just the first.
 - **The last frame.** Chrome sends no frames while the page is still. reshoot holds each frame until the next, and
   the last until recording stops, so the end card gets its full time.
+- **Zooming hides a result.** If something appears far from what was clicked, it may be out of view while zoomed.
+  Raise `idle` or lower `hold`, or call `__demo.zoomOut()` in the beat that shows the result.
 - **Page errors** are printed at the end. Fix them: they often mean a beat ran before the page was ready.

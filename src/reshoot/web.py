@@ -13,10 +13,11 @@ storyboard may also set:
     WARM    views (#hashes or URLs) to open before recording, so their data, map tiles and images are loaded
     SETTLE  seconds to wait after the page opens, for fonts and the first images (default 4)
     ASSETS  parts of URLs to list, such as ["/uploads/"]; by default every image and media file the page loads
+    ZOOM    True to zoom in on clicks and typing (see zoom.py for the settings)
 
 Every frame Chrome paints is kept with its time, and ffmpeg turns them into a steady 60 fps video. Next to OUT.mp4 it
-writes OUT.assets.json (every image and media URL the page loaded, to check before sharing) and OUT.beats.json (when
-each beat starts in the video).
+writes OUT.assets.json (every image and media URL the page loaded, to check before sharing), OUT.beats.json (when
+each beat starts in the video) and OUT.events.json (each action and caption, with where and when).
 """
 import asyncio, base64, json, os, platform, runpy, shutil, socket, subprocess, tempfile, time, urllib.request
 from pathlib import Path
@@ -60,6 +61,7 @@ class Page:
         self.ws, self.n, self.waiting, self.frames, self.errors, self.assets = ws, 0, {}, frames, [], set()
         self.want = list(assets)
         self.beats = {}  # name: when the beat started (seconds since epoch, like the frames)
+        self.events = []  # (when, what the page reported): actions and captions, for zooming afterwards
         self.loaded = asyncio.Event()  # cleared when the tab starts loading a new page, set when it's loaded
         self.loaded.set()
 
@@ -89,6 +91,8 @@ class Page:
                 self.loaded.clear()
             elif m.get("method") == "Page.frameStartedNavigating" and m["params"].get("navigationType") != "sameDocument":
                 self.loaded.clear()
+            elif m.get("method") == "Runtime.bindingCalled" and m["params"]["name"] == "__reshoot":
+                self.events.append((time.time(), json.loads(m["params"]["payload"])))
             elif m.get("method") == "Page.loadEventFired":
                 self.loaded.set()
             elif m.get("method") == "Runtime.exceptionThrown":
@@ -145,7 +149,8 @@ async def play(page, beats, quiet=False):
             print(f"  {name:22} {time.time() - t:5.1f}s", flush=True)
 
 
-async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=False, settle=4, assets=(), setup=()):
+async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=False, settle=4, assets=(), setup=(),
+                 post_captions=False):
     import websockets
     port, profile = free_port(), tempfile.mkdtemp(prefix="reshoot-")
     chrome = subprocess.Popen([find_chrome(), "--headless", "--hide-scrollbars", "--force-color-profile=srgb",
@@ -175,6 +180,9 @@ async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=Fa
                 await page.cmd("Emulation.setTouchEmulationEnabled", enabled=True, maxTouchPoints=5)
             await page.cmd("Emulation.setEmulatedMedia", features=[dict(name="prefers-color-scheme", value=theme)])
             # In every document the tab loads, so the overlay is there after a full page load too.
+            await page.cmd("Runtime.addBinding", name="__reshoot")
+            if post_captions:
+                await page.cmd("Page.addScriptToEvaluateOnNewDocument", source="window.__reshootPostCaptions = true")
             await page.cmd("Page.addScriptToEvaluateOnNewDocument", source=(HERE / "overlay.js").read_text())
             await page.cmd("Page.navigate", url=url)
             await asyncio.sleep(settle)
@@ -197,13 +205,14 @@ async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=Fa
                 raise RuntimeError("the overlay didn't load: " + ("; ".join(page.errors) or "no page errors"))
             if got[1] != w:
                 print(f"  note: the page is {got[1]} px wide, not {w}")
+            page.events.clear()  # what SETUP and WARM did isn't in the take
             await page.cmd("Page.startScreencast", format="jpeg", quality=92, maxWidth=int(w * dpr), maxHeight=int(h * dpr))
             await play(page, beats)
             frames.append((time.time(), None))  # when recording stopped: the last frame holds until here
             await page.cmd("Page.stopScreencast")
             await asyncio.sleep(0.3)
             reader.cancel()
-            return page.errors, page.assets, page.beats
+            return page.errors, page.assets, page.beats, page.events
     finally:
         chrome.kill(); chrome.wait()
         shutil.rmtree(profile, ignore_errors=True)
@@ -240,24 +249,35 @@ def parse_size(s):
 
 def main(a):
     """`reshoot web STORYBOARD OUT.mp4`"""
+    from reshoot import zoom
     board = runpy.run_path(a.storyboard)
     url = a.url or board.get("URL") or "http://localhost:8000/"
     w, h, dpr = parse_size(a.size or board.get("SIZE", "1280x720@1.5"))
     theme = a.theme or board.get("THEME", "dark")
+    z = zoom.settings(a.zoom if a.zoom is not None else board.get("ZOOM"))
+    # Zoomed parts are enlarged, so the page is recorded sharper to begin with (up to 2x, and 4 pixels per CSS pixel).
+    cap_dpr = min(dpr * min(z["scale"], 2), 4) if z else dpr
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     frames = []
-    errors, assets, starts = asyncio.run(record(
-        board["BEATS"], url, w, h, dpr, frames, theme, board.get("WARM", ()), a.mobile or board.get("MOBILE", False),
-        board.get("SETTLE", 4), board.get("ASSETS", ()), board.get("SETUP", ())))
+    errors, assets, starts, events = asyncio.run(record(
+        board["BEATS"], url, w, h, cap_dpr, frames, theme, board.get("WARM", ()), a.mobile or board.get("MOBILE", False),
+        board.get("SETTLE", 4), board.get("ASSETS", ()), board.get("SETUP", ()), post_captions=bool(z)))
     out.with_suffix(".assets.json").write_text(json.dumps(sorted(assets), indent=1))
     if len(frames) < 3:
         raise SystemExit("no frames captured: did the page draw anything?")
-    out.with_suffix(".beats.json").write_text(json.dumps({n: max(0, round(t - frames[0][0], 3)) for n, t in starts.items()}, indent=1))
+    t0 = frames[0][0]
+    out.with_suffix(".beats.json").write_text(json.dumps({n: max(0, round(t - t0, 3)) for n, t in starts.items()}, indent=1))
+    out.with_suffix(".events.json").write_text(json.dumps([{"t": round(t - t0, 3), **ev} for t, ev in events], indent=1))
     span = frames[-1][0] - frames[0][0]
     gaps = sorted(b[0] - a_[0] for a_, b in zip(frames[:-1], frames[1:-1]))
     print(f"{len(frames)} frames over {span:.1f}s: {len(frames) / span:.0f} fps on average, "
           f"longest gap {gaps[-1] * 1000:.0f} ms, 95% of gaps under {gaps[int(len(gaps) * .95)] * 1000:.0f} ms")
-    encode(frames, out, size=f"{int(w * dpr) // 2 * 2}:{int(h * dpr) // 2 * 2}")
+    ow, oh = int(w * dpr) // 2 * 2, int(h * dpr) // 2 * 2
+    if z:
+        print(f"zooming ({sum(1 for _, e in events if e.get('kind') == 'act') // 2} actions)", flush=True)
+        zoom.render(frames, events, out, w, h, ow, oh, z)
+    else:
+        encode(frames, out, size=f"{ow}:{oh}")
     print("wrote", out, f"| {len(assets)} images and media loaded (listed in {out.with_suffix('.assets.json').name})",
           "| page errors:", errors or "none")

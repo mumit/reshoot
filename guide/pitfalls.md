@@ -44,6 +44,11 @@ but it helps to know why.
   the page loaded. Fixed in reshoot: the overlay is added to every page, the cursor keeps its place, and the hold
   starts once the new page has loaded. Code in the same beat after the click doesn't run, since its page is gone,
   so put it in the next beat.
+- **A small page on a phone.** A full-width page in a 16:9 video is hard to read on a phone. `ZOOM = True` zooms in
+  on each action. The first try zoomed right in on a small button and cut off the new note it added. Fixed in
+  reshoot: actions close together share one view that holds them all.
+- **Zooming the live page breaks it.** Scaling the page itself moves fixed headers and pushes captions off screen.
+  reshoot zooms afterwards, from where each action was, and draws captions after the zoom.
 - **A light or dark page when you wanted the other.** reshoot sets `prefers-color-scheme` (dark unless asked).
 
 ## Terminal takes

@@ -21,7 +21,7 @@ what I learned into this repo. It has:
 | Step | How |
 |---|---|
 | Plan | Write a storyboard: named beats, each an action, a caption and a hold. |
-| Record a web page | `reshoot web storyboard.py takes/web.mp4` plays it in headless Chrome, with a drawn cursor, typing and captions. Only the page is captured. |
+| Record a web page | `reshoot web storyboard.py takes/web.mp4` plays it in headless Chrome, with a drawn cursor, typing and captions, and zooms in on clicks and typing. Only the page is captured. |
 | Record a terminal | [VHS](https://github.com/charmbracelet/vhs) plays a tape in a clean shell. |
 | Record an app window | `reshoot window TextEdit takes/app.mov` records one window on macOS, never the whole screen. |
 | Check | `reshoot check takes/web.assets.json takes/web.mp4` makes numbered sheets of every image the take can show, to look at before sharing. |

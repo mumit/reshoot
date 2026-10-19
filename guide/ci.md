@@ -67,6 +67,9 @@ repo. Only put in what anyone may see.
 
 - **Linux draws things differently.** Fonts and emoji differ from macOS, so text can wrap in new places. Watch the
   first video from CI closely, and set fonts in the app if it matters.
+- **Checks wait on the pull request.** GitHub doesn't run workflows on a pull request opened by
+  `github-actions[bot]` until someone approves them: the run shows "action_required". Approve it on the pull
+  request's Checks tab, or open the pull request with a GitHub App or personal token instead of `GITHUB_TOKEN`.
 - **Something already on the port.** `reshoot run` stops if the app's URL answers before it starts the app, so a
   take never shows a different server by mistake.
 - **Agent takes in CI.** A Claude Code take needs an account and a key in CI, and its output varies more than a

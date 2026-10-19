@@ -2,6 +2,11 @@
 
 Demo videos of software, made from scripts, so you can shoot them again when the app changes.
 
+![A made-up notes app: a note is typed and added, then found by searching](docs/demo/notes.gif)
+
+The notes example, recorded and cut by `reshoot run` on a GitHub runner, with no one at the keyboard. Here's
+[the full video](docs/demo/notes.mp4), with its terminal part and end card.
+
 I made the launch video for [photosearch](https://github.com/mumit/photosearch) this way, and pulled the tools and
 what I learned into this repo. It has:
 

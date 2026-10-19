@@ -32,4 +32,6 @@ description: Set up a reshoot.toml so one command (`reshoot run`) records a proj
 - **Fonts differ on Linux,** so text may wrap differently from the local takes. Look at the first CI video closely.
 - **Agent takes** (Claude Code) need an account and key in CI, and vary between runs. Record them locally and keep
   the file instead.
+- **Checks wait on the pull request.** Workflows don't run on a pull request opened by `github-actions[bot]` until
+  someone approves them ("action_required"). Tell the person, or use a GitHub App or personal token.
 - **A server already running** on the app's port stops the shoot, so a take can't show the wrong server.

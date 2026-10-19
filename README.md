@@ -74,7 +74,7 @@ version and a GIF, in `takes/`.
 
 ## Contributing
 
-New pitfalls, skills and fixes are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+New pitfalls, skills and fixes are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), and [ROADMAP.md](ROADMAP.md) for what I'd like to build next.
 
 ## License
 

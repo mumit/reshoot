@@ -12,6 +12,8 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    before anyone sees it. It needs one command that runs a whole shoot (start the app, record each take, cut,
    check), which is useful on its own too. The check by eye stays: the pull request carries the review sheets, and
    a person merges it.
+   *Status: `reshoot run`, `action.yml` and an example workflow are built and work on macOS. Not yet run on
+   GitHub's Linux runners.*
 2. **Zoom on clicks.** The view zooms in on what's being clicked or typed, then pans back out. reshoot knows where
    every click lands, so it can do this exactly. Without it, a full-width page is hard to read on a phone.
 3. **Write the storyboard by clicking.** `reshoot rec URL` opens Chrome in a window, records clicks and typing, and

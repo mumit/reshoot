@@ -1,0 +1,49 @@
+# Tests reshoot on GitHub's runners: the test suite, then a whole shoot of the notes example through the action
+# in this repo, the way a project would use it. The finished files are uploaded to look at; nothing is published.
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install ffmpeg
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then sudo apt-get update -q && sudo apt-get install -y -q ffmpeg fonts-dejavu-core
+          else brew install ffmpeg; fi
+      - run: uv run pytest
+      - run: uv run pytest -m browser
+
+  shoot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: shoot
+        uses: ./
+        with:
+          config: examples/notes/reshoot.toml
+      - name: Show what the action reported
+        if: always()
+        run: |
+          echo "ok=${{ steps.shoot.outputs.ok }} unchecked=${{ steps.shoot.outputs.unchecked }}"
+          cat "${{ steps.shoot.outputs.report }}" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: notes-shoot
+          path: takes/
+          retention-days: 7

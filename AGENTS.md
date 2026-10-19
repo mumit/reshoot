@@ -18,9 +18,12 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/window.py` | `reshoot window`: one macOS window |
 | `src/reshoot/check.py` | `reshoot check`: contact sheets and the list of what passed |
 | `src/reshoot/cut.py` | Helpers for edit scripts, and `reshoot gif` |
+| `src/reshoot/run.py` | `reshoot run`: a whole shoot from a reshoot.toml |
+| `action.yml` | The GitHub Action: installs everything and runs `reshoot run` |
 | `skills/` | The Claude Code skills |
 | `guide/` | The guide for people |
-| `examples/notes/` | A made-up app, its storyboards, a tape and an edit script |
+| `examples/notes/` | A made-up app, its storyboards, a tape, an edit script and a reshoot.toml |
+| `examples/github/` | The workflow a project copies to reshoot in CI |
 | `tests/` | pytest, and storyboards the browser tests use (`tests/boards/`) |
 
 ## Commands

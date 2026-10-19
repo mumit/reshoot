@@ -47,6 +47,12 @@ def main(argv=None):
     p.add_argument("take")
     p.set_defaults(run=lambda a: print(f"{cut.last_change(a.take):.2f}"))
 
+    from reshoot import run
+    p = sub.add_parser("run", help="run a whole shoot from a reshoot.toml: the app, every take, the cut and the check",
+                       description=run.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("config", nargs="?", default="reshoot.toml")
+    p.set_defaults(run=run.main)
+
     p = sub.add_parser("edit", help="run an edit script that uses reshoot.cut, passing it the rest of the arguments")
     p.add_argument("script"); p.add_argument("args", nargs=argparse.REMAINDER)
     p.set_defaults(run=run_script)

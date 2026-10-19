@@ -133,6 +133,59 @@ def record(board, out, url):
     return e.value.code
 
 
+def shoot(tmp_path, takes, port):
+    """A reshoot.toml with a little web server as the app, and the given [[take]] lines."""
+    app = f'python3 -m http.server {port} --bind 127.0.0.1 --directory {tmp_path}'
+    (tmp_path / "reshoot.toml").write_text(f"""
+report = "{tmp_path}/run.json"
+[app]
+run = "{app}"
+url = "http://127.0.0.1:{port}/"
+{takes}
+[keep]
+"{tmp_path}/a.jpg" = "{tmp_path}/docs/a.jpg"
+[check]
+sources = ["{tmp_path}/a.jpg"]
+review = "{tmp_path}/review"
+""")
+    return tmp_path / "reshoot.toml"
+
+
+def free_port():
+    import socket
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def test_run_does_every_step_keeps_the_files_and_stops_the_app(tmp_path, monkeypatch):
+    port, out = free_port(), tmp_path / "gh-output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(out))
+    (tmp_path / "a.jpg").write_bytes(jpg("red"))
+    take = f'[[take]]\nrun = "python3 -c \'open(\\"{tmp_path}/took\\", \\"w\\")\'"'
+    with pytest.raises(SystemExit) as e:
+        cli(["run", str(shoot(tmp_path, take, port))])
+    assert e.value.code == 0
+    r = json.loads((tmp_path / "run.json").read_text())
+    assert r["ok"] and r["unchecked"] == 1 and (tmp_path / "took").exists() and (tmp_path / "docs/a.jpg").exists()
+    assert "ok=true" in out.read_text() and "unchecked=1" in out.read_text()
+    with pytest.raises(OSError):  # the app was stopped
+        __import__("urllib.request").request.urlopen(f"http://127.0.0.1:{port}/", timeout=2)
+
+
+def test_run_stops_at_a_failed_take_and_says_so(tmp_path, monkeypatch):
+    port, out = free_port(), tmp_path / "gh-output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(out))
+    (tmp_path / "a.jpg").write_bytes(jpg("red"))
+    takes = '[[take]]\nrun = "false"\n[[take]]\nrun = "touch never"'
+    with pytest.raises(SystemExit) as e:
+        cli(["run", str(shoot(tmp_path, takes, port))])
+    assert "failed" in str(e.value.code)
+    r = json.loads((tmp_path / "run.json").read_text())
+    assert not r["ok"] and [s["ok"] for s in r["steps"]] == [False] and not (tmp_path / "docs").exists()
+    assert "ok=false" in out.read_text()
+
+
 @pytest.mark.browser
 @needs_ffmpeg
 def test_records_the_notes_example(tmp_path, notes_app):

@@ -21,6 +21,7 @@ what I learned into this repo. It has:
 | Record an app window | `reshoot window TextEdit takes/app.mov` records one window on macOS, never the whole screen. |
 | Check | `reshoot check takes/web.assets.json takes/web.mp4` makes numbered sheets of every image the take can show, to look at before sharing. |
 | Cut | A short Python edit script with `reshoot.cut`: trims at beat names, title and end cards, sped-up parts, a 9:16 version and GIFs. |
+| Keep it current | `reshoot run` does the whole shoot from a `reshoot.toml`. A GitHub Action reshoots on each release and opens a pull request ([guide](guide/ci.md)). |
 
 ## Install
 
@@ -45,14 +46,11 @@ Then ask Claude to make a demo video of your app. The `plan-demo` skill starts i
 
 ```bash
 git clone https://github.com/mumit/reshoot && cd reshoot
-python3 -m http.server 8000 --directory examples/notes &
-reshoot web examples/notes/storyboard.py takes/notes.mp4
-vhs examples/notes/terminal.tape
-reshoot edit examples/notes/edit.py takes/notes.mp4 takes/terminal.mp4
+reshoot run examples/notes/reshoot.toml
 ```
 
-That records a web take and a terminal take, then cuts them into a finished video with an end card, a 9:16
-version and a GIF, in `takes/`.
+That starts the example app, records a web take and a terminal take, cuts them into a finished video with an end
+card, a 9:16 version and a GIF, and makes review sheets, all in `takes/`.
 
 ## Rules I follow
 
@@ -71,6 +69,7 @@ version and a GIF, in `takes/`.
 | [record-window](skills/record-window/SKILL.md) | One macOS app window |
 | [check-privacy](skills/check-privacy/SKILL.md) | Checking everything a take can show |
 | [cut-video](skills/cut-video/SKILL.md) | The finished video, 9:16 version and GIFs |
+| [keep-current](skills/keep-current/SKILL.md) | `reshoot run` and reshooting in CI |
 
 ## Contributing
 

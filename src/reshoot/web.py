@@ -40,6 +40,15 @@ def find_chrome():
     raise SystemExit("can't find Chrome or Chromium: install one, or set RESHOOT_CHROME to its path")
 
 
+def chrome_flags():
+    """Extra flags: $RESHOOT_CHROME_FLAGS, and --no-sandbox as root (in a container), where Chrome won't start
+    without it."""
+    flags = os.environ.get("RESHOOT_CHROME_FLAGS", "").split()
+    if hasattr(os, "geteuid") and os.geteuid() == 0 and "--no-sandbox" not in flags:
+        flags.append("--no-sandbox")
+    return flags
+
+
 def free_port():
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -140,7 +149,7 @@ async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=Fa
     import websockets
     port, profile = free_port(), tempfile.mkdtemp(prefix="reshoot-")
     chrome = subprocess.Popen([find_chrome(), "--headless", "--hide-scrollbars", "--force-color-profile=srgb",
-                               "--mute-audio", "--no-first-run", "--no-default-browser-check",
+                               "--mute-audio", "--no-first-run", "--no-default-browser-check", *chrome_flags(),
                                f"--remote-debugging-port={port}", f"--user-data-dir={profile}", f"--window-size={w},{h}",
                                "about:blank"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:

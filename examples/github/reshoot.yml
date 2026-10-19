@@ -1,0 +1,53 @@
+# Records the demo video again on each release, and opens a pull request with the new files.
+# Copy this to .github/workflows/reshoot.yml in your project, and change the marked lines.
+#
+# Nothing is published by this workflow. A person looks at the review sheets (in the run's
+# "reshoot-review" artifact) and the new video, then merges the pull request or closes it.
+name: Reshoot the demo
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  reshoot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Set up your app here, so that reshoot.toml's [app] run command works. For example:
+      # - uses: actions/setup-node@v4
+      #   with: { node-version: 22 }
+      # - run: npm ci
+
+      - id: shoot
+        uses: mumit/reshoot@main
+        with:
+          config: reshoot.toml   # change: where your shoot is
+
+      # The takes, review sheets and report, for the person who reviews the pull request.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reshoot-review
+          path: takes/            # change: your takes folder
+          retention-days: 14
+
+      - uses: peter-evans/create-pull-request@v7
+        if: steps.shoot.outputs.ok == 'true'
+        with:
+          branch: reshoot/demo
+          add-paths: docs/demo/   # change: where [keep] in reshoot.toml copies the finished files
+          commit-message: "docs: reshoot the demo video"
+          title: Reshoot the demo video
+          body: |
+            reshoot recorded the demo again from its scripts.
+
+            **Before merging:** download the `reshoot-review` artifact from this run and look at every
+            review sheet at full size. ${{ steps.shoot.outputs.unchecked }} images haven't been checked yet.
+            Then watch the new video all the way through.

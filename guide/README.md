@@ -1,8 +1,8 @@
 # Making demo videos of software
 
 I make demo videos from scripts, not by recording my screen. This guide explains how and why. The
-[step-by-step](step-by-step.md) has the commands, and [pitfalls](pitfalls.md) lists what goes wrong and how to avoid
-it.
+[step-by-step](step-by-step.md) has the commands, [pitfalls](pitfalls.md) lists what goes wrong and how to avoid
+it, and [reshoot in CI](ci.md) keeps a video current on its own.
 
 ## Purpose
 

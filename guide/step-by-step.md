@@ -138,6 +138,11 @@ reshoot window TextEdit takes/app.mov -s 8
    The example writes the finished video, a 9:16 version and a GIF next to the web take.
 3. Watch all of it. Read any text on screen, including what an AI agent wrote in a terminal take.
 
+## All at once
+
+Once each step works, put them in a `reshoot.toml` and `reshoot run` does the whole shoot. A GitHub workflow can
+then reshoot on each release. See [reshoot in CI](ci.md).
+
 ## When the app changes
 
 - **A button or name changed:** fix the selector in the storyboard and record the web take again.

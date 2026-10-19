@@ -1,6 +1,6 @@
 ---
 name: plan-demo
-description: Start here to make a demo video of software (a web app, a CLI, an AI agent such as Claude Code, a desktop app). Plans the takes and writes the storyboard, then hands off to record-web, record-terminal, record-window, check-privacy and cut-video. Use when someone asks for a demo video, launch video, screencast, product tour or GIF of their app.
+description: Start here to make a demo video of software (a web app, a CLI, an AI agent such as Claude Code, a desktop app). Plans the takes and writes the storyboard, then hands off to record-web, record-terminal, record-window, check-privacy, cut-video and keep-current. Use when someone asks for a demo video, launch video, screencast, product tour or GIF of their app.
 ---
 
 # Plan a demo video
@@ -41,6 +41,8 @@ video can be shot again when the app changes.
 5. **Record each take** with its skill, then **check it** with check-privacy, then **cut** with cut-video.
 6. **Show the person the finished files** and the list of what was checked. They watch it all before it goes
    anywhere.
+7. **Offer to keep it current** with the keep-current skill: a `reshoot.toml` for `reshoot run`, and a workflow
+   that reshoots on each release.
 
 ## Files to keep in the project
 

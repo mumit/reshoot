@@ -1,0 +1,69 @@
+name: reshoot
+description: Record a demo video again from its scripts with `reshoot run`, on a Linux or macOS runner
+author: Mumit Khan
+branding:
+  icon: film
+  color: orange
+
+inputs:
+  config:
+    description: The shoot to run (a reshoot.toml)
+    default: reshoot.toml
+  vhs:
+    description: 'Install VHS for terminal takes: true, false, or auto (when the shoot has a tape)'
+    default: auto
+
+outputs:
+  ok:
+    description: '"true" when every step worked'
+    value: ${{ steps.run.outputs.ok }}
+  unchecked:
+    description: How many images still need checking by eye
+    value: ${{ steps.run.outputs.unchecked }}
+  report:
+    description: Where the run's report (run.json) is
+    value: ${{ steps.run.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v6
+
+    - name: Install ffmpeg and fonts
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" = "Linux" ]; then
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg fonts-dejavu-core
+        elif ! command -v ffmpeg >/dev/null; then
+          brew install ffmpeg
+        fi
+
+    - name: Install VHS
+      shell: bash
+      env:
+        WANT: ${{ inputs.vhs }}
+        CONFIG: ${{ inputs.config }}
+      run: |
+        if [ "$WANT" = "auto" ]; then grep -qE '^\s*tape\s*=' "$CONFIG" && WANT=true || WANT=false; fi
+        [ "$WANT" = "true" ] || exit 0
+        if [ "$RUNNER_OS" = "Linux" ]; then
+          sudo mkdir -p /etc/apt/keyrings
+          curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+          sudo apt-get update -q
+          sudo apt-get install -y -q vhs ttyd
+        else
+          brew install vhs
+        fi
+
+    - name: Install reshoot
+      shell: bash
+      run: uv tool install "$GITHUB_ACTION_PATH"
+
+    - name: Run the shoot
+      id: run
+      shell: bash
+      env:
+        CONFIG: ${{ inputs.config }}
+      run: reshoot run "$CONFIG"  # writes ok, unchecked and report to $GITHUB_OUTPUT

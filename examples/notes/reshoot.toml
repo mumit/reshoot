@@ -1,0 +1,24 @@
+# The whole notes shoot. From the repo root: reshoot run examples/notes/reshoot.toml
+
+[app]
+run = "python3 -m http.server 8000 --directory examples/notes"
+url = "http://localhost:8000/"
+
+[[take]]
+web = "examples/notes/storyboard.py"
+out = "takes/notes.mp4"
+
+[[take]]
+tape = "examples/notes/terminal.tape"
+
+[edit]
+script = "examples/notes/edit.py"
+args = ["takes/notes.mp4", "takes/terminal.mp4"]
+
+[check]
+sources = ["takes/notes.assets.json", "takes/notes-final.mp4"]
+review = "takes/review"
+
+[keep]
+"takes/notes-final.mp4" = "takes/keep/notes.mp4"
+"takes/notes.gif" = "takes/keep/notes.gif"

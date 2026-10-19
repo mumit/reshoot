@@ -10,6 +10,7 @@ dependencies = [
     "pillow>=10.1",
     "websockets>=12",
     "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
+    "pyobjc-framework-Vision>=10; sys_platform == 'darwin'",
 ]
 
 [project.scripts]

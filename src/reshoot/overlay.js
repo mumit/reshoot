@@ -203,7 +203,24 @@ window.__demo = window.__demo || (() => {
     cap.classList.add("on");
   }
 
+  // Blurs everything matching sel, now and whatever the page adds later, until unblur(sel): for an avatar, an
+  // account name, an email in a header. It's a style rule, so it survives the page redrawing the element.
+  // The storyboard's BLUR list is blurred on every page from the start.
+  const blurred = new Map(), blurStyle = document.createElement("style");
+  function blurRules() {
+    blurStyle.textContent = [...blurred].map(([sel, px]) => `${sel} { filter: blur(${px}px) !important; }`).join("\n");
+    const into = document.head || document.documentElement;  // neither exists yet as a new page starts
+    if (into && !blurStyle.isConnected) into.append(blurStyle);
+  }
+  function blur(sel, { px = 12 } = {}) {
+    document.querySelectorAll(sel);  // a bad selector fails here, in the beat, not silently
+    blurred.set(sel, px); blurRules();
+  }
+  function unblur(sel) { blurred.delete(sel); blurRules(); }
+  for (const sel of window.__reshootBlur || []) blurred.set(sel, 12);
+  if (blurred.size) { blurRules(); addEventListener("DOMContentLoaded", blurRules); }
+
   const hide = () => { cur.style.opacity = 0; };
   const show = () => { cur.style.opacity = 1; };
-  return { moveTo, to, click, type, key, scroll, waitFor, caption, sleep, hide, show, zoom, zoomOut, byText };
+  return { moveTo, to, click, type, key, scroll, waitFor, caption, sleep, hide, show, zoom, zoomOut, byText, blur, unblur };
 })();

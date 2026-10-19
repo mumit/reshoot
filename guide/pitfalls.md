@@ -12,6 +12,10 @@ but it helps to know why.
   full size, and when in doubt it fails.
 - **Random content shows something new each take.** A home page that picked items at random showed different ones
   in each take, so checking one take wasn't enough. I check the whole set it picks from.
+- **A scan finds a key, and prints it.** Listing what was found would put a key in the terminal and in a CI log.
+  Fixed in reshoot: `reshoot check` shows only enough to recognise it (`sk-a•••`).
+- **Trusting a clean scan.** A scan reads text and finds faces, but misses text in pictures, odd fonts, and things it
+  has no rule for. Only a person marks an image as checked.
 - **Removing something doesn't fix the take.** The take still shows it. Record again after taking it out of the
   demo data.
 - **The terminal shows more than you think:** the user and machine name in the prompt, the folder, shell history,

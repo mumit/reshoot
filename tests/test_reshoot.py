@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from reshoot import check, cut, rec, web, zoom
+from reshoot import check, cut, rec, scan, web, zoom
 from reshoot.cli import main as cli
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -256,6 +256,51 @@ def test_check_shows_only_whats_new_and_remembers_what_passed(tmp_path, capsys):
     assert run(str(shots)) == 0
 
 
+def test_scan_flags_what_looks_private_and_leaves_ordinary_text_alone():
+    found = lambda line, watch=(): [why for why, _ in scan.reasons(line, watch)]
+    assert found("Write to jane.roe@gmail.com") == ["email"]
+    assert found("Write to demo@example.com") == []  # made up for demos
+    assert found("OPENAI sk-proj4abcdefghijklmnopqrstu") == ["key or token"]
+    assert found("token ghp_1234567890abcdefghijABCDEFGHIJ") == ["key or token"]
+    assert found("Saved in /home/jroe/notes") == ["file path with a user name"]
+    assert found("Call +1 (613) 555-0142") == ["phone number"]
+    assert found("Ship to 42 Maple Street") == ["street address"]
+    assert found("Seen at Acme Widgets", watch=["acme"]) == ['"acme" (on your watch list)']
+    for ordinary in ["Pick up the bikes from the shop", "Version 1.2.3", "2026-10-19", "Order 12 apples", "Tuesday"]:
+        assert found(ordinary) == [], ordinary
+
+
+def text_image(path, line):
+    from PIL import ImageDraw
+    im = Image.new("RGB", (1600, 400), (14, 13, 12))
+    ImageDraw.Draw(im).text((60, 160), line, fill="white", font=cut.font(48, 500))
+    im.save(path)
+
+
+@pytest.mark.skipif(not scan.can_scan(), reason="needs Vision (macOS) or Tesseract")
+def test_check_boxes_flagged_images_first_and_masks_what_it_found(tmp_path, capsys):
+    shots, review = tmp_path / "shots", tmp_path / "review"
+    shots.mkdir()
+    text_image(shots / "a-plain.png", "Pick up the bikes from the shop")
+    text_image(shots / "b-email.png", "Questions? Write to jane.roe@gmail.com")
+    with pytest.raises(SystemExit):
+        cli(["check", str(shots), "--review", str(review)])
+    out = capsys.readouterr().out
+    key, flags = json.loads((review / "key.json").read_text()), json.loads((review / "flags.json").read_text())
+    assert list(flags) == ["1-1"] and key["1-1"][0].endswith("b-email.png")  # flagged, and put first
+    assert flags["1-1"][0][0] == "email" and "jane.roe@gmail.com" not in out and "jane" in out
+    sheet = Image.open(review / "01.jpg").convert("RGB")
+    r, g, _ = sheet.getpixel((64, 26))
+    assert r > 150 and g < 80  # its label is red
+
+
+@pytest.mark.skipif(not __import__("shutil").which("tesseract"), reason="needs Tesseract")
+def test_tesseract_reads_text_where_theres_no_vision(tmp_path):
+    text_image(tmp_path / "t.png", "Saved in /home/jroe/notes")
+    flags = scan._tesseract(Image.open(tmp_path / "t.png"), ())
+    assert [why for _, why, _ in flags] == ["file path with a user name"]
+
+
 def test_check_reads_asset_lists(tmp_path):
     (tmp_path / "a.jpg").write_bytes(jpg("red"))
     (tmp_path / "take.assets.json").write_text(json.dumps([str(tmp_path / "a.jpg")]))
@@ -432,6 +477,12 @@ def test_rec_writes_a_storyboard_that_replays(tmp_path, notes_app):
     text = board.read_text().replace('    ("end", "__demo.hide()", 2.5),', """    ("check", "const n = [...document.querySelectorAll('#list li')].filter(li => li.textContent.includes('Buy stamps')).length; if (n !== 1) throw new Error(n + ' notes')", 0),""")
     board.write_text(text)  # the note was added once: Enter's own click on Add wasn't recorded too
     assert record(board, tmp_path / "replay.mp4", notes_app) == 0
+
+
+@pytest.mark.browser
+@needs_ffmpeg
+def test_blur_hides_elements_including_ones_added_later(tmp_path, notes_app):
+    assert record(ROOT / "tests/boards/blur.py", tmp_path / "blur.mp4", notes_app) == 0  # each beat checks itself
 
 
 @pytest.mark.browser

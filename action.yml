@@ -20,6 +20,9 @@ outputs:
   unchecked:
     description: How many images still need checking by eye
     value: ${{ steps.run.outputs.unchecked }}
+  flagged:
+    description: How many of those the scan flagged as likely problems
+    value: ${{ steps.run.outputs.flagged }}
   report:
     description: Where the run's report (run.json) is
     value: ${{ steps.run.outputs.report }}
@@ -29,12 +32,16 @@ runs:
   steps:
     - uses: astral-sh/setup-uv@v6
 
-    - name: Install ffmpeg and fonts
+    - name: Install ffmpeg, fonts, and Tesseract for the scan
       shell: bash
+      env:
+        CONFIG: ${{ inputs.config }}
       run: |
         if [ "$RUNNER_OS" = "Linux" ]; then
           sudo apt-get update -q
-          sudo apt-get install -y -q ffmpeg fonts-dejavu-core
+          # Tesseract reads text for the privacy scan, when the shoot has a [check] (on macOS, Vision does it)
+          ocr=$(grep -qE '^\s*\[check\]' "$CONFIG" && echo tesseract-ocr || true)
+          sudo apt-get install -y -q ffmpeg fonts-dejavu-core $ocr
         elif ! command -v ffmpeg >/dev/null; then
           brew install ffmpeg
         fi

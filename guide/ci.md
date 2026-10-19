@@ -56,7 +56,9 @@ On each release (or when started by hand), it:
 
 ## The check by eye still happens
 
-CI doesn't decide what's safe to show. The pull request says how many images haven't been checked. Before merging,
+CI doesn't decide what's safe to show. The pull request says how many images haven't been checked, and how many the
+scan flagged (on Linux it reads text with Tesseract, which the action installs; faces and people need macOS). Flags
+come first on the sheets, and the run's log shows only masked parts of what was found. Before merging,
 I download the `reshoot-review` artifact, look at every sheet at full size, and watch the new video. If something
 fails, I fix the demo data and run the workflow again.
 

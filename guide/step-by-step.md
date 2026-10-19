@@ -79,6 +79,7 @@ BEATS = [
   [record-web skill](../skills/record-web/SKILL.md) lists them all.
 - Give a caption about 1.5 seconds to be read, and a result 2.5 seconds or more.
 - If the app needs a login, log in with a demo account in `SETUP` beats. They run before recording starts.
+- Anything private that's part of the app, like the account name in a header, goes in `BLUR`.
 - Views that load slowly the first time (maps, charts, big images) go in `WARM`, so they're ready when shown.
 - `ZOOM = True` zooms in on each click and bit of typing, then back out, so the video is readable on a phone.
 
@@ -111,11 +112,15 @@ reshoot window TextEdit takes/app.mov -s 8
 
 ## Check everything the takes can show
 
-1. Make sheets:
+1. Make sheets, with anything of mine that mustn't show as watch-for words:
 
    ```bash
-   reshoot check takes/web.assets.json takes/web.mp4 takes/cli.mp4 --review takes/review
+   reshoot check takes/web.assets.json takes/web.mp4 takes/cli.mp4 --review takes/review --watch-for "Acme,Jane Roe"
    ```
+
+   It also scans every image and frame for text that looks private (emails, phone numbers, keys, file paths with a
+   user name, street addresses, the watch-for words) and, on macOS, for faces and people. Flagged images come first
+   on the sheets, boxed in red. The scan points at problems; it doesn't pass anything.
 
    Keep the app running: the assets list holds URLs, which are fetched from it. If the app shows things at random
    (suggestions, featured items, a shuffled gallery), add the whole set it picks from, such as its image folder.

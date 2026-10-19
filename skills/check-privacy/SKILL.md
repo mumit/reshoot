@@ -16,17 +16,23 @@ keeps a face, a name or a house number out of a public video.
    reshoot check takes/web.assets.json takes/web.mp4 takes/cli.mp4 --review takes/review
    ```
 
-   Sources can be `.assets.json` lists, videos (a frame every `--every` seconds, default 3), image files, folders
-   and URLs. The app must still be running, since the assets list holds its URLs. Add anything the app could pick at
+   Add `--watch-for "Acme,Jane Roe"` (or `--watch-for @words.txt`) with anything of the person's that mustn't
+   show: their name, company, street, customers. Sources can be `.assets.json` lists, videos (a frame every
+   `--every` seconds, default 3), image files, folders and URLs. The app must still be running, since the assets list holds its URLs. Add anything the app could pick at
    random during a take (suggestions, featured items, a shuffled gallery): the whole set, not only what this take
    showed.
-2. Look at each sheet (`takes/review/01.jpg` and on) at full size. You may look too, but the person decides. Show
+2. Start with what the scan flagged. It reads the text in every image and frame, and flags emails, phone numbers,
+   keys and tokens, file paths with a user name, street addresses and the watch-for words. On macOS it also finds
+   faces and people. Flagged images come first, with a red label and a red box round each find, and are listed
+   with what was found masked (`jane•••`), so nothing private lands in a log.
+3. Look at every sheet (`takes/review/01.jpg` and on) at full size, flagged or not. The scan misses things: text in
+   pictures, small or odd fonts, and anything it has no rule for. You may look too, but the person decides. Show
    them the sheets.
-3. For any that fail: `reshoot check --review takes/review --fail 3-2 7-1`. It lists where each came from. Take those
+4. For any that fail: `reshoot check --review takes/review --fail 3-2 7-1`. It lists where each came from. Take those
    out of the demo data, then record the take again, since the take still shows them.
-4. When the rest pass: `reshoot check --review takes/review --ok`. Passed images are remembered by a hash of their
+5. When the rest pass: `reshoot check --review takes/review --ok`. Passed images are remembered by a hash of their
    bytes, so the next round shows only what's new.
-5. Repeat until `reshoot check` says everything has been checked.
+6. Repeat until `reshoot check` says everything has been checked.
 
 ## What fails an image
 
@@ -48,4 +54,8 @@ silhouette in a mesh railing and a blurred head in the background.
 - **Thumbnails hide things.** A small head at the edge only shows at full size. The sheets use up to 1000 px.
 - **Text in the app.** The assets list covers images. Frames from the video cover everything else, so include the
   takes themselves.
-- An automatic check (faces, names) helps find problems, but it doesn't replace looking.
+- **A clean scan isn't a pass.** Only `--ok` marks images as checked, and only after a person has looked.
+- **Something private that has to stay in the app:** blur it during the take with `BLUR` or `__demo.blur(sel)`
+  (record-web), rather than taking it out of the demo data.
+- **No scan here.** On Linux, text needs Tesseract (`apt install tesseract-ocr`), and faces and people need macOS.
+  `reshoot check` says when part of the scan is off. Look extra closely then.

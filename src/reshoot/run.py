@@ -29,13 +29,15 @@ A reshoot.toml looks like this (paths are relative to the folder it's run from):
     [check]                                # reshoot check, for the review by eye
     sources = ["takes/web.assets.json", "takes/final.mp4"]
     review = "takes/review"
+    watch_for = ["Acme", "Jane Roe"]       # optional: words to flag wherever they appear
+    scan = true                            # scan for likely problems (the default)
 
     [keep]                                 # copies of the finished files, such as into the docs
     "takes/final.mp4" = "docs/demo.mp4"
     "takes/web.gif" = "docs/demo.gif"
 
 It writes run.json next to the first take (or at `report = "..."`) with what happened. In GitHub Actions it also
-sets the step's outputs: ok, unchecked and report.
+sets the step's outputs: ok, unchecked, flagged and report.
 """
 import json, os, shlex, shutil, signal, subprocess, sys, time, tomllib, urllib.error, urllib.request
 from pathlib import Path
@@ -107,7 +109,8 @@ def save(report, path):
     path.write_text(json.dumps(report, indent=1))
     if out := os.environ.get("GITHUB_OUTPUT"):
         with open(out, "a") as f:
-            f.write(f"ok={str(report['ok']).lower()}\nunchecked={report['unchecked'] or 0}\nreport={path}\n")
+            f.write(f"ok={str(report['ok']).lower()}\nunchecked={report['unchecked'] or 0}\n"
+                    f"flagged={report.get('flagged') or 0}\nreport={path}\n")
 
 
 def main(a):
@@ -141,10 +144,13 @@ def main(a):
     if check := shoot.get("check"):
         print("\n== check", flush=True)
         review = check.get("review", "takes/review")
-        cmd = reshoot("check", *check.get("sources", []), "--review", review, "--every", check.get("every", 3))
+        cmd = reshoot("check", *check.get("sources", []), "--review", review, "--every", check.get("every", 3),
+                      *[a for w in check.get("watch_for", []) for a in ("--watch-for", w)],
+                      *([] if check.get("scan", True) else ["--no-scan"]))
         code = subprocess.run(cmd).returncode
-        key = Path(review) / "key.json"
+        key, flags = Path(review) / "key.json", Path(review) / "flags.json"
         report["unchecked"] = len(json.loads(key.read_text())) if code == 1 and key.exists() else 0
+        report["flagged"] = len(json.loads(flags.read_text())) if code == 1 and flags.exists() else 0
         report["review"] = review
     for src, dst in shoot.get("keep", {}).items():
         Path(dst).parent.mkdir(parents=True, exist_ok=True)
@@ -158,5 +164,6 @@ def main(a):
         print(f", kept {', '.join(report['kept'])}", end="")
     print(f". Report in {report_path}.")
     if report["unchecked"]:
-        print(f"{report['unchecked']} images haven't been checked by eye yet: look at the sheets in "
-              f"{report['review']}/ before sharing anything.")
+        print(f"{report['unchecked']} images haven't been checked by eye yet"
+              + (f", and the scan flagged {report['flagged']}" if report.get("flagged") else "")
+              + f": look at the sheets in {report['review']}/ before sharing anything.")

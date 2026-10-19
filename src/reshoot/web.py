@@ -14,6 +14,7 @@ storyboard may also set:
     SETTLE  seconds to wait after the page opens, for fonts and the first images (default 4)
     ASSETS  parts of URLs to list, such as ["/uploads/"]; by default every image and media file the page loads
     ZOOM    True to zoom in on clicks and typing (see zoom.py for the settings)
+    BLUR    selectors to blur on every page for the whole take, such as [".avatar", "#account-email"]
 
 Every frame Chrome paints is kept with its time, and ffmpeg turns them into a steady 60 fps video. Next to OUT.mp4 it
 writes OUT.assets.json (every image and media URL the page loaded, to check before sharing), OUT.beats.json (when
@@ -177,7 +178,7 @@ def stop_chrome(chrome, profile):
 
 
 async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=False, settle=4, assets=(), setup=(),
-                 post_captions=False):
+                 post_captions=False, blur=()):
     import websockets
     chrome, profile, ws_url = start_chrome(w, h)
     try:
@@ -194,6 +195,8 @@ async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=Fa
             await page.cmd("Runtime.addBinding", name="__reshoot")
             if post_captions:
                 await page.cmd("Page.addScriptToEvaluateOnNewDocument", source="window.__reshootPostCaptions = true")
+            if blur:
+                await page.cmd("Page.addScriptToEvaluateOnNewDocument", source=f"window.__reshootBlur = {json.dumps(list(blur))}")
             await page.cmd("Page.addScriptToEvaluateOnNewDocument", source=(HERE / "overlay.js").read_text())
             await page.cmd("Page.navigate", url=url)
             await asyncio.sleep(settle)
@@ -272,16 +275,17 @@ def main(a):
     frames = []
     errors, assets, starts, events = asyncio.run(record(
         board["BEATS"], url, w, h, cap_dpr, frames, theme, board.get("WARM", ()), a.mobile or board.get("MOBILE", False),
-        board.get("SETTLE", 4), board.get("ASSETS", ()), board.get("SETUP", ()), post_captions=bool(z)))
+        board.get("SETTLE", 4), board.get("ASSETS", ()), board.get("SETUP", ()), post_captions=bool(z),
+        blur=board.get("BLUR", ())))
     out.with_suffix(".assets.json").write_text(json.dumps(sorted(assets), indent=1))
-    if len(frames) < 3:
+    if not any(jpg for _, jpg in frames):  # a still page sends one frame, which is enough: it's held to the end
         raise SystemExit("no frames captured: did the page draw anything?")
     t0 = frames[0][0]
     out.with_suffix(".beats.json").write_text(json.dumps({n: max(0, round(t - t0, 3)) for n, t in starts.items()}, indent=1))
     out.with_suffix(".events.json").write_text(json.dumps([{"t": round(t - t0, 3), **ev} for t, ev in events], indent=1))
     span = frames[-1][0] - frames[0][0]
-    gaps = sorted(b[0] - a_[0] for a_, b in zip(frames[:-1], frames[1:-1]))
-    print(f"{len(frames)} frames over {span:.1f}s: {len(frames) / span:.0f} fps on average, "
+    gaps = sorted(b[0] - a_[0] for a_, b in zip(frames[:-1], frames[1:-1])) or [span]
+    print(f"{len(frames) - 1} frames over {span:.1f}s: {(len(frames) - 1) / max(span, 0.001):.0f} fps on average, "
           f"longest gap {gaps[-1] * 1000:.0f} ms, 95% of gaps under {gaps[int(len(gaps) * .95)] * 1000:.0f} ms")
     ow, oh = int(w * dpr) // 2 * 2, int(h * dpr) // 2 * 2
     if z:

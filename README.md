@@ -24,7 +24,7 @@ what I learned into this repo. It has:
 | Record a web page | `reshoot web storyboard.py takes/web.mp4` plays it in headless Chrome, with a drawn cursor, typing and captions, and zooms in on clicks and typing. Only the page is captured. |
 | Record a terminal | [VHS](https://github.com/charmbracelet/vhs) plays a tape in a clean shell. |
 | Record an app window | `reshoot window TextEdit takes/app.mov` records one window on macOS, never the whole screen. |
-| Check | `reshoot check takes/web.assets.json takes/web.mp4` makes numbered sheets of every image the take can show, to look at before sharing. |
+| Check | `reshoot check takes/web.assets.json takes/web.mp4` makes numbered sheets of every image the take can show, to look at before sharing. A scan flags emails, keys, paths, addresses, faces and your own watch-for words first. `BLUR` hides what has to stay in the app. |
 | Cut | A short Python edit script with `reshoot.cut`: trims at beat names, title and end cards, sped-up parts, a 9:16 version and GIFs. |
 | Keep it current | `reshoot run` does the whole shoot from a `reshoot.toml`. A GitHub Action reshoots on each release and opens a pull request ([guide](guide/ci.md)). |
 

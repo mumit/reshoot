@@ -35,6 +35,9 @@ def main(argv=None):
     p.add_argument("--every", type=float, default=3, help="seconds between frames taken from a video")
     p.add_argument("--fail", nargs="+", metavar="LABEL", help="these failed")
     p.add_argument("--ok", action="store_true", help="every other image on the sheets passed")
+    p.add_argument("--watch-for", action="append", metavar="WORDS",
+                   help="words to flag wherever they appear, comma-separated, or @FILE with one per line")
+    p.add_argument("--no-scan", dest="scan", action="store_false", help="don't scan for likely problems")
     p.set_defaults(run=check.main)
 
     from reshoot import cut

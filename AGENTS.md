@@ -17,6 +17,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/overlay.js` | The cursor, typing and captions added to the recorded page (`__demo`) |
 | `src/reshoot/window.py` | `reshoot window`: one macOS window |
 | `src/reshoot/check.py` | `reshoot check`: contact sheets and the list of what passed |
+| `src/reshoot/scan.py` | The privacy scan: text (Vision or Tesseract), faces and people (Vision) |
 | `src/reshoot/cut.py` | Helpers for edit scripts, and `reshoot gif` |
 | `src/reshoot/run.py` | `reshoot run`: a whole shoot from a reshoot.toml |
 | `src/reshoot/rec.py`, `rec.js` | `reshoot rec`: a storyboard written by watching someone use the app |

@@ -28,6 +28,7 @@ SETUP = [                      # run before recording: log in, clear what the la
 WARM = ["#map"]                # views to open before recording, so their data is loaded
 ASSETS = ["/uploads/"]         # optional: only list URLs containing these
 ZOOM = True                    # zoom in on clicks and typing; or {"scale": 1.8, "quiet": 4.0, ...} (see below)
+BLUR = [".avatar"]             # blurred on every page for the whole take
 BEATS = [
     ("home",   "__demo.caption('Find any note', 'works offline')", 2.0),
     ("type",   "__demo.caption(null); await __demo.type('#q', 'bikes')", 0.4),
@@ -49,6 +50,7 @@ Each beat is (name, JavaScript, seconds to hold after it). The JavaScript runs i
 | `await __demo.to(sel)` / `moveTo(x, y)` | moves the cursor without clicking |
 | `__demo.caption(text, small)` / `caption(null)` | shows or hides a caption |
 | `__demo.hide()` / `show()` | hides or shows the cursor |
+| `__demo.blur(sel, {px})` / `unblur(sel)` | blurs everything matching sel (12 px), including what the page adds later |
 | `__demo.byText(tag, text)` | the element whose words are text, such as `byText("button", "Save")`; pass it to `click` |
 | `__demo.zoom(sel, {scale})` / `zoomOut()` | with `ZOOM` on: zooms in on sel until `zoomOut()`, over the automatic zoom |
 
@@ -103,6 +105,8 @@ put it in the next beat.
   something, `await __demo.waitFor(...)` before the hold.
 - **Blank maps and images when first shown.** Each take starts with a fresh browser profile, so nothing is cached.
   List those views in `WARM`.
+- **Something private on every page,** like the account name in a header: put it in `BLUR`, rather than hoping
+  each take avoids it.
 - **Logged out.** The fresh profile has no cookies. Log in with a demo account in `SETUP`. Never point reshoot at
   someone's own browser profile.
 - **Phone sizes.** Headless Chrome won't make a window under 500 px. reshoot sets the size with device metrics

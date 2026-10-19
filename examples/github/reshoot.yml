@@ -52,4 +52,5 @@ jobs:
 
             **Before merging:** download the `reshoot-review` artifact from this run and look at every
             review sheet at full size. ${{ steps.shoot.outputs.unchecked }} images haven't been checked yet.
+            The scan flagged ${{ steps.shoot.outputs.flagged }} as likely problems: they come first, boxed in red.
             Then watch the new video all the way through.

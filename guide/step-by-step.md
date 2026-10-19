@@ -51,8 +51,18 @@ The [notes example](../examples/notes/) goes through each step on a small made-u
 
 ## Write the storyboard
 
-Start from [examples/notes/storyboard.py](../examples/notes/storyboard.py). Each beat is a name, some JavaScript run
-in the page, and seconds to hold:
+The quickest start is to click through it myself:
+
+```bash
+reshoot rec http://localhost:8000/ tools/demo/storyboard.py
+```
+
+Chrome opens with a fresh, empty profile. I click and type through what the video should show, then close the
+window, and it writes a storyboard: one beat per click or run of typing, with my pauses as the holds. Then I add the
+captions and check the selectors. Anything typed into a password field comes out as a placeholder.
+
+Or I write it by hand, starting from [examples/notes/storyboard.py](../examples/notes/storyboard.py). Each beat is a
+name, some JavaScript run in the page, and seconds to hold:
 
 ```python
 URL = "http://localhost:8000/"

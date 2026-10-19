@@ -19,12 +19,14 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/check.py` | `reshoot check`: contact sheets and the list of what passed |
 | `src/reshoot/cut.py` | Helpers for edit scripts, and `reshoot gif` |
 | `src/reshoot/run.py` | `reshoot run`: a whole shoot from a reshoot.toml |
+| `src/reshoot/rec.py`, `rec.js` | `reshoot rec`: a storyboard written by watching someone use the app |
+| `src/reshoot/zoom.py` | Zoom on clicks, and captions drawn after the zoom |
 | `action.yml` | The GitHub Action: installs everything and runs `reshoot run` |
 | `skills/` | The Claude Code skills |
 | `guide/` | The guide for people |
 | `examples/notes/` | A made-up app, its storyboards, a tape, an edit script and a reshoot.toml |
 | `examples/github/` | The workflow a project copies to reshoot in CI |
-| `tests/` | pytest, and storyboards the browser tests use (`tests/boards/`) |
+| `tests/` | pytest; `tests/boards/` has pages and storyboards for the browser tests, and `tests/person.py` stands in for someone using Chrome |
 
 ## Commands
 

@@ -38,6 +38,13 @@ window.__demo = window.__demo || (() => {
   place();
   const sleep = ms => new Promise(ok => setTimeout(ok, ms));
   const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  // The tag (such as "button") whose words are text, for things best found by what they say.
+  const byText = (tag, text) => {
+    const norm = s => (s || "").trim().replace(/\s+/g, " ");
+    const e = [...document.querySelectorAll(tag)].find(x => norm(x.innerText || x.value) === text);
+    if (!e) throw new Error(`no ${tag} says "${text}"`);
+    return e;
+  };
   const el = sel => {
     const e = typeof sel === "string" ? document.querySelector(sel) : sel;
     if (!e) throw new Error("nothing matches " + sel);
@@ -198,5 +205,5 @@ window.__demo = window.__demo || (() => {
 
   const hide = () => { cur.style.opacity = 0; };
   const show = () => { cur.style.opacity = 1; };
-  return { moveTo, to, click, type, key, scroll, waitFor, caption, sleep, hide, show, zoom, zoomOut };
+  return { moveTo, to, click, type, key, scroll, waitFor, caption, sleep, hide, show, zoom, zoomOut, byText };
 })();

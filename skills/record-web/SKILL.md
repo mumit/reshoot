@@ -49,6 +49,7 @@ Each beat is (name, JavaScript, seconds to hold after it). The JavaScript runs i
 | `await __demo.to(sel)` / `moveTo(x, y)` | moves the cursor without clicking |
 | `__demo.caption(text, small)` / `caption(null)` | shows or hides a caption |
 | `__demo.hide()` / `show()` | hides or shows the cursor |
+| `__demo.byText(tag, text)` | the element whose words are text, such as `byText("button", "Save")`; pass it to `click` |
 | `__demo.zoom(sel, {scale})` / `zoomOut()` | with `ZOOM` on: zooms in on sel until `zoomOut()`, over the automatic zoom |
 
 A beat may also call the app's own functions, or set `location.hash`, when that's simpler than clicking.
@@ -74,8 +75,13 @@ put it in the next beat.
 ## Steps
 
 1. Start the app on demo data, on its own port.
-2. Find the selectors: read the app's HTML, or open the page and look. Prefer ids and stable classes.
-3. Write the storyboard. Try a beat at a time: put the beats so far in the file and record a short take.
+2. Get a first storyboard, one of two ways:
+   - **The person clicks through it:** `reshoot rec http://localhost:8000/ tools/demo/storyboard.py` opens Chrome
+     with a fresh profile. They click and type through what the video should show and close the window, and it
+     writes the beats. Ask them to do this when the flow is long or the selectors are hard to find.
+   - **You write it:** read the app's HTML for the selectors. Prefer test ids, ids and names.
+3. Finish the storyboard: add captions, check the holds, and give the beats names the cut can use. Try a beat at a
+   time: put the beats so far in the file and record a short take.
 4. Record: `reshoot web tools/demo/storyboard.py takes/web.mp4`. Each beat prints how long it took. A beat that
    fails stops the take and names the beat.
 5. Look at frames, not only the log: `ffmpeg -ss 5 -i takes/web.mp4 -frames:v 1 frame.png`, at several times.
@@ -99,4 +105,7 @@ put it in the next beat.
   the last until recording stops, so the end card gets its full time.
 - **Zooming hides a result.** If something appears far from what was clicked, it may be out of view while zoomed.
   Raise `idle` or lower `hold`, or call `__demo.zoomOut()` in the beat that shows the result.
+- **A recorded storyboard is a draft.** `reshoot rec` turns a password into a placeholder, skips ids that look made
+  up by a framework, and finds a button by its words when it can. Read the selectors anyway: one that matches only
+  by its place in the page breaks first when the page changes.
 - **Page errors** are printed at the end. Fix them: they often mean a beat ran before the page was ready.

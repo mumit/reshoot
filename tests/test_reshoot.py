@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from reshoot import check, cut, web, zoom
+from reshoot import check, cut, rec, web, zoom
 from reshoot.cli import main as cli
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,6 +103,29 @@ def test_zoom_render_enlarges_the_target_and_draws_the_caption(tmp_path):
     assert red(tmp_path / "b.png") > 3 * red(tmp_path / "a.png")  # about 4 times the area at 2x
     bottom = Image.open(tmp_path / "b.png").convert("L").crop((200, 300, 440, 340))
     assert bottom.getextrema()[1] > 200  # the caption's white text
+
+
+def test_rec_joins_typing_drops_the_focusing_click_and_hides_passwords(tmp_path):
+    calls = [(1.0, {"kind": "click", "where": ["css", "#email"], "field": True})]
+    calls += [(1.1 + i / 10, {"kind": "type", "where": ["css", "#email"], "value": "demo@example.com"[:i + 1]}) for i in range(16)]
+    calls += [(4.0, {"kind": "click", "where": ["css", "#pw"], "field": True}),
+              (4.2, {"kind": "type", "where": ["css", "#pw"], "value": "hunter2", "secret": True}),
+              (5.0, {"kind": "key", "key": "Enter", "where": ["css", "#pw"]}),
+              (5.1, {"kind": "key", "key": "Tab", "where": ["css", "#pw"]}),
+              (7.0, {"kind": "scroll", "dy": 400}),
+              (9.0, {"kind": "click", "where": ["text", ["button", "Save"]], "field": False})]
+    beats = rec.beats_from(calls)
+    assert [b[0] for b in beats] == ["type-email", "type-pw", "press-enter", "scroll", "click-save"]
+    assert beats[0][1] == 'await __demo.type("#email", "demo@example.com")'
+    assert "hunter2" not in repr(beats) and beats[1][1].endswith('"demo-password")') and "password" in beats[1][3]
+    assert beats[3][1] == "await __demo.scroll(400)"
+    assert beats[4][1] == 'await __demo.click(__demo.byText("button", "Save"))'
+    assert all(0.4 <= b[2] <= 3.0 for b in beats[:-1]) and beats[-1][2] == 2.5
+    out = tmp_path / "board.py"
+    rec.write(out, "http://localhost:8000/", "1280x720@1.5", beats)
+    board = __import__("runpy").run_path(str(out))
+    assert board["URL"] == "http://localhost:8000/" and board["BEATS"][-1][0] == "end" and len(board["BEATS"]) == 6
+    assert "put the demo account's password here" in out.read_text()
 
 
 def test_size_parsing():
@@ -284,6 +307,85 @@ def test_zoomed_take_reports_its_actions(tmp_path, notes_app):
     assert [e["phase"] for e in events if e["kind"] == "act"] == ["start", "end"] * 3  # type, click Add, type
     assert any(e["kind"] == "caption" and e["text"] for e in events)
     assert cut.probe(out)[:2] == (640, 360)
+
+
+def test_rec_clears_a_field_that_was_emptied_or_changed():
+    w = ["css", "#q"]
+    calls = [(1.0, {"kind": "type", "where": w, "value": "bread", "before": ""}),
+             (3.0, {"kind": "click", "where": ["css", "#other"], "field": False}),
+             (4.0, {"kind": "type", "where": w, "value": "brea", "before": "bread"}),
+             (4.1, {"kind": "type", "where": w, "value": "", "before": "bread"}),
+             (6.0, {"kind": "click", "where": ["css", "#other"], "field": False}),
+             (7.0, {"kind": "type", "where": w, "value": "tap water", "before": "tap"})]
+    js = [b[1] for b in rec.beats_from(calls)]
+    assert js[0] == 'await __demo.type("#q", "bread")'
+    assert js[2] == 'await __demo.type("#q", "", { clear: true })'  # emptied: cleared on replay, not left alone
+    assert js[4] == 'await __demo.type("#q", " water")'  # added to what was there: only the new words
+
+
+@pytest.mark.browser
+@needs_ffmpeg
+def test_rec_replays_clearing_a_field_and_skips_background_clicks(tmp_path, notes_app):
+    import asyncio, sys
+    sys.path.insert(0, str(ROOT / "tests"))
+    import person
+    calls = []
+    asyncio.run(rec.session(notes_app, 1280, 720, calls, headless=True, drive=person.clearing_tour))
+    beats = rec.beats_from(calls)
+    js = [b[1] for b in beats]
+    assert js == ['await __demo.type("#q", "bread")', 'await __demo.click("#text")',
+                  'await __demo.type("#q", "", { clear: true })', 'await __demo.click("#text")',
+                  'await __demo.type("#q", "tap")'], js  # no beat for the background click
+    board = tmp_path / "board.py"
+    rec.write(board, notes_app, "640x360@1", beats)
+    board.write_text(board.read_text().replace('    ("end", "__demo.hide()", 2.5),', """    ("check", "if (document.querySelector('#q').value !== 'tap') throw new Error('search is ' + document.querySelector('#q').value)", 0),"""))
+    assert record(board, tmp_path / "replay.mp4", notes_app) == 0
+
+
+@pytest.mark.browser
+def test_rec_picks_stable_selectors(tmp_path):
+    import asyncio, sys
+    sys.path.insert(0, str(ROOT / "tests"))
+    import person
+    handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(ROOT / "tests/boards"))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+
+    async def tour(page):
+        await asyncio.sleep(1)
+        for sel in ["[data-testid=save]", "#css-8f3k2z", "input[name=email]", ".toolbar button:nth-of-type(2)", "nav a"]:
+            await person.click(page, sel)
+        await person.click(page, "#pw"); await person.type(page, "secret1")
+
+    calls = []
+    try:
+        asyncio.run(rec.session(f"http://127.0.0.1:{server.server_port}/selectors.html", 800, 600, calls, headless=True, drive=tour))
+    finally:
+        server.shutdown()
+    found = [c["where"] for _, c in calls if c["kind"] == "click"]
+    assert found[0] == ["css", '[data-testid="save"]']  # a test id first
+    assert found[1] == ["text", ["button", "Generated id"]]  # a made-up id is skipped for its words
+    assert found[2] == ["css", 'input[name="email"]']
+    assert found[3] == ["css", "body > div > button:nth-of-type(2)"]  # two buttons say Share: found by place
+    assert found[4] == ["text", ["a", "One"]]
+    assert [c.get("secret") for _, c in calls if c["kind"] == "type"][-1] is True
+
+
+@pytest.mark.browser
+@needs_ffmpeg
+def test_rec_writes_a_storyboard_that_replays(tmp_path, notes_app):
+    import asyncio, sys
+    sys.path.insert(0, str(ROOT / "tests"))
+    import person
+    calls = []
+    asyncio.run(rec.session(notes_app, 1280, 720, calls, headless=True, drive=person.notes_tour))
+    beats = rec.beats_from(calls)
+    assert [b[0] for b in beats] == ["click-about", "click-back", "type-text", "press-enter", "type-q"]
+    board = tmp_path / "board.py"
+    rec.write(board, notes_app, "640x360@1", beats)
+    text = board.read_text().replace('    ("end", "__demo.hide()", 2.5),', """    ("check", "const n = [...document.querySelectorAll('#list li')].filter(li => li.textContent.includes('Buy stamps')).length; if (n !== 1) throw new Error(n + ' notes')", 0),""")
+    board.write_text(text)  # the note was added once: Enter's own click on Add wasn't recorded too
+    assert record(board, tmp_path / "replay.mp4", notes_app) == 0
 
 
 @pytest.mark.browser

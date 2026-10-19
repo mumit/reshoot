@@ -62,6 +62,7 @@ class Page:
         self.want = list(assets)
         self.beats = {}  # name: when the beat started (seconds since epoch, like the frames)
         self.events = []  # (when, what the page reported): actions and captions, for zooming afterwards
+        self.calls = []  # (when, what) from other bindings, such as the recorder's
         self.loaded = asyncio.Event()  # cleared when the tab starts loading a new page, set when it's loaded
         self.loaded.set()
 
@@ -91,8 +92,9 @@ class Page:
                 self.loaded.clear()
             elif m.get("method") == "Page.frameStartedNavigating" and m["params"].get("navigationType") != "sameDocument":
                 self.loaded.clear()
-            elif m.get("method") == "Runtime.bindingCalled" and m["params"]["name"] == "__reshoot":
-                self.events.append((time.time(), json.loads(m["params"]["payload"])))
+            elif m.get("method") == "Runtime.bindingCalled":
+                p = m["params"]
+                (self.events if p["name"] == "__reshoot" else self.calls).append((time.time(), json.loads(p["payload"])))
             elif m.get("method") == "Page.loadEventFired":
                 self.loaded.set()
             elif m.get("method") == "Runtime.exceptionThrown":
@@ -149,27 +151,36 @@ async def play(page, beats, quiet=False):
             print(f"  {name:22} {time.time() - t:5.1f}s", flush=True)
 
 
+def start_chrome(w, h, headless=True):
+    """Starts Chrome with a fresh, empty profile; returns (process, profile folder, the tab's DevTools address)."""
+    port, profile = free_port(), tempfile.mkdtemp(prefix="reshoot-")
+    chrome = subprocess.Popen([find_chrome(), *(["--headless", "--hide-scrollbars"] if headless else []),
+                               "--force-color-profile=srgb", "--mute-audio", "--no-first-run",
+                               "--no-default-browser-check", *chrome_flags(), f"--remote-debugging-port={port}",
+                               f"--user-data-dir={profile}", f"--window-size={w},{h}", "about:blank"],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(150):
+        try:
+            tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{port}/json"))
+            if any(t["type"] == "page" for t in tabs):
+                return chrome, profile, next(t for t in tabs if t["type"] == "page")["webSocketDebuggerUrl"]
+        except OSError:
+            pass
+        time.sleep(0.1)
+    stop_chrome(chrome, profile)
+    raise SystemExit("Chrome didn't start (or has no tab to drive)")
+
+
+def stop_chrome(chrome, profile):
+    chrome.kill(); chrome.wait()
+    shutil.rmtree(profile, ignore_errors=True)
+
+
 async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=False, settle=4, assets=(), setup=(),
                  post_captions=False):
     import websockets
-    port, profile = free_port(), tempfile.mkdtemp(prefix="reshoot-")
-    chrome = subprocess.Popen([find_chrome(), "--headless", "--hide-scrollbars", "--force-color-profile=srgb",
-                               "--mute-audio", "--no-first-run", "--no-default-browser-check", *chrome_flags(),
-                               f"--remote-debugging-port={port}", f"--user-data-dir={profile}", f"--window-size={w},{h}",
-                               "about:blank"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    chrome, profile, ws_url = start_chrome(w, h)
     try:
-        tabs = []
-        for _ in range(150):
-            try:
-                tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{port}/json"))
-                if any(t["type"] == "page" for t in tabs):
-                    break
-            except OSError:
-                pass
-            time.sleep(0.1)
-        else:
-            raise SystemExit("Chrome didn't start (or has no tab to drive)")
-        ws_url = next(t for t in tabs if t["type"] == "page")["webSocketDebuggerUrl"]
         async with websockets.connect(ws_url, max_size=200_000_000) as ws:
             page = Page(ws, frames, assets)
             reader = asyncio.create_task(page.read())
@@ -214,8 +225,7 @@ async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=Fa
             reader.cancel()
             return page.errors, page.assets, page.beats, page.events
     finally:
-        chrome.kill(); chrome.wait()
-        shutil.rmtree(profile, ignore_errors=True)
+        stop_chrome(chrome, profile)
 
 
 def encode(frames, out, fps=60, size="1920:1080"):

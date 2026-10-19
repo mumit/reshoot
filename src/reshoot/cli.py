@@ -49,6 +49,14 @@ def main(argv=None):
     p.add_argument("take")
     p.set_defaults(run=lambda a: print(f"{cut.last_change(a.take):.2f}"))
 
+    from reshoot import rec
+    p = sub.add_parser("rec", help="write a storyboard by clicking and typing through the app in Chrome",
+                       description=rec.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("url"); p.add_argument("out", help="the storyboard to write, such as tools/demo/storyboard.py")
+    p.add_argument("--size", default="1280x720@1.5", help="the page size the storyboard is for (default 1280x720@1.5)")
+    p.add_argument("--headless", action="store_true", help=argparse.SUPPRESS)
+    p.set_defaults(run=rec.main)
+
     from reshoot import run
     p = sub.add_parser("run", help="run a whole shoot from a reshoot.toml: the app, every take, the cut and the check",
                        description=run.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)

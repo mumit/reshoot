@@ -49,6 +49,15 @@ but it helps to know why.
   reshoot: actions close together share one view that holds them all.
 - **Zooming the live page breaks it.** Scaling the page itself moves fixed headers and pushes captions off screen.
   reshoot zooms afterwards, from where each action was, and draws captions after the zoom.
+- **Enter recorded twice.** Pressing Enter in a form makes the browser click the form's button too. Recording both
+  added the note twice on replay. Fixed in reshoot: `reshoot rec` skips clicks no mouse made.
+- **Clearing a field recorded as typing nothing.** The first recordings kept only what a field held at the end, so
+  emptying a search box replayed as "type nothing" and left the old text there. Fixed in reshoot: `reshoot rec`
+  notes what the field held first, and clears it on replay when the text was removed or changed.
+- **A click on the page's background.** It was recorded with an empty selector, and the replay stopped there.
+  Fixed in reshoot: clicks on the page itself are skipped, since they do nothing.
+- **Ids that change.** Frameworks make ids like `css-8f3k2z` that change between builds. `reshoot rec` skips ids
+  that look made up and uses a test id, a name, a label or the element's words instead.
 - **A light or dark page when you wanted the other.** reshoot sets `prefers-color-scheme` (dark unless asked).
 
 ## Terminal takes

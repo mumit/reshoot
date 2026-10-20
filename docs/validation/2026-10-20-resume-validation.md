@@ -20,9 +20,14 @@ all 68 fast tests passed, including wheel/package checks. The generated-project
 browser integration passed after the expectation fix; the new mixed-preview
 integration passed after the preview fix. Six encoded-video caption cases passed
 with the final overlay, covering navigation, zoom, and styling. The entire browser
-suite was not rerun
-after the fixes. Plugin validation passed with the same
-warning: the plugin-root `CLAUDE.md` is not loaded as project context.
+suite was not rerun locally after the fixes. Plugin validation passed with the
+same warning: the plugin-root `CLAUDE.md` is not loaded as project context.
+
+[CI for `2bc2a31`](https://github.com/mumit/reshoot/actions/runs/39465360916)
+passed the full fast and browser suites on Linux and macOS, plus clean wheel
+installation, both packaged skill installers, doctor, and packaged previews.
+The separate Linux browser-plus-VHS notes shoot also passed. This validates the
+four code fixes; later documentation-only commits do not change that code.
 
 The outer sandbox blocked some attempts to bind a local server port, access
 Claude authentication, initialize Codex's app server, and write the Git index.

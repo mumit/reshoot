@@ -7,20 +7,19 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
 
 ## Next
 
-Everything from the first plan is done. The next items come from Later, when they're picked.
+1. **Trim dead time.** In the finished video, shorten pauses where nothing moves (to about 0.8 s), and shift the
+   beat times to match. Recordings made by a person are full of pauses spent finding the next button.
+2. **Export presets** for X, LinkedIn, YouTube and README GIFs: each site's size, length and format, and a poster
+   frame.
+3. **iOS and Android takes:** the iOS Simulator (`xcrun simctl io recordVideo`) and the Android emulator
+   (`adb screenrecord`), driven by a script like a storyboard. Both can be recorded without showing the desktop.
 
 ## Later
 
-- **Export presets** for X, LinkedIn, YouTube and README GIFs: each site's size and length limits, and a poster
-  frame.
 - **Frames and themes:** a browser frame, a phone frame, a background, brand colours and a logo, set once for a
   project.
 - **An edit file instead of an edit script:** a short list of parts in YAML or TOML, for people who'd rather not
   write Python.
-- **More kinds of take:** the iOS Simulator (`xcrun simctl io recordVideo`) and the Android emulator
-  (`adb screenrecord`). Both can be scripted and never show the desktop.
-- **Trim dead time:** in the finished video, shorten pauses where nothing moves (to about 0.8 s), and shift the
-  beat times to match. Recordings made by a person are full of pauses spent finding the next button.
 - **A Playwright importer:** turn existing Playwright tests into storyboards.
 - **Faster tries:** `--from BEAT` to start a take part-way, and a quick low-resolution mode.
 - **Translations:** one storyboard with captions in several languages.

@@ -14,7 +14,8 @@ user name, street addresses, and the words given with --watch-for) and for faces
 in red on the sheets, which put flagged images first, and listed with what was found masked, so a key doesn't end
 up in a log. The scan points at problems; it never passes an image.
 """
-import hashlib, io, json, mimetypes, platform, subprocess, tempfile, urllib.request
+import hashlib, io, json, mimetypes, platform, subprocess, tempfile, urllib.request, uuid
+from reshoot.safety import describe
 from datetime import date
 from pathlib import Path
 
@@ -35,20 +36,26 @@ def items(sources, every=3):
             try:
                 yield s, urllib.request.urlopen(s, timeout=30).read()
             except OSError as e:
-                print(f"  can't fetch {s}: {e}")
+                raise ValueError(f"cannot fetch {describe(s)} ({type(e).__name__})") from None
         elif p.suffix == ".json":
-            yield from items(json.loads(p.read_text()), every)
+            try:
+                sources = json.loads(p.read_text())
+                if not isinstance(sources, list) or not all(isinstance(x, str) for x in sources):
+                    raise ValueError()
+            except (OSError, ValueError):
+                raise ValueError(f"invalid or missing source list: {describe(s)}") from None
+            yield from items(sources, every)
         elif p.is_dir():
             yield from items(sorted(str(f) for f in p.rglob("*") if f.suffix.lower() in IMAGES | VIDEOS), every)
         elif p.suffix.lower() in VIDEOS:
             with tempfile.TemporaryDirectory() as t:
-                subprocess.run(["ffmpeg", "-loglevel", "error", "-i", s, "-vf", f"fps=1/{every}", f"{t}/%05d.jpg"], check=True)
+                subprocess.run(["ffmpeg", "-loglevel", "error", "-i", s, "-vf", f"fps=1/{every}", f"{t}/%05d.jpg"], check=True, capture_output=True)
                 for i, f in enumerate(sorted(Path(t).glob("*.jpg"))):
                     yield f"{s}@{i * every}s", f.read_bytes()
         elif p.exists():
             yield s, p.read_bytes()
         else:
-            print(f"  skipped {s}: not a file, folder or URL")
+            raise ValueError(f"missing source: {describe(s)}")
 
 
 def open_image(data):
@@ -96,7 +103,7 @@ def sheets(todo, review):
                             outline=(230, 30, 30), width=3)
             d.rectangle((x, y, x + 70, y + 30), fill=(200, 20, 20) if flags else "black")
             d.text((x + 8, y + 8), label + (" !" if flags else ""), fill="white")
-            key[label] = [src, h]
+            key[label] = [describe(src), h]
             if flags:
                 flagged[label] = [[why, mask(why, part)] for _, why, part in flags]
         sheet.save(review / f"{s // 4 + 1:02}.jpg", quality=92)
@@ -105,7 +112,7 @@ def sheets(todo, review):
     return key, flagged
 
 
-def main(a):
+def perform(a, report):
     review = Path(a.review)
     checked = load(review / "checked.json", {})
     if a.fail:
@@ -120,6 +127,10 @@ def main(a):
             print("  " + src)
         return 0
     if a.ok:
+        if not (review / "key.json").exists():
+            raise ValueError("no current review sheets")
+        if load(review / "report.json", {}).get("status") == "error":
+            raise ValueError("the check failed: fix its inputs and run it again before accepting")
         key, failed = load(review / "key.json", {}), set(load(review / "failed.json", []))
         passed = {h: src for src, h in key.values() if h not in failed}
         checked |= {h: {"source": src, "checked": date.today().isoformat()} for h, src in passed.items()}
@@ -138,21 +149,32 @@ def main(a):
         print("  no text scan: install Tesseract (apt install tesseract-ocr), or look closely")
     if a.scan and not mac:
         print("  no scan for faces and people here (it needs macOS): look for them yourself")
+    report['scan'] = {'status': 'completed' if can else 'skipped', 'detectors': sorted(can),
+                      'people': 'available' if 'people' in can else 'unavailable',
+                      'mode': 'sampled', 'every': a.every}
+    if a.scan and 'text' not in can:
+        raise ValueError("required text scan unavailable: install Vision or Tesseract, or explicitly use --no-scan")
+    if not a.sources:
+        raise ValueError("give at least one review source")
+    if a.every <= 0:
+        raise ValueError("--every must be positive")
     todo, seen = [], set()
     for src, data in items(a.sources, a.every):
+        report["samples"] += 1
         h = hashlib.sha256(data).hexdigest()[:16]
         if h in checked or h in seen:
             continue
         seen.add(h)
         im = open_image(data)
         if im is None:
-            print(f"  can't open {src} as an image ({mimetypes.guess_type(src)[0] or 'unknown type'}): check it by hand")
-            continue
+            raise ValueError(f"cannot decode image: {describe(src)}")
         todo.append((src, h, im, scan.scan(im, watch) if can else []))
     if not todo:
-        print("every image these takes can show has been checked")
+        print("all supplied images and sampled frames have been reviewed; unsampled frames are not covered")
+        report.update(unchecked=0, flagged=0, review="completed")
         return 0
     key, flagged = sheets(todo, review)
+    report.update(unchecked=len(key), flagged=len(flagged), review="pending")
     if flagged:
         print(f"The scan flagged {len(flagged)} of them (boxed in red, on the first sheets). Look at these first:")
         for label, flags in flagged.items():
@@ -160,3 +182,29 @@ def main(a):
     print(f"{len(todo)} images not checked yet, on {(len(todo) + 3) // 4} sheets in {review}/. Look at each one "
           "at full size, then run `reshoot check --fail LABEL...` for any that fail and `reshoot check --ok`.")
     return 1
+
+
+def main(a):
+    review = Path(a.review)
+    review.mkdir(parents=True, exist_ok=True)
+    report = {"schema_version": 1, "id": str(uuid.uuid4()), "status": "running",
+              "scan": {"status": "pending"}, "review": "pending", "samples": 0,
+              "unchecked": None, "flagged": None, "errors": []}
+    try:
+        code = perform(a, report)
+        report['status'] = 'completed'
+        if a.ok or a.fail:
+            previous = load(review / 'report.json', {})
+            if previous:
+                report = previous
+                report['review'] = 'failed' if load(review / 'failed.json', []) else 'completed'
+        return code
+    except (OSError, ValueError, subprocess.SubprocessError, RuntimeError) as e:
+        from reshoot.safety import redact
+        message = redact(str(e)) if not isinstance(e, subprocess.SubprocessError) else 'frame decoder failed'
+        report.update(status='error', errors=[message])
+        report['scan']['status'] = 'failed'
+        print('check failed: ' + message)
+        return 2
+    finally:
+        (review / 'report.json').write_text(json.dumps(report, indent=2))

@@ -41,14 +41,15 @@ sets the step's outputs: ok, unchecked, flagged and report.
 """
 import json, os, shlex, shutil, signal, subprocess, sys, time, tomllib, urllib.error, urllib.request
 from pathlib import Path
+from reshoot.safety import describe, redact
 
 
-def answers(url):
+def answers(url, ready=False):
     try:
-        urllib.request.urlopen(url, timeout=2)
-        return True
-    except urllib.error.HTTPError:  # it answered, even if with an error page
-        return True
+        with urllib.request.urlopen(url, timeout=2) as response:
+            return not ready or 200 <= response.status < 400
+    except urllib.error.HTTPError:
+        return not ready
     except OSError:
         return False
 
@@ -58,11 +59,11 @@ def start_app(app):
     if url and answers(url):
         raise SystemExit(f"something is already answering at {url}: stop it first, so the takes show the app this "
                          "shoot starts")
-    print(f"starting the app: {app['run']}", flush=True)
+    print("starting the demo app", flush=True)
     proc = subprocess.Popen(app["run"], shell=True, start_new_session=True)
     if url:
         deadline = time.time() + app.get("timeout", 60)
-        while not answers(url):
+        while not answers(url, ready=True):
             if proc.poll() is not None:
                 raise SystemExit(f"the app stopped before it answered at {url} (exit {proc.returncode})")
             if time.time() > deadline:
@@ -78,7 +79,11 @@ def stop_app(proc):
             os.killpg(proc.pid, signal.SIGTERM)
             proc.wait(10)
         except (ProcessLookupError, subprocess.TimeoutExpired):
-            os.killpg(proc.pid, signal.SIGKILL)
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+                proc.wait(10)
+            except ProcessLookupError:
+                pass
 
 
 def reshoot(*args):
@@ -106,64 +111,81 @@ def steps(shoot):
 
 def save(report, path):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report, indent=1))
+    temp = path.with_suffix('.tmp')
+    temp.write_text(json.dumps(report, indent=2))
+    temp.replace(path)
     if out := os.environ.get("GITHUB_OUTPUT"):
         with open(out, "a") as f:
-            f.write(f"ok={str(report['ok']).lower()}\nunchecked={report['unchecked'] or 0}\n"
-                    f"flagged={report.get('flagged') or 0}\nreport={path}\n")
+            for name in ('ok', 'unchecked', 'flagged', 'scan_status', 'review_status'):
+                value = report.get(name)
+                if isinstance(value, bool):
+                    value = str(value).lower()
+                f.write(f"{name}={value if value is not None else 'unknown'}\n")
+            f.write(f"report={path}\n")
+
+
+def execute(cmd, timeout):
+    proc = subprocess.Popen(cmd, start_new_session=True)
+    try:
+        return proc.wait(timeout)
+    finally:
+        stop_app(proc)
 
 
 def main(a):
     path = Path(a.config)
     if not path.exists():
-        raise SystemExit(f"no {path}: see `reshoot run --help` for what goes in it")
+        raise SystemExit(f"no {describe(path)}: see reshoot run --help")
     shoot = tomllib.loads(path.read_text())
     plan = list(steps(shoot))
-    takes = [Path(t["out"]) for t in shoot.get("take", []) if "out" in t]
-    report_path = Path(shoot.get("report", takes[0].parent / "run.json" if takes else "takes/run.json"))
-    report = {"config": str(path), "steps": [], "ok": False, "unchecked": None, "kept": []}
-    app, t0 = None, time.time()
+    takes = [Path(t['out']) for t in shoot.get('take', []) if 'out' in t]
+    report_path = Path(shoot.get('report', takes[0].parent / 'run.json' if takes else 'takes/run.json'))
+    report = {'schema_version': 1, 'config': describe(path), 'steps': [], 'ok': False,
+              'unchecked': None, 'flagged': None, 'kept': [], 'scan_status': 'skipped',
+              'review_status': 'pending', 'errors': []}
+    app, t0 = None, time.monotonic()
+    timeout = shoot.get('timeout', 600)
     try:
-        if "app" in shoot:
-            app = start_app(shoot["app"])
+        if 'app' in shoot:
+            app = start_app(shoot['app'])
         for name, cmd in plan:
-            print(f"\n== {name}", flush=True)
-            t = time.time()
-            if cmd[0] == "vhs" and not shutil.which("vhs"):
-                raise SystemExit("vhs isn't installed: see https://github.com/charmbracelet/vhs#installation")
-            code = subprocess.run(cmd).returncode
-            report["steps"].append({"step": name, "ok": code == 0, "seconds": round(time.time() - t, 1)})
+            print('\n== ' + redact(name), flush=True)
+            t = time.monotonic()
+            remaining = timeout - (t - t0)
+            if remaining <= 0:
+                raise TimeoutError('run exceeded its timeout')
+            code = execute(cmd, remaining)
+            report['steps'].append({'step': redact(name), 'ok': code == 0,
+                                    'seconds': round(time.monotonic() - t, 1)})
             if code:
-                raise SystemExit(f"{name} failed (exit {code})")
+                raise RuntimeError(f"{redact(name)} failed (exit {code})")
+        if check := shoot.get('check'):
+            print('\n== check', flush=True)
+            review = Path(check.get('review', 'takes/review'))
+            check_path = review / 'report.json'
+            check_path.unlink(missing_ok=True)
+            cmd = reshoot('check', *check.get('sources', []), '--review', review, '--every', check.get('every', 3),
+                          *[a for w in check.get('watch_for', []) for a in ('--watch-for', w)],
+                          *([] if check.get('scan', True) else ['--no-scan']))
+            code = execute(cmd, max(0.01, timeout - (time.monotonic() - t0)))
+            result = json.loads(check_path.read_text()) if check_path.exists() else {}
+            report.update(review=str(review), scan_status=result.get('scan', {}).get('status', 'failed'),
+                          review_status=result.get('review', 'pending'), unchecked=result.get('unchecked'),
+                          flagged=result.get('flagged'))
+            if code not in (0, 1) or result.get('status') != 'completed':
+                raise RuntimeError(f'check failed (exit {code}); see its report')
+        for src, dst in shoot.get('keep', {}).items():
+            Path(dst).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+            report['kept'].append(describe(dst))
+        report['ok'] = True
+    except (Exception, SystemExit, KeyboardInterrupt) as e:
+        report['errors'].append(redact(str(e)) or type(e).__name__)
+        raise SystemExit('run failed: ' + report['errors'][-1]) from None
     finally:
         stop_app(app)
-        report["seconds"] = round(time.time() - t0, 1)
-        if not all(s["ok"] for s in report["steps"]) or len(report["steps"]) < len(plan):
-            save(report, report_path)  # the run failed: say so before stopping
-
-    if check := shoot.get("check"):
-        print("\n== check", flush=True)
-        review = check.get("review", "takes/review")
-        cmd = reshoot("check", *check.get("sources", []), "--review", review, "--every", check.get("every", 3),
-                      *[a for w in check.get("watch_for", []) for a in ("--watch-for", w)],
-                      *([] if check.get("scan", True) else ["--no-scan"]))
-        code = subprocess.run(cmd).returncode
-        key, flags = Path(review) / "key.json", Path(review) / "flags.json"
-        report["unchecked"] = len(json.loads(key.read_text())) if code == 1 and key.exists() else 0
-        report["flagged"] = len(json.loads(flags.read_text())) if code == 1 and flags.exists() else 0
-        report["review"] = review
-    for src, dst in shoot.get("keep", {}).items():
-        Path(dst).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, dst)
-        report["kept"].append(dst)
-    report["ok"] = True
-    save(report, report_path)
-
-    print(f"\ndone in {report['seconds']:.0f} s: {len(plan)} steps", end="")
-    if report["kept"]:
-        print(f", kept {', '.join(report['kept'])}", end="")
-    print(f". Report in {report_path}.")
-    if report["unchecked"]:
-        print(f"{report['unchecked']} images haven't been checked by eye yet"
-              + (f", and the scan flagged {report['flagged']}" if report.get("flagged") else "")
-              + f": look at the sheets in {report['review']}/ before sharing anything.")
+        report['seconds'] = round(time.monotonic() - t0, 1)
+        save(report, report_path)
+    print(f"done in {report['seconds']:.0f} s. Report in {report_path}.")
+    if report['review_status'] != 'completed':
+        print('Human review is pending; execution success is not approval to publish.')

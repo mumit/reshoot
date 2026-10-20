@@ -14,6 +14,12 @@ inputs:
     default: auto
 
 outputs:
+  scan_status:
+    description: completed, skipped, or failed; not a privacy verdict
+    value: ${{ steps.run.outputs.scan_status }}
+  review_status:
+    description: pending, completed, or failed human review
+    value: ${{ steps.run.outputs.review_status }}
   ok:
     description: '"true" when every step worked'
     value: ${{ steps.run.outputs.ok }}

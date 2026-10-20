@@ -21,7 +21,7 @@ keeps a face, a name or a house number out of a public video.
    `--every` seconds, default 3), image files, folders and URLs. The app must still be running, since the assets list holds its URLs. Add anything the app could pick at
    random during a take (suggestions, featured items, a shuffled gallery): the whole set, not only what this take
    showed.
-2. Start with what the scan flagged. It reads the text in every image and frame, and flags emails, phone numbers,
+2. Start with what the scan flagged. It reads the text in supplied images and sampled frames, and flags emails, phone numbers,
    keys and tokens, file paths with a user name, street addresses and the watch-for words. On macOS it also finds
    faces and people. Flagged images come first, with a red label and a red box round each find, and are listed
    with what was found masked (`jane•••`), so nothing private lands in a log.
@@ -59,3 +59,7 @@ silhouette in a mesh railing and a blurred head in the background.
   (record-web), rather than taking it out of the demo data.
 - **No scan here.** On Linux, text needs Tesseract (`apt install tesseract-ocr`), and faces and people need macOS.
   `reshoot check` says when part of the scan is off. Look extra closely then.
+
+## Check status
+
+`check` exits 0 when the supplied review items are accepted, 1 when human review is pending, and 2 on a check error. Read `report.json` in the review folder. A missing input or unavailable required text detector is an error, never a pass. Video frames are sampled every three seconds by default; unsampled frames are not covered. `--no-scan` explicitly skips automatic detection and still requires human review.

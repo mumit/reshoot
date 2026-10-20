@@ -109,3 +109,11 @@ but it helps to know why.
 
 When something goes wrong, add it here in a line or two: what happened, and what avoids it. If reshoot can avoid it,
 fix it there too and say so.
+
+## Check failures
+
+- **Missing sources looked checked.** Fixed in reshoot: failed fetches, invalid images and manifests, and detector errors produce exit 2 and an error report.
+- **The server stopped before checking its images.** Fixed in reshoot: URL checks finish before app shutdown.
+- **A check crashed but CI reported success.** Fixed in reshoot: the runner requires a fresh completed check report and saves failures before exiting.
+- **Old narration entered a new take.** Fixed in reshoot: removing `VOICE` removes the previous take's narration metadata.
+- **A browser disappeared and the beat waited forever.** Fixed in reshoot: disconnects reject pending commands, and recordings have timeouts.

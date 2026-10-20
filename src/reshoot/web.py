@@ -75,6 +75,11 @@ class Page:
             await self._read()
         except websockets.ConnectionClosed:
             pass
+        finally:
+            for pending in self.waiting.values():
+                if not pending.done():
+                    pending.set_exception(RuntimeError('browser connection closed'))
+            self.waiting.clear()
 
     async def _read(self):
         async for raw in self.ws:
@@ -112,10 +117,14 @@ class Page:
 
     async def cmd(self, method, **params):
         self.n += 1
+        request_id = self.n
         fut = asyncio.get_running_loop().create_future()
-        self.waiting[self.n] = fut
+        self.waiting[request_id] = fut
         await self.ws.send(json.dumps(dict(id=self.n, method=method, params=params)))
-        m = await fut
+        try:
+            m = await asyncio.wait_for(fut, 30)
+        finally:
+            self.waiting.pop(request_id, None)
         if "error" in m:
             raise RuntimeError(f"{method}: {m['error']}")
         return m.get("result", {})
@@ -149,14 +158,14 @@ async def play(page, beats, quiet=False, need=None):
         t = page.beats[name] = time.monotonic()
         if js:
             try:
-                await page.run(js)
-            except RuntimeError as e:
+                await asyncio.wait_for(page.run(js), 60)
+            except (RuntimeError, TimeoutError) as e:
                 raise SystemExit(f"beat {name!r} failed: {e}") from None
             await asyncio.sleep(0.05)
             try:  # a beat that opened a new page: the hold starts once it's loaded
                 await asyncio.wait_for(page.loaded.wait(), 20)
             except TimeoutError:
-                print(f"  note: the page {name!r} opened took over 20 s to load")
+                raise RuntimeError(f"page opened by beat {name!r} did not load within 20 s")
         await asyncio.sleep(max(hold, need.get(name, 0) - (time.monotonic() - t)))
         if not quiet:
             print(f"  {name:22} {time.monotonic() - t:5.1f}s", flush=True)
@@ -282,6 +291,7 @@ def main(a):
     cap_dpr = min(dpr * min(z["scale"], 2), 4) if z else dpr
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+    out.with_suffix(".voice.json").unlink(missing_ok=True)
     lines = board.get("VOICE") or {}
     if unknown := [b for b in lines if b not in {name for name, _, _ in board["BEATS"]}]:
         raise SystemExit(f"VOICE has lines for beats the storyboard doesn't have: {', '.join(unknown)}")
@@ -290,10 +300,13 @@ def main(a):
         from reshoot import voice
         spoken = voice.prepare(lines, out.with_suffix(".voice"), board.get("VOICE_ENGINE"))
     frames = []
-    errors, assets, starts, events = asyncio.run(record(
+    errors, assets, starts, events = asyncio.run(asyncio.wait_for(record(
         board["BEATS"], url, w, h, cap_dpr, frames, theme, board.get("WARM", ()), a.mobile or board.get("MOBILE", False),
         board.get("SETTLE", 4), board.get("ASSETS", ()), board.get("SETUP", ()), post_captions=bool(z),
-        blur=board.get("BLUR", ()), need={b: s + 0.3 for b, (_, s) in spoken.items()}))
+        blur=board.get("BLUR", ()), need={b: s + 0.3 for b, (_, s) in spoken.items()}), 600))
+    if errors:
+        from reshoot.safety import redact
+        raise SystemExit("page errors: " + redact("; ".join(errors)))
     out.with_suffix(".assets.json").write_text(json.dumps(sorted(assets), indent=1))
     if not any(jpg for _, jpg in frames):  # a still page sends one frame, which is enough: it's held to the end
         raise SystemExit("no frames captured: did the page draw anything?")

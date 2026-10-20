@@ -17,7 +17,7 @@ PATTERNS = [
     ("street address", re.compile(r"\b\d{1,5}\s+([A-Z][a-z]+\s){1,3}(Street|St|Avenue|Ave|Road|Rd|Lane|Ln|Drive|Dr|"
                                   r"Boulevard|Blvd|Court|Ct|Way|Crescent|Cres|Place|Pl)\b\.?")),
 ]
-SAFE_EMAIL = re.compile(r"@(example\.(com|org|net)|test\.com)$|^(demo|test|user|you|name)@", re.I)
+SAFE_EMAIL = re.compile(r"@example\.(com|org|net)$", re.I)
 
 
 def reasons(text, watch=()):
@@ -75,7 +75,9 @@ def _vision(im, watch):
     people = Vision.VNDetectHumanRectanglesRequest.alloc().init()
     if hasattr(people, "setUpperBodyOnly_"):
         people.setUpperBodyOnly_(False)  # whole figures too, such as someone far away
-    handler.performRequests_error_([text, faces, people], None)
+    ok, error = handler.performRequests_error_([text, faces, people], None)
+    if not ok:
+        raise RuntimeError("Vision failed")
     W, H = im.size
 
     def box(obs):  # Vision's boxes are 0 to 1, from the bottom left
@@ -98,6 +100,8 @@ def _tesseract(im, watch):
     b = io.BytesIO()
     im.convert("RGB").save(b, "PNG")
     r = subprocess.run(["tesseract", "stdin", "stdout", "tsv"], input=b.getvalue(), capture_output=True)
+    if r.returncode:
+        raise RuntimeError("Tesseract failed")
     lines = {}  # (block, paragraph, line): [words, box]
     for row in r.stdout.decode(errors="replace").splitlines()[1:]:
         f = row.split("\t")

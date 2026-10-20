@@ -31,7 +31,7 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
 - **Subtitles and voiceover:** `VOICE` in a storyboard speaks a line as each beat starts (macOS `say`, `espeak-ng`,
   or any command), and each beat waits for its line. The cut adds the voice and optional music that ducks under it
   and fades out, and writes an `.srt` from the voiceover or the captions.
-- **Automatic privacy checks:** `reshoot check` scans every image and frame for emails, phone numbers, keys, paths
+- **Automatic privacy checks:** `reshoot check` scans supplied images and sampled frames for emails, phone numbers, keys, paths
   with a user name, street addresses and watch-for words (Vision on macOS, Tesseract elsewhere), and for faces and
   people (macOS). Flags come first on the sheets, boxed in red, with what was found masked in the output.
   `BLUR` and `__demo.blur(sel)` hide what has to stay in the app.

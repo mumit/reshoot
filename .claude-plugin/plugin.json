@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "reshoot",
   "version": "0.1.0",
-  "description": "Make demo videos of software from scripts: plan a storyboard, record a web page, a terminal or one app window, check every frame for private things, and cut 16:9, 9:16 and GIF versions.",
+  "description": "Make demo videos of software from scripts: plan a storyboard, record a web page, a terminal or one app window, scan supplied images and sampled frames for private things, and cut 16:9, 9:16 and GIF versions.",
   "author": { "name": "Mumit Khan", "url": "https://github.com/mumit" },
   "homepage": "https://github.com/mumit/reshoot",
   "repository": "https://github.com/mumit/reshoot",

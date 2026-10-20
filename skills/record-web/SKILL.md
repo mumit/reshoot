@@ -141,3 +141,5 @@ put it in the next beat.
   up by a framework, and finds a button by its words when it can. Read the selectors anyway: one that matches only
   by its place in the page breaks first when the page changes.
 - **Page errors** are printed at the end. Fix them: they often mean a beat ran before the page was ready.
+
+Browser commands, navigation, beats, and the recording have timeouts. Unexpected page errors fail the take. A new take without `VOICE` removes the old narration metadata.

@@ -9,7 +9,7 @@ description: Set up a reshoot.toml so one command (`reshoot run`) records a proj
 
 - CI never publishes anything. The workflow opens a pull request; a person checks the review sheets and merges it.
 - Demo data used in CI is in the repo, so it's as public as the repo. Only put in what anyone may see.
-- Creating or pushing a workflow file is pushing: ask first.
+- Create workflow files locally when authorized. Push or publish only with the owner's permission.
 
 ## Steps
 
@@ -35,3 +35,5 @@ description: Set up a reshoot.toml so one command (`reshoot run`) records a proj
 - **Checks wait on the pull request.** Workflows don't run on a pull request opened by `github-actions[bot]` until
   someone approves them ("action_required"). Tell the person, or use a GitHub App or personal token.
 - **A server already running** on the app's port stops the shoot, so a take can't show the wrong server.
+
+The run report and Action outputs distinguish `scan_status` and `review_status`. `ok=true` means execution completed, not approval to publish. A required check error stops the run, and the app remains available until its URL-based checks finish.

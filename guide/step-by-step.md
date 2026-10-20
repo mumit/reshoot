@@ -120,7 +120,7 @@ reshoot window TextEdit takes/app.mov -s 8
    reshoot check takes/web.assets.json takes/web.mp4 takes/cli.mp4 --review takes/review --watch-for "Acme,Jane Roe"
    ```
 
-   It also scans every image and frame for text that looks private (emails, phone numbers, keys, file paths with a
+   It also scans supplied images and sampled frames for text that looks private (emails, phone numbers, keys, file paths with a
    user name, street addresses, the watch-for words) and, on macOS, for faces and people. Flagged images come first
    on the sheets, boxed in red. The scan points at problems; it doesn't pass anything.
 

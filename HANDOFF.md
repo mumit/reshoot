@@ -12,6 +12,11 @@ decisions are imported, and each selected run reports review completed. For a la
 resume, start with measured user acceptance in those records. Codex authentication
 and external-project selection are resolved. Do not repeat the historical setup
 and trials below unless new changes require them.
+The [timed pilot](docs/plans/2026-10-20-user-acceptance-pilot.md) now has a first-demo
+starter, ten proposed update fixtures, a timing helper, and a separate readiness
+preview. Participant/workflow choice and case agreement are pending; no timed user
+result has been recorded. Local fixtures live under
+`/tmp/reshoot-user-trial-20261020/`, with evidence in `takes/user-trial-20261020/`.
 The original state and instructions below remain the record of the transfer.
 
 This file carries the working context to another Codex account and machine. The

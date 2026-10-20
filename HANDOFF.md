@@ -2,6 +2,16 @@
 
 Saved: 2026-10-20
 
+Resumed on 2026-10-20. See the [resume validation](docs/validation/2026-10-20-resume-validation.md)
+for host checks, four fixes, all 18 corrected Claude/Codex tasks, and remaining
+acceptance work. The [external trial record](docs/validation/2026-10-20-external-trials.md)
+describes five synthetic app variants from four authorized GitHub repositories.
+
+For a later resume, start with owner playback and measured user acceptance in those
+records. Codex authentication and external-project selection are resolved. Do not
+repeat the historical setup and trials below unless new changes require them.
+The original state and instructions below remain the record of the transfer.
+
 This file carries the working context to another Codex account and machine. The
 repository contains the code, review, plan, skills, and validation record. Resuming
 does not require the previous chat or its machine-local Codex memory.

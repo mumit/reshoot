@@ -7,15 +7,22 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
 
 ## Next
 
-1. **Try the workflow outside this repo.** Run three to five authorized synthetic
-   projects and measure setup, updates, manual repairs, and review time.
-2. **Validate both live harnesses.** Repeat creation, refresh, and review in fresh
-   Claude and Codex sessions. Installed bundle checks do not establish discovery.
-3. **Broaden compatibility evidence.** Validate more framework apps, long takes,
-   and working Vision installations. Keep unavailable detectors visible.
+1. **Measure acceptance with users.** Five app variants from four authorized GitHub
+   repositories now have synthetic workflow trials. Measure setup, first acceptable
+   preview, repairs, review time, and updates against the maintainer's existing method.
+   Agree ten update cases before testing the proposed eight-of-ten target.
+2. **Complete owner review.** Watch the candidates and inspect the comparisons.
+   Automated expectations and scans leave human review pending.
+3. **Broaden compatibility evidence.** Test positive face/person fixtures, longer
+   continuously animated takes, changing remote services, and more platforms.
 
 The [delivery status](docs/validation/2026-10-19-delivery-status.md) records the
-implementation, evidence, limits, and acceptance work still needed.
+original implementation and its limits. The
+[resume validation](docs/validation/2026-10-20-resume-validation.md) records three
+creation, refresh, and review tasks in each live harness, Vision and two-minute
+smoke tests, and the fixes discovered while running them. The
+[external trial record](docs/validation/2026-10-20-external-trials.md) describes the
+synthetic GitHub projects and keeps product targets separate from CLI timings.
 
 ## Later
 
@@ -28,8 +35,8 @@ implementation, evidence, limits, and acceptance work still needed.
 
 ## Done
 
-These features are implemented. Live harness trials and external product acceptance
-remain open as described above.
+These features are implemented. Repeated live harness trials completed; human
+review and measured external product acceptance remain open as described above.
 
 - **Repeatable projects:** packaged templates, dependency checks, previews and
   partial replay, versioned paths, isolated runs, and explicit local export.

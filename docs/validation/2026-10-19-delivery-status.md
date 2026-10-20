@@ -4,6 +4,14 @@ Started: 2026-10-19
 
 Validation finished: 2026-10-20
 
+Later continuation: [resume validation](2026-10-20-resume-validation.md) records
+host checks, Vision smoke-test and two-minute recording evidence, 18 corrected live
+harness tasks, and four discovered fixes. The
+[external trial record](2026-10-20-external-trials.md) adds five synthetic app variants
+from four authorized GitHub repositories. Human review and measured product targets
+remain open. The results below describe the
+original delivery validation.
+
 I have implemented the workflow in the [plan](../plans/2026-10-19-implementation-plan.md).
 The code and package checks are separate from the live harness and external project
 trials. Those trials are still required before claiming the product targets were met.

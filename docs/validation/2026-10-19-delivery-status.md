@@ -1,6 +1,7 @@
 # Delivery status
 
-Started: 2026-10-19  
+Started: 2026-10-19
+
 Validation finished: 2026-10-20
 
 I have implemented the workflow in the [plan](../plans/2026-10-19-implementation-plan.md).

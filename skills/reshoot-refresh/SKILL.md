@@ -5,6 +5,8 @@ description: Update an existing reshoot demo after an app or release changes. Us
 
 # Refresh a demo
 
+For combined web and VHS edits, keep take dimensions matched. Mixed previews retain the configured browser dimensions to match the unchanged VHS output size.
+
 Requires reshoot CLI 0.2 or newer. Read the project's brief, config, storyboard, and previous run before changing anything. Run `reshoot --version` and `reshoot doctor --config CONFIG`.
 
 Reset the made-up demo data and record the current app using `reshoot preview CONFIG`. Retain stable beat names. Diagnose failures using the beat, screenshot, and expected result. A selector repair should still perform the same task; it must not delete a failed assertion or replace the intended result with whatever the app happens to show.

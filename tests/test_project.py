@@ -84,6 +84,48 @@ def test_generated_project_records_an_isolated_preview(tmp_path):
     assert report['files'] and all('sha256' in f for f in report['files'])
 
 
+@pytest.mark.browser
+def test_mixed_preview_can_join_web_and_terminal_takes(tmp_path, monkeypatch):
+    import re
+    from test_reshoot import free_port
+    from reshoot import cut, run
+    from reshoot.cli import main
+    project.init(SimpleNamespace(directory=str(tmp_path), url=None))
+    port = free_port()
+    config_path = tmp_path / 'reshoot.toml'
+    text = config_path.read_text().replace('8765', str(port))
+    text = text.replace('[edit]', '[[take]]\ntape = "terminal.tape"\n[edit]')
+    text = text.replace('args = ["takes/demo.mp4"]', 'args = ["takes/demo.mp4", "takes/terminal.mp4"]')
+    text = text.replace(', "takes/demo-final-readme.gif"', '')
+    config_path.write_text(text.replace('scan = true', 'scan = false'))
+    board = tmp_path / 'storyboard.toml'
+    board.write_text(board.read_text().replace('8765', str(port)))
+    (tmp_path / 'terminal.tape').write_text('Output "takes/terminal.mp4"\n')
+    edit = tmp_path / 'edit.toml'
+    edit.write_text(edit.read_text().split('[[export]]')[0] + '\n[[part]]\ntake = 1\n')
+    execute = run.execute
+
+    def capture(cmd, *args):
+        if cmd[0] == 'vhs':
+            output = re.search(r'Output "([^"]+)"', Path(cmd[1]).read_text())[1]
+            # Stand in for VHS with its fixed-size encoded terminal output.
+            cut.ff('-f', 'lavfi', '-i', 'color=s=1280x720:r=10:d=1', '-c:v', 'libx264', output)
+            return 0
+        return execute(cmd, *args)
+
+    monkeypatch.setattr(run, 'execute', capture)
+    monkeypatch.setenv('RESHOOT_PREVIEW', 'previous-value')
+    with pytest.raises(SystemExit) as result:
+        main(['preview', str(config_path)])
+    assert result.value.code == 0
+    assert __import__('os').environ['RESHOOT_PREVIEW'] == 'previous-value'
+    report_path = next((tmp_path / 'takes/runs').glob('*/run.json'))
+    report = json.loads(report_path.read_text())
+    assert report['ok'] and report['mode'] == 'preview'
+    assert report['expectations_status'] == 'passed'
+    assert cut.probe(report_path.parent / 'takes/demo-final.mp4')[:2] == (1280, 720)
+
+
 def test_harness_bundle_is_self_contained_and_refuses_replacement(tmp_path):
     from reshoot import skills
     for harness in ('codex', 'claude'):

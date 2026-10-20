@@ -87,7 +87,7 @@ async def assertion(page, entry):
 async def capture(board, a, frames, out, metadata, spoken):
     from playwright.async_api import async_playwright
     w, h, dpr = web.parse_size(a.size or board.get('size', '1280x720@1'))
-    if os.environ.get('RESHOOT_PREVIEW'):
+    if os.environ.get('RESHOOT_PREVIEW') == '1':
         dpr = min(dpr, 720 / max(w, h))
     z = zoom.settings(a.zoom if a.zoom is not None else board.get('zoom'))
     if board.get('caption'):

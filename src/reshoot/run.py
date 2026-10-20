@@ -268,8 +268,12 @@ def preview(a):
     before = os.environ.get('RESHOOT_FROM_BEAT')
     if getattr(a, 'from_beat', None):
         os.environ['RESHOOT_FROM_BEAT'] = a.from_beat
-    os.environ['RESHOOT_PREVIEW'] = '1'
     try:
+        from reshoot.config import read
+        shoot, _ = read(a.config)
+        # VHS keeps its configured dimensions. Preserve matching web dimensions
+        # for mixed takes while retaining the preview encoder and report mode.
+        os.environ['RESHOOT_PREVIEW'] = 'native-size' if any('tape' in take for take in shoot.get('take', [])) else '1'
         return main(a)
     finally:
         if before is None:

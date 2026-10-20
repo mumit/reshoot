@@ -17,6 +17,8 @@ Use made-up data in a separate account, folder, or database. Document and run it
 
 Run `reshoot preview CONFIG`, inspect frames and expected results, then `reshoot run CONFIG`. Read the printed run report. Execution success does not mean a scan passed or a person reviewed the video. Fix failed inputs and actions rather than suppressing checks. Inspect the actual final recording and give the owner its files and pending review items.
 
+For combined web and VHS edits, configure matching take dimensions. Mixed previews retain the browser's configured dimensions because VHS keeps its tape dimensions.
+
 Keep captions short and explain the result, not the click. Leave time to read. Identify mocked responses or shortened waits. Do not change the product claim merely to make a recording finish.
 
 Commit, push, or publish only within the owner's existing authorization. Creating local files is not publishing.

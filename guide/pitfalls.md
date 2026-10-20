@@ -27,6 +27,10 @@ but it helps to know why.
 
 ## Web takes
 
+- **A browser and terminal preview could not be joined.** Preview reduced the browser
+  output while VHS kept its tape dimensions. Fixed in reshoot: previews with VHS
+  takes retain the configured browser dimensions. Configure matching sizes for both takes.
+
 - **A stale browser override passed setup checks.** `RESHOOT_CHROME` could point to a
   missing or nonexecutable file while `doctor` reported success. Fixed in reshoot:
   the dependency check requires an executable browser and exits with an error

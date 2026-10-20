@@ -301,7 +301,7 @@ def main(a):
     board = runpy.run_path(a.storyboard)
     url = a.url or board.get("URL") or "http://localhost:8000/"
     w, h, dpr = parse_size(a.size or board.get("SIZE", "1280x720@1.5"))
-    if os.environ.get('RESHOOT_PREVIEW'):
+    if os.environ.get('RESHOOT_PREVIEW') == '1':
         dpr = min(dpr, 720 / max(w, h))
     theme = a.theme or board.get("THEME", "dark")
     z = zoom.settings(a.zoom if a.zoom is not None else board.get("ZOOM"))

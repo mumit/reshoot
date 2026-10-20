@@ -31,7 +31,8 @@ services and untracked app files are not captured by those hashes.
 
 Versioned configs use paths relative to their file. Each run writes to
 `takes/runs/ID/` beside the config and prints its report path. `preview` reduces output
-resolution without changing the actions. Python storyboards and unversioned configs
+resolution without changing the actions. Projects with VHS takes retain the configured
+browser dimensions so the preview edit can join matching takes. Python storyboards and unversioned configs
 keep their legacy behaviour. Versioned projects support web and VHS takes; arbitrary
 `run` takes remain a legacy option.
 

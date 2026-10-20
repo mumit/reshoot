@@ -20,6 +20,20 @@ def test_external_app_scaffold_is_valid_python(tmp_path):
     assert 'app' not in config.read(tmp_path / 'reshoot.toml')[0]
 
 
+@pytest.mark.parametrize('exists', [False, True])
+def test_doctor_rejects_missing_or_nonexecutable_browser(tmp_path, monkeypatch, capsys, exists):
+    browser = tmp_path / 'chrome'
+    if exists:
+        browser.write_text('not an executable browser')
+        browser.chmod(0o644)
+    monkeypatch.setenv('RESHOOT_CHROME', str(browser))
+    assert project.doctor(SimpleNamespace(config=None, json=True)) == 2
+    report = json.loads(capsys.readouterr().out)
+    assert not report['ok']
+    assert report['tools']['chrome'] is None
+    assert 'chrome' not in report['versions']
+
+
 def test_versioned_outputs_are_isolated_and_paths_are_explicit(tmp_path):
     project.init(SimpleNamespace(directory=str(tmp_path), url=None))
     a = config.prepare(tmp_path / 'reshoot.toml')

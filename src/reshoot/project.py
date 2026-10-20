@@ -16,7 +16,7 @@ def doctor(a):
     found = {name: shutil.which(name) for name in names}
     if any('web' in t for t in shoot.get('take', [])):
         try:
-            found['chrome'] = web.find_chrome()
+            found['chrome'] = shutil.which(web.find_chrome())
         except SystemExit:
             found['chrome'] = None
     required_text = 'check' in shoot and shoot['check'].get('scan', True)

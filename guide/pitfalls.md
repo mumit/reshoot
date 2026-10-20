@@ -27,6 +27,11 @@ but it helps to know why.
 
 ## Web takes
 
+- **A stale browser override passed setup checks.** `RESHOOT_CHROME` could point to a
+  missing or nonexecutable file while `doctor` reported success. Fixed in reshoot:
+  the dependency check requires an executable browser and exits with an error
+  when the configured path is unavailable. Correct or unset the override.
+
 - **Chrome sends no frames while the page is still.** The last frame (the end card) got almost no time in the
   video. Fixed in reshoot: each frame is held until the next, and the last until recording stops.
 - **A 5-second take came out 389 seconds long.** The Mac went to sleep during it. The beats and the end of recording

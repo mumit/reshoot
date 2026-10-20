@@ -7,6 +7,8 @@ description: Create a repeatable software demo with reshoot from an app and demo
 
 Requires reshoot CLI 0.2 or newer. Run `reshoot --version` and `reshoot doctor --config CONFIG` for an existing project. If the CLI is missing, use the repository's documented installation; do not invent commands for a different version.
 
+Resolve missing required tools before recording. If `RESHOOT_CHROME` is set, it must name an executable browser; correct or unset a stale path. A successful doctor check does not probe capture or the final scan.
+
 Choose one useful task and a visible result. Use the app's code and existing demo setup to identify the audience, problem, task, expected result, destination, length, and next action. Ask only for missing details that materially affect the story.
 
 For a new project, use `reshoot init DIR --url DEMO_URL`; omit `--url` to try the packaged notes example. Fill in `BRIEF.md`. Replace the placeholder with actual actions and result checks before recording. The generated files are in the project, not in this skill folder. Read `reshoot web --help` for storyboard settings and `reshoot run --help` for configuration.

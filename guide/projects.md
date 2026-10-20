@@ -16,6 +16,8 @@ reshoot run demo/reshoot.toml
 The generated project uses made-up notes data and native Playwright input. Chrome or
 Chromium and ffmpeg must be installed. The browser extra is pinned; reshoot uses the
 installed Chrome and records its version. `doctor` does not install software.
+It reports a missing browser when `RESHOOT_CHROME` points to a missing or
+nonexecutable file. I correct or unset that path before recording.
 
 For another app, `reshoot init demo --url http://localhost:3000/` creates a draft.
 Replace the placeholder before recording. Give the app a separate demo database or

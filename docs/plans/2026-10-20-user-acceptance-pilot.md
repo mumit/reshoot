@@ -2,12 +2,49 @@
 
 Date: 2026-10-20
 
-Status: Prepared. Participant, workflow, and agreement on the ten update cases
-are pending. No timed user trial or eight-of-ten result has been recorded.
+Status: The owner will perform the first trial, scoped to photosearch and its main
+features. A fresh interactive Codex session is prepared as the default workflow.
+The timer starts when the owner launches it. The ten-case update study is deferred;
+no timed user trial or eight-of-ten result has been recorded.
 
 The owner accepted the five earlier external candidates. This pilot measures the
 effort of creating and updating a demo, including repairs and review. It extends
 the [external trials](../validation/2026-10-20-external-trials.md).
+
+## Current first task
+
+The owner said: "I'll perform the trial, let's start with just photosearch, showing
+the top features." This replaces the earlier narrow beach-search task for the
+first participant session. Other apps and update cases are deferred.
+
+The prepared brief asks for a 45–75 second landscape demo connecting search,
+look-alikes, Time Machine, Galaxy, and saving a local smart album. It keeps the
+photosearch name and labels the generated images and mocked model. The task
+ends at a preview for the owner to judge, followed by a fresh final run after
+preview acceptance. New artifacts need their own decisions.
+
+Feature APIs were checked on the separate smoke fixture: search and look-alikes
+returned results, Time Machine covered 2018–2025, Galaxy mapped 73 generated
+items, and a local album saved and loaded. This was an agent readiness check,
+with a sandbox-blocked startup followed by an authorized retry. It was not a user
+trial or visual review of those new scenes. The participant starter has no warmed
+Galaxy layout and no authored storyboard or edit.
+
+The starter reset now clears its generated albums and Galaxy layout as well as
+rebuilding its index. Numba's cache stays in its own generated data directory.
+This prevents a saved album from an earlier preview contaminating a fresh run.
+
+The local launcher is `takes/user-trial-20261020/start-photosearch`. It starts the
+owner's timer, opens a fresh Codex session with the brief and installed skill,
+and saves launch metadata and events locally. Its dry run does not start a timer.
+The owner can provide verdicts directly in that session; no downloaded decisions
+file is required. The participant task, runtime, and measurement instructions
+are in the starter's `TASK.md`, `TRIAL.md`, and `AGENTS.md`.
+
+Report this as an experienced maintainer's multi-feature creation task. Its scope
+differs from the originally proposed short single-task preview; retain that
+distinction when discussing the 15-minute target. The historical protocol below
+still describes the proposed broader study.
 
 ## Participant and scope
 
@@ -29,6 +66,9 @@ CSS repair from the previous trial is retained. Other apps use generated rows,
 tasks, and a local demo account. Capture a headless browser page or VHS terminal.
 
 ## First demo
+
+The original proposed task below is retained as the protocol history. The current
+participant task is the feature demo described above.
 
 The starter contains the app adapter, generated data, startup/reset instructions,
 and installed Codex skills. It contains no reshoot configuration, storyboard, edit,

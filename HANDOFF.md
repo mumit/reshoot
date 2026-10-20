@@ -13,9 +13,10 @@ resume, start with measured user acceptance in those records. Codex authenticati
 and external-project selection are resolved. Do not repeat the historical setup
 and trials below unless new changes require them.
 The [timed pilot](docs/plans/2026-10-20-user-acceptance-pilot.md) now has a first-demo
-starter, ten proposed update fixtures, a timing helper, and a separate readiness
-preview. Participant/workflow choice and case agreement are pending; no timed user
-result has been recorded. Local fixtures live under
+starter, ten proposed update fixtures, a timing helper, and separate readiness
+recordings. The owner will perform a photosearch feature-demo creation trial first.
+A fresh interactive Codex launcher is ready; no owner timer has started. Other
+apps and the ten-case study are deferred. Local fixtures live under
 `/tmp/reshoot-user-trial-20261020/`, with evidence in `takes/user-trial-20261020/`.
 The original state and instructions below remain the record of the transfer.
 

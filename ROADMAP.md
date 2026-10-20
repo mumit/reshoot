@@ -11,8 +11,9 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    repositories now have synthetic workflow trials. Measure setup, first acceptable
    preview, repairs, review time, and updates against the maintainer's existing method.
    Agree ten update cases before testing the proposed eight-of-ten target.
-   The [timed pilot](docs/plans/2026-10-20-user-acceptance-pilot.md) has prepared
-   fixtures and proposed cases; participant choice and case agreement are pending.
+   The [timed pilot](docs/plans/2026-10-20-user-acceptance-pilot.md) is ready for
+   the owner to create a photosearch feature demo. Other apps and the proposed
+   ten-case update study are deferred.
 2. **Broaden compatibility evidence.** Test positive face/person fixtures, longer
    continuously animated takes, changing remote services, and more platforms.
 

@@ -8,8 +8,9 @@ synthetic workflow trials, not maintainer or user acceptance studies. No real
 accounts, photographs, Photos libraries, or private project data were used.
 
 The [resume validation](2026-10-20-resume-validation.md) records the host, tests,
-fresh harness sessions, and fixes. The proposed 15-minute and eight-of-ten product
-targets remain unmeasured.
+fresh harness sessions, and fixes. The owner has now accepted the five selected
+candidates; see [Owner acceptance](#owner-acceptance). The proposed 15-minute and
+eight-of-ten product targets remain unmeasured.
 
 ## Sources and fixtures
 
@@ -100,8 +101,10 @@ I kept the original logs, reports, and available failure images.
 
 All five repaired previews, five baseline finals, and five changed-UI finals
 completed with their configured browser expectations passed and sampled Vision
-scans completed. Every run leaves human review pending. There was no manual video
-editing. The setup repairs above were necessary before these successful runs.
+scans completed. At the end of the automated trials, every run left human review
+pending. The selected refreshed candidates now have owner acceptance recorded
+below. There was no manual video editing. The setup repairs above were necessary
+before these successful runs.
 
 Refreshes changed only UI presentation in the clone: ES5 heading, React heading
 color, Flaskr form heading, Datasette index heading, and photosearch brand label.
@@ -143,8 +146,8 @@ also retains `takes/terminal.mp4`. Use the saved projects to open the HTML local
 I inspected frames extracted from actual previews and both baseline/refreshed
 final exports, including the completed TodoMVC task, saved Flaskr post, Datasette browser filter and terminal
 result, and photosearch search grid and lightbox. Captions and useful results fit
-in the inspected frames. These clips are silent; complete playback and owner
-judgment of timing, readability, and privacy remain pending. Beats without
+in the inspected frames. These clips are silent. At that point, complete playback
+and owner judgment of timing, readability, and privacy were pending. Beats without
 assertions remain individually unverified. Photosearch
 home-page selection varies between runs; its underlying fixture library and
 search task stay fixed. Changed evidence is not automatically a regression.
@@ -180,12 +183,35 @@ and Python cuts. I read that method but did not execute it against Photos or tim
 it. The other projects' maintainers did not supply recording methods. No measured
 time saving or comparison with their prior method follows from these trials.
 
+## Owner acceptance
+
+On 2026-10-20, after reviewing the selected candidates through the local index,
+the owner said: "I've accepted all of these, but don't want to download and rename
+these files. Go ahead."
+
+I generated one decisions file for each refreshed candidate listed above and
+imported it through `reshoot review --import-decisions`. Each file accepts the
+video and four named beats, for 25 decisions across five candidates. Before
+importing, I verified that each reviewed copy and original run had matching
+artifact hashes, decision names, and policy bindings. After importing, both copies
+of every selected run report `review_status: completed`. I verified the manifest
+hashes again and refreshed the comparison review pages with the saved decisions.
+
+The local record is `takes/validation-20261020/owner-acceptance/receipt.json`,
+with per-candidate `decisions.json` files and backups of the prior review metadata.
+The review index links to that record. The earlier evidence archive remains a
+snapshot from before owner acceptance.
+
+This completes owner acceptance of the five selected external candidates.
+The measured user targets and broader compatibility work below remain open.
+
 ## Evidence and next acceptance work
 
 Run paths and IDs identify the exact candidates. Each final MP4, GIF, subtitle,
 poster, native take result, evidence image, and saved resource retains its recorded
 hash. Baseline selection stays explicit. Review pages are generated after servers
-stop and use saved frames. No decisions are imported and no approval is recorded.
+stop and use saved frames. Owner decisions for the five selected refreshed
+candidates are now imported as recorded above.
 
 `takes/validation-20261020/` contains initial, corrected, and repaired preview logs,
 baseline and refresh records, recipes, app patches, runner scripts, dependency
@@ -193,8 +219,8 @@ versions, comparisons, scans, and extracted frames. Temporary checkouts and heav
 dependencies are not committed. These trial files use host paths; recreate their
 environment and pinned sources before reusing them.
 
-Remaining acceptance work is owner playback, timed user setup and review,
-maintainer-method comparison, and ten agreed update cases. Compatibility beyond
+Remaining acceptance work is timed user setup and review, maintainer-method
+comparison, and ten agreed update cases. Compatibility beyond
 this host, real changing services, positive face/person detection, native-window
 trials here, and longer animated recordings remain open. The local review index is `takes/validation-20261020/index.html`. The
 [resume validation](2026-10-20-resume-validation.md) lists the optional ignored

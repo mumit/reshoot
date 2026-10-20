@@ -5,8 +5,10 @@ Date: 2026-10-20
 I resumed from [HANDOFF.md](../../HANDOFF.md) at `395890d`, with a clean `main`.
 This record extends the [delivery status](2026-10-19-delivery-status.md).
 Fresh Claude and Codex trials completed. Authorized synthetic GitHub trials now
-cover five app variants across four repositories. Human acceptance and product
-targets remain open; see the [external trial record](2026-10-20-external-trials.md).
+cover five app variants across four repositories. The owner accepted the five
+selected external candidates, and their imported decisions mark review completed.
+Measured user acceptance and product targets remain open; see the
+[external trial record](2026-10-20-external-trials.md#owner-acceptance).
 
 ## Environment and checks
 
@@ -206,7 +208,12 @@ by this same-origin persistence behavior.
 
 ## Remaining acceptance work
 
-- Complete owner playback and review of the generated candidates and comparisons.
+The owner accepted all five selected external candidates on 2026-10-20. I generated
+and imported their decisions after that explicit authorization, verified unchanged
+artifact hashes, and refreshed the original and copied review pages. This completes
+owner acceptance of those candidates. Historical failed runs and other fixtures
+retain their existing review states.
+
 - Run maintainer/user trials with measured setup, first acceptable preview, manual
   repair and review time, and a timed comparison with their existing recording method.
 - Agree ten update cases before measuring the proposed eight-of-ten target. The

@@ -11,9 +11,7 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    repositories now have synthetic workflow trials. Measure setup, first acceptable
    preview, repairs, review time, and updates against the maintainer's existing method.
    Agree ten update cases before testing the proposed eight-of-ten target.
-2. **Complete owner review.** Watch the candidates and inspect the comparisons.
-   Automated expectations and scans leave human review pending.
-3. **Broaden compatibility evidence.** Test positive face/person fixtures, longer
+2. **Broaden compatibility evidence.** Test positive face/person fixtures, longer
    continuously animated takes, changing remote services, and more platforms.
 
 The [delivery status](docs/validation/2026-10-19-delivery-status.md) records the
@@ -35,9 +33,12 @@ synthetic GitHub projects and keeps product targets separate from CLI timings.
 
 ## Done
 
-These features are implemented. Repeated live harness trials completed; human
-review and measured external product acceptance remain open as described above.
+These features are implemented. Repeated live harness trials completed, and the
+owner accepted the five selected external candidates. Measured user acceptance
+remains open as described above.
 
+- **Owner review of external candidates:** imported the owner's acceptance for
+  all five selected recordings and their beats, bound to unchanged artifact hashes.
 - **Repeatable projects:** packaged templates, dependency checks, previews and
   partial replay, versioned paths, isolated runs, and explicit local export.
 - **Shared Claude and Codex skills:** create, refresh, and review from the same

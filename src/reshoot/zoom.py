@@ -17,7 +17,7 @@ starts, or when the next action is far away. With watch on, it also ends (once t
 under way is done) when something changes outside the view, such as a new item in a list, and stays out for show
 seconds, so the change is seen.
 """
-import bisect, io, math, re, subprocess
+import bisect, io, math, re, subprocess, os
 
 DEFAULTS = {"scale": 1.8, "lead": 0.7, "hold": 1.0, "quiet": 4.0, "watch": True, "show": 1.0}
 FPS = 60
@@ -211,25 +211,34 @@ def plain(html):
     return s.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&nbsp;", " ")
 
 
-def caption_image(text, sub, out_w, css_w):
+def caption_image(text, sub, out_w, css_w, style=None):
     """A caption drawn like the page's own: white on a dark rounded box, sized to the video."""
-    from PIL import Image, ImageDraw
-    from reshoot.cut import font
+    from PIL import Image, ImageDraw, ImageFont, ImageColor
+    from reshoot.cut import font, wrap_text
+    style = style or {}
     px = out_w / css_w
-    size = round(min(max(18, css_w * 0.023), 30) * px)
-    big, small = font(size, 600), font(round(size * 0.6), 500)
-    d = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-    tw = d.textlength(text, font=big)
-    sw = d.textlength(sub, font=small) if sub else 0
-    padx, pady = round(26 * px), round(14 * px)
-    w = round(max(tw, sw) + 2 * padx)
-    h = round(size * 1.25 + (size * 0.6 * 1.25 + 4 * px if sub else 0) + 2 * pady)
-    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    size = max(1, round(min(max(18, css_w * .023), 30)*px))
+    load = (lambda size, weight: ImageFont.truetype(style['font'], size)) if style.get('font') else font
+    big, small = load(size, 600), load(max(1, round(size*.6)), 500)
+    d = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
+    padx, pady = round(26*px), round(14*px)
+    limit = max(1, out_w*(1-2*max(.1,style.get('margin',.065)))-2*padx)
+    lines = wrap_text(text, big, limit, d)
+    subs = wrap_text(sub, small, limit, d) if sub else []
+    width = max([d.textlength(line, font=big) for line in lines]+[d.textlength(line, font=small) for line in subs]+[0])
+    w = min(out_w, round(width+2*padx))
+    h = round(len(lines)*size*1.25+len(subs)*size*.6*1.25+2*pady+(4*px if sub else 0))
+    im = Image.new('RGBA', (w,h))
     d = ImageDraw.Draw(im)
-    d.rounded_rectangle((0, 0, w - 1, h - 1), radius=round(16 * px), fill=(14, 13, 12, 200))
-    d.text(((w - tw) / 2, pady), text, font=big, fill=(255, 255, 255, 255))
-    if sub:
-        d.text(((w - sw) / 2, pady + size * 1.25 + 4 * px), sub, font=small, fill=(255, 255, 255, 190))
+    d.rounded_rectangle((0,0,w-1,h-1), radius=round(16*px), fill=ImageColor.getcolor(style.get('background', '#0e0d0cc8'), 'RGBA'))
+    y = pady
+    for line in lines:
+        d.text(((w-d.textlength(line,font=big))/2,y),line,font=big,fill=style.get('foreground','white'))
+        y += size*1.25
+    y += 4*px if sub else 0
+    for line in subs:
+        d.text(((w-d.textlength(line,font=small))/2,y),line,font=small,fill=ImageColor.getcolor(style.get('foreground','white'), 'RGBA')[:3]+(190,))
+        y += size*.6*1.25
     return im
 
 
@@ -238,18 +247,19 @@ def render(frames, events, out, css_w, css_h, out_w, out_h, z):
     to the output size, with the caption drawn on top."""
     from PIL import Image
     end = frames[-1][0] if frames and frames[-1][1] is None else None
-    frames = [f for f in frames if f[1] is not None]
+    from reshoot.artifacts import images
+    frames = images(frames)
     t0 = frames[0][0]
     times = [t - t0 for t, _ in frames]
     total = max((end or 0) - t0, times[-1] + 1 / FPS)
     n = max(1, round(total * FPS))
     events = [(t - t0, ev) for t, ev in events]
-    changed = change_finder([(t - t0, jpg) for t, jpg in frames], css_w, css_h) if z.get("watch", True) else None
+    changed = change_finder(((t - t0, jpg) for t, jpg in frames), css_w, css_h) if z.get("watch", True) else None
     path = camera_path(n, events, css_w, css_h, z, changed)
-    caps = [(a, b, caption_image(text, sub, out_w, css_w)) for a, b, text, sub in captions(events)]
+    caps = [(a, b, caption_image(text, sub, out_w, css_w, z.get('caption_style'))) for a, b, text, sub in captions(events)]
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s",
                            f"{out_w}x{out_h}", "-r", str(FPS), "-i", "-", "-vf", "format=yuv420p", "-color_range", "tv",
-                           "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-movflags", "+faststart", str(out)],
+                           "-c:v", "libx264", "-preset", "ultrafast" if os.environ.get("RESHOOT_PREVIEW") else "slow", "-crf", "17", "-movflags", "+faststart", str(out)],
                           stdin=subprocess.PIPE)
     shown, im = None, None
     try:
@@ -258,9 +268,9 @@ def render(frames, events, out, css_w, css_h, out_w, out_h, z):
             i = max(0, bisect.bisect_right(times, t) - 1)
             if i != shown:
                 im, shown = Image.open(io.BytesIO(frames[i][1])).convert("RGB"), i
-            sx = im.width / css_w
+            sx, sy = im.width / css_w, im.height / css_h
             x, y, vw, vh = path[k]
-            frame = im.resize((out_w, out_h), Image.LANCZOS, box=(x * sx, y * sx, (x + vw) * sx, (y + vh) * sx),
+            frame = im.resize((out_w, out_h), Image.LANCZOS, box=(max(0, x * sx), max(0, y * sy), min(im.width, (x + vw) * sx), min(im.height, (y + vh) * sy)),
                               reducing_gap=2.0)
             for a, b, cap in caps:  # fades in over 0.35 s, and out over 0.35 s once hidden, as in the page
                 fade = 0.0 if t < a else min(1.0, (t - a) / 0.35, 1.0 if t < b else 1 - (t - b) / 0.35)
@@ -269,7 +279,12 @@ def render(frames, events, out, css_w, css_h, out_w, out_h, z):
                     if fade < 1:
                         layer.putalpha(layer.getchannel("A").point(lambda v: round(v * fade)))
                     lift = round((1 - fade) * 12 * out_w / css_w)
-                    frame.paste(layer, ((out_w - cap.width) // 2, round(out_h * 0.935) - cap.height + lift), layer)
+                    style = z.get('caption_style', {})
+                    margin = round(out_h*style.get('margin', .065))
+                    ycap = margin-lift if style.get('position') == 'top' else out_h-margin-cap.height+lift
+                    if cap.height > out_h-2*margin:
+                        raise ValueError('caption exceeds the safe frame area; shorten it or increase the frame size')
+                    frame.paste(layer, ((out_w - cap.width) // 2, ycap), layer)
             ff.stdin.write(frame.tobytes())
     finally:
         ff.stdin.close()

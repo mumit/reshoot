@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f6f4f0; --fg: #1d1b18; --card: #fff; --muted: #77716a; --accent: #c8641e; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0e0d0c; --fg: #f1ede7; --card: #1c1a18; --muted: #a39b91; --accent: #f5b43c; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.45 -apple-system, system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px; }
+  h1 { margin: 0 0 24px; font-size: 34px; letter-spacing: -.02em; display: flex; justify-content: space-between; align-items: baseline; }
+  h1 a { font-size: 16px; font-weight: 500; color: var(--accent); }
+  form, .search { display: flex; gap: 10px; margin-bottom: 16px; }
+  input { flex: 1; min-width: 0; padding: 12px 14px; border-radius: 12px; border: 1px solid #8884; background: var(--card);
+          color: var(--fg); font: inherit; }
+  button { padding: 12px 18px; border: 0; border-radius: 12px; background: var(--accent); color: #111; font: 600 16px system-ui; }
+  ul { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 10px; }
+  li { padding: 14px 16px; border-radius: 14px; background: var(--card); animation: in .35s ease-out; }
+  li small { display: block; color: var(--muted); font-size: 14px; }
+  .empty { color: var(--muted); }
+  @keyframes in { from { opacity: 0; transform: translateY(6px); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Notes <a id="about" href="about.html">About</a></h1>
+  <form id="add">
+    <input id="text" placeholder="Write a note" autocomplete="off">
+    <button>Add</button>
+  </form>
+  <div class="search"><input id="q" placeholder="Search notes" autocomplete="off"></div>
+  <ul id="list"></ul>
+</main>
+<script>
+  // A made-up app for trying reshoot on: add notes, search them. Nothing is saved.
+  const notes = [
+    { text: "Buy bread and coffee", when: "Monday" },
+    { text: "Call the plumber about the kitchen tap", when: "Tuesday" },
+    { text: "Book a table for Friday", when: "Wednesday" },
+  ];
+  const list = document.querySelector("#list"), q = document.querySelector("#q");
+  function show() {
+    const want = q.value.trim().toLowerCase();
+    const hits = notes.filter(n => n.text.toLowerCase().includes(want));
+    list.innerHTML = hits.length ? hits.map(n => `<li>${n.text}<small>${n.when}</small></li>`).join("")
+                                 : `<li class="empty">No notes match "${want}"</li>`;
+  }
+  document.querySelector("#add").addEventListener("submit", e => {
+    e.preventDefault();
+    const t = document.querySelector("#text");
+    if (t.value.trim()) notes.unshift({ text: t.value.trim(), when: "Just now" });
+    t.value = "";
+    show();
+  });
+  q.addEventListener("input", show);
+  show();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+schema_version = 1
+inputs = ["index.html", "about.html"]
+[app]
+run = "python3 -m http.server 8765 --bind 127.0.0.1"
+url = "http://127.0.0.1:8765/"
+[[take]]
+web = "storyboard.toml"
+out = "takes/demo.mp4"
+[edit]
+file = "edit.toml"
+args = ["takes/demo.mp4"]
+[check]
+sources = ["takes/demo-final.mp4", "takes/demo-final-readme.gif"]
+review = "review"
+scan = true

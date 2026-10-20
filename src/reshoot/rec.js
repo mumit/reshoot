@@ -73,6 +73,11 @@
     if (!ev.isTrusted || !["Enter", "Escape", "Tab"].includes(ev.key)) return;
     send({ kind: "key", key: ev.key, where: locate(ev.target) });
   }, true);
+  addEventListener("change", ev => {
+    if (ev.isTrusted && ev.target.matches('select,input[type=checkbox],input[type=radio]'))
+      send({kind: "unsupported-change"});
+  }, true);
+  addEventListener("drop", ev => { if (ev.isTrusted) send({kind: "unsupported-drop"}); }, true);
   let scrolled = 0, settle;
   addEventListener("scroll", () => {
     const y = document.scrollingElement.scrollTop;

@@ -1,0 +1,13 @@
+schema_version = 1
+output = "demo-final.mp4"
+
+[[part]]
+take = 0
+start = 0
+end = "end"
+
+[[export]]
+name = "readme"
+format = "gif"
+width = 800
+height = 450

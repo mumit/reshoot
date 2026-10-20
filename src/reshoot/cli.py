@@ -4,6 +4,8 @@ import argparse, sys
 
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="reshoot", description=__doc__)
+    from importlib.metadata import version
+    ap.add_argument("--version", action="version", version=version("reshoot"))
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     from reshoot import web, window, check
@@ -14,6 +16,7 @@ def main(argv=None):
     p.add_argument("--size", help="CSS width x height @ device pixel ratio, such as 390x844@3 (default 1280x720@1.5)")
     p.add_argument("--theme", choices=["dark", "light"])
     p.add_argument("--mobile", action="store_true", help="a phone: touch and a mobile viewport")
+    p.add_argument("--from-beat", help="replay earlier beats without recording them")
     p.add_argument("--zoom", nargs="?", type=float, const=True, metavar="SCALE",
                    help="zoom in on clicks and typing, enlarging up to SCALE (default 1.8)")
     p.set_defaults(run=web.main)
@@ -33,10 +36,13 @@ def main(argv=None):
     p.add_argument("sources", nargs="*", help="images, folders, URLs, .assets.json lists or videos")
     p.add_argument("--review", default="review", help="the folder for sheets and the list of what passed")
     p.add_argument("--every", type=float, default=3, help="seconds between frames taken from a video")
+    p.add_argument("--full", action="store_true", help="inspect every decoded video or GIF frame")
     p.add_argument("--fail", nargs="+", metavar="LABEL", help="these failed")
     p.add_argument("--ok", action="store_true", help="every other image on the sheets passed")
     p.add_argument("--watch-for", action="append", metavar="WORDS",
                    help="words to flag wherever they appear, comma-separated, or @FILE with one per line")
+    p.add_argument("--text-file", action="append", default=[], help="scan exact subtitle (.srt) or narration (.voice.json) text")
+    p.add_argument("--ocr", choices=["auto", "vision", "tesseract"], help="explicit OCR backend; failures never silently fall back")
     p.add_argument("--no-scan", dest="scan", action="store_false", help="don't scan for likely problems")
     p.set_defaults(run=check.main)
 
@@ -70,11 +76,48 @@ def main(argv=None):
     p.add_argument("script"); p.add_argument("args", nargs=argparse.REMAINDER)
     p.set_defaults(run=run_script)
 
+    from reshoot import project
+    p = sub.add_parser('doctor', help='check project tools without recording')
+    p.add_argument('--config')
+    p.add_argument('--json', action='store_true')
+    p.set_defaults(run=project.doctor)
+    p = sub.add_parser('init', help='create a demo project from packaged templates')
+    p.add_argument('directory', nargs='?', default='.')
+    p.add_argument('--url', help='your demo app; omit to use the made-up notes example')
+    p.set_defaults(run=project.init)
+    p = sub.add_parser('preview', help='record an isolated lower-resolution preview')
+    p.add_argument('config', nargs='?', default='reshoot.toml')
+    p.add_argument('--from', dest='from_beat', help='partial preview, replaying setup and earlier actions')
+    p.set_defaults(run=run.preview)
+    from reshoot import skills
+    p = sub.add_parser('skills', help='install the primary reshoot skills for a harness')
+    p.add_argument('harness', choices=['codex', 'claude'])
+    p.add_argument('--directory', default='.', help='project root receiving the skill bundle')
+    p.set_defaults(run=skills.install)
+    from reshoot import review
+    p = sub.add_parser('compare', help='compare matching beat IDs between two explicit runs')
+    p.add_argument('previous'); p.add_argument('current'); p.add_argument('--out')
+    p.set_defaults(run=lambda a: (review.compare(a), 0)[1])
+    p = sub.add_parser('review', help='create a local review page or import owner decisions')
+    p.add_argument('run_path'); p.add_argument('--previous'); p.add_argument('--import-decisions')
+    p.set_defaults(run=review.main)
+    p = sub.add_parser('export', help='copy explicitly chosen run media to a local directory')
+    p.add_argument('run_path'); p.add_argument('--directory', required=True)
+    p.add_argument('--file', action='append')
+    p.set_defaults(run=project.export)
     a = ap.parse_args(argv)
-    sys.exit(a.run(a) or 0)
+    try:
+        sys.exit(a.run(a) or 0)
+    except (ValueError, OSError) as e:
+        from reshoot.safety import redact
+        ap.exit(2, redact(str(e)) + '\n')
 
 
 def run_script(a):
+    from pathlib import Path
+    if Path(a.script).suffix == '.toml':
+        from reshoot.timeline import edit
+        return edit(a)
     import runpy
     sys.argv = [a.script, *a.args]
     runpy.run_path(a.script, run_name="__main__")

@@ -299,11 +299,11 @@ def test_check_shows_only_whats_new_and_remembers_what_passed(tmp_path, capsys):
     key = json.loads((review / "key.json").read_text())
     assert len(key) == 5 and sorted(p.name for p in review.glob("*.jpg")) == ["01.jpg", "02.jpg"]
     assert run("--fail", "1-2") == 0
-    assert "1.jpg" in capsys.readouterr().out
+    assert check.describe(str(shots / "1.jpg")) in capsys.readouterr().out
     assert run("--ok") == 0
     assert len(json.loads((review / "checked.json").read_text())) == 4
     assert run(str(shots)) == 1  # only the one that failed is left, until it's taken out of the demo
-    assert list(json.loads((review / "key.json").read_text()).values())[0][0].endswith("1.jpg")
+    assert list(json.loads((review / "key.json").read_text()).values())[0][0] == check.describe(str(shots / "1.jpg"))
     (shots / "1.jpg").unlink()
     assert run(str(shots)) == 0
 
@@ -345,7 +345,7 @@ def test_check_boxes_flagged_images_first_and_masks_what_it_found(tmp_path, caps
         cli(["check", str(shots), "--review", str(review)])
     out = capsys.readouterr().out
     key, flags = json.loads((review / "key.json").read_text()), json.loads((review / "flags.json").read_text())
-    assert list(flags) == ["1-1"] and key["1-1"][0].endswith("b-email.png")  # flagged, and put first
+    assert list(flags) == ["1-1"] and key["1-1"][0] == check.describe(str(shots / "b-email.png"))  # flagged, and put first
     assert flags["1-1"][0][0] == "email" and "jane.roe@gmail.com" not in out and "jane" in out
     sheet = Image.open(review / "01.jpg").convert("RGB")
     r, g, _ = sheet.getpixel((64, 26))

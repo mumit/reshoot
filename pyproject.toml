@@ -1,6 +1,6 @@
 [project]
 name = "reshoot"
-version = "0.1.0"
+version = "0.2.0"
 description = "Demo videos of software, made from scripts so you can shoot them again when the app changes"
 readme = "README.md"
 license = "MIT"
@@ -12,6 +12,9 @@ dependencies = [
     "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
     "pyobjc-framework-Vision>=10; sys_platform == 'darwin'",
 ]
+
+[project.optional-dependencies]
+browser = ["playwright==1.58.0"]
 
 [project.scripts]
 reshoot = "reshoot.cli:main"
@@ -26,3 +29,6 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 markers = ["browser: records a real page in headless Chrome (slow)"]
 addopts = "-m 'not browser'"
+
+[tool.hatch.build.targets.wheel.force-include]
+"skills" = "reshoot/bundled_skills"

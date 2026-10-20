@@ -59,12 +59,16 @@ def trim(src, start, end, out, fade_in=0, fade_out=0):
     if fade_out:
         vf.append(f"fade=out:st={end - start - fade_out}:d={fade_out}")
     ff("-ss", start, "-to", end, "-i", src, "-vf", ",".join(vf), *ENC, out)
+    from reshoot import timeline
+    timeline.trim(src, start, end, out)
     return out
 
 
 def speed(src, start, end, factor, out):
     """src from start to end, played factor times as fast."""
     ff("-i", src, "-vf", f"trim={start}:{end},setpts=(PTS-STARTPTS)/{factor},fps={FPS}", *ENC, out)
+    from reshoot import timeline
+    timeline.trim(src, start, end, out, factor)
     return out
 
 
@@ -72,6 +76,8 @@ def still(png, seconds, out, fade_in=0.5):
     """An image held for some seconds, such as a title or end card."""
     ff("-loop", 1, "-i", png, "-vf", f"fps={FPS},format=yuv420p" + (f",fade=in:st=0:d={fade_in}" if fade_in else ""),
        "-t", seconds, *ENC, out)
+    from reshoot import timeline
+    timeline.write(out, [], seconds)
     return out
 
 
@@ -80,6 +86,8 @@ def place(bg_png, src, x, y, out, width=None):
     scale = f"scale={width}:-2:flags=lanczos," if width else ""
     ff("-loop", 1, "-i", bg_png, "-i", src, "-filter_complex",
        f"[1:v]{scale}fps={FPS}[v];[0:v][v]overlay={x}:{y}:shortest=1,format=yuv420p", *ENC, out)
+    from reshoot import timeline
+    timeline.copy(src, out)
     return out
 
 
@@ -107,12 +115,22 @@ def concat(parts, out):
         ff("-f", "concat", "-safe", 0, "-i", f.name, "-c", "copy", "-movflags", "+faststart", out)
     finally:
         Path(f.name).unlink()
+    from reshoot import timeline
+    timeline.concat(parts, out)
     return out
 
 
-def gif(src, start, end, out, fps=15, width=800):
+def gif(src, start, end, out, fps=15, width=800, height=None, fit="contain"):
     """A GIF of src from start to end, with a palette made for these frames (much better than the default)."""
-    ff("-ss", start, "-t", end - start, "-i", src, "-vf", f"fps={fps},scale={width}:-1:flags=lanczos,{GIF_PALETTE}", out)
+    vf = f"scale={width}:-1:flags=lanczos"
+    if height is not None:
+        if fit not in ('contain', 'crop'):
+            raise ValueError('GIF fit must be contain or crop')
+        vf = f"scale={width}:{height}:flags=lanczos:force_original_aspect_ratio=" + ('increase' if fit == 'crop' else 'decrease')
+        vf += f",crop={width}:{height}" if fit == 'crop' else f",pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"
+    ff("-ss", start, "-t", end - start, "-i", src, "-vf", f"fps={fps},{vf},{GIF_PALETTE}", out)
+    from reshoot import timeline
+    timeline.trim(src, start, end, out)
     return out
 
 
@@ -171,6 +189,8 @@ def window_clip(mov, bg_png, x, y, out, width=None, radius=None):
         ff("-loop", 1, "-i", bg_png, "-i", mov, "-loop", 1, "-i", mask, "-filter_complex",
            f"[1:v]fps={FPS},crop={w}:{h}:{bx}:{by},scale={ow}:{oh}:flags=lanczos,format=rgba[w];[2:v]format=gray[m];"
            f"[w][m]alphamerge[p];[0:v][p]overlay={x}:{y},format=yuv420p", "-t", duration(mov), *ENC, out)
+    from reshoot import timeline
+    timeline.copy(mov, out)
     return out
 
 
@@ -192,17 +212,44 @@ def font(size, weight=600):
     return ImageFont.load_default(size)
 
 
+def wrap_text(text, selected_font, width, draw):
+    lines = []
+    for paragraph in text.split('\n'):
+        line = ''
+        for word in paragraph.split():
+            candidate = (line + ' ' + word).strip()
+            if draw.textlength(candidate, font=selected_font) <= width:
+                line = candidate
+                continue
+            if line:
+                lines.append(line)
+                line = ''
+            for ch in word:
+                if line and draw.textlength(line + ch, font=selected_font) > width:
+                    lines.append(line)
+                    line = ''
+                line += ch
+        lines.append(line)
+    return lines
+
+
 class Card:
     """A frame of words drawn with PIL, on a colour or transparent (bg=None), for title cards and labels."""
-    def __init__(self, w=1920, h=1080, bg=(14, 13, 12)):
+    def __init__(self, w=1920, h=1080, bg=(14, 13, 12), font_path=None):
         from PIL import Image, ImageDraw
         self.w, self.im = w, Image.new("RGBA" if bg is None else "RGB", (w, h), (0, 0, 0, 0) if bg is None else bg)
         self.d = ImageDraw.Draw(self.im)
+        self.font_path = font_path
 
     def text(self, x, y, s, size, weight=600, fill=(255, 255, 255)):
         """s at (x, y); x=None centres it."""
-        f = font(size, weight)
-        self.d.text(((self.w - self.d.textlength(s, font=f)) / 2 if x is None else x, y), s, font=f, fill=fill)
+        from PIL import ImageFont
+        f = ImageFont.truetype(str(self.font_path), size) if self.font_path else font(size, weight)
+        lines = wrap_text(s, f, self.w * .9 if x is None else self.w-x-20, self.d)
+        if y + len(lines)*size*1.25 > self.im.height:
+            raise ValueError('card text does not fit; shorten it or reduce the size')
+        for index, line in enumerate(lines):
+            self.d.text(((self.w-self.d.textlength(line, font=f))/2 if x is None else x, y+index*size*1.25), line, font=f, fill=fill)
         return self
 
     def badge(self, x, y, s, size=30, fill=(245, 180, 60), ink=(20, 20, 20)):
@@ -311,4 +358,6 @@ def add_audio(video, out, voice=None, music=None, music_volume=0.25):
         raise ValueError("give a voice track, music, or both")
     ff(*args, "-filter_complex", ";".join(parts), "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
        "-t", d, "-movflags", "+faststart", out)
+    from reshoot import timeline
+    timeline.copy(video, out)
     return out

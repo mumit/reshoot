@@ -12,7 +12,7 @@ The keys are beat names; a line starts with its beat. By default the voice is ma
 
 reshoot never handles a service's key: the command does, from its own environment.
 """
-import json, platform, shlex, shutil, subprocess
+import json, platform, shlex, shutil, subprocess, hashlib, tempfile
 from pathlib import Path
 
 
@@ -39,13 +39,15 @@ def speak(text, out, engine=None):
     from reshoot.cut import duration, ff
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    raw = out.with_suffix(".raw" + (".aiff" if engine_command(engine).startswith("say") else ".wav"))
-    cmd = engine_command(engine).replace("{out}", shlex.quote(str(raw)))
-    r = subprocess.run(cmd, shell=True, input=text.encode(), capture_output=True)
-    if r.returncode or not raw.exists():
-        raise SystemExit(f"the voice command failed ({cmd}): {r.stderr.decode(errors='replace').strip()[:300]}")
-    ff("-i", raw, "-ar", 48000, "-ac", 1, out)
-    raw.unlink()
+    with tempfile.TemporaryDirectory(prefix='reshoot-voice-', dir=out.parent) as temp:
+        raw = Path(temp) / ('raw.aiff' if engine_command(engine).startswith('say') else 'raw.wav')
+        cmd = engine_command(engine).replace('{out}', shlex.quote(str(raw)))
+        r = subprocess.run(cmd, shell=True, input=text.encode(), capture_output=True, timeout=120)
+        if r.returncode or not raw.exists():
+            raise ValueError(f'voice command failed (exit {r.returncode})')
+        finished = Path(temp) / 'line.wav'
+        ff('-i', raw, '-ar', 48000, '-ac', 1, finished)
+        finished.replace(out)
     return duration(out)
 
 
@@ -54,16 +56,15 @@ def prepare(lines, folder, engine=None):
     words and engine isn't spoken again."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
-    done = json.loads((folder / "lines.json").read_text()) if (folder / "lines.json").exists() else {}
+    from reshoot.cut import duration
     out = {}
-    for i, (beat, text) in enumerate(lines.items()):
-        f = folder / f"{i:02}-{beat}.wav"
-        key = f"{engine}|{text}"
-        if done.get(beat, {}).get("key") == key and f.exists():
-            out[beat] = (str(f), done[beat]["seconds"])
-            continue
-        print(f"  speaking {beat!r}", flush=True)
-        out[beat] = (str(f), speak(text, f, engine))
-        done[beat] = {"key": key, "seconds": out[beat][1], "text": text}
-    (folder / "lines.json").write_text(json.dumps(done, indent=1))
+    command = engine_command(engine)
+    for beat, text in lines.items():
+        key = hashlib.sha256((command + '\0' + text).encode()).hexdigest()
+        f = folder / (key + '.wav')
+        if f.exists():
+            out[beat] = (str(f), duration(f))
+        else:
+            print(f'  speaking {beat!r}', flush=True)
+            out[beat] = (str(f), speak(text, f, engine))
     return out

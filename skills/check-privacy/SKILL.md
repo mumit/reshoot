@@ -63,3 +63,10 @@ silhouette in a mesh railing and a blurred head in the background.
 ## Check status
 
 `check` exits 0 when the supplied review items are accepted, 1 when human review is pending, and 2 on a check error. Read `report.json` in the review folder. A missing input or unavailable required text detector is an error, never a pass. Video frames are sampled every three seconds by default; unsampled frames are not covered. `--no-scan` explicitly skips automatic detection and still requires human review.
+
+Use `--full` to inspect every decoded video or GIF frame, including brief content. This is slower than the default sampled mode. Original frames are saved in `REVIEW_DIR/originals/`. Scan completion describes coverage, not a guarantee of finding every private detail. Changing scan settings or watch words requires a fresh scan.
+
+`--ocr tesseract` or `[check] ocr = "tesseract"` selects text-only OCR explicitly when Vision cannot run. `RESHOOT_OCR` sets the default. Backend failures do not silently fall back; read the reported detector coverage, including unavailable face detection.
+
+`check --text-file FINAL.srt` scans exact caption text. Runs also check generated
+subtitle and narration sidecars. Inspect text findings at their recorded cue times.

@@ -5,7 +5,7 @@ people.
 Text is read with Apple's Vision on macOS, or Tesseract elsewhere (if installed). Faces and people need Vision. A
 scan only points at problems; it never passes an image. Looking at every image is still the check.
 """
-import io, platform, re, shutil, subprocess
+import io, platform, re, shutil, subprocess, os
 
 PATTERNS = [
     ("email", re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")),
@@ -40,25 +40,42 @@ def reasons(text, watch=()):
     return found
 
 
-def can_scan():
+def backend(engine=None):
+    engine = engine or os.environ.get('RESHOOT_OCR', 'auto')
+    if engine not in ('auto', 'vision', 'tesseract'):
+        raise ValueError('OCR backend must be auto, vision, or tesseract')
+    if engine == 'auto':
+        if platform.system() == 'Darwin':
+            try:
+                import Vision
+                return 'vision'
+            except ImportError:
+                pass
+        return 'tesseract'
+    return engine
+
+
+def can_scan(engine=None):
     """What this machine can look for: a set of "text", "people"."""
-    if platform.system() == "Darwin":
+    if backend(engine) == "vision" and platform.system() == "Darwin":
         try:
             import Vision  # noqa: F401
             return {"text", "people"}
         except ImportError:
             pass
-    return {"text"} if shutil.which("tesseract") else set()
+    return {"text"} if backend(engine) == "tesseract" and shutil.which("tesseract") else set()
 
 
-def scan(im, watch=()):
+def scan(im, watch=(), engine=None):
     """Flags for a PIL image: [(box (x, y, w, h) in its pixels, reason, what was found)]."""
-    if platform.system() == "Darwin":
+    if backend(engine) == "vision":
         try:
             return _vision(im, watch)
         except ImportError:
             pass
-    return _tesseract(im, watch) if shutil.which("tesseract") else []
+    if backend(engine) == "tesseract" and shutil.which("tesseract"):
+        return _tesseract(im, watch)
+    raise RuntimeError("requested OCR backend unavailable")
 
 
 def _vision(im, watch):
@@ -77,7 +94,7 @@ def _vision(im, watch):
         people.setUpperBodyOnly_(False)  # whole figures too, such as someone far away
     ok, error = handler.performRequests_error_([text, faces, people], None)
     if not ok:
-        raise RuntimeError("Vision failed")
+        raise RuntimeError(f"Vision failed ({error.domain() if error else 'unknown'} {error.code() if error else 'unknown'})")
     W, H = im.size
 
     def box(obs):  # Vision's boxes are 0 to 1, from the bottom left
@@ -99,7 +116,7 @@ def _vision(im, watch):
 def _tesseract(im, watch):
     b = io.BytesIO()
     im.convert("RGB").save(b, "PNG")
-    r = subprocess.run(["tesseract", "stdin", "stdout", "tsv"], input=b.getvalue(), capture_output=True)
+    r = subprocess.run(["tesseract", "stdin", "stdout", "tsv"], input=b.getvalue(), capture_output=True, timeout=60)
     if r.returncode:
         raise RuntimeError("Tesseract failed")
     lines = {}  # (block, paragraph, line): [words, box]

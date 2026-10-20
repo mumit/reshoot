@@ -117,3 +117,25 @@ fix it there too and say so.
 - **A check crashed but CI reported success.** Fixed in reshoot: the runner requires a fresh completed check report and saves failures before exiting.
 - **Old narration entered a new take.** Fixed in reshoot: removing `VOICE` removes the previous take's narration metadata.
 - **A browser disappeared and the beat waited forever.** Fixed in reshoot: disconnects reject pending commands, and recordings have timeouts.
+
+- **A failed take replaced the previous project's output.** Fixed in reshoot for versioned projects: each run writes to its own directory.
+- **Templates only worked from the source checkout.** Fixed in reshoot: `init` uses resources packaged with the CLI.
+- **Long recordings retained every JPEG in memory.** Fixed in reshoot: browser frames are stored in temporary files and read as needed.
+
+- **A script clicked through a covered control.** Fixed for TOML stories: native Playwright actions enforce actionability and fail instead of using JavaScript activation. Legacy Python stories retain their original input behaviour.
+- **A brief private detail fell between sampled frames.** Fixed in full scan mode: `check --full` decodes every frame. Sampled checks still have this limitation.
+- **The review pointed to a different time.** Fixed in reshoot: sampled frames now retain their decoded source timestamps.
+
+- **Cutting changed subtitle timing.** Fixed for mapped edits: cut helpers record source/output ranges and the declarative editor uses them for cues. Custom ffmpeg edits need their own map.
+- **Old approval accepted changed media.** Fixed in the local review importer: decisions bind to the run, artifact hashes, and current review policy.
+- **Recorded actions disappeared from a draft.** Fixed for explicitly detected unsupported changes and drops: the recorder stops instead of writing a misleading draft.
+
+- **Zoom can round beyond a captured frame.** Fixed in reshoot: crop coordinates use
+  each actual frame dimension and stay inside the decoded image.
+
+- **Some ffmpeg builds omit `drawtext`.** Fixed in reshoot: declarative speed and
+  wait labels use a Pillow overlay rather than that optional filter.
+
+- **A browser screenshot fits but its video clips the bottom.** Fixed in reshoot:
+  native capture sets the visible CDP surface as well as the emulated viewport.
+  The regression records a marker at the bottom of a tall page.

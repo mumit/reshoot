@@ -19,19 +19,32 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
       - name: Install ffmpeg
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then sudo apt-get update -q && sudo apt-get install -y -q ffmpeg fonts-dejavu-core tesseract-ocr
-          else brew install ffmpeg; fi
-      - run: uv run pytest
-      - run: uv run pytest -m browser
+          else brew install ffmpeg tesseract; fi
+      - run: uv run --extra browser pytest --ocr-backend=tesseract
+      - run: uv run --extra browser pytest -m browser --ocr-backend=tesseract
+      - name: Install and run the built wheel outside the checkout
+        env:
+          RESHOOT_OCR: tesseract
+        run: |
+          uv build
+          uv venv "$RUNNER_TEMP/reshoot-package"
+          uv pip install --python "$RUNNER_TEMP/reshoot-package/bin/python" "./dist/reshoot-0.2.0-py3-none-any.whl[browser]"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/reshoot-package/bin/reshoot" init packaged-demo
+          "$RUNNER_TEMP/reshoot-package/bin/reshoot" skills codex --directory packaged-demo
+          "$RUNNER_TEMP/reshoot-package/bin/reshoot" skills claude --directory packaged-demo
+          "$RUNNER_TEMP/reshoot-package/bin/reshoot" doctor --config packaged-demo/reshoot.toml
+          "$RUNNER_TEMP/reshoot-package/bin/reshoot" preview packaged-demo/reshoot.toml
 
   shoot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - id: shoot
         uses: ./
         with:
@@ -41,7 +54,7 @@ jobs:
         run: |
           echo "ok=${{ steps.shoot.outputs.ok }} unchecked=${{ steps.shoot.outputs.unchecked }}"
           cat "${{ steps.shoot.outputs.report }}" || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: notes-shoot

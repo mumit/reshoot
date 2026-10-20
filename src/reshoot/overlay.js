@@ -2,6 +2,8 @@
 // them, typing that looks like a person's, and captions. Everything is drawn above the page and ignores the mouse.
 // It's added to every document the tab loads, so it survives full page loads as well as #hash changes.
 window.__demo = window.__demo || (() => {
+  let seed = window.__reshootSeed;
+  const random = () => seed == null ? Math.random() : ((seed = (1664525 * seed + 1013904223) >>> 0) / 4294967296);
   const style = document.createElement("style");
   style.textContent = `
     #__cur { position:fixed; z-index:2147483647; left:0; top:0; pointer-events:none; will-change:transform; }
@@ -67,7 +69,7 @@ window.__demo = window.__demo || (() => {
     ready();
     const sx = x, sy = y, d = Math.hypot(tx - sx, ty - sy);
     ms = ms ?? Math.min(1100, 380 + d * 0.6);
-    const bend = (Math.random() - .5) * Math.min(120, d * .25), nx = -(ty - sy) / (d || 1), ny = (tx - sx) / (d || 1);
+    const bend = (random() - .5) * Math.min(120, d * .25), nx = -(ty - sy) / (d || 1), ny = (tx - sx) / (d || 1);
     const t0 = performance.now();
     await new Promise(done => {
       const step = now => {
@@ -163,7 +165,7 @@ window.__demo = window.__demo || (() => {
     for (const ch of text) {
       if (e.isContentEditable) document.execCommand("insertText", false, ch);
       else { setValue(e, e.value + ch); e.dispatchEvent(new InputEvent("input", { bubbles: true, data: ch, inputType: "insertText" })); }
-      await sleep(1000 / cps * (0.55 + Math.random() * 0.9) + (ch === " " ? 70 : 0));
+      await sleep(1000 / cps * (0.55 + random() * 0.9) + (ch === " " ? 70 : 0));
     }
     e.dispatchEvent(new Event("change", { bubbles: true }));
     return e;

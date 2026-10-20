@@ -59,8 +59,12 @@ def start_app(app):
     if url and answers(url):
         raise SystemExit(f"something is already answering at {url}: stop it first, so the takes show the app this "
                          "shoot starts")
+    if app.get('reset'):
+        code = execute(['sh', '-c', app['reset']], app.get('reset_timeout', 30), app.get('cwd'))
+        if code:
+            raise RuntimeError('demo data reset failed')
     print("starting the demo app", flush=True)
-    proc = subprocess.Popen(app["run"], shell=True, start_new_session=True)
+    proc = subprocess.Popen(app["run"], shell=True, start_new_session=True, cwd=app.get("cwd"))
     if url:
         deadline = time.time() + app.get("timeout", 60)
         while not answers(url, ready=True):
@@ -106,7 +110,10 @@ def steps(shoot):
         else:
             raise SystemExit(f"take {i} needs one of web, tape or run")
     if edit := shoot.get("edit"):
-        yield f"edit {edit['script']}", reshoot("edit", edit["script"], *edit.get("args", []))
+        script = edit.get("file", edit.get("script"))
+        if not script:
+            raise ValueError("edit needs file or script")
+        yield f"edit {script}", reshoot("edit", script, *edit.get("args", []))
 
 
 def save(report, path):
@@ -116,7 +123,7 @@ def save(report, path):
     temp.replace(path)
     if out := os.environ.get("GITHUB_OUTPUT"):
         with open(out, "a") as f:
-            for name in ('ok', 'unchecked', 'flagged', 'scan_status', 'review_status'):
+            for name in ('ok', 'unchecked', 'flagged', 'scan_status', 'review_status', 'expectations_status'):
                 value = report.get(name)
                 if isinstance(value, bool):
                     value = str(value).lower()
@@ -124,8 +131,11 @@ def save(report, path):
             f.write(f"report={path}\n")
 
 
-def execute(cmd, timeout):
-    proc = subprocess.Popen(cmd, start_new_session=True)
+def execute(cmd, timeout, cwd=None):
+    env = dict(os.environ)
+    if cwd:
+        env['RESHOOT_VOICE_CACHE'] = str(Path(cwd) / 'takes' / 'voice-cache')
+    proc = subprocess.Popen(cmd, start_new_session=True, cwd=cwd, env=env)
     try:
         return proc.wait(timeout)
     finally:
@@ -136,27 +146,61 @@ def main(a):
     path = Path(a.config)
     if not path.exists():
         raise SystemExit(f"no {describe(path)}: see reshoot run --help")
-    shoot = tomllib.loads(path.read_text())
+    from reshoot.config import prepare
+    shoot = prepare(path)
+    if os.environ.get('RESHOOT_FROM_BEAT'):
+        shoot.pop('edit', None)
+        shoot.pop('check', None)
+        shoot.pop('keep', None)
     plan = list(steps(shoot))
     takes = [Path(t['out']) for t in shoot.get('take', []) if 'out' in t]
     report_path = Path(shoot.get('report', takes[0].parent / 'run.json' if takes else 'takes/run.json'))
     report = {'schema_version': 1, 'config': describe(path), 'steps': [], 'ok': False,
               'unchecked': None, 'flagged': None, 'kept': [], 'scan_status': 'skipped',
               'review_status': 'pending', 'errors': []}
+    from reshoot.artifacts import digest
+    from importlib.metadata import version
+    report['inputs'] = {'config_sha256': digest(path), 'reshoot': version('reshoot'), 'stories': [],
+                        'fixtures': [{'source': describe(f), 'sha256': digest(f)} for f in shoot.get('inputs', [])]}
+    for take in shoot.get('take', []):
+        source = take.get('web') or take.get('tape')
+        if source and Path(source).is_file():
+            report['inputs']['stories'].append({'sha256': digest(source), 'kind': 'web' if 'web' in take else 'tape'})
+    if edit := shoot.get('edit'):
+        edit_path = edit.get('file', edit.get('script'))
+        if edit_path and Path(edit_path).is_file():
+            report['inputs']['edit_sha256'] = digest(edit_path)
+    root = shoot.get('_root', str(Path.cwd()))
+    revision = subprocess.run(['git', '-C', root, 'rev-parse', 'HEAD'], capture_output=True, text=True)
+    if revision.returncode == 0:
+        dirty = subprocess.run(['git', '-C', root, 'status', '--porcelain'], capture_output=True).stdout
+        tracked_diff = subprocess.run(['git', '-C', root, 'diff', 'HEAD', '--binary'], capture_output=True).stdout
+        report['inputs']['tracked_diff_sha256'] = __import__('hashlib').sha256(tracked_diff).hexdigest()
+        report['inputs'].update(commit=revision.stdout.strip(), dirty=bool(dirty), dirty_index_sha256=__import__('hashlib').sha256(dirty).hexdigest())
     app, t0 = None, time.monotonic()
     timeout = shoot.get('timeout', 600)
+    report.update(id=shoot.get('_run_id') or __import__('uuid').uuid4().hex, exports=shoot.get('_exports', {}),
+                  mode='partial-preview' if os.environ.get('RESHOOT_FROM_BEAT') else 'preview' if os.environ.get('RESHOOT_PREVIEW') else 'final')
     try:
+        event_path = report_path.parent / 'events.jsonl'
+        event_path.parent.mkdir(parents=True, exist_ok=True)
+        def event(kind, **fields):
+            with event_path.open('a') as f:
+                f.write(json.dumps({'run': report['id'], 'kind': kind, 'at': time.monotonic()-t0, **fields})+'\n')
+        event('start')
         if 'app' in shoot:
-            app = start_app(shoot['app'])
+            app = start_app({**shoot['app'], 'timeout': min(shoot['app'].get('timeout',60), timeout)})
         for name, cmd in plan:
             print('\n== ' + redact(name), flush=True)
             t = time.monotonic()
+            event('step_start', index=len(report['steps']))
             remaining = timeout - (t - t0)
             if remaining <= 0:
                 raise TimeoutError('run exceeded its timeout')
-            code = execute(cmd, remaining)
+            code = execute(cmd, remaining, shoot.get('_root'))
             report['steps'].append({'step': redact(name), 'ok': code == 0,
                                     'seconds': round(time.monotonic() - t, 1)})
+            event('step_end', index=len(report['steps'])-1, exit=code)
             if code:
                 raise RuntimeError(f"{redact(name)} failed (exit {code})")
         if check := shoot.get('check'):
@@ -164,10 +208,12 @@ def main(a):
             review = Path(check.get('review', 'takes/review'))
             check_path = review / 'report.json'
             check_path.unlink(missing_ok=True)
-            cmd = reshoot('check', *check.get('sources', []), '--review', review, '--every', check.get('every', 3),
+            cmd = reshoot('check', *check.get('sources', []), *(['--ocr', check['ocr']] if 'ocr' in check else []), *(['--full'] if check.get('full') else []), '--review', review, '--every', check.get('every', 3),
                           *[a for w in check.get('watch_for', []) for a in ('--watch-for', w)],
                           *([] if check.get('scan', True) else ['--no-scan']))
-            code = execute(cmd, max(0.01, timeout - (time.monotonic() - t0)))
+            text_paths = sorted({str(p) for p in report_path.parent.rglob('*') if p.suffix == '.srt' or p.name.endswith('.voice.json')})
+            cmd += [arg for p in text_paths for arg in ('--text-file', p)]
+            code = execute(cmd, max(0.01, timeout - (time.monotonic() - t0)), shoot.get('_root'))
             result = json.loads(check_path.read_text()) if check_path.exists() else {}
             report.update(review=str(review), scan_status=result.get('scan', {}).get('status', 'failed'),
                           review_status=result.get('review', 'pending'), unchecked=result.get('unchecked'),
@@ -179,13 +225,52 @@ def main(a):
             shutil.copyfile(src, dst)
             report['kept'].append(describe(dst))
         report['ok'] = True
+        event('completed')
     except (Exception, SystemExit, KeyboardInterrupt) as e:
         report['errors'].append(redact(str(e)) or type(e).__name__)
         raise SystemExit('run failed: ' + report['errors'][-1]) from None
     finally:
         stop_app(app)
         report['seconds'] = round(time.monotonic() - t0, 1)
+        from reshoot.artifacts import digest
+        report['files'] = [{'path': str(f.relative_to(report_path.parent)), 'sha256': digest(f)}
+                           for f in report_path.parent.rglob('*')
+                           if f.is_file() and f.resolve().is_relative_to(report_path.parent.resolve())
+                           and (f.suffix in ('.mp4', '.mov', '.gif', '.srt') or f.name.endswith(('.take.json', '.timeline.json', '.beats.json', '.events.json', '.voice.json', '.assets.json'))
+                                or f.parent.name.endswith(('.evidence', '.resources')) or f.name.endswith(('.poster.png', '.failure.png')))]
+        checks = []
+        for metadata in report_path.parent.rglob('*.take.json'):
+            try:
+                for beat in json.loads(metadata.read_text()).get('beats', []):
+                    checks.extend(beat.get('expectations', []))
+            except (OSError, ValueError, TypeError):
+                report['errors'].append('unreadable take result metadata')
+                report['ok'] = False
+                checks.append({'status': 'failed'})
+        report['expectations_status'] = 'failed' if any(x.get('status') == 'failed' for x in checks) else 'passed' if checks else 'unverified'
+        report['expectations_count'] = len(checks)
         save(report, report_path)
+    if not report["ok"]:
+        raise SystemExit(2)
     print(f"done in {report['seconds']:.0f} s. Report in {report_path}.")
     if report['review_status'] != 'completed':
         print('Human review is pending; execution success is not approval to publish.')
+
+
+def preview(a):
+    previous = os.environ.get('RESHOOT_PREVIEW')
+    before = os.environ.get('RESHOOT_FROM_BEAT')
+    if getattr(a, 'from_beat', None):
+        os.environ['RESHOOT_FROM_BEAT'] = a.from_beat
+    os.environ['RESHOOT_PREVIEW'] = '1'
+    try:
+        return main(a)
+    finally:
+        if before is None:
+            os.environ.pop('RESHOOT_FROM_BEAT', None)
+        else:
+            os.environ['RESHOOT_FROM_BEAT'] = before
+        if previous is None:
+            os.environ.pop('RESHOOT_PREVIEW', None)
+        else:
+            os.environ['RESHOOT_PREVIEW'] = previous

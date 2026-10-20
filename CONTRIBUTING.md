@@ -15,7 +15,7 @@ uv run pytest               # fast tests
 uv run pytest -m browser    # records the notes example in headless Chrome (slow)
 ```
 
-The tests need ffmpeg. The browser test needs Chrome or Chromium.
+The tests need ffmpeg. The browser tests need Chrome or Chromium and the browser extra (`uv sync --extra browser`). To test text scanning with an explicit backend, install Tesseract and run `uv run --extra browser pytest --ocr-backend=tesseract`. A failed Vision integration remains an error; selecting Tesseract does not validate face detection.
 
 ## Trying a change
 

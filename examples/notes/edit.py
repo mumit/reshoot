@@ -14,7 +14,7 @@ from reshoot import cut
 
 # The words on screen
 TITLE, TAGLINE = "Notes", "a made-up app for trying reshoot"
-TERMINAL = "Or from the terminal"
+TERMINAL = "A separate terminal recording"
 BG, GREY, ACCENT = (14, 13, 12), (170, 170, 170), (245, 180, 60)
 W, H = 1920, 1080  # every part is this size, so they can be joined
 MUSIC = None  # a sound file to play quietly under the video, such as "tools/demo/music.m4a"

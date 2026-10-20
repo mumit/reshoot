@@ -66,3 +66,11 @@ cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceove
   allows.
 - **Music you can use.** Only use music you have the right to post. Keep it quiet (`music_volume` 0.15 to 0.3).
 - **Limits for posting.** Sites limit size and length, and change them. Check before uploading.
+
+## Declarative edits
+
+`reshoot edit EDIT.toml TAKE...` accepts schema-version-1 edit files with ordered `[[part]]` entries and output profiles. The packaged project provides an example. Cut helpers write `.timeline.json` mappings; trims, speed changes, placement, and concatenation retain source times. Speed changes need a visible label and cannot shorten narration. Explicit local copies use `reshoot export RUN --directory DIR --file PATH`; hashes must match the report, and existing destinations are not overwritten.
+
+Declarative edits can use `trim_waits = true` for beats explicitly marked
+`trim_wait = true` with a passed expectation. Keep `min_reading` long enough to
+read the result. Reshoot preserves speech and labels shortened waits.

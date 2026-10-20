@@ -7,26 +7,43 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
 
 ## Next
 
-1. **Trim dead time.** In the finished video, shorten pauses where nothing moves (to about 0.8 s), and shift the
-   beat times to match. Recordings made by a person are full of pauses spent finding the next button.
-2. **Export presets** for X, LinkedIn, YouTube and README GIFs: each site's size, length and format, and a poster
-   frame.
-3. **iOS and Android takes:** the iOS Simulator (`xcrun simctl io recordVideo`) and the Android emulator
-   (`adb screenrecord`), driven by a script like a storyboard. Both can be recorded without showing the desktop.
+1. **Try the workflow outside this repo.** Run three to five authorized synthetic
+   projects and measure setup, updates, manual repairs, and review time.
+2. **Validate both live harnesses.** Repeat creation, refresh, and review in fresh
+   Claude and Codex sessions. Installed bundle checks do not establish discovery.
+3. **Broaden compatibility evidence.** Validate more framework apps, long takes,
+   and working Vision installations. Keep unavailable detectors visible.
+
+The [delivery status](docs/validation/2026-10-19-delivery-status.md) records the
+implementation, evidence, limits, and acceptance work still needed.
 
 ## Later
 
-- **Frames and themes:** a browser frame, a phone frame, a background, brand colours and a logo, set once for a
-  project.
-- **An edit file instead of an edit script:** a short list of parts in YAML or TOML, for people who'd rather not
-  write Python.
-- **A Playwright importer:** turn existing Playwright tests into storyboards.
-- **Faster tries:** `--from BEAT` to start a take part-way, and a quick low-resolution mode.
-- **Translations:** one storyboard with captions in several languages.
-- **Faces and people on Linux:** a detector that doesn't need macOS, such as OpenCV's.
-- **Linux and Windows:** try every part, fix what breaks, and say what works.
+- Named export presets with verified destination limits.
+- iOS Simulator and Android emulator takes.
+- A Playwright test importer.
+- Translated captions and narration.
+- Face and person detection on Linux.
+- Windows support and device frames.
 
 ## Done
+
+These features are implemented. Live harness trials and external product acceptance
+remain open as described above.
+
+- **Repeatable projects:** packaged templates, dependency checks, previews and
+  partial replay, versioned paths, isolated runs, and explicit local export.
+- **Shared Claude and Codex skills:** create, refresh, and review from the same
+  bundled source, with complete local installers.
+- **Checked browser stories:** native Playwright input, stable beats, expectations,
+  failure evidence, resource capture, and legacy Python compatibility.
+- **Release comparison and review:** beat and environment differences, original
+  frames, local HTML, exact artifact hashes, and explicit review decisions.
+- **Full scan option:** every decoded video or GIF frame, plus direct checks of
+  subtitle and narration text. Sampling remains the default; neither is a safety verdict.
+- **Declarative edits and profiles:** source time maps, labelled speed and marked
+  wait changes, narration protection, reading holds, styled captions and cards,
+  size and file budgets, subtitles, and posters.
 
 - **Subtitles and voiceover:** `VOICE` in a storyboard speaks a line as each beat starts (macOS `say`, `espeak-ng`,
   or any command), and each beat waits for its line. The cut adds the voice and optional music that ducks under it

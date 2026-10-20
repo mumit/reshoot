@@ -97,3 +97,12 @@ def test_browser_disconnect_releases_waiters():
         with pytest.raises(RuntimeError, match='closed'):
             await pending
     asyncio.run(exercise())
+
+
+def test_explicit_ocr_backend_does_not_silently_fall_back(monkeypatch):
+    monkeypatch.setenv('RESHOOT_OCR', 'tesseract')
+    assert scan.backend() == 'tesseract'
+    assert scan.backend('vision') == 'vision'
+    monkeypatch.setattr(scan, '_vision', lambda *a: (_ for _ in ()).throw(RuntimeError('detector failed')))
+    with pytest.raises(RuntimeError, match='detector failed'):
+        scan.scan(Image.new('RGB', (20,20)), engine='vision')

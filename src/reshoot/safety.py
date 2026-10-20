@@ -6,9 +6,16 @@ from urllib.parse import urlsplit
 
 def describe(source):
     value = str(source)
-    if value.startswith(('http://', 'https://')):
-        return 'remote source ' + hashlib.sha256(value.encode()).hexdigest()[:12]
-    return redact(value)
+    marker = ''
+    if '@' in value and value.endswith('s'):
+        candidate = value.rsplit('@', 1)[1]
+        try:
+            float(candidate[:-1])
+            value, marker = value.rsplit('@', 1)[0], '@' + candidate
+        except ValueError:
+            pass
+    kind = 'remote' if value.startswith(('http://', 'https://')) else 'local'
+    return kind + ' source ' + hashlib.sha256(value.encode()).hexdigest()[:12] + marker
 
 
 def redact(value):

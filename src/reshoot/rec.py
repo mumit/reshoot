@@ -34,7 +34,7 @@ def name_for(where, verb):
     return f"{verb}-{slug}"
 
 
-def beats_from(calls):
+def steps_from(calls, include_tab=False):
     """[(name, js, hold, note)] from what the page reported. A run of typing in one field is one beat with the
     final text, and the click that focused the field is dropped, since __demo.type clicks it first."""
     steps = []  # dicts: start, verb, where, and value, key or dy
@@ -51,10 +51,15 @@ def beats_from(calls):
                               secret=ev.get("secret")))
         elif kind == "click":
             steps.append(dict(start=t, verb="click", where=ev["where"]))
-        elif kind == "key" and ev["key"] in ("Enter", "Escape"):
+        elif kind == "key" and ev["key"] in (("Enter", "Escape", "Tab") if include_tab else ("Enter", "Escape")):
             steps.append(dict(start=t, verb="key", where=ev["where"], key=ev["key"]))
         elif kind == "scroll":
             steps.append(dict(start=t, verb="scroll", where=None, dy=ev["dy"]))
+    return steps
+
+
+def beats_from(calls):
+    steps = steps_from(calls)
     out, used = [], {}
     for i, st in enumerate(steps):
         note = None
@@ -134,8 +139,43 @@ def main(a):
         asyncio.run(session(a.url, w, h, calls, headless=a.headless))
     except KeyboardInterrupt:  # stopped from the terminal: keep what was done so far
         pass
+    if Path(a.out).suffix == '.toml':
+        write_toml(a.out, a.url, a.size, calls)
+        print(f'wrote {a.out}. Add purposes, captions, and expected results before recording.')
+        return
+    if any(ev['kind'] not in ('click', 'type', 'key', 'scroll') for _, ev in calls):
+        raise ValueError('recording contains unsupported interactions; no storyboard written')
     beats = beats_from(calls)
     if not beats:
         raise SystemExit("nothing was clicked or typed, so there's no storyboard to write")
     write(a.out, a.url, a.size, beats)
     print(f"wrote {a.out}: {len(beats)} beats. Add captions and check the holds, then: reshoot web {a.out} takes/web.mp4")
+
+
+def write_toml(path, url, size, calls):
+    unsupported = [ev['kind'] for _, ev in calls if ev['kind'] not in ('click', 'type', 'key', 'scroll')]
+    if unsupported:
+        raise ValueError('recording includes unsupported interactions: ' + ', '.join(sorted(set(unsupported))))
+    lines = ['schema_version = 1', 'url = ' + json.dumps(url), 'size = ' + json.dumps(size)]
+    steps = steps_from(calls, include_tab=True)
+    if not steps:
+        raise ValueError('no supported actions recorded')
+    for i, step in enumerate(steps):
+        lines += ['', '[[beat]]', f'id = "action-{i+1}"', 'hold = 1.0', '[[beat.action]]', 'type = ' + json.dumps(step['verb'])]
+        if step.get('where'):
+            kind, value = step['where']
+            if kind == 'css':
+                spec = {'css': value}
+            else:
+                tag, text = value
+                spec = {'css': tag, 'text': text}
+            lines += ['target = {' + ', '.join(key + ' = ' + json.dumps(value) for key, value in spec.items()) + '}']
+        if step['verb'] == 'type':
+            value = 'demo-password' if step.get('secret') else step['value']
+            lines += ['text = ' + json.dumps(value), 'clear = true']
+        elif step['verb'] == 'key':
+            lines += ['key = ' + json.dumps(step['key'])]
+        elif step['verb'] == 'scroll':
+            lines += ['dy = ' + str(step['dy'])]
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text('\n'.join(lines) + '\n')

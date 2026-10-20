@@ -1,4 +1,4 @@
-# A terminal take with VHS: starting the notes example. Run from the repo root: vhs examples/notes/terminal.tape
+# A separate terminal take with VHS: writing and reading a demo text file. Run from the repo root: vhs examples/notes/terminal.tape
 # The shell starts clean (env -i), so nothing from your own environment shows: no prompt, history, names or keys.
 Output "takes/terminal.mp4"
 Set Shell "bash"

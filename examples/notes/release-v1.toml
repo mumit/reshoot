@@ -1,0 +1,11 @@
+schema_version = 1
+[app]
+run = "python3 -m http.server 8770 --bind 127.0.0.1 --directory ."
+url = "http://127.0.0.1:8770/"
+[[take]]
+web = "storyboard.toml"
+url = "http://127.0.0.1:8770/"
+out = "takes/notes.mp4"
+[check]
+sources = ["takes/notes.mp4"]
+scan = true

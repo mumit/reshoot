@@ -197,7 +197,7 @@ def stop_chrome(chrome, profile):
 
 
 async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=False, settle=4, assets=(), setup=(),
-                 post_captions=False, blur=(), need=None):
+                 post_captions=False, blur=(), need=None, from_beat=None):
     import websockets
     chrome, profile, ws_url = start_chrome(w, h)
     try:
@@ -238,6 +238,14 @@ async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=Fa
                 raise RuntimeError("the overlay didn't load: " + ("; ".join(page.errors) or "no page errors"))
             if got[1] != w:
                 print(f"  note: the page is {got[1]} px wide, not {w}")
+            if from_beat:
+                names = [name for name, _, _ in beats]
+                if from_beat not in names:
+                    raise ValueError('unknown starting beat')
+                split = names.index(from_beat)
+                await play(page, [(n, js, 0) for n, js, _ in beats[:split]], quiet=True)
+                beats = beats[split:]
+                page.beats.clear()
             page.events.clear()  # what SETUP and WARM did isn't in the take
             await page.cmd("Page.startScreencast", format="jpeg", quality=92, maxWidth=int(w * dpr), maxHeight=int(h * dpr))
             await play(page, beats, need=need)
@@ -254,7 +262,8 @@ def encode(frames, out, fps=60, size="1920:1080"):
     """Shows each frame until the next was painted, then resamples to a steady fps. Chrome sends a frame only when
     something changes, so a still page sends none, and the frame rate goes up and down with the motion."""
     end = frames[-1][0] if frames and frames[-1][1] is None else None
-    frames = [f for f in frames if f[1] is not None]
+    from reshoot.artifacts import images
+    frames = images(frames)
     tmp = Path(tempfile.mkdtemp(prefix="reshoot-frames-"))
     try:
         lines = []
@@ -268,7 +277,7 @@ def encode(frames, out, fps=60, size="1920:1080"):
         total = max(end or 0, frames[-1][0] + 1 / fps) - frames[0][0]
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(tmp / "list.txt"), "-t", f"{total:.3f}",
                         "-vf", f"fps={fps},scale={size}:flags=lanczos:out_range=tv,format=yuv420p", "-color_range", "tv",
-                        "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-movflags", "+faststart", str(out)], check=True)
+                        "-c:v", "libx264", "-preset", "ultrafast" if os.environ.get("RESHOOT_PREVIEW") else "slow", "-crf", "17", "-movflags", "+faststart", str(out)], check=True)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -276,56 +285,75 @@ def encode(frames, out, fps=60, size="1920:1080"):
 def parse_size(s):
     wh, dpr = s.split("@") if "@" in s else (s, "1")
     w, h = map(int, wh.split("x"))
-    return w, h, float(dpr)
+    dpr = float(dpr)
+    import math
+    if w < 2 or h < 2 or not math.isfinite(dpr) or dpr <= 0 or w*dpr < 2 or h*dpr < 2:
+        raise ValueError('size and pixel ratio must produce at least 2x2 pixels')
+    return w, h, dpr
 
 
 def main(a):
     """`reshoot web STORYBOARD OUT.mp4`"""
+    if Path(a.storyboard).suffix == '.toml':
+        from reshoot import browser
+        return browser.main(a)
     from reshoot import zoom
     board = runpy.run_path(a.storyboard)
     url = a.url or board.get("URL") or "http://localhost:8000/"
     w, h, dpr = parse_size(a.size or board.get("SIZE", "1280x720@1.5"))
+    if os.environ.get('RESHOOT_PREVIEW'):
+        dpr = min(dpr, 720 / max(w, h))
     theme = a.theme or board.get("THEME", "dark")
     z = zoom.settings(a.zoom if a.zoom is not None else board.get("ZOOM"))
     # Zoomed parts are enlarged, so the page is recorded sharper to begin with (up to 2x, and 4 pixels per CSS pixel).
     cap_dpr = min(dpr * min(z["scale"], 2), 4) if z else dpr
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.with_suffix(".voice.json").unlink(missing_ok=True)
     lines = board.get("VOICE") or {}
     if unknown := [b for b in lines if b not in {name for name, _, _ in board["BEATS"]}]:
         raise SystemExit(f"VOICE has lines for beats the storyboard doesn't have: {', '.join(unknown)}")
     spoken = {}
     if lines:  # spoken first, so each beat can wait for its line to finish
         from reshoot import voice
-        spoken = voice.prepare(lines, out.with_suffix(".voice"), board.get("VOICE_ENGINE"))
-    frames = []
-    errors, assets, starts, events = asyncio.run(asyncio.wait_for(record(
-        board["BEATS"], url, w, h, cap_dpr, frames, theme, board.get("WARM", ()), a.mobile or board.get("MOBILE", False),
-        board.get("SETTLE", 4), board.get("ASSETS", ()), board.get("SETUP", ()), post_captions=bool(z),
-        blur=board.get("BLUR", ()), need={b: s + 0.3 for b, (_, s) in spoken.items()}), 600))
-    if errors:
-        from reshoot.safety import redact
-        raise SystemExit("page errors: " + redact("; ".join(errors)))
-    out.with_suffix(".assets.json").write_text(json.dumps(sorted(assets), indent=1))
-    if not any(jpg for _, jpg in frames):  # a still page sends one frame, which is enough: it's held to the end
-        raise SystemExit("no frames captured: did the page draw anything?")
-    t0 = frames[0][0]
-    out.with_suffix(".beats.json").write_text(json.dumps({n: max(0, round(t - t0, 3)) for n, t in starts.items()}, indent=1))
-    out.with_suffix(".events.json").write_text(json.dumps([{"t": round(t - t0, 3), **ev} for t, ev in events], indent=1))
-    if spoken:  # where each line goes in this take, for the cut (cut.voice_track) and subtitles
-        out.with_suffix(".voice.json").write_text(json.dumps(
-            [{"beat": b, "t": max(0, round(starts[b] - t0, 3)), "text": lines[b], "file": f, "seconds": round(s, 3)}
-             for b, (f, s) in spoken.items()], indent=1))
-    span = frames[-1][0] - frames[0][0]
-    gaps = sorted(b[0] - a_[0] for a_, b in zip(frames[:-1], frames[1:-1])) or [span]
-    print(f"{len(frames) - 1} frames over {span:.1f}s: {(len(frames) - 1) / max(span, 0.001):.0f} fps on average, "
-          f"longest gap {gaps[-1] * 1000:.0f} ms, 95% of gaps under {gaps[int(len(gaps) * .95)] * 1000:.0f} ms")
-    ow, oh = int(w * dpr) // 2 * 2, int(h * dpr) // 2 * 2
-    if z:
-        print(f"zooming ({sum(1 for _, e in events if e.get('kind') == 'act') // 2} actions)", flush=True)
-        zoom.render(frames, events, out, w, h, ow, oh, z)
-    else:
-        encode(frames, out, size=f"{ow}:{oh}")
-    print("wrote", out, f"| {len(assets)} images and media loaded (listed in {out.with_suffix('.assets.json').name})",
-          "| page errors:", errors or "none")
+        spoken = voice.prepare(lines, os.environ.get("RESHOOT_VOICE_CACHE", out.with_suffix(".voice")), board.get("VOICE_ENGINE"))
+    from reshoot.artifacts import Frames
+    with Frames() as frames:
+        errors, assets, starts, events = asyncio.run(asyncio.wait_for(record(
+            board["BEATS"], url, w, h, cap_dpr, frames, theme, board.get("WARM", ()), a.mobile or board.get("MOBILE", False),
+            board.get("SETTLE", 4), board.get("ASSETS", ()), board.get("SETUP", ()), post_captions=bool(z),
+            blur=board.get("BLUR", ()), need={b: s + 0.3 for b, (_, s) in spoken.items()}, from_beat=getattr(a, "from_beat", None) or os.environ.get("RESHOOT_FROM_BEAT")), 600))
+        if errors:
+            from reshoot.safety import redact
+            raise SystemExit("page errors: " + redact("; ".join(errors)))
+        sidecars = {".assets.json": sorted(assets)}
+        if not any(jpg for _, jpg in frames):  # a still page sends one frame, which is enough: it's held to the end
+            raise SystemExit("no frames captured: did the page draw anything?")
+        t0 = frames[0][0]
+        sidecars[".beats.json"] = {n: max(0, round(t-t0, 3)) for n,t in starts.items()}
+        sidecars[".events.json"] = [{"t": round(t-t0, 3), **ev} for t,ev in events]
+        spoken = {b: line for b, line in spoken.items() if b in starts}
+        if spoken:  # where each line goes in this take, for the cut (cut.voice_track) and subtitles
+            sidecars[".voice.json"] = [{"beat": b, "t": max(0, round(starts[b]-t0, 3)), "text": lines[b], "file": f, "seconds": round(s, 3)} for b,(f,s) in spoken.items()]
+        span = frames[-1][0] - frames[0][0]
+        gaps = sorted(b[0] - a_[0] for a_, b in zip(frames[:-1], frames[1:-1])) or [span]
+        print(f"{len(frames) - 1} frames over {span:.1f}s: {(len(frames) - 1) / max(span, 0.001):.0f} fps on average, "
+              f"longest gap {gaps[-1] * 1000:.0f} ms, 95% of gaps under {gaps[int(len(gaps) * .95)] * 1000:.0f} ms")
+        ow, oh = int(w * dpr) // 2 * 2, int(h * dpr) // 2 * 2
+        pending_out = out.with_name(out.stem + ".partial.mp4")
+        if z:
+            print(f"zooming ({sum(1 for _, e in events if e.get('kind') == 'act') // 2} actions)", flush=True)
+            zoom.render(frames, events, pending_out, w, h, ow, oh, z)
+        else:
+            encode(frames, pending_out, size=f"{ow}:{oh}")
+        pending_out.replace(out)
+        if not spoken:
+            out.with_suffix('.voice.json').unlink(missing_ok=True)
+        for suffix, content in sidecars.items():
+            out.with_suffix(suffix).write_text(json.dumps(content, indent=2))
+        from reshoot.artifacts import digest
+        metadata = {'schema_version': 1, 'status': 'completed', 'driver': 'legacy-javascript', 'video': out.name,
+                    'mode': 'partial' if getattr(a, 'from_beat', None) or os.environ.get('RESHOOT_FROM_BEAT') else 'final',
+                    'sha256': digest(out), 'beats': [{'id': name, 'start': at, 'status': 'unverified'} for name,at in sidecars['.beats.json'].items()]}
+        out.with_suffix('.take.json').write_text(json.dumps(metadata, indent=2))
+        print("wrote", out, f"| {len(assets)} images and media loaded (listed in {out.with_suffix('.assets.json').name})",
+              "| page errors:", errors or "none")

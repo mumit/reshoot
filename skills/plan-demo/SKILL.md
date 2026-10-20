@@ -56,3 +56,7 @@ pitfalls, and `../../examples/notes/` has a full example to copy from.
 The skills run the `reshoot` command. If it's missing: `uv tool install git+https://github.com/mumit/reshoot`. It
 also needs ffmpeg, VHS for terminal takes, and Chrome or Chromium for web takes. On macOS: `brew install ffmpeg vhs`.
 On Linux, use the package manager.
+
+## Project setup
+
+Run `reshoot doctor --config reshoot.toml` when a project exists. For a new one, `reshoot init demo --url URL` supplies packaged templates without a source checkout. Fill in `BRIEF.md`, replace the placeholder action, then use `reshoot preview demo/reshoot.toml` before a full `run`. Versioned project outputs are isolated per run.

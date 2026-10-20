@@ -2,7 +2,7 @@
 
 Date: 2026-10-19  
 Code baseline: `1c9b029`  
-Status: Proposed work. The commands, formats, and modules described below have not been implemented unless identified as existing.
+Status: Implementation and validation are tracked in the [delivery status](../validation/2026-10-19-delivery-status.md). The sections below retain the original planned scope.
 
 This plan follows the [product review](../reviews/2026-10-19-product-review.md). It covers reliability, demo planning, Claude and Codex support, browser actions, review, updates, and output quality.
 

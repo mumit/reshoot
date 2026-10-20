@@ -37,3 +37,5 @@ description: Set up a reshoot.toml so one command (`reshoot run`) records a proj
 - **A server already running** on the app's port stops the shoot, so a take can't show the wrong server.
 
 The run report and Action outputs distinguish `scan_status` and `review_status`. `ok=true` means execution completed, not approval to publish. A required check error stops the run, and the app remains available until its URL-based checks finish.
+
+Versioned runs keep separate candidate files. Compare two explicit runs with `reshoot compare OLD NEW --out FILE`, then generate `reshoot review NEW --previous OLD`. Matching beat IDs do not imply matching results. No new run promotes itself to the baseline.

@@ -1,0 +1,49 @@
+schema_version = 1
+id = "notes"
+url = "http://127.0.0.1:8765/"
+size = "1280x720@1"
+seed = 1
+
+[[beat]]
+id = "intro"
+caption = "Find a note by its words"
+hold = 1.5
+
+[[beat]]
+id = "add"
+purpose = "Save a note and show it in the list"
+hold = 1.0
+[[beat.action]]
+type = "type"
+target = {css = "#text"}
+text = "Pick up the bikes"
+[[beat.action]]
+type = "key"
+target = {css = "#text"}
+key = "Enter"
+[[beat.expect]]
+type = "text"
+target = {css = "#list"}
+contains = "Pick up the bikes"
+
+[[beat]]
+id = "search"
+purpose = "Find the saved note by a word"
+caption = "Find the matching note"
+hold = 2.0
+[[beat.action]]
+type = "type"
+target = {css = "#q"}
+text = "bike"
+[[beat.expect]]
+type = "count"
+target = {css = "#list li"}
+count = 1
+[[beat.expect]]
+type = "text"
+target = {css = "#list li"}
+contains = "Pick up the bikes"
+
+[[beat]]
+id = "end"
+hold = 0.5

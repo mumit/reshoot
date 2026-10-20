@@ -61,17 +61,22 @@ single window, and check every frame before sharing.
 | `reshoot.cut` and ffmpeg | Cutting the finished video and GIFs |
 | Claude Code with the reshoot skills | Writing the storyboard and edit script, and running the steps |
 
+For packaged projects, native input, release comparison, and local review, I use
+the [project workflow](projects.md).
+
 ## Platforms
 
-I've made videos with reshoot on macOS. The web, terminal, check and cut parts use only Chrome, VHS, ffmpeg and
-Python, so they should work on Linux too, but nobody has tried yet. Recording an app window needs macOS.
+I've made videos with reshoot on macOS. The automated browser, check, cut, and
+package tests pass on Linux and macOS. The full notes workflow, including VHS,
+passes on Linux CI. Recording an app window needs macOS. External project and
+live harness trials remain open; see the [delivery status](../docs/validation/2026-10-19-delivery-status.md).
 
 | Part | macOS | Linux | Windows |
 |---|---|---|---|
-| Web takes | yes | should work, not tried | not tried |
-| Terminal takes (VHS) | yes | should work, not tried | not tried |
+| Web takes | CI fixtures pass | CI fixtures pass | not tried |
+| Terminal takes (VHS) | used locally | notes shoot passes in CI | not tried |
 | App window takes | yes | no | no |
-| Check and cut | yes | should work, not tried | not tried |
+| Check and cut | CI passes with Tesseract | CI passes with Tesseract | not tried |
 
 ## Sound and subtitles
 

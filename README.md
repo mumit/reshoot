@@ -37,8 +37,7 @@ uv tool install 'reshoot[browser] @ git+https://github.com/mumit/reshoot'
 ```
 
 Terminal takes also need VHS (`brew install vhs` on macOS). On Linux, install ffmpeg and, for terminal takes, [VHS](https://github.com/charmbracelet/vhs#installation) from your package manager. Web
-takes need Google Chrome or Chromium (or set `RESHOOT_CHROME` to its path). App windows need macOS. I've used reshoot
-on macOS only so far; see [Platforms](guide/README.md#platforms).
+takes need Google Chrome or Chromium (or set `RESHOOT_CHROME` to its path). App windows need macOS. The test suite and packaged browser workflow pass on Linux and macOS; see [Platforms](guide/README.md#platforms).
 
 **For Claude Code:**
 

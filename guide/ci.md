@@ -4,6 +4,12 @@ Once a video's takes are scripts, a CI job can record them again whenever the ap
 never ships with a stale demo video or README GIF. When a button is renamed and the storyboard breaks, the job fails
 and names the beat.
 
+New projects use versioned run folders and retain candidates until an explicit
+local export. See [Projects, updates, and review](projects.md) for that workflow.
+The copied PR workflow below uses the legacy `[keep]` path. Do not expect it to
+copy candidates from a new versioned project without an explicit export step.
+The sample pins reshoot and its supporting actions to reviewed commits.
+
 ## The shoot file
 
 `reshoot run` does a whole shoot from one `reshoot.toml`: it starts the app, waits until it answers, records each
@@ -72,6 +78,7 @@ repo. Only put in what anyone may see.
 - **Checks wait on the pull request.** GitHub doesn't run workflows on a pull request opened by
   `github-actions[bot]` until someone approves them: the run shows "action_required". Approve it on the pull
   request's Checks tab, or open the pull request with a GitHub App or personal token instead of `GITHUB_TOKEN`.
+  [GitHub documents this approval behaviour](https://docs.github.com/en/actions/concepts/security/github_token).
 - **A local run changes the kept files too.** `reshoot run` on my own machine copies the new video into
   `docs/demo/`, ready to commit by mistake. I commit them only after the check, or put them back with
   `git checkout -- docs/demo`.

@@ -1,6 +1,7 @@
 # Delivery status
 
-Date: 2026-10-19
+Started: 2026-10-19  
+Validation finished: 2026-10-20
 
 I have implemented the workflow in the [plan](../plans/2026-10-19-implementation-plan.md).
 The code and package checks are separate from the live harness and external project
@@ -66,8 +67,11 @@ Their evidence frames change, and the comparison reports changed inputs. I inspe
 the new poster and a recorded frame to confirm that the result and caption fit.
 This is a small static synthetic app, not an external product trial.
 
-Local automated checks: 62 fast tests and 22 browser tests passed. Hosted CI
-results are recorded separately after the push. Plugin validation passes with the existing warning
+Local automated checks: 62 fast tests and 22 browser tests passed.
+[CI for `cb7d5ad`](https://github.com/mumit/reshoot/actions/runs/39382679939)
+passed on Linux and macOS, including browser fixtures and clean wheel installation
+with a packaged preview. The separate Linux job completed the browser-plus-terminal
+notes shoot through the GitHub Action. Plugin validation passes with the existing warning
 that a plugin-root `CLAUDE.md` is not loaded as context. Required instructions are
 inside each primary skill. All three primary skills pass the skill validator.
 

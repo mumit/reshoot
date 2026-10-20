@@ -5,7 +5,7 @@ Thanks for helping. The most useful things to send are:
 - **a pitfall** you hit, in a line or two: what happened, and what avoids it ([guide/pitfalls.md](guide/pitfalls.md));
 - **a fix** in `reshoot` so the pitfall can't happen again;
 - **a skill** for a kind of take that isn't covered yet, such as an iOS simulator, an Electron app or Linux windows;
-- **a report from Linux or Windows.** reshoot has only been used on macOS so far.
+- **a report from another project or platform.** Linux and macOS CI pass; external project trials and Windows remain open.
 
 ## Setup
 

@@ -126,6 +126,8 @@ and filenames do not enter scan logs. Sheets link labels to saved original frame
 
 Check exits 0 for accepted supplied items, 1 for human review pending, and 2 for an
 operational error. The run report separates execution, scan, and review status.
+An incomplete browser take leaves expectations unverified unless an assertion failed;
+earlier passed assertions do not verify the rest of the flow.
 An empty findings list is not approval. New renders, changed scan settings, or watch
 words need appropriate checks. A previous image decision is not approval of a video.
 

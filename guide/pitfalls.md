@@ -117,6 +117,11 @@ fix it there too and say so.
 
 ## Check failures
 
+- **An interrupted flow reported passed expectations.** An earlier beat's assertion
+  passed, but a later action failed before its result could be checked. Fixed in
+  reshoot: incomplete or missing browser takes leave expectations unverified. An assertion
+  that actually fails still reports failed.
+
 - **Missing sources looked checked.** Fixed in reshoot: failed fetches, invalid images and manifests, and detector errors produce exit 2 and an error report.
 - **The server stopped before checking its images.** Fixed in reshoot: URL checks finish before app shutdown.
 - **A check crashed but CI reported success.** Fixed in reshoot: the runner requires a fresh completed check report and saves failures before exiting.

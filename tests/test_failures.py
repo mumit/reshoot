@@ -64,6 +64,41 @@ def test_run_does_not_reuse_a_previous_check_report(tmp_path):
     assert report['ok'] is False and report['unchecked'] is None
 
 
+@pytest.mark.parametrize('failure', ['action', 'assertion', 'missing-metadata', None])
+def test_run_expectations_cannot_pass_from_only_an_earlier_result(tmp_path, monkeypatch, failure):
+    from reshoot import run
+    board = tmp_path / 'story.toml'
+    board.write_text('schema_version=1\nurl="http://localhost/"\n[[beat]]\nid="result"\n')
+    config = tmp_path / 'reshoot.toml'
+    config.write_text('schema_version=1\n[[take]]\nweb="story.toml"\nout="takes/first.mp4"\n'
+                      '[[take]]\nweb="story.toml"\nout="takes/second.mp4"\n')
+
+    def execute(cmd, *args):
+        out = Path(cmd[5])
+        second = out.stem == 'second'
+        if not (second and failure == 'missing-metadata'):
+            out.parent.mkdir(exist_ok=True)
+            status = 'failed' if second and failure else 'completed'
+            assertions = [{'status': 'failed' if second and failure == 'assertion' else 'passed'}]
+            if second and failure == 'action':
+                assertions = []
+            out.with_suffix('.take.json').write_text(json.dumps({'status': status, 'beats': [
+                {'status': 'failed' if second and failure else 'passed', 'expectations': assertions}]}))
+        return 2 if second and failure else 0
+
+    monkeypatch.setattr(run, 'execute', execute)
+    result = invoke('run', str(config))
+    if failure:
+        assert 'failed' in result
+    else:
+        assert result == 0
+    report = json.loads(next((tmp_path / 'takes/runs').glob('*/run.json')).read_text())
+    expected = 'failed' if failure == 'assertion' else 'unverified' if failure else 'passed'
+    assert report['expectations_status'] == expected
+    assert report['ok'] is (failure is None)
+    assert report['expectations_count'] == (2 if failure in (None, 'assertion') else 1)
+
+
 def test_url_checks_run_before_server_shutdown(tmp_path):
     from test_reshoot import free_port
     port = free_port()

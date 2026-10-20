@@ -239,15 +239,21 @@ def main(a):
                            and (f.suffix in ('.mp4', '.mov', '.gif', '.srt') or f.name.endswith(('.take.json', '.timeline.json', '.beats.json', '.events.json', '.voice.json', '.assets.json'))
                                 or f.parent.name.endswith(('.evidence', '.resources')) or f.name.endswith(('.poster.png', '.failure.png')))]
         checks = []
-        for metadata in report_path.parent.rglob('*.take.json'):
+        metadata_files = list(report_path.parent.rglob('*.take.json'))
+        native_takes = sum(str(take.get('web', '')).endswith('.toml') for take in shoot.get('take', []))
+        incomplete = len(metadata_files) < native_takes or any(
+            not step['ok'] and step['step'].startswith('web ') for step in report['steps'])
+        for metadata in metadata_files:
             try:
-                for beat in json.loads(metadata.read_text()).get('beats', []):
+                result = json.loads(metadata.read_text())
+                incomplete = incomplete or result.get('status') != 'completed'
+                for beat in result.get('beats', []):
                     checks.extend(beat.get('expectations', []))
             except (OSError, ValueError, TypeError):
                 report['errors'].append('unreadable take result metadata')
                 report['ok'] = False
                 checks.append({'status': 'failed'})
-        report['expectations_status'] = 'failed' if any(x.get('status') == 'failed' for x in checks) else 'passed' if checks else 'unverified'
+        report['expectations_status'] = 'failed' if any(x.get('status') == 'failed' for x in checks) else 'passed' if checks and not incomplete else 'unverified'
         report['expectations_count'] = len(checks)
         save(report, report_path)
     if not report["ok"]:

@@ -38,6 +38,10 @@ keep their legacy behaviour. Versioned projects support web and VHS takes; arbit
 
 ## Harnesses
 
+The overlay carries the current caption and cursor position across same-origin full
+page loads. Inspect the recorded result after navigation. Zoomed and styled captions
+are rendered after capture from the caption events.
+
 ```bash
 reshoot skills codex --directory /path/to/project
 reshoot skills claude --directory /path/to/project

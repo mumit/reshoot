@@ -212,11 +212,13 @@ contains="Next page"
 
 @pytest.mark.browser
 @pytest.mark.parametrize('zoomed', [False, True, 'styled'])
-def test_native_caption_is_visible_with_and_without_zoom(tmp_path, native_page, zoomed):
+@pytest.mark.parametrize('navigate', [False, True])
+def test_native_caption_is_visible_with_and_without_zoom(tmp_path, native_page, zoomed, navigate):
     from reshoot import cut
     from PIL import Image
+    target = '#next-link' if navigate else '#good'
     p = board(tmp_path / 'caption.toml', native_page,
-              '[[beat.action]]\ntype="click"\ntarget={css="#good"}')
+              f'[[beat.action]]\ntype="click"\ntarget={{css="{target}"}}')
     text = p.read_text().replace('schema_version = 1\n', f'schema_version = 1\nzoom = {str(zoomed is True).lower()}\n')
     if zoomed == 'styled':
         text = text.replace('[[beat]]', '[caption]\nposition="top"\nmargin=0.05\n[[beat]]', 1)

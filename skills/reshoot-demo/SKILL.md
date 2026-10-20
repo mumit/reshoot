@@ -21,4 +21,6 @@ For combined web and VHS edits, configure matching take dimensions. Mixed previe
 
 Keep captions short and explain the result, not the click. Leave time to read. Identify mocked responses or shortened waits. Do not change the product claim merely to make a recording finish.
 
+Inspect captions after page navigation. The overlay restores the current caption on same-origin page loads; zoomed or styled captions are drawn after recording.
+
 Commit, push, or publish only within the owner's existing authorization. Creating local files is not publishing.

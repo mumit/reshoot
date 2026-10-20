@@ -26,9 +26,25 @@ window.__demo = window.__demo || (() => {
     fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>`;
   const cap = document.createElement("div");
   cap.id = "__cap";
+  let captionState = [null, null];
+  try {
+    const saved = window === window.top ? JSON.parse(sessionStorage.__demoCaption) : null;
+    if (Array.isArray(saved) && saved.length === 2 && saved.every(value => value == null || typeof value === "string"))
+      captionState = saved;
+  } catch {}
+  const drawCaption = () => {
+    if (window.__reshootPostCaptions) return;
+    const [text, sub] = captionState;
+    if (!text) return cap.classList.remove("on");
+    cap.innerHTML = text + (sub ? `<small>${sub}</small>` : "");
+    cap.classList.add("on");
+  };
   const ready = () => {
     if (!style.isConnected && document.head) document.head.append(style);
-    if (document.body && !cur.isConnected) document.body.append(cur, cap);
+    if (document.body && !cur.isConnected) {
+      document.body.append(cur, cap);
+      drawCaption();
+    }
   };
   ready(); addEventListener("DOMContentLoaded", ready);
 
@@ -36,7 +52,12 @@ window.__demo = window.__demo || (() => {
   let x = innerWidth * 0.62, y = innerHeight * 0.72;
   try { [x, y] = JSON.parse(sessionStorage.__demoXY) ?? [x, y]; } catch {}
   const place = () => { cur.style.transform = `translate(${x - 3}px, ${y - 2}px)`; };
-  addEventListener("pagehide", () => { try { sessionStorage.__demoXY = JSON.stringify([x, y]); } catch {} });
+  addEventListener("pagehide", () => {
+    try {
+      sessionStorage.__demoXY = JSON.stringify([x, y]);
+      if (window === window.top) sessionStorage.__demoCaption = JSON.stringify(captionState);
+    } catch {}
+  });
   place();
   const sleep = ms => new Promise(ok => setTimeout(ok, ms));
   const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -197,12 +218,10 @@ window.__demo = window.__demo || (() => {
 
   // With zoom on, reshoot draws captions after zooming, so they stay put; the page only reports them.
   function caption(text, sub) {
+    captionState = [text || null, sub || null];
     ready();
     report({ kind: "caption", text: text || null, sub: sub || null });
-    if (window.__reshootPostCaptions) return;
-    if (!text) return cap.classList.remove("on");
-    cap.innerHTML = text + (sub ? `<small>${sub}</small>` : "");
-    cap.classList.add("on");
+    drawCaption();
   }
 
   // Blurs everything matching sel, now and whatever the page adds later, until unblur(sel): for an avatar, an

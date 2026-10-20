@@ -5,6 +5,8 @@ description: Record a web page or web app acting out a storyboard in headless Ch
 
 # Record a web take
 
+The overlay keeps the current caption and cursor position across full page loads on the same origin. Inspect the saved result frames after navigation as well as the action frames.
+
 `reshoot web STORYBOARD.py OUT.mp4` opens the page in headless Chrome, plays the beats, and writes:
 
 - `OUT.mp4`: 60 fps, at the page size times the pixel ratio (1280x720@1.5 gives 1920x1080);

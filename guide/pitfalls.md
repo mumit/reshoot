@@ -27,6 +27,10 @@ but it helps to know why.
 
 ## Web takes
 
+- **A caption disappeared when a native click loaded a new page.** Fixed in reshoot:
+  the overlay restores its current caption after a full page load on the same origin,
+  along with the cursor position. Subtitle events still describe the original beat.
+
 - **A browser and terminal preview could not be joined.** Preview reduced the browser
   output while VHS kept its tape dimensions. Fixed in reshoot: previews with VHS
   takes retain the configured browser dimensions. Configure matching sizes for both takes.

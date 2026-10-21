@@ -10,12 +10,36 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
 1. **Measure acceptance with users.** Five app variants from four authorized GitHub
    repositories now have synthetic workflow trials. Measure setup, first acceptable
    preview, repairs, review time, and updates against the maintainer's existing method.
-   Agree ten update cases before testing the proposed eight-of-ten target.
-   The [timed pilot](docs/plans/2026-10-20-user-acceptance-pilot.md) is ready for
-   the owner to create a photosearch feature demo. Other apps and the proposed
-   ten-case update study are deferred.
-2. **Broaden compatibility evidence.** Test positive face/person fixtures, longer
-   continuously animated takes, changing remote services, and more platforms.
+   The owner accepted the photosearch feature demo, reusable follow-up, and one
+   assisted refresh. The [recording-method comparison](docs/validation/2026-10-20-recording-method-comparison.md)
+   has two completed assisted pairs with opposite orders and both updates accepted.
+   Elapsed ordering flipped: pair 01 was 296.128 seconds for the director and
+   118.246 for reshoot; pair 02 was 127.632 and 247.200 respectively. Review and
+   response waiting account for most of each difference; no general speedup is
+   established. Novice setup, other users, and independent comparisons remain open.
+   All ten agreed update cases now
+   have both final exports accepted without manual video editing, meeting the
+   eight-of-ten target in this assisted maintainer study. Five cases needed demo
+   repairs and two had fixture corrections; active human effort is unknown.
+   See the [study record](docs/validation/2026-10-20-ten-case-update-study.md).
+2. **Broaden compatibility evidence.** A [five-minute continuously animated notes
+   trial](docs/validation/2026-10-20-continuous-animation.md) passed technical checks
+   on this Mac, including encoded motion and resource measurements; the owner
+   accepted the recording and bound run review is completed. Separate scan sheets
+   remain pending. [Positive face/person checks](docs/validation/2026-10-20-positive-detection.md)
+   also passed on two generated images and a no-person control outside the sandbox;
+   a sandboxed Vision failure is retained. A [native AppKit window
+   trial](docs/validation/2026-10-20-native-window.md) passed capture, export,
+   encoded-text, sampled scan and cleanup checks; the owner accepted its recording
+   after confirming the instant text update was intentional. A [controlled local
+   service-change trial](docs/validation/2026-10-21-changing-service.md) produced
+   four successful finals and two expected assertion failures, covering a delay,
+   HTTP 503, a response-schema change, a one-line app repair and recovery. The
+   owner accepted all four finals, with bound run reviews completed, and approved
+   all four full-frame scan-sheet sets (391 sheets). Actual remote-service
+   compatibility stays open.
+   Broaden detection coverage, desktop apps, recording
+   durations and workloads, changing remote services, and platforms.
 
 The [delivery status](docs/validation/2026-10-19-delivery-status.md) records the
 original implementation and its limits. The
@@ -37,7 +61,8 @@ synthetic GitHub projects and keeps product targets separate from CLI timings.
 ## Done
 
 These features are implemented. Repeated live harness trials completed, and the
-owner accepted the five selected external candidates. Measured user acceptance
+owner accepted the five selected external candidates. The first measured owner
+creation and standalone refresh trials are accepted; broader user acceptance
 remains open as described above.
 
 - **Owner review of external candidates:** imported the owner's acceptance for

@@ -10,7 +10,17 @@ accounts, photographs, Photos libraries, or private project data were used.
 The [resume validation](2026-10-20-resume-validation.md) records the host, tests,
 fresh harness sessions, and fixes. The owner has now accepted the five selected
 candidates; see [Owner acceptance](#owner-acceptance). The proposed 15-minute and
-eight-of-ten product targets remain unmeasured.
+eight-of-ten product targets were unmeasured in these external trials. The later
+[owner pilot](../plans/2026-10-20-user-acceptance-pilot.md#recorded-owner-results)
+now records measured preview and final acceptance for photosearch. The later
+[ten-case update study](2026-10-20-ten-case-update-study.md) completed with both
+exports accepted for all ten cases and no manual video editing. That meets its
+eight-of-ten target within the assisted maintainer scope; five cases needed demo
+repairs and two had fixture corrections. A separate
+[method comparison](2026-10-20-recording-method-comparison.md) now has both updated
+MP4s accepted in two assisted maintainer pairs with opposite orders. Elapsed
+ordering flipped; its timings include review and response waiting and do not
+establish a general speedup.
 
 ## Sources and fixtures
 
@@ -219,9 +229,14 @@ versions, comparisons, scans, and extracted frames. Temporary checkouts and heav
 dependencies are not committed. These trial files use host paths; recreate their
 environment and pinned sources before reusing them.
 
-Remaining acceptance work is timed user setup and review, maintainer-method
-comparison, and ten agreed update cases. Compatibility beyond
-this host, real changing services, positive face/person detection, native-window
-trials here, and longer animated recordings remain open. The local review index is `takes/validation-20261020/index.html`. The
+The later owner pilot records timed preview and final acceptance, including
+repairs and review waiting. Both method-comparison pairs and the ten-case update
+study are complete within their assisted maintainer scope. Novice setup, broader
+user trials and independent comparisons remain open. Later compatibility trials
+also cover positive face/person fixtures, one native AppKit window, a five-minute
+animated recording and controlled loopback service changes; see the
+[resume validation](2026-10-20-resume-validation.md). Other platforms, actual
+changing remote services, broader detection conditions, desktop apps and longer
+recordings remain open. The local review index is `takes/validation-20261020/index.html`. The
 [resume validation](2026-10-20-resume-validation.md) lists the optional ignored
 evidence archive and its checksum. No release or demo media publication occurred.

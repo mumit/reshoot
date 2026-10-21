@@ -7,8 +7,20 @@ This record extends the [delivery status](2026-10-19-delivery-status.md).
 Fresh Claude and Codex trials completed. Authorized synthetic GitHub trials now
 cover five app variants across four repositories. The owner accepted the five
 selected external candidates, and their imported decisions mark review completed.
-Measured user acceptance and product targets remain open; see the
-[external trial record](2026-10-20-external-trials.md#owner-acceptance).
+The first measured owner pilot and its reusable-demo follow-up are now accepted;
+see the [pilot results](../plans/2026-10-20-user-acceptance-pilot.md#recorded-owner-results).
+Two [existing-method comparison pairs](2026-10-20-recording-method-comparison.md)
+are complete with opposite orders and both updated recordings accepted. Their
+elapsed ordering flipped; review/response latency and the first pair's harness
+correction remain included. This assisted maintainer evidence does not
+establish a general speedup. The later
+[ten-case update study](2026-10-20-ten-case-update-study.md) completed with both
+exports accepted for all ten cases without manual video editing, meeting its
+eight-of-ten target within the assisted maintainer scope. Five cases needed demo
+repairs and two had fixture corrections. Novice setup, other users, and
+independent comparisons remain open.
+The earlier [external trial record](2026-10-20-external-trials.md#owner-acceptance)
+retains the five original candidate decisions.
 
 ## Environment and checks
 
@@ -46,6 +58,13 @@ requests without an integration error on that image. The earlier
 `CRImageReaderError 1` did not reproduce. The image contains no face or person,
 so this is not a positive detection test for either detector.
 
+A later [positive detection check](2026-10-20-positive-detection.md) used two
+generated fictional adults and a no-person control. All three technical
+expectations passed outside the sandbox: portrait face, standing face/person,
+and no flags on the control. Contact-sheet boxes were inspected and retained
+original pixels verified. The sandboxed attempt failed in Vision and remains
+recorded; broader detection coverage and other platforms remain open.
+
 A generated notes preview completed using Vision, passed three configured
 expectations, and reported its scan completed with review pending. Its saved
 H.264 export is 720 by 404 and 7.42 seconds long. I inspected frames extracted
@@ -80,6 +99,33 @@ two-minute fixture, not evidence for hour-long or continuously animated recordin
 bounded memory at arbitrary duration, OCR recall, or complete human review.
 
 Long run: `long-notes/takes/runs/4ce4b8c7a3244ba398aed2aa091a9512/`.
+
+A later [five-minute continuous-animation trial](2026-10-20-continuous-animation.md)
+completed with seven passed expectations, zero sampled Vision flags/errors,
+encoded motion checks and resource measurements. Its 309.33-second final
+recording is owner accepted with bound run review completed. Separate scan sheets
+remain pending. This adds one animated workload on this host; longer durations
+and broader compatibility remain open.
+
+A later [native window trial](2026-10-20-native-window.md) recorded a disposable
+AppKit notes app by its verified window ID. Capture, export, encoded before/after
+text, one-second Vision sampling and fixture cleanup passed. The 10.10-second
+recording is owner accepted after confirming its intentional instant text update;
+separate scan sheets remain pending. Other
+desktop apps and window conditions remain untested.
+
+A later [controlled service-change trial](2026-10-21-changing-service.md) completed
+six cases on two loopback origins. Healthy, delayed, repaired-schema and
+restored-format cases passed previews and fresh finals; HTTP 503 and the original
+client against a changed response schema failed the unchanged search assertion.
+The one-line repair changes only the synthetic app parser. The owner accepted
+all four exact finals; bound decisions are imported and run review is completed.
+All 2,380 final encoded frames have completed
+Vision scanning with zero flags/errors. The owner also approved all four
+full-frame scan-sheet sets (391 sheets); their saved checklists report review
+completed, with artifact-bound approval receipts. Other trials' checklists retain
+their prior states.
+This does not establish actual remote-service compatibility.
 
 ## Doctor regression
 
@@ -214,13 +260,19 @@ artifact hashes, and refreshed the original and copied review pages. This comple
 owner acceptance of those candidates. Historical failed runs and other fixtures
 retain their existing review states.
 
-- Run maintainer/user trials with measured setup, first acceptable preview, manual
-  repair and review time, and a timed comparison with their existing recording method.
-- Agree ten update cases before measuring the proposed eight-of-ten target. The
-  five successful synthetic UI refreshes are not that acceptance study.
-- Broaden compatibility beyond this host, test positive face/person fixtures, and
-  measure longer continuously animated recordings. Changing remote services,
-  native app-window trials on this host, and Windows remain untested here.
+- Broaden the completed owner pilot to other users, measure novice setup, and run
+  further independent comparisons. Two timed method pairs with reversed order
+  are complete; elapsed ordering flipped and does not establish a general saving.
+  The pilot records first
+  acceptable preview, repairs, review intervals, and final acceptance; active human
+  effort remains unknown.
+- Broaden the completed ten-case study beyond the assisted maintainer and known
+  changes. All ten agreed cases have both exports accepted without manual video
+  editing; the earlier five synthetic refreshes remain separate evidence.
+- Broaden compatibility beyond this host and the five-minute animated notes
+  trial, extend the completed positive face/person checks to more conditions,
+  and measure longer durations and more workloads. Changing remote services,
+  other native apps and window conditions, and Windows remain untested here.
 
 ## Local evidence
 

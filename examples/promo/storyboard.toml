@@ -1,0 +1,55 @@
+schema_version = 1
+id = "promo-notes"
+url = "http://127.0.0.1:18936/v1/"
+size = "640x552@1.5"
+theme = "dark"
+seed = 1
+[[beat]]
+id = "intro"
+hold = 1.0
+[[beat.expect]]
+type = "count"
+target = {css = "#list li"}
+count = 3
+[[beat]]
+id = "add"
+purpose = "Save the same synthetic note in both app versions"
+hold = 1.0
+[[beat.action]]
+type = "type"
+target = {css = "#text"}
+text = "Pick up the bikes"
+[[beat.action]]
+type = "click"
+target = {css = "#add button"}
+[[beat.expect]]
+type = "count"
+target = {css = "#list li"}
+count = 4
+[[beat.expect]]
+type = "text"
+target = {css = "#list li:first-child"}
+contains = "Pick up the bikes"
+[[beat]]
+id = "search"
+purpose = "Find the saved note by the same word"
+hold = 2.0
+[[beat.action]]
+type = "type"
+target = {css = "#q"}
+text = "bike"
+[[beat.expect]]
+type = "count"
+target = {css = "#list li"}
+count = 1
+[[beat.expect]]
+type = "text"
+target = {css = "#list li"}
+contains = "Pick up the bikes"
+[[beat.expect]]
+type = "text"
+target = {css = "#count"}
+contains = "1 note"
+[[beat]]
+id = "end"
+hold = 0.8

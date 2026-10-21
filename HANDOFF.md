@@ -2,6 +2,35 @@
 
 Saved: 2026-10-21
 
+Latest work: the [promotional demo refresh](docs/validation/2026-10-21-promotional-demo.md)
+has three owner-accepted local exports: a 21.23-second social
+MP4, 9.33-second README GIF and 9.37-second README MP4 companion. The versioned
+recipe is `examples/promo/`; evidence and the local review page are in
+`takes/promo/attempt-b6912829e9eb/`. It shows two synthetic notes UI versions
+using the same checked storyboard and the actual command generating the updated
+final. Four native runs passed 24 assertions; 36 manifest hashes match. Full-frame
+Vision scans of the social MP4 and README GIF cover 749 decoded frames with zero
+flags/errors; the owner approved all 133 sheets. The local README uses
+the new `docs/demo/reshoot.*` media; original `notes.*` media are unchanged.
+The owner approved all three exports with “I approve.” `acceptance.json` binds
+the verdict to their exact hashes; `acceptance-audit.json` verifies the exports,
+local copies and unchanged presentation. Pre-verdict results are preserved in
+`acceptance-evidence/`. The owner separately approved both promo scan sets with
+“Reviewed both promo scan sets; approved.” Both native checklists now report
+review completed: 133 sheets, 532 distinct images covering 749 decoded frames.
+`scan-acceptance.json` and `scan-acceptance-audit.json` bind this verdict to the
+exact media, keys, policies and sheet evidence. The audit verified decoded-frame
+identities and original image pixels; all media and other checklists are unchanged.
+No promo export verdict or scan-sheet review remains open. Do not recompose or
+rerun the build/audit/finalizer over this accepted attempt; use a new attempt for
+new exports so the presented evidence and verdict remain intact.
+The owner authorized local checkpoint commits for the validation records and
+promotional refresh. Product implementation is unchanged; nothing has been
+pushed or published. The next step
+is the owner's separate-machine setup; its OS and operator
+have been asked for but not yet supplied. The same maintainer on another machine
+would establish clean-machine reproduction, not novice-user acceptance.
+
 Current status after the session continued into October 21 UTC: the
 [ten-case update study](docs/validation/2026-10-20-ten-case-update-study.md) is
 complete. Both fresh final exports are owner accepted for all ten cases, with

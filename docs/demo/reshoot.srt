@@ -1,0 +1,20 @@
+1
+00:00:00,000 --> 00:00:02,800
+Your UI changed. Update your demo.
+
+2
+00:00:02,800 --> 00:00:07,567
+One command. A fresh recording. Generation wait omitted.
+
+3
+00:00:07,567 --> 00:00:15,033
+Same task. Updated UI. Save a note. Find it again.
+
+4
+00:00:15,033 --> 00:00:18,533
+Same story. Fresh recording.
+
+5
+00:00:18,533 --> 00:00:21,233
+reshoot. Demos that stay current. github.com/mumit/reshoot
+

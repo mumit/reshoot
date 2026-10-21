@@ -1,0 +1,15 @@
+schema_version = 1
+timeout = 180
+inputs = ["v1/index.html", "v2/index.html", "style.css", "app.js"]
+[app]
+run = "python3 -m http.server 18936 --bind 127.0.0.1 --directory ."
+url = "http://127.0.0.1:18936/v2/"
+[[take]]
+web = "storyboard.toml"
+url = "http://127.0.0.1:18936/v2/"
+out = "takes/notes.mp4"
+[check]
+sources = ["takes/notes.mp4"]
+review = "review"
+scan = true
+every = 1

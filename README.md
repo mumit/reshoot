@@ -2,10 +2,11 @@
 
 Demo videos of software, made from scripts, so you can shoot them again when the app changes.
 
-![A made-up notes app: a note is typed and added, then found by searching](docs/demo/notes.gif)
+![The same notes task recorded before and after a UI update, using one reshoot storyboard](docs/demo/reshoot.gif)
 
-The notes example, recorded and cut by `reshoot run` on a GitHub runner, with no one at the keyboard. Here's
-[the full video](docs/demo/notes.mp4), with its terminal part and end card.
+The app changed. The same storyboard saves and finds the same note in both versions.
+[Watch the 21-second demo](docs/demo/reshoot.mp4), including the actual reshoot command,
+or [reproduce the before-and-after recording](examples/promo/README.md).
 
 I made the launch video for [photosearch](https://github.com/mumit/photosearch) this way, and pulled the tools and
 what I learned into this repo. It has:
@@ -14,7 +15,8 @@ what I learned into this repo. It has:
 - **a command-line tool**, `reshoot`, that records a web page from a storyboard, records one app window, puts
   everything a take can show on sheets to check by eye, and cuts the finished video;
 - **Claude and Codex skills** that create, refresh, and review a demo;
-- **an example app** to try it all on ([examples/notes/](examples/notes/)).
+- **an example app** to try it all on ([examples/notes/](examples/notes/)), and a
+  [before-and-after demo recipe](examples/promo/README.md).
 
 ## What it does
 
@@ -76,6 +78,8 @@ reshoot run examples/notes/reshoot.toml
 
 That starts the example app, records a web take and a terminal take, cuts them into a finished video with an end
 card, a 9:16 version and a GIF, and makes review sheets, all in `takes/`.
+The [original notes video](docs/demo/notes.mp4) remains available. The README's
+before-and-after loop has its own [recording recipe](examples/promo/README.md).
 
 ## Rules I follow
 

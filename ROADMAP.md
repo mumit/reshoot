@@ -22,6 +22,14 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    eight-of-ten target in this assisted maintainer study. Five cases needed demo
    repairs and two had fixture corrections; active human effort is unknown.
    See the [study record](docs/validation/2026-10-20-ten-case-update-study.md).
+   The owner has a separate account on another machine for the next setup trial;
+   its OS and operator remain unspecified. Before that trial, a new
+   [promotional demo](docs/validation/2026-10-21-promotional-demo.md) now has local
+   social and README exports accepted by the owner, with both promo scan-sheet
+   sets approved (133 sheets). The local README uses these exports; original
+   notes media are retained.
+   Another machine used by the same maintainer is clean-machine reproduction,
+   rather than novice-user evidence.
 2. **Broaden compatibility evidence.** A [five-minute continuously animated notes
    trial](docs/validation/2026-10-20-continuous-animation.md) passed technical checks
    on this Mac, including encoded motion and resource measurements; the owner

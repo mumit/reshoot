@@ -58,6 +58,17 @@ def trim(video,start,end,name):
     return path
 
 
+def concat(parts,out):
+    # Stream-copy concat can accumulate rounded container durations at joins
+    # (observed with Debian's ffmpeg). Rebuild timestamps from the frame count
+    # so every join retains the recipe's exact 30 fps cadence.
+    inputs=[arg for part in parts for arg in ('-i',part)]
+    streams=''.join(f'[{index}:v:0]' for index in range(len(parts)))
+    cut.ff(*inputs,'-filter_complex',
+           streams+f'concat=n={len(parts)}:v=1:a=0,setpts=N/(30*TB)[v]',
+           '-map','[v]',*ENC,out)
+
+
 def place(image,video,x,y,width,name):
     png=WORK/(name+'-bg.png');image.save(png)
     path=WORK/(name+'.mp4')
@@ -103,7 +114,7 @@ def main():
     first_end=3.0;tail_start=max(first_end,last-.25);tail_end=min(cut.duration(terminal),last+1.5)
     first=trim(terminal,0,first_end,'command-typing')
     tail=trim(terminal,tail_start,tail_end,'command-result')
-    command_clip=WORK/'command-cut.mp4';cut.concat([first,tail],command_clip)
+    command_clip=WORK/'command-cut.mp4';concat([first,tail],command_clip)
     command,draw=stage('One command.','A fresh recording.','02')
     text(draw,(60,433),'ACTUAL CLI RUN',25,MUTED)
     text(draw,(60,965),'Generation wait omitted',32,MUTED)
@@ -139,7 +150,7 @@ def main():
     text(draw,(60,1030),'Try the notes example.',36,MUTED)
     parts.append(still(end,'05-end',2.7))
     mapping.append({'section':'end','seconds':2.7,'kind':'authored end card'})
-    social=OUT/'reshoot-social.mp4';cut.concat(parts,social)
+    social=OUT/'reshoot-social.mp4';concat(parts,social)
     cues=[];cursor=0
     words=['Your UI changed. Update your demo.','One command. A fresh recording. Generation wait omitted.',
            'Same task. Updated UI. Save a note. Find it again.','Same story. Fresh recording.',
@@ -166,7 +177,7 @@ def main():
                    '-frames:v',target_frames,*ENC,target)
             aligned[side].append(target)
     aligned_paths=[WORK/'readme-old-aligned.mp4',WORK/'readme-new-aligned.mp4']
-    for clips,path in zip(aligned,aligned_paths):cut.concat(clips,path)
+    for clips,path in zip(aligned,aligned_paths):concat(clips,path)
     span=sum(b['output_frames'] for b in beat_alignment)/30+1.2
     readme=OUT/'reshoot-readme.mp4'
     image,draw=background((1200,800))

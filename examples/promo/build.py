@@ -40,7 +40,8 @@ def execute(args, folder, name, timeout=200):
         result = subprocess.run(list(map(str,args)), cwd=ROOT, stdout=out, stderr=err, timeout=timeout)
     save(folder / (name+'.command.json'),{'command':list(map(str,args)),'exit_code':result.returncode,'elapsed_seconds':round(time.monotonic()-began,3)})
     if result.returncode:
-        raise RuntimeError(f'{name} failed ({result.returncode}); logs retained in {folder}')
+        detail='\n'.join((folder/(name+'.stderr')).read_text().splitlines()[-12:])
+        raise RuntimeError(f'{name} failed ({result.returncode}); logs retained in {folder}\n{detail}')
 
 
 def capture(config, mode, folder, name):

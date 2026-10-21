@@ -112,6 +112,9 @@ but it helps to know why.
 - **Washed-out cards after a web take.** Chrome's frames are full-range JPEGs, and a joined video is read with its
   first clip's range, so the dark cards after the web take came out grey. Fixed in reshoot: every clip is made in
   standard range, and `cut.concat` refuses clips whose ranges differ.
+- **A joined promo failed its exact frame-rate check on Linux.** Stream-copy joins
+  accumulated rounded container durations with Debian's ffmpeg. Fixed in reshoot's
+  promotional recipe: joins rebuild timestamps from frame count at 30 fps.
 - **An extra second at the end of a web take.** ffmpeg's concat list gives the repeated last frame time of its own.
   Fixed in reshoot: the output is cut at the take's real length.
 - **The first beat starts before the first frame.** Fixed in reshoot: its start is 0, not a little below.

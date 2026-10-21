@@ -60,12 +60,14 @@ def main():
             assert 7<=duration<=13
             times=[.5,duration/2,duration-.3]
         if name.endswith('mp4'):
-            assert stream['codec_name']=='h264' and stream['avg_frame_rate']=='30/1'
+            assert stream['codec_name']=='h264' and stream['avg_frame_rate']=='30/1', (
+                f"{name}: expected H.264 at 30/1 fps, got "
+                f"{stream['codec_name']} at {stream['avg_frame_rate']} fps")
         decoded=command(['ffmpeg','-v','error','-i',video,'-f','null','-'])
         assert not decoded.stderr.strip()
         frames=[]
         for index,at in enumerate(times):
-            path=review/(video.stem+f'-{index}.png')
+            path=review/(video.name+f'-{index}.png')
             cut.ff('-ss',at,'-i',video,'-frames:v',1,path)
             frames.append({'path':path.name,'seconds':at,'sha256':sha(path)})
             panels.append((name+f' / {at:.2f} s',path))

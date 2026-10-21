@@ -42,6 +42,12 @@ uv run python examples/promo/build.py compose --attempt takes/promo/attempt-ID
 uv run python examples/promo/build.py audit --attempt takes/promo/attempt-ID
 ```
 
+If a build fails, its exception includes the end of the failing step's stderr;
+the complete logs stay in the attempt folder. Preserve that folder before
+retrying an edit. Composition rebuilds 30 fps timestamps at clip joins, avoiding
+drift from rounded container durations observed with Debian's ffmpeg 5.1.
+An edit repair can reuse all four native recordings without recording again.
+
 Review final exports and run `reshoot check ... --full` on the social MP4 and
 README GIF, with exact subtitle text where applicable. Read the reported backend
 and coverage. Owner recording acceptance and human scan-sheet approval are

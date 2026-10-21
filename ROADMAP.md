@@ -22,8 +22,12 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    eight-of-ten target in this assisted maintainer study. Five cases needed demo
    repairs and two had fixture corrections; active human effort is unknown.
    See the [study record](docs/validation/2026-10-20-ten-case-update-study.md).
-   The owner has a separate account on another machine for the next setup trial;
-   its OS and operator remain unspecified. Before that trial, a new
+   The owner has a separate account on another machine; its OS and operator
+   remain unspecified. A subsequent Podman trial on the existing Mac passed the
+   regular and browser test runs separately, plus the packaged Linux browser
+   workflow, with positive owner visual
+   review. That adds Linux container compatibility evidence; independent novice
+   setup remains open. A new
    [promotional demo](docs/validation/2026-10-21-promotional-demo.md) now has local
    social and README exports accepted by the owner, with both promo scan-sheet
    sets approved (133 sheets). The local README uses these exports; original
@@ -46,6 +50,15 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    owner accepted all four finals, with bound run reviews completed, and approved
    all four full-frame scan-sheet sets (391 sheets). Actual remote-service
    compatibility stays open.
+   A [Podman Linux trial](docs/validation/2026-10-21-podman-linux.md) on Debian 12
+   ARM64 passed 68 regular and 26 browser tests, plus packaged notes preview/final
+   recording with sampled Tesseract scanning. The owner reported good final
+   MP4/GIF appearance. The full promotional build including VHS also passed its
+   technical audit after repairing timestamp drift at clip joins in the promo
+   recipe. Original failures and recordings are retained; the owner accepted all
+   three repaired exports and all three full-frame promo scan sets (208 sheets).
+   Those scans used macOS Vision on the Linux exports; broader Linux detection
+   coverage remains open. Packaged notes source-run checklists are unchanged.
    Broaden detection coverage, desktop apps, recording
    durations and workloads, changing remote services, and platforms.
 

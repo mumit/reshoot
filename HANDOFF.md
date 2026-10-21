@@ -2,6 +2,56 @@
 
 Saved: 2026-10-21
 
+The owner completed the [Podman Linux trial](docs/validation/2026-10-21-podman-linux.md)
+on this Mac and reported passing tests and good final MP4/GIF appearance. Copied
+logs report two separate test runs: regular tests, 68 passed and 26 deselected;
+browser tests, 26 passed and 68 deselected. The environment is Debian 12 ARM64
+with Chromium 155.0.8059.79, Python 3.11.2 and Tesseract 5.3.0. The source archive
+matches commit `47e50d7` byte for byte. Packaged notes preview and fresh final each
+passed three assertions; 32 manifest file hashes match and all four exports fully
+decode. Both sampled text scans completed with zero flags/errors. Final MP4 is
+7.43 s at 1280 by 720; GIF is 7.47 s at 800 by 450. Evidence and the owner's
+positive visual report are in `takes/podman-linux-47e50d7/`. Original native run
+review and scan checklists remain pending; no additional decisions were imported.
+This adds fresh Linux container compatibility evidence on the same physical Mac,
+not novice-user or separate-machine evidence. No new commit, push or publication
+accompanied this trial result.
+The subsequent full Linux promotional build recorded all four runs and composed
+its exports, then failed the exact 30 fps audit: Debian ffmpeg's stream-copy join
+accumulated about one millisecond of container-duration rounding. Failed attempt
+`f462dd8857fd` and its original exports/logs are preserved. The promo recipe now
+rebuilds frame timestamps when joining clips; its audit also uses distinct MP4/GIF
+review-image names and reports encoding failures more clearly. Composition and
+audit passed on the same Linux recordings after this repair: 36 manifest hashes,
+24 assertions, four matched beats, terminal OCR and full decoding. All 115 native
+evidence files are unchanged; both MP4s have exact 1/30-second frame intervals and
+all export frame counts are preserved. Repaired exports are 21.70 s social MP4,
+9.17 s README MP4 and 9.16 s GIF. Evidence is in `takes/podman-promo-47e50d7/`;
+review page: `repaired/attempt-f462dd8857fd/review/index.html` within it.
+The owner accepted all three repaired Linux exports with “Accepted.” Local
+`acceptance.json` and `acceptance-audit.json` bind this verdict to their exact
+hashes; `acceptance-evidence/` preserves the presented results and page. The owner
+also approved all three Linux promo scan sets with “Reviewed all three Linux promo
+scan sets; approved”. All three native scan checklists report review completed.
+`scan-acceptance.json` and `scan-acceptance-audit.json` bind the verdict to the
+208 sheets, 830 images, 1,036 frames and exact policies/media. Pre-approval reports
+and pages are in `scan-approval-evidence/`. No Linux promo export or scan-sheet
+review remains open; source-run decisions and other checklists are unchanged.
+Full-frame macOS Vision scans of these Linux-generated exports and exact subtitle
+text completed with zero flags/errors: 1,036 decoded frames, 830 distinct images,
+208 sheets (social 119, README MP4 63, README GIF 26). The numbered viewer is
+`repaired/attempt-f462dd8857fd/review/scan-sheets.html` within the Linux promo
+evidence folder; it links every sheet and full-size original. `scan-review.json`
+binds the sheets, policies, original pixels and export hashes. Initial sandbox
+Vision failures are retained separately; successful retries ran outside the
+sandbox. These scans ran on the Mac and do not establish Linux face detection.
+Do not recompose or rerun the build/audit over this accepted Linux attempt.
+The accepted Mac media are unchanged. The owner authorized two local checkpoint
+commits: promo fixes in `7989c5d` (`fix(promo): preserve exact frame rate when
+joining clips`) and these Linux validation records. Nothing has been pushed or
+published. The next practical step is setup on the separately mentioned physical
+machine/account; its OS and operator still need to be established.
+
 Latest work: the [promotional demo refresh](docs/validation/2026-10-21-promotional-demo.md)
 has three owner-accepted local exports: a 21.23-second social
 MP4, 9.33-second README GIF and 9.37-second README MP4 companion. The versioned
@@ -26,10 +76,10 @@ rerun the build/audit/finalizer over this accepted attempt; use a new attempt fo
 new exports so the presented evidence and verdict remain intact.
 The owner authorized local checkpoint commits for the validation records and
 promotional refresh. Product implementation is unchanged; nothing has been
-pushed or published. The next step
-is the owner's separate-machine setup; its OS and operator
-have been asked for but not yet supplied. The same maintainer on another machine
-would establish clean-machine reproduction, not novice-user acceptance.
+pushed or published. The owner subsequently ran the Podman Linux trial described
+above. The separately mentioned account on another physical machine has not yet
+been characterized; a trial by the same maintainer there would establish
+clean-machine reproduction, not novice-user acceptance.
 
 Current status after the session continued into October 21 UTC: the
 [ten-case update study](docs/validation/2026-10-20-ten-case-update-study.md) is

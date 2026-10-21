@@ -102,6 +102,16 @@ New `docs/demo/reshoot.*` are verified local copies of the accepted exports and
 their captions. The legacy GitHub workflow still regenerates the separate original notes
 example; the new promotion currently uses its documented local build command.
 
-The separate-machine setup follows acceptance of this concrete demo. Its OS has
-not yet been supplied. A second account/machine operated by the same maintainer
-will be recorded as clean-machine reproduction, not novice-user evidence.
+After accepting this demo, the owner completed a
+[Podman Linux compatibility trial](2026-10-21-podman-linux.md) on the same Mac.
+The regular test run reported 68 passed and 26 deselected; the browser test run
+reported 26 passed and 68 deselected. The packaged notes browser workflow passed,
+with positive owner visual review of the final exports. The full promotional recipe and VHS were not
+exercised in that initial trial. A subsequent full Linux promo build exposed
+timestamp drift at stream-copy joins; a promo-recipe repair passed composition
+and audit using the unchanged native recordings. The owner accepted all three
+repaired Linux exports and approved all three full-frame scan sets (208 sheets), as
+detailed in the Linux validation record. The accepted Mac artifacts
+are unchanged. A separately mentioned physical machine's OS has not yet
+been supplied; a trial operated by the same maintainer would establish
+clean-machine reproduction, not novice-user evidence.

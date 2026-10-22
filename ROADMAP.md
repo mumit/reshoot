@@ -22,8 +22,13 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    eight-of-ten target in this assisted maintainer study. Five cases needed demo
    repairs and two had fixture corrections; active human effort is unknown.
    See the [study record](docs/validation/2026-10-20-ten-case-update-study.md).
-   The owner has a separate account on another machine; its OS and operator
-   remain unspecified. A subsequent Podman trial on the existing Mac passed the
+   The owner completed a [separate-Mac packaged workflow](docs/validation/2026-10-21-separate-mac.md)
+   on Apple Silicon with 16 GB RAM: pinned provenance, preview/final assertions,
+   manifest hashes and media decoding pass; final MP4/GIF visuals are accepted.
+   Both full-frame privacy sets are owner approved (106 sheets). Fresh harness discovery and
+   refresh on that machine remain open. Retained logs do not measure the initial
+   installation duration, since the logged installer found the package present.
+   A subsequent Podman trial on the existing Mac passed the
    regular and browser test runs separately, plus the packaged Linux browser
    workflow, with positive owner visual
    review. That adds Linux container compatibility evidence; independent novice

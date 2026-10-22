@@ -48,9 +48,29 @@ sandbox. These scans ran on the Mac and do not establish Linux face detection.
 Do not recompose or rerun the build/audit over this accepted Linux attempt.
 The accepted Mac media are unchanged. The owner authorized two local checkpoint
 commits: promo fixes in `7989c5d` (`fix(promo): preserve exact frame rate when
-joining clips`) and these Linux validation records. Nothing has been pushed or
-published. The next practical step is setup on the separately mentioned physical
-machine/account; its OS and operator still need to be established.
+joining clips`) and Linux validation records in `8985022`. The owner subsequently
+reported pushing both commits to GitHub. The owner then completed the
+[separate-Mac packaged workflow](docs/validation/2026-10-21-separate-mac.md):
+Apple Silicon, 16 GB RAM, macOS 27.0.1, pinned package provenance `8985022`.
+Preview `8b6d5d2cbd634397a2fe1d3c55614a96` and final
+`4f83ba850e73435595b794f6b075e87b` each passed three assertions; all 32 native
+manifest hashes match and all four exports decode. The owner accepted the final
+7.40 s MP4/GIF visuals and supplied matching bound `decisions.json`; these are
+imported locally with recording review completed. Original evidence is preserved.
+The owner reports fresh setup on that Mac; the retained install command reports
+the package already installed, so those copied logs do not measure the initial
+installation duration. No rerun was requested. This is maintainer reproduction.
+Full-frame Vision scans and exact SRT checks cover all 555 final frames with zero
+flags/errors: 419 distinct images, 106 sheets (MP4 84, GIF 22). The owner approved
+both sets with “Reviewed both separate-Mac scan sets; approved.” Both full-frame
+checklists report review completed; `scan-acceptance.json` and its audit bind
+the verdict to exact media, sheets, originals and policies. Pre-approval evidence
+is preserved under `scan-approval-evidence/`. Native sampled checklists remain
+unchanged. No final-export visual or full-frame privacy verdict remains open.
+Viewer and bound evidence are under
+`takes/separate-machine/audit-4f83ba850e73435595b794f6b075e87b/`, with viewer
+`review/scan-sheets.html`. Next: skill discovery and a
+synthetic UI refresh in a fresh harness session on the other Mac.
 
 Latest work: the [promotional demo refresh](docs/validation/2026-10-21-promotional-demo.md)
 has three owner-accepted local exports: a 21.23-second social
@@ -77,9 +97,9 @@ new exports so the presented evidence and verdict remain intact.
 The owner authorized local checkpoint commits for the validation records and
 promotional refresh. Product implementation is unchanged; nothing has been
 pushed or published. The owner subsequently ran the Podman Linux trial described
-above. The separately mentioned account on another physical machine has not yet
-been characterized; a trial by the same maintainer there would establish
-clean-machine reproduction, not novice-user acceptance.
+above. The separate physical machine/account is now identified as an Apple
+Silicon Mac with 16 GB RAM, operated by the owner; its packaged preview/final
+trial has passed as described above. Harness discovery and refresh remain open.
 
 Current status after the session continued into October 21 UTC: the
 [ten-case update study](docs/validation/2026-10-20-ten-case-update-study.md) is

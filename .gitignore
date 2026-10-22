@@ -7,3 +7,6 @@ __pycache__/
 .DS_Store
 
 dist/
+
+# Local social-post drafts
+/docs/sharing.md

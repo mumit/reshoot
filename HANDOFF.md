@@ -2,6 +2,12 @@
 
 Saved: 2026-10-22
 
+Social-post planning: the owner requested keeping `docs/sharing.md` local and
+out of Git. The file is ignored and removed from tracking; public documentation
+no longer links to it. Local drafts cover a five-post X thread and three
+standalone LinkedIn posts, showing the first-demo workflow, supported targets,
+presentation features, refresh/review and CLI/CI use. No posts were published.
+
 Current direction: the owner requested a documentation/tutorial review across
 five stages: first recording, feature discovery, customization, fuller demos or
 tutorials, then maintenance/publication/CI. The README and guide now route source

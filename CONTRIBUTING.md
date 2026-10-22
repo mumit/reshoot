@@ -85,10 +85,9 @@ tutorial steps against a fresh synthetic project. Keep validation runs under
 ignored `takes/`, without replacing accepted media in `docs/demo/`. Documentation
 verification is not an owner's visual or scan-sheet approval.
 
-When changing project messaging, keep the README, package and plugin descriptions,
-and [sharing copy](docs/sharing.md) aligned. Lead with the first demo and the
-create, refresh and review workflow. Keep detailed CLI instructions available
-for direct use.
+When changing project messaging, keep the README, package description and plugin
+description aligned. Lead with the first demo and the create, refresh and
+review workflow. Keep detailed CLI instructions available for direct use.
 
 ## Add a skill
 

@@ -18,9 +18,10 @@ behavior, skill instructions, accepted demo media and version numbers are unchan
 - Guide navigation, the own-app walkthrough, installation, reference,
   contributor guidance and roadmap now lead to the agent workflow. The complete
   CLI tutorial and manual recording guides remain available.
-- Package and plugin descriptions use the same positioning. The
-  [sharing guide](../sharing.md) contains a short description, headline and local
-  X/LinkedIn drafts, with destinations suited to different readers.
+- Package and plugin descriptions use the same positioning. Local X/LinkedIn
+  drafts were prepared with a short description, headline and destinations
+  suited to different readers. At the owner's subsequent request, those drafts
+  are retained in ignored `docs/sharing.md` rather than distributed with the repo.
 
 ## Review criteria
 

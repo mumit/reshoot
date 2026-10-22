@@ -14,6 +14,8 @@ Check exits 0 for accepted supplied items, 1 for human review pending, and 2 for
 Inspect sheets and original frames, then watch the final video, with sound when present. Check the stated result, text size, caption wrapping, timing, audio, end card, and any mock or speed labels. Use only made-up data. Fail private names, accounts, files, tokens, or unintended people shown in the recording.
 
 If this CLI provides `reshoot review`, use its local page to inspect timestamps and comparisons. Otherwise use the sheets and a video player. Report that limitation.
+Previous and current GIFs display as images in the comparison page; inspect their
+animation and loop as well as the MP4 playback.
 
 The owner decides whether a recording is accepted. Do not run `check --ok`, import approval, or promote a baseline merely because your inspection found nothing. Carry out those actions when the owner explicitly authorizes the decision. Give the owner the files, evidence, and unresolved findings; do not publish without authorization.
 

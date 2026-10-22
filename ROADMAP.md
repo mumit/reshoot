@@ -33,8 +33,8 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    memory; independent novice use remains open. The owner approved all four
    receiving-Mac full-frame privacy sets (215 sheets). Subsequent supplied
    sessions verify explicit review-skill invocation in both harnesses; the
-   existing approvals cover the exact reviewed exports. The review identified
-   a small comparison-page defect: baseline GIFs render through video elements.
+   existing approvals cover the exact reviewed exports. The baseline GIF display
+   defect found during review is fixed in the local renderer, as described below.
    Retained logs do not measure the initial
    installation duration, since the logged installer found the package present.
    A subsequent Podman trial on the existing Mac passed the
@@ -102,6 +102,8 @@ remains open as described above.
 
 - **Owner review of external candidates:** imported the owner's acceptance for
   all five selected recordings and their beats, bound to unchanged artifact hashes.
+- **Baseline GIF comparisons:** previous GIFs render as images in newly generated
+  review pages; MP4s retain video players. The regression and all 10 review tests pass.
 - **Repeatable projects:** packaged templates, dependency checks, previews and
   partial replay, versioned paths, isolated runs, and explicit local export.
 - **Shared Claude and Codex skills:** create, refresh, and review from the same

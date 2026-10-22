@@ -137,7 +137,9 @@ An empty findings list is not approval. New renders, changed scan settings, or w
 words need appropriate checks. A previous image decision is not approval of a video.
 
 The local review page opens exact artifacts, source-beat evidence, full-size frames,
-and previous/current comparisons, including beat durations, story definitions, result checks, and captured environment settings. It exports a decisions JSON file. When the owner
+and previous/current comparisons, including beat durations, story definitions,
+result checks, and captured environment settings. Previous and current GIFs display
+as images; MP4s use video players. It exports a decisions JSON file. When the owner
 has made those decisions, import it with:
 
 ```bash

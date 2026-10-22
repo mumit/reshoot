@@ -153,7 +153,13 @@ at the start of the end beat and omits its separate half-second hold, as in the
 accepted baseline. The comparison page embeds the baseline GIF in a video
 element; source inspection confirms that renderer defect. The final GIFs were
 inspected by independent decoding, so this does not change their acceptance.
-Rendering baseline GIFs as images is a small product follow-up.
+After committing this validation follow-up as `9496e9f`, the owner authorized the
+renderer repair. Baseline GIFs now use image elements in newly generated pages;
+MP4s retain video players. A regression reproduced the defect before the fix,
+then all 10 review tests passed with Tesseract selected. The regression also
+checks the copied animation, source preservation and unchanged review binding.
+Plugin validation passed with the existing plugin-root CLAUDE.md warning.
+Archived media and review pages are unchanged.
 
 The follow-up audit is `explicit-review-audit.json`. All 386 remaining original
 transfer files match their earlier hashes; accepted media, baseline trees, native

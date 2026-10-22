@@ -149,6 +149,8 @@ fix it there too and say so.
 
 - **Cutting changed subtitle timing.** Fixed for mapped edits: cut helpers record source/output ranges and the declarative editor uses them for cues. Custom ffmpeg edits need their own map.
 - **Old approval accepted changed media.** Fixed in the local review importer: decisions bind to the run, artifact hashes, and current review policy.
+- **A baseline GIF did not animate in the comparison page.** Fixed in reshoot:
+  previous GIFs display as images, while MP4s retain video controls.
 - **Recorded actions disappeared from a draft.** Fixed for explicitly detected unsupported changes and drops: the recorder stops instead of writing a misleading draft.
 
 - **Zoom can round beyond a captured frame.** Fixed in reshoot: crop coordinates use

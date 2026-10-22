@@ -105,8 +105,13 @@ still represented in the original session transcript. Five new review Markdown
 files were supplied; their linked new inspection logs/frame grabs were not.
 The explicit review check is closed. Nonblocking findings: inherited omission of
 the separate end hold, and a comparison-page renderer that embeds baseline GIFs
-as videos. The latter is a small product fix to follow up; novice-user evidence
-remains open. Existing media and owner approvals are unchanged.
+as videos. The owner authorized the explicit-review validation commit, now
+`9496e9f`, followed by the GIF fix. The local renderer now uses images for baseline
+GIFs and retains video controls for MP4s. Its regression failed before the fix;
+all 10 review tests pass afterward with Tesseract selected. Plugin validation
+passes with the existing plugin-root CLAUDE.md warning. Skill and guide text are
+updated. Accepted media, archived pages and owner
+approvals are unchanged. Novice-user evidence remains open.
 
 Latest work: the [promotional demo refresh](docs/validation/2026-10-21-promotional-demo.md)
 has three owner-accepted local exports: a 21.23-second social

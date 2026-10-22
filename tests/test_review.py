@@ -1,5 +1,6 @@
 import io
 import json
+from html.parser import HTMLParser
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -55,6 +56,46 @@ def test_review_escapes_capture_text_and_compares_stable_ids(tmp_path):
     text = (new / 'review.html').read_text()
     assert '</script><img' not in text
     assert '&lt;/script&gt;' in text
+
+
+def test_review_comparison_displays_baseline_gifs_as_images(tmp_path):
+    old = run_fixture(tmp_path / 'old', 'old')
+    new = run_fixture(tmp_path / 'new', 'new')
+    for root in (old, new):
+        gif = root / 'demo loop.gif'
+        Image.new('RGB', (16, 16), 'blue').save(
+            gif, save_all=True, append_images=[Image.new('RGB', (16, 16), 'orange')],
+            duration=100, loop=0)
+        report = review.read(root)[1]
+        report['files'].append({'path': gif.name, 'sha256': digest(gif)})
+        (root / 'run.json').write_text(json.dumps(report))
+    original_baseline = {p.name: digest(p) for p in old.iterdir()}
+    original_report = (new / 'run.json').read_bytes()
+    original_binding = review.binding(new, review.read(new)[1])
+
+    assert review.main(SimpleNamespace(run_path=str(new), previous=str(old), import_decisions=None)) == 0
+
+    class MediaElements(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.sources = {}
+
+        def handle_starttag(self, tag, attrs):
+            if tag in ('img', 'video'):
+                self.sources[dict(attrs)['src']] = tag
+
+    page = MediaElements()
+    page.feed((new / 'review.html').read_text())
+    assert page.sources['baseline/demo%20loop.gif'] == 'img'
+    assert page.sources['demo%20loop.gif'] == 'img'
+    assert page.sources['baseline/demo.mp4'] == 'video'
+    assert page.sources['demo.mp4'] == 'video'
+    assert digest(new / 'baseline/demo loop.gif') == digest(old / 'demo loop.gif')
+    with Image.open(new / 'baseline/demo loop.gif') as copied:
+        assert copied.n_frames == 2
+    assert {p.name: digest(p) for p in old.iterdir()} == original_baseline
+    assert (new / 'run.json').read_bytes() == original_report
+    assert review.binding(new, review.read(new)[1]) == original_binding
 
 
 @pytest.mark.skipif(not __import__('shutil').which('ffmpeg'), reason='needs ffmpeg')

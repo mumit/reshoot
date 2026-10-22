@@ -180,7 +180,11 @@ def main(a):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(old_root / item['path'], target)
                 src = html.escape(quote(str(target.relative_to(root))), quote=True)
-                previous_panel += f'<h2>Previous: {html.escape(item["path"])}</h2><video controls src="{src}"></video>'
+                if target.suffix == '.gif':
+                    content = f'<img src="{src}" alt="Previous GIF">'
+                else:
+                    content = f'<video controls src="{src}"></video>'
+                previous_panel += f'<h2>Previous: {html.escape(item["path"])}</h2>' + content
         for row in result['beats']:
             previous_panel += '<article><h2>' + html.escape(row['beat']) + '</h2><div style="display:flex;gap:1rem">'
             for side, base in [('previous', old_root), ('current', root)]:

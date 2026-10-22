@@ -4,8 +4,10 @@ Status: the owner reports following `takes/separate-machine-setup.md` fresh on a
 separate Mac/account and accepts the final MP4/GIF visuals. Copied provenance,
 native assertions, manifests and media decoding pass verification. Bound native
 recording decisions are imported locally. The owner approved both final-export
-privacy scan sets; their checklists report review completed. Skill discovery and
-refresh on that machine have not been exercised.
+privacy scan sets; their checklists report review completed. Subsequent
+[harness discovery and refresh trials](2026-10-22-separate-mac-harnesses.md) ran
+in fresh Codex and Claude Code conversations; their final visuals and all four
+separate full-frame privacy sets are owner approved.
 
 ## Environment and scope
 
@@ -92,7 +94,8 @@ the supplied `decisions.json` in its parent. Local audit outputs are under
 - `scan-acceptance.json`, `scan-acceptance-audit.json` and
   `scan-approval-evidence/` retain the exact privacy verdict and its verification.
 
-Next, exercise skill discovery in a fresh harness session and a synthetic UI
-refresh on the other Mac. Existing accepted macOS and Linux promo media are
-unchanged. After completing both reviews, the owner authorized a local checkpoint
-commit for these validation records. No new publication is part of this result.
+The subsequent harness trial record above covers skill discovery and a synthetic
+UI refresh on the other Mac. Existing accepted macOS and Linux promo media are
+unchanged. After completing both original reviews, the owner authorized a local
+checkpoint commit for these validation records. No new publication is part of
+this result.

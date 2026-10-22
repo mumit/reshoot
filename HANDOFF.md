@@ -69,8 +69,34 @@ is preserved under `scan-approval-evidence/`. Native sampled checklists remain
 unchanged. No final-export visual or full-frame privacy verdict remains open.
 Viewer and bound evidence are under
 `takes/separate-machine/audit-4f83ba850e73435595b794f6b075e87b/`, with viewer
-`review/scan-sheets.html`. Next: skill discovery and a
-synthetic UI refresh in a fresh harness session on the other Mac.
+`review/scan-sheets.html`.
+The owner then completed the [separate-Mac harness refresh trials](docs/validation/2026-10-22-separate-mac-harnesses.md)
+in fresh Codex and Claude Code conversations. Both loaded the local refresh
+guidance implicitly, retained the expected search-locator failure, repaired one
+selector, and passed all three assertions in a repaired preview and fresh final.
+Codex also retained a sandbox-blocked preview before its authorized retry.
+Finals are Codex `6f20837216c1449597172c57390c5636` and Claude
+`a0da93c82fc34ac0bb527e12862f13cc`. Independent checks verified 64 successful-run
+manifest hashes, eight decoded exports, four matched beats per comparison and
+both unchanged 30-file baseline copies. All 387 transferred non-Git files remain
+unchanged. The owner watched and accepted both final MP4/GIF pairs; a local
+receipt binds the verdict to their exact hashes. Native copied review flags are
+preserved. Codex used existing local reshoot memory; this is owner reproduction,
+not novice or context-free evidence. The separate explicit review invocation is
+absent from both supplied sessions and remains untested on that machine.
+Four fresh full-frame Vision scans and exact subtitle checks ran on the receiving
+Mac, with zero flags/errors: 1,114 frames, 850 distinct images, 215 sheets.
+The owner approved all four sets with “Reviewed all four harness scan sets;
+approved.” All four native full-frame checklists report review completed.
+`scan-acceptance.json` and its audit bind the verdict to the exact sheets,
+originals, policies and media; pre-approval records are in
+`scan-approval-evidence/`. All 387 transferred files, original sampled checklists,
+baseline copies, final exports and the visual receipt are unchanged. No final
+visual or full-frame privacy verdict remains open for these harness finals. Viewer:
+`takes/separate-machine/harness-audit-8985022-20261022T033230Z/review/scan-sheets.html`.
+Copied sessions are in `takes/separate-machine/harness-8985022-20261022T033230Z/`.
+Do not overwrite these receipts or rerun accepted media. The separate explicit
+review-skill invocation on the other Mac remains untested.
 
 Latest work: the [promotional demo refresh](docs/validation/2026-10-21-promotional-demo.md)
 has three owner-accepted local exports: a 21.23-second social

@@ -25,8 +25,15 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    The owner completed a [separate-Mac packaged workflow](docs/validation/2026-10-21-separate-mac.md)
    on Apple Silicon with 16 GB RAM: pinned provenance, preview/final assertions,
    manifest hashes and media decoding pass; final MP4/GIF visuals are accepted.
-   Both full-frame privacy sets are owner approved (106 sheets). Fresh harness discovery and
-   refresh on that machine remain open. Retained logs do not measure the initial
+   Both full-frame privacy sets are owner approved (106 sheets).
+   [Fresh Codex and Claude sessions](docs/validation/2026-10-22-separate-mac-harnesses.md)
+   on that machine both loaded refresh guidance implicitly, repaired the same
+   locator and produced owner-accepted MP4/GIF pairs with all three assertions
+   passing. Baselines and transferred evidence are unchanged. Codex reused local
+   memory; independent novice use remains open. The owner approved all four
+   receiving-Mac full-frame privacy sets (215 sheets); the separate explicit review
+   invocation is absent from both supplied sessions.
+   Retained logs do not measure the initial
    installation duration, since the logged installer found the package present.
    A subsequent Podman trial on the existing Mac passed the
    regular and browser test runs separately, plus the packaged Linux browser

@@ -1,0 +1,22 @@
+name: Feature request
+description: Describe a demo-making task that reshoot could handle better.
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: What demo are you trying to make?
+      description: Describe the audience, app type, destination and result you want to show. Use no private data.
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: Where does the current workflow fall short?
+      description: Include your workaround and the platform or tool constraints that matter.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested improvement
+      description: Optional. An example of the desired output or command is useful.

@@ -1,173 +1,304 @@
-# Step by step
+# Make a demo, then update it
 
-These steps make a video from a web take, a terminal take and an end card. Leave out what you don't need. The
-commands run from the project's root. Storyboards, tapes and the edit script go in the project (here
-`tools/demo/`). Takes and cuts go in `takes/`, which git should ignore.
+To have Codex or Claude Code make a demo of your app, use the
+[agent quickstart](agent-quickstart.md). This tutorial teaches the CLI workflow
+directly with a bundled example.
 
-The [notes example](../examples/notes/) goes through each step on a small made-up app, so you can try it first.
+Start with the bundled notes app. It saves a made-up note, searches for a word,
+and checks that the matching note appears. This tutorial produces an MP4 and a
+README GIF, then repairs the recording after a small app change.
 
-## Once
+Install the [CLI and dependencies](install.md), then run the commands in
+one terminal, from a writable folder where a new `demo/` directory can be created.
+No repository checkout, VHS, AI account or real user data is needed.
 
-1. **Install the tools.** On macOS:
-
-   ```bash
-   brew install ffmpeg vhs
-   uv tool install git+https://github.com/mumit/reshoot
-   ```
-
-   On Linux, install ffmpeg and [VHS](https://github.com/charmbracelet/vhs#installation) from your package manager.
-   `pipx install git+https://github.com/mumit/reshoot` works instead of uv. Web takes also need Google Chrome or
-   Chromium; set `RESHOOT_CHROME` to its path if reshoot can't find it.
-2. **For Claude Code,** add the skills:
-
-   ```
-   /plugin install reshoot --marketplace mumit/reshoot
-   ```
-
-   Then ask Claude to "make a demo video of this app", and it follows the steps below.
-3. **Make demo data.** Give the app its own database, data folder or account, with only things anyone may see.
-   Check that the app can be pointed at it with a flag or an environment variable, and can't reach real data while
-   it does. Good demo data:
-   - uses made-up people, with names that are clearly made up and emails at `example.com`;
-   - has no real customers, colleagues, addresses, phone numbers or payment details;
-   - has test keys only, which you can revoke after recording;
-   - has photos without people, and of places that aren't near anyone's home;
-   - looks real enough to be interesting: a few dozen varied items, not three called "test".
-4. **For app windows (macOS),** give the app you run commands from (Terminal, iTerm, an editor) Screen Recording
-   permission: System Settings, Privacy & Security, Screen Recording. Then restart it.
-5. **For Claude Code takes,** make a separate config folder, so nothing of your usual setup shows. Log in once, with
-   the account that should appear:
-
-   ```bash
-   CLAUDE_CONFIG_DIR=~/.claude-demo claude
-   ```
-
-## Plan
-
-1. Decide where the video goes and how long it is. Thirty to sixty seconds suits a social post.
-2. List the three to six things it shows. Each gets a caption of a few plain words.
-3. Pick a take for each: web if it's in a browser, terminal for a CLI or an AI agent, an app window only when
-   nothing else can show it.
-
-## Write the storyboard
-
-The quickest start is to click through it myself:
+## 1. Create a project
 
 ```bash
-reshoot rec http://localhost:8000/ tools/demo/storyboard.py
+reshoot init demo
+reshoot doctor --config demo/reshoot.toml
 ```
 
-Chrome opens with a fresh, empty profile. I click and type through what the video should show, then close the
-window, and it writes a storyboard: one beat per click or run of typing, with my pauses as the holds. Then I add the
-captions and check the selectors. Anything typed into a password field comes out as a placeholder.
+The first command creates:
 
-Or I write it by hand, starting from [examples/notes/storyboard.py](../examples/notes/storyboard.py). Each beat is a
-name, some JavaScript run in the page, and seconds to hold:
-
-```python
-URL = "http://localhost:8000/"
-SIZE = "1280x720@1.5"
-BEATS = [
-    ("home", "__demo.caption('Notes that are easy to find')", 1.8),
-    ("type", "__demo.caption(null); await __demo.type('#text', 'Pick up the bikes')", 0.4),
-    ("add", "await __demo.click('#add button')", 1.4),
-    ("end", "__demo.caption('Notes'); __demo.hide()", 2.5),
-]
+```text
+demo/
+  BRIEF.md          Who the demo is for and what it proves
+  index.html       The made-up notes app
+  about.html       A second example page
+  storyboard.toml  Actions, captions and result checks
+  edit.toml        Which parts to keep and which formats to write
+  reshoot.toml     App startup, recording, edit and scan settings
 ```
 
-- `__demo` has `click`, `type`, `key`, `waitFor`, `scroll`, `caption`, `hide` and `show`. The
-  [record-web skill](../skills/record-web/SKILL.md) lists them all.
-- Give a caption about 1.5 seconds to be read, and a result 2.5 seconds or more.
-- If the app needs a login, log in with a demo account in `SETUP` beats. They run before recording starts.
-- Anything private that's part of the app, like the account name in a header, goes in `BLUR`.
-- For a voiceover, add `VOICE = {"home": "What I'd say here."}`, a line for each beat that needs one. See
-  [examples/notes/voiced.py](../examples/notes/voiced.py).
-- Views that load slowly the first time (maps, charts, big images) go in `WARM`, so they're ready when shown.
-- `ZOOM = True` zooms in on each click and bit of typing, then back out, so the video is readable on a phone.
+Keep this terminal in the folder containing `demo`, rather than changing into
+it. All commands below use that same working directory. If the directory already
+exists, `init` refuses to overwrite its files; choose another name or continue
+with the existing project.
 
-## Record the web take
+`doctor` should report ffmpeg, ffprobe, Chrome and Playwright available, and a
+text detector installed. Resolve missing dependencies before recording. On Linux,
+Tesseract reads text; faces and people need visual inspection.
 
-1. Start the app on its demo data, and leave it running.
-2. Record:
-
-   ```bash
-   reshoot web tools/demo/storyboard.py takes/web.mp4
-   ```
-
-   It prints each beat and how long it took, then the frame rate and any page errors. Next to the video it writes
-   `web.beats.json` (when each beat starts) and `web.assets.json` (every image and media file the page loaded).
-3. Look at a few frames: `ffmpeg -ss 5 -i takes/web.mp4 -frames:v 1 frame.png`.
-4. For a phone version, record again with `--size 390x844@3 --mobile`.
-
-## Record the terminal take
-
-1. Copy [the template tape](../skills/record-terminal/template.tape) and change the commands.
-2. Record: `vhs tools/demo/cli.tape`.
-3. Find where it finished: `reshoot last-change takes/cli.mp4`.
-
-## Record an app window
+## 2. Record a preview
 
 ```bash
-reshoot window --list                         # check the window is there
-reshoot window TextEdit takes/app.mov -s 8
+reshoot preview demo/reshoot.toml
 ```
 
-## Check everything the takes can show
+Reshoot starts its own local notes server on port 8765, records a browser page,
+cuts the video, writes a GIF, checks the outputs, and stops its server. It never
+captures the desktop. The notes reset on each new page load.
 
-1. Make sheets, with anything of mine that mustn't show as watch-for words:
+The last lines include a report path like:
 
-   ```bash
-   reshoot check takes/web.assets.json takes/web.mp4 takes/cli.mp4 --review takes/review --watch-for "Acme,Jane Roe"
-   ```
+```text
+Report in /.../demo/takes/runs/UNIQUE_ID/run.json.
+Human review is pending; execution success is not approval to publish.
+```
 
-   It also scans supplied images and sampled frames for text that looks private (emails, phone numbers, keys, file paths with a
-   user name, street addresses, the watch-for words) and, on macOS, for faces and people. Flagged images come first
-   on the sheets, boxed in red. The scan points at problems; it doesn't pass anything.
+Save that run folder in a shell variable, replacing the example ID with the
+one printed by the command:
 
-   Keep the app running: the assets list holds URLs, which are fetched from it. If the app shows things at random
-   (suggestions, featured items, a shuffled gallery), add the whole set it picks from, such as its image folder.
-2. Open `takes/review/01.jpg` and the rest. Look at each image at full size.
+```bash
+PREVIEW=demo/takes/runs/PASTE_PREVIEW_ID_HERE
+reshoot review "$PREVIEW"
+```
 
-   **What fails:**
-   - a person, including faces at the edge, tiny figures, reflections and people behind windows;
-   - personal details: names, emails, phone numbers, addresses, number plates, house numbers;
-   - secrets: keys, tokens, passwords, URLs with tokens in them;
-   - work details: customers, colleagues, internal tools, unreleased features, private repo names;
-   - the computer itself: user names, file paths, other apps, browser tabs, bookmarks, notifications.
+That writes `$PREVIEW/review.html`; it prints the path but does not open a
+browser. Open that file using the browser's File > Open command or a file
+manager. On macOS, run `open "$PREVIEW/review.html"`; on a Linux desktop,
+run `xdg-open "$PREVIEW/review.html"`. In a headless environment, copy the complete
+run folder to a machine with a browser, preserving its subdirectories.
 
-   When in doubt, it fails.
-3. **If something fails:**
-   1. Note its label, such as `3-2`, and run `reshoot check --review takes/review --fail 3-2`. It prints where it came
-      from.
-   2. Take it out of the demo data.
-   3. Record the take again, since the old take still shows it.
-4. **When the rest pass:** `reshoot check --review takes/review --ok`.
-5. Run step 1 again. Repeat until it says everything has been checked.
+Watch `takes/demo-final.mp4` and `takes/demo-final-readme.gif`. The note
+“Pick up the bikes” should be saved, then remain as the single result for “bike”.
+The report should show successful execution and three passed expectations.
+The `intro` and `end` beats have no assertions and may be labeled `unverified`;
+the save and search beats have the actual result checks.
 
-## Cut
+The preview is smaller than the final. Use it to catch wrong actions or unreadable
+captions before making the final recording. If a command fails, keep its run
+folder and see [Troubleshooting](troubleshooting.md).
 
-1. Copy [examples/notes/edit.py](../examples/notes/edit.py) into the project and change the words at the top.
-2. Run it:
+## 3. Make a final recording
 
-   ```bash
-   reshoot edit tools/demo/edit.py takes/web.mp4 takes/cli.mp4
-   ```
+Add `full = true` inside the existing `[check]` table in `demo/reshoot.toml`:
 
-   The example writes the finished video, a 9:16 version, a GIF and subtitles (`.srt`) next to the web take. If
-   the take has a voiceover, it's added; set `MUSIC` in the edit script for music under it.
-3. Watch all of it. Read any text on screen, including what an AI agent wrote in a terminal take.
+```toml
+[check]
+sources = ["takes/demo-final.mp4", "takes/demo-final-readme.gif"]
+review = "review"
+scan = true
+full = true
+```
 
-## All at once
+This checks every decoded frame of both final exports, reusing exact duplicates.
+The default preview checked samples every three seconds; those samples could
+miss brief content. Full checks take longer and still need a person's review.
 
-Once each step works, put them in a `reshoot.toml` and `reshoot run` does the whole shoot. A GitHub workflow can
-then reshoot on each release. See [reshoot in CI](ci.md).
+```bash
+reshoot run demo/reshoot.toml
+```
 
-## When the app changes
+Save this new run folder separately:
 
-- **A button or name changed:** fix the selector in the storyboard and record the web take again.
-- **Beats renamed or added:** update the beat names the edit script uses for trims and GIFs.
-- **New content in the demo data:** check it before cutting. `reshoot check` shows only what's new.
+```bash
+BASELINE=demo/takes/runs/PASTE_FINAL_ID_HERE
+reshoot review "$BASELINE"
+```
 
-## Before posting
+The final folder contains these files, plus source evidence and other sidecars:
 
-Nothing posts on its own. I watch the video all the way through, at full size, once more, and then post it myself.
+```text
+run.json
+review.html
+review/
+  report.json
+  key.json
+  flags.json
+  01.jpg, 02.jpg, ...
+  originals/
+takes/
+  demo.mp4                 Original browser take
+  demo.take.json           Beat results and captured environment
+  demo-final.mp4           Finished 1280×720 video
+  demo-final.srt           Subtitles
+  demo-final-readme.gif    800×450 loop
+```
+
+Open the new `review.html` and watch both finished exports. Check the note,
+search result, caption timing and loop. The bundled edit stops at the start of
+the `end` beat; that beat's extra half-second hold is not in the finished cut.
+
+## 4. Review the recording and scan sheets
+
+There are two decisions: whether the frames are suitable to share, and whether
+the complete recording shows the intended task clearly. A clean automatic scan
+does not make either decision.
+
+### Review the scan sheets
+
+Open every numbered `.jpg` in `$BASELINE/review/`. Each sheet holds up to four
+labeled images, such as `1-1` and `1-2`. Inspect each image, including unflagged
+ones. The review page's matching labels have **Open original frame** links for
+full-size inspection. Read any text findings on the page too.
+
+A short recording can still produce many sheets because typing changes the
+image on successive frames. Use the numbered sequence to track review progress;
+full-frame coverage does not mean the scan can reliably recognize every detail.
+
+Look for unintended names, accounts, tokens, paths or people, and anything else
+that should not appear. In this tutorial all app data is made up. The scan report
+states the backend, available detectors and coverage; zero findings alone is not
+a review verdict.
+
+If a frame fails, record its actual label, for example:
+
+```bash
+reshoot check --review "$BASELINE/review" --fail 1-2
+```
+
+Fix the demo data or story and make a new recording. A rejected take still
+contains the problem. Do not approve the remaining items to mark that take complete.
+
+**Only after reviewing and approving all supplied images and text findings,**
+record your decision:
+
+```bash
+reshoot check --review "$BASELINE/review" --ok
+```
+
+This approves the current supplied items. It does not watch or accept the video,
+and does not approve a later render. Keep the reviewed sheets and reports.
+
+### Accept the recording
+
+Generate the page again after recording the sheet verdict, then open it:
+
+```bash
+reshoot review "$BASELINE"
+```
+
+At **Your decisions**, set `video` to `accepted` only after watching both final
+exports. Inspect each beat's evidence and set its decision too. For each
+`finding/...` entry, inspect the original frame or text before deciding.
+Leave unresolved entries as `pending`, or choose `rejected` when an item fails.
+
+![The local review page's Your decisions controls, with all notes beats and video still pending](../docs/guide/review-decisions.png)
+
+This example shows the controls before a verdict. `video` covers the finished
+exports; `notes/add`, `notes/search` and the other entries cover individual beats.
+
+Click **Download decisions**. Move the downloaded file to
+`demo/baseline-decisions.json`, then import it:
+
+```bash
+reshoot review "$BASELINE" --import-decisions demo/baseline-decisions.json
+```
+
+The importer checks the run ID, artifact hashes and scan policy. It saves the
+decisions and updates `run.json`. The run's `review_status` becomes `completed`
+only when every required recording decision is accepted. The scan checklist and
+recording decisions have separate status fields; read both.
+
+Do not rerun the scan to resolve a pending recording decision.
+Changing artifacts or scan policy can invalidate downloaded decisions. See
+[Troubleshooting](troubleshooting.md#review-still-says-pending).
+
+## 5. Change a caption
+
+In `demo/storyboard.toml`, change the intro caption:
+
+```toml
+caption = "Find the note you need"
+```
+
+Leave the beat ID `intro` and the result checks intact, then record a preview:
+
+```bash
+reshoot preview demo/reshoot.toml
+```
+
+Open this new preview as in step 2. It should show the new words while performing
+the same task. The earlier final in `$BASELINE` remains unchanged.
+
+## 6. Change the app and repair the story
+
+Run this once to change both the search input's HTML ID and its JavaScript
+lookup. It edits only the tutorial's made-up app:
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+app = Path("demo/index.html")
+text = app.read_text()
+assert 'id="q"' in text and 'querySelector("#q")' in text, "App already changed?"
+text = text.replace('id="q"', 'id="note-search"')
+text = text.replace('querySelector("#q")', 'querySelector("#note-search")')
+app.write_text(text)
+PY
+reshoot preview demo/reshoot.toml
+```
+
+The preview should fail on `#q`: the app now calls that input `note-search`.
+This is an expected failure. Keep its run folder; earlier passed assertions do
+not prove the interrupted search worked. The final edit may not exist for that
+failed run. Its `takes/demo.take.json` and failure image help diagnose it.
+
+In `demo/storyboard.toml`, change only the search target:
+
+```toml
+target = {css = "#note-search"}
+```
+
+Keep the search beat ID, note text, search word and expected count and text.
+Then record a repaired preview and a fresh final:
+
+```bash
+reshoot preview demo/reshoot.toml
+reshoot run demo/reshoot.toml
+```
+
+Both should complete with all three expectations passing. Save the final
+folder printed by the second command:
+
+```bash
+UPDATED=demo/takes/runs/PASTE_UPDATED_FINAL_ID_HERE
+reshoot compare "$BASELINE" "$UPDATED" --out demo/comparison.json
+reshoot review "$UPDATED" --previous "$BASELINE"
+```
+
+Open `$UPDATED/review.html`. The old and new videos and GIFs appear together,
+with matching beat evidence below. Four matched IDs mean the same beats were
+found; they do not mean identical pixels. The intro caption and search target
+definitions changed; the expected task and result remain the same.
+
+## 7. Review and export the update
+
+Repeat step 4 for `$UPDATED`, including its fresh scan sheets. Download the
+new recording decisions to `demo/updated-decisions.json` and import that file
+against `$UPDATED`, not `$BASELINE`.
+
+After accepting the update, copy its chosen files to a new local directory:
+
+```bash
+reshoot export "$UPDATED" --directory demo/exports-v2 \
+  --file takes/demo-final.mp4 \
+  --file takes/demo-final-readme.gif \
+  --file takes/demo-final.srt
+```
+
+The output directory contains `demo-final.mp4`, `demo-final-readme.gif` and
+`demo-final.srt`. Export verifies source hashes and refuses to overwrite files.
+It copies locally; it does not publish or select a new baseline automatically.
+Retain both run folders and explicitly choose which final to use next time.
+
+If using Git, keep the brief, app fixtures, TOML files and their dependencies
+under version control. Ignore `demo/takes/`, local export directories and
+downloaded review files unless deliberately including them in the repository.
+
+For another app, continue with [Record your own app](your-app.md). For settings
+and less common actions, see the [project reference](projects.md) and
+[command map](commands.md). The [manual workflow](manual.md) covers Python
+storyboards, VHS terminal takes and native app windows.

@@ -1,6 +1,6 @@
 {
   "name": "reshoot",
-  "description": "Skills and tools for making demo videos of software from scripts.",
+  "description": "Agent skills and recording tools for repeatable software demo videos.",
   "owner": {
     "name": "Mumit Khan",
     "url": "https://github.com/mumit"
@@ -9,7 +9,7 @@
     {
       "name": "reshoot",
       "source": "./",
-      "description": "Make demo videos of software from scripts, and shoot them again when the app changes."
+      "description": "Give your coding agent a task. Create a demo video, refresh it after UI changes, and review the result with reshoot."
     }
   ]
 }

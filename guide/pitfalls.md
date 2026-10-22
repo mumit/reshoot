@@ -1,29 +1,29 @@
 # Pitfalls
 
-These came up while making real demo videos and building reshoot. "Fixed in reshoot" means the tool handles it now,
-but it helps to know why.
+Use this reference to diagnose recording, editing and review problems.
+"Fixed in reshoot" identifies problems the tool now handles automatically.
 
 ## Privacy
 
-- **A full-screen capture shows everything.** Once, a full-screen capture showed my mail and calendar. I only record
-  a headless browser page, a VHS terminal, or one window by its id.
-- **Small things get missed on the first look.** In a photo app's demo, a first check missed a straw hat at the edge
-  of a frame, a silhouette in a mesh railing and a blurred head in the background. I now look at every image at
-  full size, and when in doubt it fails.
-- **Random content shows something new each take.** A home page that picked items at random showed different ones
-  in each take, so checking one take wasn't enough. I check the whole set it picks from.
+- **A full-screen capture shows everything.** Record only a headless browser page,
+  a VHS terminal, or one window by its ID.
+- **Small things get missed on the first look.** Inspect every image at full size,
+  including frame edges, reflections, silhouettes and blurred figures. Reject
+  uncertain images.
+- **Random content shows something new each take.** Checking one take does not cover
+  every possible item. Check the whole set the app selects from.
 - **A scan finds a key, and prints it.** Listing what was found would put a key in the terminal and in a CI log.
-  Fixed in reshoot: `reshoot check` shows only enough to recognise it (`sk-a•••`).
+  Fixed in reshoot: `reshoot check` shows only enough to recognize it (`sk-a•••`).
 - **Trusting a clean scan.** A scan reads text and finds faces, but misses text in pictures, odd fonts, and things it
   has no rule for. Only a person marks an image as checked.
 - **Removing something doesn't fix the take.** The take still shows it. Record again after taking it out of the
   demo data.
 - **The terminal shows more than you think:** the user and machine name in the prompt, the folder, shell history,
-  API keys in typed commands. I start a clean shell with `env -i`, a plain `PS1` and a folder under `/tmp`, all in a
+  API keys in typed commands. Start a clean shell with `env -i`, a plain `PS1` and a folder under `/tmp`, all in a
   hidden part of the tape.
-- **An AI agent's banner shows the account, folder and setup.** For Claude Code I use a separate
+- **An AI agent's banner shows the account, folder and setup.** For Claude Code, use a separate
   `CLAUDE_CONFIG_DIR`, a demo folder, and only the tools the take needs (`--strict-mcp-config`, `--allowedTools`).
-- **What an agent says.** An agent's answer can describe or name things. I read it before cutting.
+- **What an agent says.** An agent's answer can include private details. Read it before cutting.
 
 ## Web takes
 
@@ -47,14 +47,13 @@ but it helps to know why.
   reshoot: it times everything with a clock that stops during sleep too, matched to Chrome's at the first frame.
 - **The frame rate goes up and down.** Chrome paints about 45 to 50 frames a second while things move, and none
   when still. Fixed in reshoot: frames keep their times, and ffmpeg makes a steady 60 fps.
-- **Blank views when first shown.** Each take starts with a fresh browser profile, so nothing is cached. A map's
-  tiles were still downloading, and it showed black for a second or two. I list slow views in `WARM`, to load
-  before recording.
-- **A fresh profile is logged out.** I log in with a demo account in `SETUP` beats, which run before recording.
-  I never reuse my own browser profile: it has my accounts and history.
+- **Blank views when first shown.** Each take starts with a fresh browser profile, so nothing is cached.
+  For Python stories, list slow views such as maps in `WARM` to load them before recording.
+- **A fresh profile is logged out.** Log in with a demo account in `SETUP` beats, which run before recording.
+  Keep personal browser profiles separate from recordings.
 - **Headless Chrome won't go below a 500 px window.** For a phone layout the page was too wide. Fixed in reshoot: the
   size is set with device metrics, and it prints a note if `innerWidth` isn't the width asked for.
-- **Results that take a moment.** A hold that's long enough on one run is too short on the next. I wait for the
+- **Results that take a moment.** A hold that's long enough on one run is too short on the next. Wait for the
   result with `__demo.waitFor` before the hold.
 - **Typed text the app doesn't see.** React and other frameworks ignore `el.value = ...`. Fixed in reshoot: typing
   uses the browser's own value setter and sends input events.
@@ -89,17 +88,17 @@ but it helps to know why.
 
 ## Terminal takes
 
-- **VHS throws away the whole recording when a `Wait` times out.** I use a fixed `Sleep` longer than the slowest
+- **VHS throws away the whole recording when a `Wait` times out.** Use a fixed `Sleep` longer than the slowest
   run, then cut at `reshoot last-change`.
-- **An agent's time varies a lot.** Claude Code took one to three minutes for the same prompt. The long `Sleep`
-  covers it, and the cut speeds up the working part.
-- **Leftovers from the last take.** In the notes example, a second run would have shown the note twice, since the
-  first run's file was still there. I clean up in the hidden setup.
+- **Agent response times vary between runs.** Allow enough time in `Sleep` for the
+  response to finish. Label any speed changes in the edit.
+- **Leftovers from the last take.** Demo data from an earlier run can produce duplicate
+  results. Reset the demo data in the hidden setup.
 
 ## App windows
 
-- **Two scripts driving the same app can stall it.** A desktop app driven by AppleScript stopped answering until it
-  was force-quit. I leave the app alone while a take drives it.
+- **Two scripts driving the same app can stall it.** Drive the window from one script
+  at a time and avoid interacting with the app during recording.
 - **"could not create image from window"** means the app running the command has no Screen Recording permission,
   or the window is minimized.
 - **The recording includes the window's shadow.** A square crop of the window still showed the black background
@@ -108,9 +107,9 @@ but it helps to know why.
 ## Cutting
 
 - **Clips of different sizes don't join.** A 1280x720 terminal take and a 1920x1080 web take can't be joined as
-  they are. `cut.concat` refuses them. I place the smaller one on a full-size card with `cut.place` first.
+  they are. `cut.concat` refuses them. Place the smaller one on a full-size card with `cut.place` first.
 - **Washed-out cards after a web take.** Chrome's frames are full-range JPEGs, and a joined video is read with its
-  first clip's range, so the dark cards after the web take came out grey. Fixed in reshoot: every clip is made in
+  first clip's range, so the dark cards after the web take came out gray. Fixed in reshoot: every clip is made in
   standard range, and `cut.concat` refuses clips whose ranges differ.
 - **A joined promo failed its exact frame-rate check on Linux.** Stream-copy joins
   accumulated rounded container durations with Debian's ffmpeg. Fixed in reshoot's
@@ -121,7 +120,7 @@ but it helps to know why.
 - **Banded GIFs.** ffmpeg's default palette looks poor. `cut.gif` makes a palette for each GIF.
 - **Odd sizes.** H.264 in yuv420p needs even widths and heights.
 
-## Adding a pitfall
+## Add a pitfall
 
 When something goes wrong, add it here in a line or two: what happened, and what avoids it. If reshoot can avoid it,
 fix it there too and say so.
@@ -143,7 +142,7 @@ fix it there too and say so.
 - **Templates only worked from the source checkout.** Fixed in reshoot: `init` uses resources packaged with the CLI.
 - **Long recordings retained every JPEG in memory.** Fixed in reshoot: browser frames are stored in temporary files and read as needed.
 
-- **A script clicked through a covered control.** Fixed for TOML stories: native Playwright actions enforce actionability and fail instead of using JavaScript activation. Legacy Python stories retain their original input behaviour.
+- **A script clicked through a covered control.** Fixed for TOML stories: native Playwright actions enforce actionability and fail instead of using JavaScript activation. Legacy Python stories retain their original input behavior.
 - **A brief private detail fell between sampled frames.** Fixed in full scan mode: `check --full` decodes every frame. Sampled checks still have this limitation.
 - **The review pointed to a different time.** Fixed in reshoot: sampled frames now retain their decoded source timestamps.
 

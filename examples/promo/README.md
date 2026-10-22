@@ -1,5 +1,9 @@
 # A demo that stays current
 
+For a first recording, start with the [project tutorial](../../guide/step-by-step.md).
+This recipe builds the edited promotional video shown in the README; it needs
+the additional terminal and composition tools described below.
+
 This is reshoot's promotional recording recipe. The small notes app changes its
 heading, button label and appearance; the same native storyboard saves and finds
 the same synthetic note in both versions. The original `examples/notes/` tutorial
@@ -54,6 +58,9 @@ and coverage. Owner recording acceptance and human scan-sheet approval are
 separate. Do not publish or overwrite approved artifacts without an explicit
 decision. The runner never commits, pushes or posts.
 
-This recipe targets macOS and Linux shells. A different-machine reproduction is
-still required; it is not evidence for novice use when the existing maintainer
-operates that machine.
+This recipe targets macOS and Linux shells. The owner completed a
+[Debian 12 ARM64 Podman build](../../docs/validation/2026-10-21-podman-linux.md),
+including the timestamp repair described above, and accepted its exports.
+The [separate-Mac trial](../../docs/validation/2026-10-21-separate-mac.md) covers
+the packaged notes workflow, not this whole promotional build. A separate-machine
+promo reproduction and independent new-user use remain unverified.

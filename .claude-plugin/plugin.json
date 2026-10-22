@@ -2,10 +2,10 @@
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "reshoot",
   "version": "0.2.0",
-  "description": "Make demo videos of software from scripts: plan a storyboard, record a web page, a terminal or one app window, scan supplied images and sampled frames for private things, and cut 16:9, 9:16 and GIF versions.",
+  "description": "Agent skills to create, refresh and review software demo videos. Use the reshoot CLI to record the app, export an MP4 and README GIF, and keep the demo source beside the code.",
   "author": { "name": "Mumit Khan", "url": "https://github.com/mumit" },
   "homepage": "https://github.com/mumit/reshoot",
   "repository": "https://github.com/mumit/reshoot",
   "license": "MIT",
-  "keywords": ["demo", "video", "screencast", "storyboard", "vhs", "ffmpeg"]
+  "keywords": ["agent-skills", "demo", "video", "readme", "storyboard", "vhs", "ffmpeg"]
 }

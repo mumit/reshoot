@@ -7,7 +7,7 @@ description: "Cut checked takes into a finished demo video with ffmpeg and the `
 
 Each project has a short edit script, since the order of takes and the words on screen differ. Start from
 `../../examples/notes/edit.py` (from this skill's folder) and copy it into the project. It joins a web take, a
-terminal take on a labelled card, and an end card. Run it with `reshoot edit tools/demo/edit.py
+terminal take on a labeled card, and an end card. Run it with `reshoot edit tools/demo/edit.py
 takes/web.mp4`, which makes `reshoot.cut` importable even when reshoot is installed as a tool.
 
 ## The helpers
@@ -54,7 +54,7 @@ cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceove
 ## Pitfalls
 
 - **Joining clips of different sizes** fails or looks wrong. `cut.concat` refuses them; make every part the same size.
-- **Colours change when joined.** A clip in full colour range (a camera clip, or one made outside these helpers)
+- **Colors change when joined.** A clip in full color range (a camera clip, or one made outside these helpers)
   makes the clips after it look washed out. `cut.concat` refuses a mix; run such a clip through `cut.trim` first.
 - **Odd sizes.** H.264 in yuv420p needs even widths and heights. Scale to `-2` (as the helpers do).
 - **GIF colours.** The default palette bands badly. `cut.gif` makes a palette for each GIF.

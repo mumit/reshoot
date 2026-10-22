@@ -1,6 +1,47 @@
 # Reshoot handoff
 
-Saved: 2026-10-21
+Saved: 2026-10-22
+
+Current direction: the owner requested an agent-first presentation for reshoot.
+The README now leads with a first-demo prompt, backed by the
+[agent quickstart](guide/agent-quickstart.md) and [skill catalog](skills/README.md).
+New readers can let the agent handle setup and authoring; installed-skill users
+can invoke create, refresh and review directly. Direct CLI use remains documented
+in [installation](guide/install.md), the complete [project tutorial](guide/step-by-step.md)
+and the [own-app walkthrough](guide/your-app.md). The old Python tutorial is retained as
+[manual takes](guide/manual.md). Reference, command map, troubleshooting, CI
+guidance and contribution forms use that same navigation. The GIF comparison
+fix was committed in `4621320`; this documentation work forms a separate checkpoint.
+The owner authorized its commit and will push it themselves.
+Previously accepted media and their verdicts are unchanged. Do not restart
+accepted export or scan reviews as part of documentation verification.
+The [documentation validation record](docs/validation/2026-10-22-documentation.md)
+records six successful synthetic runs and the expected selector failure, 100
+matching manifest hashes, 18 decoded media files, comparisons, export and a real
+pending-decision download/import. Local evidence is in `takes/docs-onboarding/`.
+No owner acceptance was added to these documentation-check recordings. The new
+candidate CI template is parsed but has not been dispatched on GitHub.
+
+The owner's subsequent style request is also complete: maintained guides,
+examples and reference prose use imperative instructions, with first person
+retained in the README's project origin. CONTRIBUTING.md now documents that
+policy instead of requiring first-person guide prose. The style audit covered
+29 maintained Markdown documents and the issue forms, followed by a sentence-level
+review, link/anchor checks and example syntax checks. Executable fenced examples
+are unchanged. Historical evidence and quoted verdicts retain their wording.
+Details are in the documentation validation record; the local snapshot and audit
+results are in `takes/docs-style-audit/`.
+
+The [agent-first review](docs/validation/2026-10-22-agent-first.md) records the
+new entry flow, updated package/plugin descriptions and local X/LinkedIn drafts
+in `docs/sharing.md`. Both primary skill installers pass; 12 copied files match
+the canonical source. The distribution test passes and plugin validation passes
+with its existing root CLAUDE.md warning. Link, example syntax, metadata and
+prompt-consistency checks pass. Evidence is in `takes/agent-first-docs/`.
+The first-demo prompt has not had a fresh end-to-end bootstrap session, and
+independent new-user testing remains deferred. Its new GitHub guide URL becomes
+available after the owner pushes the documentation checkpoint. Posting and
+publication remain separate; accepted media are unchanged.
 
 The owner completed the [Podman Linux trial](docs/validation/2026-10-21-podman-linux.md)
 on this Mac and reported passing tests and good final MP4/GIF appearance. Copied
@@ -140,7 +181,9 @@ promotional refresh. Product implementation is unchanged; nothing has been
 pushed or published. The owner subsequently ran the Podman Linux trial described
 above. The separate physical machine/account is now identified as an Apple
 Silicon Mac with 16 GB RAM, operated by the owner; its packaged preview/final
-trial has passed as described above. Harness discovery and refresh remain open.
+trial has passed as described above. Subsequent harness discovery, refresh and
+explicit review trials are complete as recorded above; independent new-user
+testing is deferred.
 
 Current status after the session continued into October 21 UTC: the
 [ten-case update study](docs/validation/2026-10-20-ten-case-update-study.md) is

@@ -1,93 +1,96 @@
-# Making demo videos of software
+# Make and maintain a demo
 
-I make demo videos from scripts, not by recording my screen. This guide explains how and why. The
-[step-by-step](step-by-step.md) has the commands, [pitfalls](pitfalls.md) lists what goes wrong and how to avoid
-it, and [reshoot in CI](ci.md) keeps a video current on its own.
+Use your coding agent to make a demo of one task in your app. Keep its actions,
+captions, expected results and edit beside the code. When the app changes, ask
+the agent to update the story and record it again.
 
-## Purpose
+## Start here
 
-A demo video goes stale as soon as the app changes. If I recorded it by hand, I'd have to do the whole thing again,
-get every click right, and hope nothing private showed up on screen.
+| Start with | Do this |
+|---|---|
+| A web app and Codex or Claude Code | [Paste the first-demo prompt](agent-quickstart.md) into a local session in the app's repository |
+| An existing reshoot demo | [Refresh or review it](agent-quickstart.md#update-the-demo-when-the-app-changes) with the previous run for comparison |
+| A preference for the CLI, or no app yet | [Install the tools](install.md), then follow the [notes tutorial](step-by-step.md) |
 
-So each part of the video is a file I can run again:
+The agent route handles setup and authoring with the
+[create, refresh and review skills](../skills/README.md). The CLI tutorial
+teaches the commands directly, using a bundled notes app. Both routes produce
+a video and a README loop, retain recording attempts and leave acceptance to you.
 
-- a **storyboard** for a web app: what to click and type, what captions to show, how long to hold;
-- a **tape** for a terminal: what to type, and how long to wait;
-- an **edit script** that cuts the takes into the finished video.
+## Find an answer
 
-When the app changes, I change a line and shoot it again. That's where the name comes from.
+| Task | Guide |
+|---|---|
+| A first demo with a coding agent | [Agent quickstart](agent-quickstart.md) |
+| Skill installation, invocation and capabilities | [Skill catalog](../skills/README.md) |
+| Prerequisites, upgrades or a pinned installation | [Installation](install.md) |
+| A first complete project | [Tutorial](step-by-step.md) |
+| App startup, demo data, login or agent prompts | [Record your own app](your-app.md) |
+| TOML actions, expectations, captions, edits and exports | [Project reference](projects.md) |
+| A CLI command | [Command map](commands.md) |
+| Help with a failed recording or pending review | [Troubleshooting](troubleshooting.md) |
+| Python stories, VHS terminal takes or a macOS window | [Manual workflow](manual.md) |
+| Automated recording on releases | [CI](ci.md) |
+| Rendering and recording pitfalls | [Pitfalls](pitfalls.md) |
 
-## When to use something else
+## The workflow
 
-A script takes longer to write than a quick recording. A screen recorder is the better choice for a one-off video
-that won't need to be made again, or for a desktop app with no web or terminal version. Use one that records a
-single window, and check every frame before sharing.
+Choose one useful task and a visible result. Let the agent prepare synthetic
+data and write the story, or author the files directly. Inspect a preview before
+making a fresh final recording. Watch each finished export and review the
+supplied images, frames and text findings.
+Then copy selected files locally for sharing. Reshoot does not post automatically.
 
-## Definitions
+Versioned projects retain each candidate in `takes/runs/ID/`; a failed update
+does not overwrite the previous recording. Choose the comparison baseline
+explicitly and keep stable beat IDs so the old and new results can be compared.
 
 | Term | Meaning |
 |---|---|
-| Take | One recording: a web page, a terminal or one app window. |
-| Beat | One step of a take: an action, then a hold. Each beat has a name. |
-| Storyboard | The list of beats for a web take, in a Python file. |
-| Tape | A [VHS](https://github.com/charmbracelet/vhs) script for a terminal take. |
-| Cut | The finished video, made from takes by the edit script. |
-| Demo data | Data made for the video, with nothing private or confidential in it. |
+| Project | A brief, app setup, storyboard and edit configured by `reshoot.toml` |
+| Run | One isolated attempt with its report, recordings and evidence |
+| Take | One recording of a browser page, terminal or app window |
+| Beat | A named step with actions, a caption, result checks and a hold |
+| Storyboard | The beats in a TOML file, or a supported Python file |
+| Tape | A [VHS](https://github.com/charmbracelet/vhs) script for a terminal take |
+| Export | A finished MP4, GIF or other selected deliverable |
+| Baseline | A previous run explicitly selected for comparison |
+| Scan sheets | Numbered contact sheets and original frames for human inspection |
 
-## How it works
+## When reshoot fits
 
-1. **Plan.** I decide what the video shows (three to six things for a one-minute video), and which take shows each.
-2. **Set up demo data.** The app runs on its own database, folder or account, with only things anyone may see.
-3. **Record the takes.**
-   - **Web:** headless Chrome opens the page and plays the storyboard. A drawn cursor glides and clicks, text is
-     typed at a person's pace, and captions fade in. The view can zoom in on each click. Only the page is captured.
-   - **Terminal:** VHS plays a tape in its own terminal, starting from a clean shell.
-   - **App window:** on macOS, `screencapture` records one window by its id. Never the whole screen.
-4. **Check.** Every image a take can show, and frames from each take, go on numbered sheets. I look at each one at
-   full size. Anything private fails: a person, a name, an address, a key, a customer, an internal page. I take it
-   out of the demo data and record again.
-5. **Cut.** A short Python script uses ffmpeg to trim at beat names, add title and end cards, speed up slow parts,
-   and write a 16:9 video, a 9:16 one for phones and a GIF per section.
-6. **Watch it all.** Then I post it myself.
-
-## What I use
-
-| Tool | For |
-|---|---|
-| `reshoot web` | Recording a web page from a storyboard, in headless Chrome |
-| VHS | Recording a terminal from a tape |
-| `reshoot window` | Recording one macOS app window |
-| `reshoot check` | Contact sheets of everything a take can show, and a list of what passed |
-| `reshoot.cut` and ffmpeg | Cutting the finished video and GIFs |
-| Claude Code with the reshoot skills | Writing the storyboard and edit script, and running the steps |
-
-For packaged projects, native input, release comparison, and local review, I use
-the [project workflow](projects.md).
+Use reshoot for software demos that need updates: README loops, release
+walkthroughs and feature clips. Scripting takes preparation, especially for
+demo data. A one-off recording may be quicker with a single-window recorder.
+Native desktop automation needs an app-specific way to drive the window;
+reshoot's browser story format does not automate arbitrary desktop controls.
 
 ## Platforms
 
-I've made videos with reshoot on macOS. The automated browser, check, cut, and
-package tests pass on Linux and macOS. The full notes workflow, including VHS,
-passes on Linux CI. Recording an app window needs macOS. External project and
-live harness trials remain open; see the [delivery status](../docs/validation/2026-10-19-delivery-status.md).
-
 | Part | macOS | Linux | Windows |
 |---|---|---|---|
-| Web takes | CI fixtures pass | CI fixtures pass | not tried |
-| Terminal takes (VHS) | used locally | notes shoot passes in CI | not tried |
-| App window takes | yes | no | no |
-| Check and cut | CI passes with Tesseract | CI passes with Tesseract | not tried |
+| Browser stories and exports | CI, local and separate-Mac maintainer trials | CI and Debian 12 ARM64 Podman maintainer trials | Not validated |
+| VHS terminal takes | Local promotional and notes workflows | Notes CI and full Podman promo build | Not validated |
+| Native app window capture | One window by ID; local AppKit trial | Not supported | Not supported |
+| Text scanning | Vision by default; Tesseract selectable | Tesseract | Not validated |
+| Face and person detection | Vision; generated positive controls tested | Unavailable | Not validated |
 
-## Sound and subtitles
+The [Linux record](../docs/validation/2026-10-21-podman-linux.md),
+[separate-Mac record](../docs/validation/2026-10-21-separate-mac.md) and
+[Codex/Claude refresh and review record](../docs/validation/2026-10-22-separate-mac-harnesses.md)
+describe the tested environments and their limits. Those are maintainer-operated
+trials. Independent new-user testing is deferred; broader desktop, remote-service
+and platform coverage remain open. These results establish behavior in the tested
+environments, not compatibility with every app.
 
-Most social sites start videos muted, so the captions on screen carry the main point. Sound is optional:
+## Sound, captions and framing
 
-- **A voiceover:** a line for some beats, spoken by macOS's `say`, `espeak-ng`, or any text-to-speech command.
-  Each beat waits for its line to finish, so the voice never runs into the next part.
-- **Music,** looped to the video's length, quieter while the voice speaks, and faded out at the end.
-- **Subtitles:** an `.srt` file with the voiceover, or the captions if there's no voice, to upload with the video.
+Make the main point readable without sound. Captions, result holds and
+deliberate framing matter more than motion for its own sake. Reshoot supports
+zoom, styled captions, narration, music and subtitles; the
+[project reference](projects.md) describes their settings. A portrait export
+needs an intentional crop or a separately recorded responsive take.
 
-## How long it takes
-
-Setting up good demo data takes the longest. After that, a reshoot of a one-minute video is a few minutes of
-recording, a check (often a few rounds, as failed items come out), and about a minute to cut.
+The [manual workflow](manual.md) covers Python narration and custom edits.
+The [promotional recipe](../examples/promo/README.md) demonstrates an authored
+before-and-after video using real recordings of synthetic data.

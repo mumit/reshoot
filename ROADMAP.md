@@ -1,11 +1,23 @@
 # Roadmap
 
-What I'd like reshoot to do next, most important first. The aim is demos that stay current without anyone
-re-recording them, and fewer reasons to reach for a screen recorder instead.
+Planned work, most important first. The direction is an agent-first workflow:
+describe a task, make a demo, keep its source beside the app, then ask the agent
+to refresh it after the UI changes. The CLI provides the recording and editing
+tools; the skills guide creation, refresh and review.
 
 Each item says what it is and why it matters. When one ships, move it to Done with a line on what it does.
 
 ## Next
+
+The owner deferred independent new-user testing to focus on documentation.
+The primary entry point is now the [agent quickstart](guide/agent-quickstart.md),
+with a first-demo prompt and a [skill catalog](skills/README.md). Direct CLI use
+remains available through [installation](guide/install.md), the complete
+[record-and-update tutorial](guide/step-by-step.md), and
+[own-app authoring](guide/your-app.md). Near-term product work is easier access to
+polished export templates and predictable versioned distribution; these are
+proposed priorities, not shipped features. Existing acceptance and compatibility
+evidence below remains available without repeating completed owner reviews.
 
 1. **Measure acceptance with users.** Five app variants from four authorized GitHub
    repositories now have synthetic workflow trials. Measure setup, first acceptable
@@ -16,7 +28,8 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    Elapsed ordering flipped: pair 01 was 296.128 seconds for the director and
    118.246 for reshoot; pair 02 was 127.632 and 247.200 respectively. Review and
    response waiting account for most of each difference; no general speedup is
-   established. Novice setup, other users, and independent comparisons remain open.
+   established. Novice setup, other users, and independent comparisons remain open;
+   the independent new-user trial is deferred at the owner's request.
    All ten agreed update cases now
    have both final exports accepted without manual video editing, meeting the
    eight-of-ten target in this assisted maintainer study. Five cases needed demo
@@ -102,6 +115,10 @@ remains open as described above.
 
 - **Owner review of external candidates:** imported the owner's acceptance for
   all five selected recordings and their beats, bound to unchanged artifact hashes.
+- **Guided onboarding:** one TOML tutorial covers preview, final, deliberate
+  selector failure and repair, comparison, separate scan and recording review,
+  and local export. Installation, own-app and troubleshooting guides support it;
+  the Python and individual-take workflow remains available as an advanced guide.
 - **Baseline GIF comparisons:** previous GIFs render as images in newly generated
   review pages; MP4s retain video players. The regression and all 10 review tests pass.
 - **Repeatable projects:** packaged templates, dependency checks, previews and
@@ -114,7 +131,7 @@ remains open as described above.
   frames, local HTML, exact artifact hashes, and explicit review decisions.
 - **Full scan option:** every decoded video or GIF frame, plus direct checks of
   subtitle and narration text. Sampling remains the default; neither is a safety verdict.
-- **Declarative edits and profiles:** source time maps, labelled speed and marked
+- **Declarative edits and profiles:** source time maps, labeled speed and marked
   wait changes, narration protection, reading holds, styled captions and cards,
   size and file budgets, subtitles, and posters.
 

@@ -1,64 +1,176 @@
 # reshoot
 
-Demo videos of software, made from scripts, so you can shoot them again when the app changes.
+**Give your agent a task. Get a demo you can run again.**
+
+An agent-first toolkit for software demos: open source skills and recording
+tools for Codex and Claude Code. Turn a task in your app into a captioned MP4,
+a README GIF, and source files that keep the demo repeatable as the app changes.
 
 ![The same notes task recorded before and after a UI update, using one reshoot storyboard](docs/demo/reshoot.gif)
 
-The app changed. The same storyboard saves and finds the same note in both versions.
-[Watch the 21-second demo](docs/demo/reshoot.mp4), including the actual reshoot command,
-or [reproduce the before-and-after recording](examples/promo/README.md).
+The UI changed. The same story still saves and finds the same note.
+[Watch the 21-second demo](docs/demo/reshoot.mp4) ·
+[Make a demo of your app](guide/agent-quickstart.md) ·
+[Explore the skills](skills/README.md)
 
-I made the launch video for [photosearch](https://github.com/mumit/photosearch) this way, and pulled the tools and
-what I learned into this repo. It has:
+## Make a demo of your app
 
-- **a guide** to the whole process, with the pitfalls I hit ([guide/](guide/README.md));
-- **a command-line tool**, `reshoot`, that records a web page from a storyboard, records one app window, puts
-  everything a take can show on sheets to check by eye, and cuts the finished video;
-- **Claude and Codex skills** that create, refresh, and review a demo;
-- **an example app** to try it all on ([examples/notes/](examples/notes/)), and a
-  [before-and-after demo recipe](examples/promo/README.md).
+Open **Codex or Claude Code in your app's repository** and paste this prompt.
+The agent needs access to the source, a local browser and a shell. Start on
+macOS or Linux.
 
-## What it does
+```text
+Make a demo of the web app in this repository using reshoot.
+Read https://github.com/mumit/reshoot/blob/main/guide/agent-quickstart.md
+and follow its setup and creation workflow.
 
-| Step | How |
+Choose one useful task with a clear visible result. Use synthetic demo data.
+Produce a short captioned MP4 and a README GIF. Keep the recording source in
+demo/ so it can be updated later.
+
+Inspect a preview, then record a fresh final and open both exports for review.
+Ask only for permissions or missing details needed to proceed.
+```
+
+Add a task or local URL if you have one: “Show creating a project and finding it
+by search. The app is running at `http://localhost:3000`.” Otherwise, let the
+agent inspect the repository and propose a useful task.
+
+The agent handles setup, reads the app's controls, writes the story, records a
+preview and prepares the final exports. You watch the result, request changes
+and decide whether to share it. Initial setup may need installation permissions
+or an isolated demo login.
+
+**You get a video, a GIF, and their source.** Keep the `demo/` project beside the
+app's code. Each recording attempt has its own folder, so an update can be
+compared with the previous version.
+
+Already installed the skills? Start with `$reshoot-demo` in Codex or
+`/reshoot-demo` in Claude Code, followed by the task.
+
+## Three skills, one workflow
+
+A skill gives the coding agent a reusable workflow: how to choose the task,
+record it, check the result and present it for review. Reshoot's CLI performs
+the recording and editing. The agent uses the app's code to adapt that workflow
+to the product.
+
+| When | Skill | What to ask for |
+|---|---|---|
+| Make the first demo | [reshoot-demo](skills/reshoot-demo/SKILL.md) | “Show a customer saving a search and seeing its results.” |
+| The app changed | [reshoot-refresh](skills/reshoot-refresh/SKILL.md) | “Record that task again with the updated UI. Keep the old take for comparison.” |
+| Check before sharing | [reshoot-review](skills/reshoot-review/SKILL.md) | “Inspect the final video and GIF, compare the previous run, and report anything that needs attention.” |
+
+For a refresh or review, include the demo's configuration and the exact previous
+run to compare. See the [copyable follow-up prompts](guide/agent-quickstart.md#update-the-demo-when-the-app-changes).
+
+The workflow keeps actions, captions and expected results in editable files.
+Result checks can verify that a saved item appears or that a search returns one
+match. When a control moves or a label changes, the agent can repair the story
+and record a new candidate. Watch and approve the new exports before sharing.
+
+## Install the skills
+
+Use the first-demo prompt above to let the agent handle setup, or install the
+tools and skills yourself. The skills need the reshoot CLI, Python 3.11+, Git,
+ffmpeg and Chrome or Chromium. Linux text scanning also needs Tesseract. Follow
+the [platform setup](guide/install.md), then choose one installation route.
+
+### Codex
+
+Run this in the app repository's root:
+
+```bash
+reshoot skills codex --directory .
+```
+
+This installs `reshoot-demo`, `reshoot-refresh` and `reshoot-review` into
+`.agents/skills/`. In Codex, invoke a skill and describe the task:
+
+```text
+$reshoot-demo
+Create a short demo of saving a task and finding it by search.
+Produce an MP4 and a README GIF using synthetic data.
+```
+
+### Claude Code
+
+Run this in the app repository's root:
+
+```bash
+reshoot skills claude --directory .
+```
+
+This installs the same three skills into `.claude/skills/`. In Claude Code:
+
+```text
+/reshoot-demo
+Create a short demo of saving a task and finding it by search.
+Produce an MP4 and a README GIF using synthetic data.
+```
+
+### Claude Code plugin
+
+To install all ten skills through Claude Code's plugin system, run these
+commands inside Claude Code and follow its installation prompts:
+
+```text
+/plugin marketplace add mumit/reshoot
+/plugin install reshoot@reshoot
+```
+
+Use `/reshoot:reshoot-demo`, `/reshoot:reshoot-refresh` or
+`/reshoot:reshoot-review`, followed by the task. The plugin includes seven
+supporting skills for planning, individual recordings, editing, privacy checks
+and CI. Install the CLI and recording dependencies as well.
+
+The [agent quickstart](guide/agent-quickstart.md#install-the-skills-yourself)
+covers skill discovery and the differences between these routes. The CLI
+installer preserves existing skill folders; compare updates before replacing
+local changes.
+
+## Keep the demo with the code
+
+Reshoot records real interactions with the app. The demo project describes
+what to do, what should happen, how long the result should remain visible and
+which formats to export.
+
+| Keep in the project | Purpose |
 |---|---|
-| Plan | Write a TOML storyboard with expected results, or a Python storyboard: named beats, each an action, a caption and a hold. Or click through the app and let `reshoot rec` write it. |
-| Record a web page | `reshoot web storyboard.py takes/web.mp4` plays it in headless Chrome, with a drawn cursor, typing and captions, and zooms in on clicks and typing. Only the page is captured. |
-| Record a terminal | [VHS](https://github.com/charmbracelet/vhs) plays a tape in a clean shell. |
-| Record an app window | `reshoot window TextEdit takes/app.mov` records one window on macOS, never the whole screen. |
-| Check | `reshoot check takes/web.assets.json takes/web.mp4` makes numbered sheets of supplied images and sampled video frames, to look at before sharing. A scan flags emails, keys, paths, addresses, faces and your own watch-for words first. `BLUR` hides what has to stay in the app. |
-| Cut | A TOML edit file for ordinary cuts and export profiles, or a short Python edit script with `reshoot.cut`: trims at beat names, title and end cards, sped-up parts, a 9:16 version and GIFs. |
-| Sound and subtitles | `VOICE` in the storyboard adds a voiceover, with music under it if you like. Every cut gets an `.srt` file. |
-| Keep it current | `reshoot run` does the whole shoot from a `reshoot.toml`. A GitHub Action reshoots on each release and opens a pull request ([guide](guide/ci.md)). |
+| `BRIEF.md` | Audience, task, visible result and destination |
+| `storyboard.toml` | Actions, captions and expected results |
+| `edit.toml` | Cuts, result holds and output formats |
+| `reshoot.toml` | App startup, recording and check settings |
 
-## Install
+Each candidate retains its report, video, GIF and review evidence under
+`takes/runs/ID/`. Keep the recording source in version control and generated
+takes outside it. Select an explicit baseline when comparing updates.
 
-```bash
-brew install ffmpeg
-uv tool install 'reshoot[browser] @ git+https://github.com/mumit/reshoot'
-```
+Use the [CI workflow](guide/ci.md) to record candidates after app changes.
+Review the outputs before updating published demo media.
 
-Terminal takes also need VHS (`brew install vhs` on macOS). On Linux, install ffmpeg and, for terminal takes, [VHS](https://github.com/charmbracelet/vhs#installation) from your package manager. Web
-takes need Google Chrome or Chromium (or set `RESHOOT_CHROME` to its path). App windows need macOS. The test suite and packaged browser workflow pass on Linux and macOS; see [Platforms](guide/README.md#platforms).
+## Choose the recording for the task
 
-**For Claude Code:**
+| Show | Tools |
+|---|---|
+| A web app | Headless Chrome, native browser actions, cursor, typing and captions |
+| A CLI or an agent at work | [VHS](https://github.com/charmbracelet/vhs) terminal recordings |
+| A native app on macOS | One window captured by its ID, with app-specific automation |
+| The result in different formats | MP4 and GIF exports, custom edits and intentional portrait crops |
+| A narrated explanation | Optional voiceover, music and subtitles |
 
-```
-/plugin install reshoot --marketplace mumit/reshoot
-```
+Use synthetic demo data. Capture a browser page, a terminal or one app window.
+Watch the finished exports and inspect the scan sheets. Automatic checks flag
+potential problems; you make the final review decisions. Reshoot keeps
+publication manual.
 
-Then ask Claude to make a demo video of your app. The `reshoot-demo` skill starts it off; `reshoot-refresh` updates an existing demo and `reshoot-review` inspects its output.
+Browser workflows are tested on macOS and Linux. Native window capture and
+Vision face/person detection require macOS; Linux uses Tesseract for text.
+See [platforms and tested limits](guide/README.md#platforms).
 
-**For Codex or standalone Claude skills:**
+## Use the CLI directly
 
-```bash
-reshoot skills codex --directory /path/to/project
-reshoot skills claude --directory /path/to/project
-```
-
-Use the command for your harness. It installs the three primary skills from the CLI package and refuses to overwrite an existing skill. In Codex invoke `$reshoot-demo`; in Claude invoke `/reshoot-demo` (or the plugin's namespaced command).
-
-## Start a project
+Start with the bundled notes app to try the tools without a coding agent:
 
 ```bash
 reshoot init demo
@@ -67,47 +179,40 @@ reshoot preview demo/reshoot.toml
 reshoot run demo/reshoot.toml
 ```
 
-This uses packaged, made-up notes data. `init demo --url http://localhost:3000/` creates a draft for your own demo app instead; replace its placeholder with one useful task and explicit result checks. New TOML storyboards use Playwright native input; existing Python storyboards remain supported. Versioned projects resolve paths from the config and write separate candidates under `takes/runs/`. Legacy configurations keep their existing paths. A preview is not a reviewed final export.
+The [CLI tutorial](guide/step-by-step.md) covers the complete first recording,
+an app change, a deliberate failure, repair, comparison, review and export.
+For your own app, `reshoot init demo --url http://localhost:3000/` creates a
+project draft. Replace its placeholder story with actions and result checks
+using the [own-app walkthrough](guide/your-app.md).
 
-## Try it
+## Find the right guide
 
-```bash
-git clone https://github.com/mumit/reshoot && cd reshoot
-reshoot run examples/notes/reshoot.toml
-```
-
-That starts the example app, records a web take and a terminal take, cuts them into a finished video with an end
-card, a 9:16 version and a GIF, and makes review sheets, all in `takes/`.
-The [original notes video](docs/demo/notes.mp4) remains available. The README's
-before-and-after loop has its own [recording recipe](examples/promo/README.md).
-
-## Rules I follow
-
-- I record a headless browser page, a VHS terminal or one window. Never the whole screen.
-- The app runs on demo data with nothing private in it.
-- I look at every image a take can show, at full size, before cutting.
-- I watch the whole video before posting it, and I post it myself.
-
-## Skills
-
-| Skill | For |
+| Task | Start here |
 |---|---|
-| [reshoot-demo](skills/reshoot-demo/SKILL.md) | Create a demo with a brief, preview, and result checks |
-| [reshoot-refresh](skills/reshoot-refresh/SKILL.md) | Update an existing demo |
-| [reshoot-review](skills/reshoot-review/SKILL.md) | Inspect recordings, scan coverage, and comparisons |
-| [plan-demo](skills/plan-demo/SKILL.md) | Planning the takes and the storyboard. Start here. |
-| [record-web](skills/record-web/SKILL.md) | A web page from a storyboard |
-| [record-terminal](skills/record-terminal/SKILL.md) | A terminal or Claude Code take with VHS |
-| [record-window](skills/record-window/SKILL.md) | One macOS app window |
-| [check-privacy](skills/check-privacy/SKILL.md) | Checking everything a take can show |
-| [cut-video](skills/cut-video/SKILL.md) | The finished video, 9:16 version and GIFs |
-| [keep-current](skills/keep-current/SKILL.md) | `reshoot run` and reshooting in CI |
+| Get a first demo with an agent | [Agent quickstart](guide/agent-quickstart.md) |
+| Browse the skill package | [Skill catalog](skills/README.md) |
+| Install or upgrade the tools | [Installation](guide/install.md) |
+| Learn the CLI workflow from scratch | [Notes tutorial](guide/step-by-step.md) |
+| Write a story for an existing app | [Own-app walkthrough](guide/your-app.md) |
+| Look up actions, captions, edits and exports | [Project reference](guide/projects.md) |
+| Find a command or fix a failed step | [Command map](guide/commands.md) · [Troubleshooting](guide/troubleshooting.md) |
+| Record a terminal or native window | [Manual workflow](guide/manual.md) |
+| Reproduce the README demo | [Before-and-after recipe](examples/promo/README.md) |
 
-See [Projects, updates, and review](guide/projects.md) for TOML stories, edits, scan coverage, and local comparisons.
+## Why reshoot exists
+
+I made the launch video for [photosearch](https://github.com/mumit/photosearch)
+this way, and pulled the tools and what I learned into reshoot. A demo takes
+work to make. Keeping its story beside the app makes that work useful again
+when the product changes.
+
+The [original notes recording](docs/demo/notes.mp4) and its
+[source files](examples/notes/) remain available.
 
 ## Contributing
 
-New pitfalls, skills and fixes are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), and [ROADMAP.md](ROADMAP.md) for what I'd like to build next.
+New pitfalls, skills and fixes are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for contribution instructions and [ROADMAP.md](ROADMAP.md) for planned work.
 
 ## License
 

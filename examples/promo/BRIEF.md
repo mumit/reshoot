@@ -12,7 +12,7 @@ two results, and end with reshoot and its repository address.
 Deliverables: a roughly 22-second, silent 1080 by 1350 social MP4 with burned-in
 text, and a roughly 11-second landscape README GIF. A companion MP4 preserves
 the README loop without GIF compression. Generation waiting is omitted from the
-social cut and explicitly labelled; the complete terminal recording is retained.
+social cut and explicitly labeled; the complete terminal recording is retained.
 The app task plays at its original speed.
 
 Only synthetic notes, headless browser pages and a clean VHS terminal are used.

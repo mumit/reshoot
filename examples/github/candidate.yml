@@ -1,0 +1,36 @@
+# Copy to .github/workflows/reshoot.yml in an app with a versioned demo project.
+# Retains candidates and review evidence; does not update repository media.
+name: Record a demo candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Add app dependencies and synthetic fixture setup here.
+      # The project config's [app] command must work from its own directory.
+
+      - id: shoot
+        uses: mumit/reshoot@898502277c1e57e872799682358b28e2d54c3e8e # tested 0.2 revision; update deliberately
+        with:
+          config: demo/reshoot.toml # change: versioned project config
+
+      - name: Generate the local review page
+        if: steps.shoot.outputs.ok == 'true'
+        env:
+          REPORT: ${{ steps.shoot.outputs.report }}
+        run: reshoot review "$REPORT"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: reshoot-review
+          path: demo/takes/ # change: project takes folder
+          retention-days: 14

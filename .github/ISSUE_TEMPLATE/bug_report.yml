@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible recording, editing, setup or review problem.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use synthetic data only. Inspect logs, screenshots and reports before attaching them.
+        Setup and review help: https://github.com/mumit/reshoot/blob/main/guide/troubleshooting.md
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include OS and CPU, reshoot version and install revision if known, browser, ffmpeg and OCR backend. reshoot doctor --json can help.
+      placeholder: "macOS Apple Silicon; reshoot 0.2.0 at commit …; Chrome …; ffmpeg …; Vision"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the exact command and a minimal synthetic config, storyboard or fixture. Note the working directory.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include the failing beat or error and relevant inspected log excerpts. A clean scan is different from human review approval.
+    validations:
+      required: true

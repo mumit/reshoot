@@ -81,6 +81,12 @@ The preview is smaller than the final. Use it to catch wrong actions or unreadab
 captions before making the final recording. If a command fails, keep its run
 folder and see [Troubleshooting](troubleshooting.md).
 
+You have the first clip. Stop here to [explore features](features.md) or
+[change captions, timing and export size](customize.md). Continue below when
+ready to learn final review, updates and comparison. To record your own target,
+choose [source code](your-app.md), a [running URL](running-web-app.md) or a
+[macOS window](macos-window.md).
+
 ## 3. Make a final recording
 
 Add `full = true` inside the existing `[check]` table in `demo/reshoot.toml`:

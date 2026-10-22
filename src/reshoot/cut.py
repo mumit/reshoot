@@ -16,7 +16,7 @@ ENC = ["-r", str(FPS), "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix
        "-an"]
 FONTS = ["/System/Library/Fonts/SFNS.ttf", "/System/Library/Fonts/Helvetica.ttc",
          "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/TTF/DejaVuSans.ttf"]
-GIF_PALETTE = ("split[a][b];[a]palettegen=stats_mode=diff:max_colors=200[p];"
+GIF_PALETTE = ("split[a][b];[a]palettegen=stats_mode=full:max_colors=200[p];"
                "[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle")
 
 
@@ -128,7 +128,15 @@ def gif(src, start, end, out, fps=15, width=800, height=None, fit="contain"):
             raise ValueError('GIF fit must be contain or crop')
         vf = f"scale={width}:{height}:flags=lanczos:force_original_aspect_ratio=" + ('increase' if fit == 'crop' else 'decrease')
         vf += f",crop={width}:{height}" if fit == 'crop' else f",pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"
-    ff("-ss", start, "-t", end - start, "-i", src, "-vf", f"fps={fps},{vf},{GIF_PALETTE}", out)
+    # A card/browser join can change SAR or color metadata. Normalize into one
+    # lossless RGB stream before buffering frames for the palette; a filtergraph
+    # reset otherwise drops earlier sections.
+    with tempfile.TemporaryDirectory() as temp:
+        normalized = Path(temp) / "frames.nut"
+        ff("-ss", start, "-t", end - start, "-i", src,
+           "-vf", f"fps={fps},{vf},format=bgr0,setsar=1", "-an",
+           "-c:v", "ffv1", "-pix_fmt", "bgr0", "-color_range", "pc", normalized)
+        ff("-i", normalized, "-vf", GIF_PALETTE, out)
     from reshoot import timeline
     timeline.trim(src, start, end, out)
     return out

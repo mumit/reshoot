@@ -117,8 +117,12 @@ BEATS = [
 
 ```bash
 reshoot window --list                         # check the window is there
-reshoot window TextEdit takes/app.mov -s 8
+reshoot window TextEdit takes/app.mov --id WINDOW_ID -s 8
 ```
+
+Replace `WINDOW_ID` with the selected numeric ID. Use the
+[macOS window walkthrough](macos-window.md) for capture permission, manual or
+scripted interaction, standalone MP4/GIF export and review.
 
 ## Check everything the takes can show
 

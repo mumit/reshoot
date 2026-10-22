@@ -12,11 +12,12 @@ demo videos.
 
 **Headline:** Give your agent a task. Get a demo you can run again.
 
-**One paragraph:** Use reshoot with Codex or Claude Code to turn a task in a web
-app into a captioned MP4 and a README GIF. The agent reads the app, writes a
-checked story and records the workflow. Keep the recording source beside the
-code, then use the refresh skill after the UI changes. Watch and review the
-exports before sharing. Reshoot is open source under the MIT license.
+**One paragraph:** Use reshoot with Codex or Claude Code to turn a task in an
+app into an MP4 and a README GIF. Start with source code, a running web URL or
+a native macOS window. The agent prepares a browser story or a native capture
+recipe and edits the outputs. Keep the source for updates, then use the refresh
+and review skills when the UI changes. Watch and review the exports before
+sharing. Reshoot is open source under the MIT license.
 
 ## Draft for X
 
@@ -43,10 +44,11 @@ The app changed. The demo can change with it.
 reshoot is an open source toolkit that gives Codex and Claude Code a workflow
 for making software demo videos.
 
-Open your app's repository, paste the first-demo prompt, and let the agent
-prepare a short captioned MP4 and a README GIF. It reads the app, uses synthetic
-demo data, writes actions with expected results, and inspects a preview before
-recording a fresh final.
+Open your app repository or a demo folder and paste the first-demo prompt.
+Start from source code, a running web URL or a native macOS window. Let the agent
+prepare an MP4, a README GIF and the source for the next recording. Use synthetic
+demo data and inspect a test take before making a fresh final. Native apps need
+app-specific automation or your interaction during capture.
 
 Keep the recording source beside the code. When the UI changes, use the refresh
 skill to record the same task again and compare it with the previous version.
@@ -65,7 +67,9 @@ https://github.com/mumit/reshoot
 
 | Reader | Invitation | Destination |
 |---|---|---|
-| New to recording tools, already uses a coding agent | Open the app repository and paste one prompt | [First-demo prompt](../guide/agent-quickstart.md#start-with-one-prompt) |
+| New to recording tools, already uses a coding agent | Open an app or demo folder and paste one prompt | [First-demo prompt](../guide/agent-quickstart.md#start-with-one-prompt) |
+| Has a running URL or installed macOS app, without source | Name the target and one task | [Running web app](../guide/running-web-app.md) or [macOS window](../guide/macos-window.md) |
+| Has a first clip and wants to go further | Explore a feature, make one edit, then build a fuller story | [Features](../guide/features.md), [customization](../guide/customize.md) and [tutorial authoring](../guide/make-demo.md) |
 | Already uses agent skills | Install the package, then invoke create, refresh or review with a task | [Skill catalog](../skills/README.md) |
 | Wants control over every action | Author the story and run the tools directly | [CLI tutorial](../guide/step-by-step.md) and [own-app walkthrough](../guide/your-app.md) |
 | Maintains release automation | Record candidates in CI and review the artifacts | [CI guide](../guide/ci.md) |

@@ -34,7 +34,7 @@ files. `CONFIG` is a `reshoot.toml` path. Versioned runs write under the configu
 | Command | What it does |
 |---|---|
 | `reshoot rec URL story.toml` | Opens a fresh browser and drafts a storyboard from recorded actions |
-| `reshoot web story.toml takes/web.mp4` | Records a native TOML browser story |
+| `reshoot web story.toml takes/web.mp4` | Records a declarative TOML browser story |
 | `reshoot web story.py takes/web.mp4` | Records a supported Python browser story |
 | `reshoot window --list` | Lists macOS windows available to capture |
 | `reshoot window APP takes/app.mov --id ID -s 8` | Records one macOS window for eight seconds |
@@ -44,6 +44,7 @@ files. `CONFIG` is a `reshoot.toml` path. Versioned runs write under the configu
 
 Terminal recording uses `vhs FILE.tape`. Install VHS separately. See
 the [manual workflow](manual.md) for terminal takes, Python helpers and windows.
+For a first standalone native recording, use the [macOS window walkthrough](macos-window.md).
 
 ## Check and review supplied content
 

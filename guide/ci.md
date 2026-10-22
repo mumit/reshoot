@@ -4,7 +4,10 @@ Use CI to record a demo again when the app changes. When a renamed button breaks
 the storyboard, the recording job fails and identifies the beat. Review the new
 candidate before replacing the previous video or README GIF.
 
-First complete the [local tutorial](step-by-step.md). New projects use versioned
+Start with a working local browser/VHS project and its reset procedure. Use the
+[local tutorial](step-by-step.md) if you need an example; it is not required for
+an app that already records correctly. Native windows require an interactive
+macOS capture session and are outside this Ubuntu template. New projects use versioned
 run folders and retain candidates until an explicit local export. There are two
 CI examples: a candidate-only workflow for these projects, and the original
 pull-request workflow for legacy `[keep]` projects. Both pin supporting actions
@@ -31,8 +34,45 @@ success and an uploaded artifact are not approval.
 
 After recording review decisions locally, use `reshoot export` to copy the chosen
 files into a new destination, then update the repository's demo media.
-To add a release trigger, use the event syntax in the legacy example.
 Verify the template's first run against your app's setup and runner environment.
+
+## Choose when to record
+
+Start with the template's manual trigger. Once that works, replace its `on:`
+block with this example to retain manual recording and add recordings on
+releases and relevant changes to `main`:
+
+```yaml
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'demo/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/reshoot.yml'
+```
+
+Adapt the branch, source paths and dependency files to your app. This is a
+trigger fragment, not a complete workflow; keep the template's job, permissions
+and artifact upload. GitHub combines branch and path filters for a push event;
+see its [workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)
+and [trigger guide](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+
+The job replays the checked-in story. It does not run an agent to repair a
+selector, approve exports or publish a post. Repair failures locally and keep
+the failed artifact for diagnosis. Use an isolated reachable test service for
+URL-only projects; hosted state and rate limits can affect repeatability.
+For private test services, use the app's supported CI secret setup and keep
+credentials outside the storyboard and artifacts.
+
+Return to [maintaining and publishing](publish.md) to promote reviewed media
+locally. The candidate-only workflow requires read access and does not need
+the pull-request permissions described in the legacy section below.
 
 ## Legacy projects: open a media pull request
 

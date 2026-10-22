@@ -1,14 +1,16 @@
 # Make and maintain a demo
 
 Use your coding agent to make a demo of one task in your app. Keep its actions,
-captions, expected results and edit beside the code. When the app changes, ask
+captions, expected results and edit in a demo folder. When the app changes, ask
 the agent to update the story and record it again.
 
 ## Start here
 
 | Start with | Do this |
 |---|---|
-| A web app and Codex or Claude Code | [Paste the first-demo prompt](agent-quickstart.md) into a local session in the app's repository |
+| App source code and a coding agent | [Paste the first-demo prompt](agent-quickstart.md) into a local session in the app repository |
+| A running web app, without source code | Set the prompt's target to the URL; use the [running-app route](running-web-app.md) |
+| An installed native app on a Mac | Set the prompt's target to the app and demo window; use the [window route](macos-window.md) |
 | An existing reshoot demo | [Refresh or review it](agent-quickstart.md#update-the-demo-when-the-app-changes) with the previous run for comparison |
 | A preference for the CLI, or no app yet | [Install the tools](install.md), then follow the [notes tutorial](step-by-step.md) |
 
@@ -16,6 +18,21 @@ The agent route handles setup and authoring with the
 [create, refresh and review skills](../skills/README.md). The CLI tutorial
 teaches the commands directly, using a bundled notes app. Both routes produce
 a video and a README loop, retain recording attempts and leave acceptance to you.
+Native capture uses a standalone recipe and app-specific interaction rather
+than a browser storyboard.
+
+## Build up at your own pace
+
+| Stage | Get to | Agent route | Direct CLI route |
+|---|---|---|---|
+| 1. First success | One useful task, an MP4 and a GIF | [One prompt](agent-quickstart.md) | [Notes tutorial through the preview](step-by-step.md#2-record-a-preview), or a target route above |
+| 2. Explore | Decide which features are worth adding | [Capabilities and examples](features.md) | The same feature guide, with source and command links |
+| 3. Customize | Change words, timing and export size | [Ask for one visible change](customize.md) | Edit the generated files and record another preview |
+| 4. Build a fuller story | A product demo or tutorial | [Expand a working clip](make-demo.md) | Author sections and edit takes |
+| 5. Maintain and share | Updated media, reviewed before publication | [Refresh and prepare exports](publish.md) | Script the local run, then [add CI](ci.md) |
+
+Stop after the first clip or skip to the stage you need. Reference reading and
+CI setup are not prerequisites for trying reshoot.
 
 ## Find an answer
 
@@ -25,6 +42,10 @@ a video and a README loop, retain recording attempts and leave acceptance to you
 | Skill installation, invocation and capabilities | [Skill catalog](../skills/README.md) |
 | Prerequisites, upgrades or a pinned installation | [Installation](install.md) |
 | A first complete project | [Tutorial](step-by-step.md) |
+| Available features and example source | [Feature guide](features.md) |
+| Small changes to captions, timing and GIF size | [Customization](customize.md) |
+| A fuller product demo or app tutorial | [Build a demo](make-demo.md) |
+| Updates, selected exports and publication | [Maintain and publish](publish.md) |
 | App startup, demo data, login or agent prompts | [Record your own app](your-app.md) |
 | TOML actions, expectations, captions, edits and exports | [Project reference](projects.md) |
 | A CLI command | [Command map](commands.md) |
@@ -41,9 +62,10 @@ making a fresh final recording. Watch each finished export and review the
 supplied images, frames and text findings.
 Then copy selected files locally for sharing. Reshoot does not post automatically.
 
-Versioned projects retain each candidate in `takes/runs/ID/`; a failed update
+Versioned browser and terminal projects retain each candidate in `takes/runs/ID/`; a failed update
 does not overwrite the previous recording. Choose the comparison baseline
 explicitly and keep stable beat IDs so the old and new results can be compared.
+Native window captures use separate take directories and manual comparison.
 
 | Term | Meaning |
 |---|---|

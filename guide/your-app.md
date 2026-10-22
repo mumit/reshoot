@@ -1,4 +1,4 @@
-# Record your own app
+# Record a web app from source
 
 For the shortest agent workflow, [paste the first-demo prompt](agent-quickstart.md)
 into Codex or Claude Code in the app's repository. Let the agent handle setup
@@ -8,6 +8,12 @@ Use this walkthrough to write the files yourself or guide the agent's choices.
 Choose one useful task in the app and keep the brief and recording source
 beside its code. The [notes tutorial](step-by-step.md) provides a complete CLI
 example to try separately; it is not a prerequisite for recording your app.
+
+Use this route when you can read the web app's code and configure startup or
+fixtures. If you only have a URL, use [the running-app guide](running-web-app.md).
+For an installed desktop app, use [the macOS window guide](macos-window.md).
+After the first clip, [customize its words and timing](customize.md), then
+[build a fuller story](make-demo.md).
 
 ## Choose one result
 

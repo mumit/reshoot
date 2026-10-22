@@ -1,20 +1,31 @@
 # Make a demo with your agent
 
-Turn one useful task in your web app into a short video and a README GIF. Let
+Turn one useful task in your app into a short video and a README GIF. Let
 the agent handle the recording source and tool commands. Keep the project so
 the next UI change can become the next recording.
 
 ## Start with one prompt
 
-Open Codex or Claude Code in the app's repository on macOS or Linux. Use a local
-session that can read the app's code, run shell commands and launch headless
-Chrome. Paste this prompt; no reshoot skill needs to be installed beforehand:
+Open Codex or Claude Code in a local work folder. Choose the folder and target
+from this table; source code is optional:
+
+| What you have | Open | Set `Target:` to |
+|---|---|---|
+| App source code | The app repository | `the app in this repository` |
+| A running web app | An empty demo work folder | The actual app URL, local or hosted |
+| An installed macOS app | An empty demo work folder on the Mac | App name and the window containing demo data |
+
+Use a session that can run shell commands and access the app. Browser recording
+works on macOS or Linux. Native capture needs macOS and permission to record
+one window. Paste this prompt and adjust `Target:`; no reshoot skill needs to
+be installed beforehand:
 
 ```text
-Make a demo of the web app in this repository using reshoot.
+Make a short demo with reshoot.
 Read https://github.com/mumit/reshoot/blob/main/guide/agent-quickstart.md
 and follow its setup and creation workflow.
 
+Target: the app in this repository.
 Choose one useful task with a clear visible result. Use synthetic demo data.
 Produce a short captioned MP4 and a README GIF. Keep the recording source in
 demo/ so it can be updated later.
@@ -23,9 +34,11 @@ Inspect a preview, then record a fresh final and open both exports for review.
 Ask only for permissions or missing details needed to proceed.
 ```
 
-If the app is already running, add its local URL. If you know the story, add one
-sentence such as “Show creating an issue, adding a label and finding it by
-filtering.” Otherwise, let the agent propose the task after reading the app.
+If you know the story, add one sentence such as “Show creating an issue, adding
+a label and finding it by filtering.” Otherwise, let the agent propose the task
+after inspecting the app. A URL-only session can inspect page controls without
+source code. For a native app, the agent needs app-specific automation or your
+interaction during capture; reshoot does not operate arbitrary desktop controls.
 
 The first run may need permission to install recording tools, a way to start
 the app, or an isolated demo login. Supply those when asked. The agent needs
@@ -38,15 +51,17 @@ A coding agent can read a project's files, edit them and run commands in respons
 to a task. Use the local app, IDE or terminal setup from the
 [Codex quickstart](https://developers.openai.com/codex/quickstart) or
 [Claude Code quickstart](https://code.claude.com/docs/en/quickstart), then open
-the folder containing your web app. Paste the prompt into that session.
+the folder chosen above. Paste the prompt into that session.
 Reshoot supplies the demo workflow and recording tools; use the agent account
 and permissions required by your chosen tool.
 
 ## Review what you get
 
-Expect a short captioned MP4, an animated README GIF, their output paths and
-the recording source in `demo/`. The agent should also provide a local review
-page and identify any unresolved checks.
+Expect a short MP4, an animated README GIF, their output paths and the recording
+recipe in `demo/`. Browser stories include captions and result checks. Native
+recipes use standalone capture and editing, with captions added in post when
+needed. The agent should identify unresolved checks and provide a local review
+page for versioned runs, or the standalone media and check sheets for native takes.
 
 Watch both exports. Check that the intended result is visible and the captions
 are readable. Give a concrete revision if needed: “Hold the search result
@@ -57,9 +72,14 @@ Review the scan sheets and text findings before sharing. Recording acceptance
 and scan-sheet approval are separate decisions. The [review instructions](step-by-step.md#4-review-the-recording-and-scan-sheets)
 show how to record both. Nothing posts automatically.
 
+You can stop here with your first clip. When ready, [explore the features](features.md),
+[change a caption or timing](customize.md), then [build a fuller demo or tutorial](make-demo.md).
+Use [updates and publishing](publish.md) when the recording becomes part of your project.
+
 ## Update the demo when the app changes
 
-Use the refresh skill with the configuration and the accepted run folder.
+For a browser or terminal project, use the refresh skill with the configuration
+and the accepted run folder.
 Replace `PREVIOUS_FINAL_ID` with the exact previous final's ID. In Codex:
 
 ```text
@@ -88,6 +108,10 @@ In Claude Code, use `/reshoot-review`; with the plugin, use
 `/reshoot:reshoot-review`. Include the task after the skill name so the agent
 knows which recording to inspect.
 
+For a native app, give the skill the saved capture/edit recipe and exact old
+and new MP4/GIF paths instead of run IDs. Request a new one-window take and
+manual comparison. See the [native workflow](macos-window.md) for its limits.
+
 ## Install the skills yourself
 
 Skip this section if the agent already handled setup. A skill is a reusable
@@ -95,7 +119,7 @@ set of instructions for the agent. Reshoot's three primary skills cover
 creation, refresh and review; the CLI provides the recording tools.
 
 Install the [CLI and platform dependencies](install.md), then run the command
-for your agent from the app repository's root:
+for your agent from the app repository or demo work folder:
 
 | Agent | Run in a terminal | Installed location |
 |---|---|---|
@@ -105,7 +129,7 @@ for your agent from the app repository's root:
 Start with `$reshoot-demo` in Codex or `/reshoot-demo` in Claude Code, followed
 by a task. Use the agent's skill selector to confirm that the skill is available.
 If a newly installed skill does not appear, start a new session in the same
-repository. These locations and invocation conventions follow the
+work folder. These locations and invocation conventions follow the
 [official OpenAI documentation](https://developers.openai.com/codex/skills) and
 [Claude Code skill documentation](https://code.claude.com/docs/en/skills).
 
@@ -126,15 +150,17 @@ The plugin still needs the CLI and recording dependencies.
 ## Try it without an app or an agent
 
 Use the [bundled notes tutorial](step-by-step.md) for a complete CLI example
-with synthetic data. It covers the first recording and an update. To author
-the story for an existing app yourself, use the [own-app walkthrough](your-app.md).
+with synthetic data. It covers the first recording and an update. For your
+target, use the [source-app walkthrough](your-app.md),
+[running-URL route](running-web-app.md) or [native window route](macos-window.md).
 
 ## Setup and creation workflow for the agent
 
 When receiving the prompt above, follow this workflow:
 
-1. Read the repository's instructions and inspect its startup commands, UI and
-   existing demo fixtures. Choose a small task with an observable result. Propose
+1. Identify the target: source code, running URL or native macOS window. Read
+   repository instructions when present. Inspect source and fixtures when
+   available, or inspect the running page/window. Choose a small task with an observable result. Propose
    a reasonable task when the request leaves it open; ask only when a missing
    decision prevents useful progress.
 2. Read the [installation guide](install.md). Use an existing reshoot installation
@@ -146,19 +172,25 @@ When receiving the prompt above, follow this workflow:
    installation or plugin instead of overwriting it. Read the installed
    `reshoot-demo/SKILL.md` and follow it. If skill discovery has not refreshed,
    read that file directly and continue within the current session.
-4. Use an existing `demo/` project when appropriate, or initialize one with
-   `reshoot init demo --url LOCAL_URL`. Read the [own-app walkthrough](your-app.md)
-   and [project reference](projects.md) to configure startup and replace the
-   placeholder with real actions, captions and explicit result checks.
-5. Use isolated synthetic demo data and document its reset. Record a headless
-   browser page. Keep secrets and real accounts outside the demo. If login or
-   fixtures cannot be prepared from the repository, ask for the missing setup.
-6. Run `reshoot doctor --config demo/reshoot.toml`, resolve required dependencies,
-   then record and inspect a preview. Repair failed actions while preserving the
-   intended task and expected results. Retain failed attempts.
-7. Record a fresh final, read its report and inspect the actual MP4 and GIF.
-   Generate its review page. Present the exact run folder, both export paths,
-   checks and unresolved findings. Open the exports when the environment permits.
+4. Choose the appropriate route. For a browser, reuse a project or initialize
+   `demo/` with `reshoot init demo --url APP_URL`. Follow the
+   [source-app](your-app.md) or [running-URL](running-web-app.md) guide, replace
+   the placeholder with actual actions and checks, and keep the edit's endpoint
+   valid. For a native app, follow the [window guide](macos-window.md): save
+   capture instructions and an edit, select one window by ID and arrange
+   app-specific automation or manual interaction. Do not force native capture
+   into the versioned browser configuration.
+5. Use isolated synthetic data and document its reset. Keep secrets and real
+   accounts outside the demo. Resolve a fresh-profile login for web apps or a
+   synthetic document for native apps. Ask for missing setup when needed.
+6. For versioned browser projects, run `reshoot doctor --config demo/reshoot.toml`
+   and `reshoot preview demo/reshoot.toml`. For native apps, verify ffmpeg and
+   capture permission, then make a standalone test take. Inspect the result;
+   repair actions without changing the intended task. Retain failed attempts.
+7. Make a fresh final and inspect the actual MP4 and GIF. For versioned runs,
+   read the report and generate the review page. For standalone native takes,
+   generate check sheets and compare media manually. Present exact paths,
+   coverage and unresolved findings. Open the exports when the environment permits.
 8. Ask the owner to watch the exports and review the scan sheets. Preserve pending
    decisions until the owner supplies a verdict. Keep source files available for
    the next refresh; commit or publish only when authorized.

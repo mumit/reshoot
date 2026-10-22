@@ -2,7 +2,27 @@
 
 Saved: 2026-10-22
 
-Current direction: the owner requested an agent-first presentation for reshoot.
+Current direction: the owner requested a documentation/tutorial review across
+five stages: first recording, feature discovery, customization, fuller demos or
+tutorials, then maintenance/publication/CI. The README and guide now route source
+code, running web URLs and native macOS windows through those stages, with agent
+prompts and direct CLI steps. Primary skills distinguish source-free browser
+authoring and standalone native recipes from versioned browser/VHS projects.
+The [journey review](docs/validation/2026-10-22-documentation-journey.md) records
+the changes and verification in `takes/docs-journey-review/`.
+
+The review exposed a real GIF export defect: a joined title card could disappear
+or freeze while the MP4 remained correct. `cut.gif` now normalizes a temporary
+lossless RGB stream before full-clip palette generation. Both join-order
+regressions pass, and the regular suite reports 71 passed, 26 deselected.
+Corrected tutorial final `bf35c2383c104439abaceb0fa4fcd790` retains both its
+opening and result in the MP4/GIF. New documentation checks do not add owner
+approval or replace accepted media. No fresh native capture, Linux trial,
+new-user session or GitHub dispatch was performed. Long-demo performance of the
+extra GIF normalization step remains unmeasured. The owner authorized committing
+this checkpoint. Pushing and publication remain separate.
+
+Previous checkpoint: the owner requested an agent-first presentation for reshoot.
 The README now leads with a first-demo prompt, backed by the
 [agent quickstart](guide/agent-quickstart.md) and [skill catalog](skills/README.md).
 New readers can let the agent handle setup and authoring; installed-skill users

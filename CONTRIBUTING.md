@@ -74,6 +74,10 @@ Keep it aligned with the README's first-demo prompt and the [skill catalog](skil
 The [installation guide](guide/install.md), [CLI tutorial](guide/step-by-step.md)
 and [own-app walkthrough](guide/your-app.md) provide the detailed tool instructions.
 The [manual guide](guide/manual.md) keeps Python and individual-take examples.
+Keep the [five-stage guide](guide/README.md) usable from source code, a running
+web URL and a native macOS window. Do not make CLI reference reading or CI setup
+a prerequisite for the first clip. Keep native standalone recipes distinct from
+versioned browser/VHS projects.
 Update the reference and relevant skill when changing a documented command.
 
 Check relative links and anchors, parse TOML examples, and execute changed

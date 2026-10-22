@@ -32,6 +32,8 @@ brew install --cask google-chrome
 If Chrome or Chromium is already installed, keep that browser instead of
 installing another. Headless browser recording does not need Screen Recording
 permission. Recording a native app window does; see the [manual workflow](manual.md#once).
+For native-only capture, skip Chrome; use the [window walkthrough](macos-window.md)
+after installing the CLI. The bundled notes project below is a browser example.
 
 ## Linux
 

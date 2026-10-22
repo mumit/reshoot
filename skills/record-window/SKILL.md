@@ -5,8 +5,8 @@ description: Record one window of a macOS desktop app (never the whole screen) w
 
 # Record one app window
 
-Use this only when a web or terminal take can't show the thing, such as the result of a command appearing in a
-desktop app.
+Use this for a native macOS app, with or without its source code. Capture one
+demo window and keep the recipe for the next take.
 
 ## Rules
 
@@ -20,9 +20,15 @@ desktop app.
    Recording. Add the terminal or editor, then restart it.
 2. Open the app on demo data, with the window on screen and not minimized. Get it to the state to show.
 3. `reshoot window --list` shows the windows: id, app, title. Check the right one is there.
-4. Record: `reshoot window TextEdit takes/app.mov -s 8`. Use `--title` or `--id` if the app has several windows.
+4. Record: `reshoot window TextEdit takes/app.mov --id ID -s 8`. Replace `ID` with the selected numeric ID and use a new output path for each take.
 5. Look at a frame: `ffmpeg -ss 3 -i takes/app.mov -frames:v 1 frame.png`. Check the sidebar and title bar too:
    they often show names.
+
+The command captures the window; it does not drive the app or add browser typing,
+cursor effects, captions or assertions. Use app-specific automation or coordinate
+manual input during capture. Save that script or procedure with the edit.
+Export standalone media using numeric cuts; versioned web/VHS projects do not
+support native takes. Compare native recordings manually.
 
 ## In the cut
 

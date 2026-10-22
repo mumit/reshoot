@@ -5,8 +5,10 @@ description: Start here to make a demo video of software (a web app, a CLI, an A
 
 # Plan a demo video
 
-A reshoot video is made from scripts, never recorded by hand. Each take is a file (a storyboard, a VHS tape), so the
-video can be shot again when the app changes.
+Keep a recipe for every take so the video can be shot again when the app changes.
+Use browser storyboards, VHS tapes or app-specific native automation. For a
+native app without automation, coordinate manual interaction during one-window
+capture and save the steps; disclose that replay is manual.
 
 ## Rules
 
@@ -26,7 +28,9 @@ video can be shot again when the app changes.
    | A terminal, a CLI, an AI agent | a VHS tape | record-terminal |
    | A desktop app | one window, by its id (macOS) | record-window |
 
-   Prefer a web or terminal take. They're repeatable and can't show anything outside the app.
+   Match the take to the actual target. Use a browser for a web app, VHS for a
+   CLI, and one-window capture for a native app. Do not substitute a mock web
+   page for the native app the owner asked to show.
 3. **Set up demo data.** A separate database, data folder or account with only things anyone may see. Check that the
    app can point at it (an environment variable, a flag) and that it can't touch real data during a take. Good demo
    data has made-up people (emails at `example.com`), no real customers or colleagues, test keys only, photos
@@ -41,8 +45,8 @@ video can be shot again when the app changes.
 5. **Record each take** with its skill, then **check it** with check-privacy, then **cut** with cut-video.
 6. **Show the person the finished files** and the list of what was checked. They watch it all before it goes
    anywhere.
-7. **Offer to keep it current** with the keep-current skill: a `reshoot.toml` for `reshoot run`, and a workflow
-   that reshoots on each release.
+7. **Offer to keep it current** with the keep-current skill for browser/VHS projects: a `reshoot.toml` for `reshoot run`, and a workflow
+   that reshoots on each release. Keep native capture/edit scripts separately and compare recordings manually.
 
 ## Files to keep in the project
 
@@ -59,4 +63,4 @@ On Linux, use the package manager.
 
 ## Project setup
 
-Run `reshoot doctor --config reshoot.toml` when a project exists. For a new one, `reshoot init demo --url URL` supplies packaged templates without a source checkout. Fill in `BRIEF.md`, replace the placeholder action, then use `reshoot preview demo/reshoot.toml` before a full `run`. Versioned project outputs are isolated per run.
+For browser/VHS projects, run `reshoot doctor --config reshoot.toml` when a project exists. For a new browser project, `reshoot init demo --url URL` supplies packaged templates without a source checkout. Fill in `BRIEF.md`, replace the placeholder action, then use `reshoot preview demo/reshoot.toml` before a full `run`. Versioned project outputs are isolated per run. Use standalone capture and editing for native windows.

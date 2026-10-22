@@ -7,7 +7,9 @@ description: Update an existing reshoot demo after an app or release changes. Us
 
 For combined web and VHS edits, keep take dimensions matched. Mixed previews retain the configured browser dimensions to match the unchanged VHS output size.
 
-Requires reshoot CLI 0.2 or newer. Read the project's brief, config, storyboard, and previous run before changing anything. Run `reshoot --version` and `reshoot doctor --config CONFIG`.
+Requires reshoot CLI 0.2 or newer. Run `reshoot --version`. For a versioned browser/VHS project, read its brief, config, storyboard and previous run before changing anything, then run `reshoot doctor --config CONFIG`.
+
+For a standalone native recording, read the brief, capture/edit scripts and exact previous media instead of expecting a versioned config or run report. Look up the current demo window ID, reset synthetic data, and use `reshoot window APP NEW_TAKE.mov --id ID -s SECONDS` with app-specific automation or coordinated manual interaction. Keep test and fresh final takes in new folders; edit and scan final exports. Compare the old/new MP4s and animated GIFs manually. Disclose that browser assertions, versioned `preview`/`run`, and automated beat comparison do not apply. Follow the versioned flow below only for browser/VHS projects.
 
 Reset the made-up demo data and record the current app using `reshoot preview CONFIG`. Retain stable beat names. Diagnose failures using the beat, screenshot, and expected result. A selector repair should still perform the same task; it must not delete a failed assertion or replace the intended result with whatever the app happens to show.
 

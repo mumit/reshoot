@@ -58,6 +58,7 @@ cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceove
   makes the clips after it look washed out. `cut.concat` refuses a mix; run such a clip through `cut.trim` first.
 - **Odd sizes.** H.264 in yuv420p needs even widths and heights. Scale to `-2` (as the helpers do).
 - **GIF colours.** The default palette bands badly. `cut.gif` makes a palette for each GIF.
+- **Joined GIF sections.** `cut.gif` normalizes frames before building a palette from the full clip, preserving card/browser joins and static scene changes. Inspect the opening, ending and duration so an omitted or frozen section cannot pass on MP4 playback alone.
 - **Fonts.** Cards use SF on macOS, and DejaVu Sans on Linux if installed.
 - **Faststart.** Joined videos are written with `+faststart`, so they play in a browser before they finish loading.
 - **Joining clips with sound.** `cut.concat` joins video only. Join the silent parts first, then add the sound.

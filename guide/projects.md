@@ -100,6 +100,9 @@ the legacy JavaScript overlay input and are labeled unverified in comparisons.
 
 ## Edit and export
 
+Inspect each GIF's opening, ending and duration independently of the MP4.
+GIF exports preserve joined sections when card and browser metadata differ.
+
 The generated `edit.toml` lists `[[part]]` ranges from indexed takes in `[edit] args`.
 `start` and `end` accept seconds or beat names. A `speed` other than 1 needs a visible
 `label` and cannot cut or shorten narration. Set `trim_wait = true` and

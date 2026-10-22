@@ -263,6 +263,27 @@ def test_joined_cards_keep_their_colour_after_a_web_take(tmp_path):
 
 
 @needs_ffmpeg
+@pytest.mark.parametrize("card_first", [True, False])
+def test_gif_keeps_both_sides_of_a_card_browser_join(tmp_path, card_first):
+    web.encode([(0.0, jpg("blue")), (1.0, None)], tmp_path / "web.mp4", size="320:180")
+    card = cut.still(cut.Card(320, 180, "red").save(tmp_path / "card.png"),
+                     1, tmp_path / "card.mp4", fade_in=0)
+    parts = [card, tmp_path / "web.mp4"]
+    if not card_first:
+        parts.reverse()
+    joined = cut.concat(parts, tmp_path / "joined.mp4")
+    result = cut.gif(joined, 0, cut.duration(joined), tmp_path / "joined.gif", fps=10, width=320)
+    assert cut.duration(result) == pytest.approx(2, abs=.15)
+    with Image.open(result) as image:
+        first = image.convert("RGB").getpixel((160, 90))
+        image.seek(image.n_frames - 1)
+        last = image.convert("RGB").getpixel((160, 90))
+    red, blue = (first, last) if card_first else (last, first)
+    assert red[0] > 220 and max(red[1:]) < 30
+    assert blue[2] > 220 and max(blue[:2]) < 30
+
+
+@needs_ffmpeg
 def test_last_change_finds_where_the_picture_stops_changing(tmp_path):
     src = tmp_path / "s.mp4"
     cut.ff("-f", "lavfi", "-i", "testsrc2=size=320x180:rate=30:duration=2", "-f", "lavfi", "-i",

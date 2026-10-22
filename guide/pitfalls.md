@@ -118,6 +118,11 @@ Use this reference to diagnose recording, editing and review problems.
   Fixed in reshoot: the output is cut at the take's real length.
 - **The first beat starts before the first frame.** Fixed in reshoot: its start is 0, not a little below.
 - **Banded GIFs.** ffmpeg's default palette looks poor. `cut.gif` makes a palette for each GIF.
+- **A GIF dropped the opening card or froze at a joined section.** Video metadata
+  changed between the card and browser take, resetting ffmpeg's palette filter.
+  Fixed in reshoot: GIF exports normalize frames before building one palette
+  from the full clip, preserving static sections and scene changes.
+  Inspect the beginning, ending and duration of the exported GIF as well as the MP4.
 - **Odd sizes.** H.264 in yuv420p needs even widths and heights.
 
 ## Add a pitfall

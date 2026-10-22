@@ -5,16 +5,17 @@ changes, and checking the result before sharing. Reshoot's skills guide the
 agent through the work; the reshoot CLI records and edits the media.
 
 For a first video, use the [agent quickstart](../guide/agent-quickstart.md).
-Paste its prompt into Codex or Claude Code in your app's repository and let
-the agent handle setup.
+Paste its prompt into Codex or Claude Code in your app repository or a demo work
+folder and let the agent handle setup. Supply source code, a running URL or an
+installed macOS app with a demo window. Source code is optional.
 
 ## Start with three skills
 
 | Skill | Use it to | Supply |
 |---|---|---|
-| [reshoot-demo](reshoot-demo/SKILL.md) | Create a first demo with captions, result checks, preview and final exports | The app repository, an optional local URL and the task to show |
-| [reshoot-refresh](reshoot-refresh/SKILL.md) | Record an existing task again after an app change and compare the result | The demo configuration and the exact previous run |
-| [reshoot-review](reshoot-review/SKILL.md) | Inspect exports, expected results, readability, scan coverage and comparisons | The current run and an optional previous run |
+| [reshoot-demo](reshoot-demo/SKILL.md) | Choose the capture route, make a first clip, inspect a test take and prepare final exports | App source, a web URL or a native macOS app; the task to show |
+| [reshoot-refresh](reshoot-refresh/SKILL.md) | Record an existing task again after an app change and compare the result | Configuration and exact previous run, or native recipe and previous media |
+| [reshoot-review](reshoot-review/SKILL.md) | Inspect exports, expected results, readability, scan coverage and comparisons | Current and optional previous run, or standalone media and check reports |
 
 Invoke the skill with the task in the same message. For example, in Codex:
 
@@ -34,8 +35,8 @@ one route:
 
 | Route | Installation | Included skills |
 |---|---|---|
-| Codex, project-local | Run `reshoot skills codex --directory .` in the app repository | Three primary skills in `.agents/skills/` |
-| Claude Code, project-local | Run `reshoot skills claude --directory .` in the app repository | Three primary skills in `.claude/skills/` |
+| Codex, project-local | Run `reshoot skills codex --directory .` in the app or demo folder | Three primary skills in `.agents/skills/` |
+| Claude Code, project-local | Run `reshoot skills claude --directory .` in the app or demo folder | Three primary skills in `.claude/skills/` |
 | Claude Code plugin | Run the two commands below inside Claude Code | All ten skills |
 
 ```text
@@ -68,6 +69,15 @@ The plugin also includes focused workflows for individual parts of a shoot:
 Use the primary skills for a complete first demo or update. Use a supporting
 skill when working on that part separately. The three-skill CLI installer does
 not install these seven supporting skills.
+
+The three primary skills cover all three starting points without requiring the
+supporting bundle. Browser stories support captions and explicit result checks.
+Native takes require app-specific automation or manual interaction, standalone
+editing and manual comparison; browser overlays and assertions do not apply.
+
+After the first clip, [explore features](../guide/features.md),
+[customize the source](../guide/customize.md), [build a fuller tutorial](../guide/make-demo.md)
+or [maintain and publish](../guide/publish.md).
 
 ## Keep the review with the recording
 

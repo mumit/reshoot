@@ -6,7 +6,7 @@ provenance, skill files, assertions, comparisons, media decoding and baseline
 preservation pass independent verification. The owner watched and accepted both
 final MP4/GIF pairs and approved all four full-frame privacy sets. All four
 full-frame checklists report review completed. The separate explicit review
-invocation was not exercised in either supplied session.
+invocation also passed in both harnesses in subsequent supplied review sessions.
 
 ## Scope and environment
 
@@ -70,7 +70,7 @@ match all four beat IDs; only the search definition changes, and assertion
 results are unchanged. All 30 files in each copied baseline match the preparation
 snapshot, including its reports and checklists. The retained preservation command
 also reports the original source and both copies unchanged on the other Mac.
-The receiving audit leaves all 387 transferred non-Git files unchanged.
+The initial receiving audit left all 387 transferred non-Git files unchanged.
 
 ## Final exports and owner verdict
 
@@ -98,9 +98,10 @@ that inspection is separate from the owner's complete playback verdict.
 
 The native preview/final Vision scans completed with zero flags/errors. They
 sample every three seconds: six samples and two exact subtitle files per run.
-The supplied sessions do not contain the packet's separate explicit
+The original refresh sessions do not contain the packet's separate explicit
 `reshoot-review` invocation or its requested full-frame scan step. Loading review
-guidance during preparation does not establish that explicit invocation test.
+guidance during preparation did not establish that explicit invocation test;
+the subsequent review sessions below supply that evidence.
 
 Fresh full-frame Vision scans of all four final exports and their exact SRTs ran
 on the receiving Mac. They completed with zero flags/errors. Re-decoding verified
@@ -117,8 +118,51 @@ links all four approved sets and full-size originals. `scan-acceptance.json` and
 `scan-acceptance-audit.json` bind the verdict to the 215 sheets, 850 distinct
 images, 1,114 decoded frames, exact subtitles, policies and export hashes.
 Pre-approval results, reports and both viewer pages are retained under
-`scan-approval-evidence/`. All 387 transferred files, native run reports, sampled
-checklists, baseline copies, accepted exports and the visual receipt are unchanged.
+`scan-approval-evidence/`. At approval, all 387 transferred files, native run
+reports, sampled checklists, baseline copies, accepted exports and the visual
+receipt were unchanged.
+
+## Explicit review follow-up
+
+The owner supplied five additional Markdown files: findings and session transcript
+for each harness, plus Codex intervention notes. Codex's transcript begins with
+`$reshoot-review` and shows the project
+`.agents/skills/reshoot-review/SKILL.md` being read. Claude's transcript begins
+with `/reshoot-review`, shows `Skill(reshoot-review)` successfully loading, and
+identifies `.claude/skills/reshoot-review/SKILL.md`. Both review the intended final
+against the exact baseline. The Claude follow-up banner reports 2.1.307 and
+Opus 5.5; its earlier refresh used 2.1.304. The Codex follow-up supplies no new
+harness/model version measurement.
+
+Both reports describe all three passed assertions, four matched beat IDs,
+readable captions and the expected saved-note/search result in decoded frames.
+They distinguish sampled native scans from the owner's separately approved
+full-frame privacy sets. Neither reports a new blocking visual problem. Codex
+reports complete decoding and new frame inspections; Claude reports periodic
+frame inspection. This evidence establishes explicit invocation and existing-media
+review, not an additional recording, scan or real-time playback verdict.
+
+Claude asked whether the receiving-Mac privacy approval covered these exact
+files. The follow-up audit verified all four export hashes against the visual
+receipt, full-frame approval receipt, policies and completed checklists. They
+match. The local sampled reports correctly remain pending; their historical
+status does not reopen the later owner approvals.
+
+Two nonblocking presentation findings remain recorded. The inherited edit ends
+at the start of the end beat and omits its separate half-second hold, as in the
+accepted baseline. The comparison page embeds the baseline GIF in a video
+element; source inspection confirms that renderer defect. The final GIFs were
+inspected by independent decoding, so this does not change their acceptance.
+Rendering baseline GIFs as images is a small product follow-up.
+
+The follow-up audit is `explicit-review-audit.json`. All 386 remaining original
+transfer files match their earlier hashes; accepted media, baseline trees, native
+reports, privacy evidence and prior receiving audit/approval receipts are unchanged.
+The standalone `codex-response-1.md` note is absent from the latest transfer; the
+original `codex/evidence/harness-session.txt` still contains that initial response.
+Only the five new Markdown files were supplied. New Codex inspection logs, JSON
+and frame grabs linked from its report were not transferred; Claude's transcript
+has collapsed tool activity. These limits are retained in the follow-up receipt.
 
 ## Evidence
 
@@ -134,6 +178,8 @@ It contains `audit.py`, `results.json`, the unchanged transferred-file hash
 snapshot, reproduced comparisons, bound `acceptance.json`, full-scan commands
 and logs, four `full-scans/` directories, verified `scan-review.json`, the
 numbered viewer, privacy approval receipts and preserved pre-approval evidence.
+`audit-explicit-reviews.py` and `explicit-review-audit.json` append the explicit
+invocation verification and hash-based resolution of the privacy coverage question.
 Do not rerun the one-shot audit, review preparer or approval script over these
 accepted receipts. No product code, accepted promo media, commit, push or
 publication changed during this verification.

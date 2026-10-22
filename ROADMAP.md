@@ -31,8 +31,10 @@ Each item says what it is and why it matters. When one ships, move it to Done wi
    locator and produced owner-accepted MP4/GIF pairs with all three assertions
    passing. Baselines and transferred evidence are unchanged. Codex reused local
    memory; independent novice use remains open. The owner approved all four
-   receiving-Mac full-frame privacy sets (215 sheets); the separate explicit review
-   invocation is absent from both supplied sessions.
+   receiving-Mac full-frame privacy sets (215 sheets). Subsequent supplied
+   sessions verify explicit review-skill invocation in both harnesses; the
+   existing approvals cover the exact reviewed exports. The review identified
+   a small comparison-page defect: baseline GIFs render through video elements.
    Retained logs do not measure the initial
    installation duration, since the logged installer found the package present.
    A subsequent Podman trial on the existing Mac passed the

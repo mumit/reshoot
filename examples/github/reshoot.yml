@@ -1,4 +1,5 @@
-# Records the demo video again on each release, and opens a pull request with the new files.
+# Legacy projects (no schema_version, with [keep]): records the demo video again on each release, and opens a pull
+# request with the new files. For a versioned project, use refresh.yml instead.
 # Copy this to .github/workflows/reshoot.yml in your project, and change the marked lines.
 # The repo must let workflows open pull requests: Settings, Actions, General, "Allow GitHub Actions to create and
 # approve pull requests".
@@ -28,7 +29,7 @@ jobs:
       # - run: npm ci
 
       - id: shoot
-        uses: mumit/reshoot@cb7d5adfd91fd4f5459ec6641702f86ae5224504 # 0.2 workflow; update deliberately
+        uses: mumit/reshoot@bbfc663effca3b14ce1c3735365f345c97ccf279 # v0.3.1; update deliberately
         with:
           config: reshoot.toml   # change: where your shoot is
 

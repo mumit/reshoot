@@ -34,7 +34,7 @@ jobs:
       # - run: npm ci
 
       - id: shoot
-        uses: mumit/reshoot@v0.3.1 # pin to a reviewed commit for production use
+        uses: mumit/reshoot@bbfc663effca3b14ce1c3735365f345c97ccf279 # v0.3.1; update deliberately
         with:
           config: demo/reshoot.toml # change: your project
 

@@ -49,6 +49,7 @@ CI setup are not prerequisites for trying reshoot.
 | App startup, demo data, login or agent prompts | [Record your own app](your-app.md) |
 | TOML actions, expectations, captions, edits and exports | [Project reference](projects.md) |
 | A CLI command | [Command map](commands.md) |
+| A shoot that takes too long | [Faster shoots](speed.md) |
 | Help with a failed recording or pending review | [Troubleshooting](troubleshooting.md) |
 | Python stories, VHS terminal takes or a macOS window | [Manual workflow](manual.md) |
 | Automated recording on releases | [CI](ci.md) |

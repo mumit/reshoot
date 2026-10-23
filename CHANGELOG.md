@@ -4,6 +4,18 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Added
+
+- `reshoot accept RUN` records the owner's verdict in one step: the exports,
+  every beat, every scan item and the scan checklist, bound to the run's exact
+  files and scan policy. Each flagged item must be named with `--flagged`, and
+  `--reject` marks an item that must not be shared. It asks for confirmation,
+  and without a terminal it refuses unless given `--yes`.
+- `reshoot run` and `reshoot preview` write the review page and print the
+  `reshoot accept` command for the run.
+
 ## 0.3.0 (2026-10-23)
 
 The first release on PyPI. Install it with `uv tool install 'reshoot[browser]'`.

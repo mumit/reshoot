@@ -82,30 +82,32 @@ First identify which review is pending:
 
 | Location | What it means |
 |---|---|
-| `review/report.json` | Human review of the supplied images, frames and text findings |
-| `run.json` → `review_status` | Recording decisions imported for the exact video, beats and findings |
-| An already open `review.html` | A static page that may predate the latest local decisions |
+| `run.json` → `review_status` | The verdict for the exact exports, beats and findings |
+| `review/report.json` | The scan checklist for the supplied images, frames and text findings |
+| An already open `review.html` | A static page that may predate the latest verdict |
 
-For scan sheets, inspect every supplied image and text finding, then record
-your decision with `reshoot check --review RUN/review --ok`. Use that command only
-after approving those items. For the recording, watch all final exports, inspect
-the beats and findings, download decisions from the review page, and import them
-with `reshoot review RUN --import-decisions FILE`.
+Watch the final exports and look at the scan items, then run
+`reshoot accept RUN`. It records both the verdict and the scan checklist. If
+it stops and lists flagged items, inspect each one and name it with
+`--flagged LABEL`, or `--reject LABEL` if it must not be shared. Without a
+terminal it refuses unless given `--yes`; only the owner should pass that.
 
-`check --ok` does not accept the recording; importing recording decisions does
-not fill the scan checklist. The run report may retain the scan checklist status
-captured at recording time; read the current `review/report.json` too.
-Regenerate the page with `reshoot review RUN` and reopen it after decisions.
-The [tutorial](step-by-step.md#4-review-the-recording-and-scan-sheets) shows both steps.
+The earlier two-step route still works: `reshoot check --review RUN/review --ok`
+fills only the scan checklist, and `reshoot review RUN --import-decisions FILE`
+records only the recording decisions. Each leaves the other pending.
+Regenerate the page with `reshoot review RUN` and reopen it after a verdict.
+The [tutorial](step-by-step.md#4-accept-the-recording) shows the steps.
 
 Do not rescan an accepted take just to refresh a page. Rerunning a check can
 replace the sheets and finding labels. New media or changed coverage belong to a
 new candidate or a deliberately separate review directory.
 
-## Import says the decision does not match
+## Accept or import says the decision does not match
 
-Check that the selected run matches the downloaded file from its current
-page. A browser may rename a download to `decisions (1).json`. The import binds
+`reshoot accept` and the importer both check the run ID, media hashes and scan
+policy. A file changed after recording, or the scan ran again, so record a new
+run or accept the current one again. For an import, check that the selected run
+matches the downloaded file from its current page. A browser may rename a download to `decisions (1).json`. The import binds
 the run ID, media hashes and scan policy; decisions from the preview or another
 final do not apply. If the media or policy changed, inspect the new artifacts
 and generate new decisions rather than editing the binding by hand.

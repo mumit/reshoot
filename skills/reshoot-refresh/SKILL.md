@@ -19,4 +19,4 @@ A failed or missing browser take leaves the overall expectations unverified unle
 
 If this CLI version provides `reshoot compare`, compare the previous and new runs by beat and inspect the actual frames. Otherwise, show the old and new recordings and disclose that comparison is manual. A successful run must not silently replace the chosen comparison baseline or inherit approval from it.
 
-Use only made-up data and page, terminal, or single-window capture. Call out changes to the story's claim, fixture meaning, speed, or narration. Present the new files and unresolved items. Publishing and repository changes follow the owner's existing authorization.
+Use only made-up data and page, terminal, or single-window capture. Call out changes to the story's claim, fixture meaning, speed, or narration. Present the new files and unresolved items. The new run needs its own verdict: give the owner its `reshoot accept RUN` command when this CLI provides it, and do not run it without their explicit instruction. Publishing and repository changes follow the owner's existing authorization.

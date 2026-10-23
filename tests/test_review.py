@@ -173,3 +173,63 @@ def test_subtitles_are_scanned_as_exact_text_without_exposing_words(tmp_path):
     assert '00:00:01,000' in key['text-1'][0]
     assert flags['text-1'][0][0] == 'email'
     assert 'private.person@gmail.com' not in json.dumps(flags)
+
+
+def sheets_fixture(root, flags=None):
+    (root / 'review').mkdir()
+    (root / 'review/key.json').write_text(json.dumps({'1-1': ['demo.mp4@0s', 'aaaa'], '1-2': ['demo.mp4@3s', 'bbbb']}))
+    (root / 'review/flags.json').write_text(json.dumps(flags or {}))
+    (root / 'review/report.json').write_text(json.dumps({'status': 'completed', 'policy': 'p', 'review': 'pending'}))
+
+
+def accept_args(root, **options):
+    return SimpleNamespace(**{'run_path': str(root), 'flagged': None, 'reject': None, 'yes': True, **options})
+
+
+def test_accept_records_every_decision_and_scan_item_in_one_step(tmp_path):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root)
+    assert review.accept(accept_args(root)) == 0
+    assert review.read(root)[1]['review_status'] == 'completed'
+    assert json.loads((root / 'review/report.json').read_text())['review'] == 'completed'
+    assert set(json.loads((root / 'review/checked.json').read_text())) == {'aaaa', 'bbbb'}
+    decisions = json.loads((root / 'decisions.json').read_text())
+    assert decisions['decisions'] == {'video': 'accepted'}
+    assert decisions['binding'] == review.binding(root, review.read(root)[1])
+    args = SimpleNamespace(run_path=str(root), previous=None, import_decisions=str(root / 'decisions.json'))
+    assert review.main(args) == 0
+
+
+def test_accept_requires_each_flagged_item_by_name(tmp_path, capsys):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root, {'1-2': [['email', 'priv•••']]})
+    assert review.accept(accept_args(root)) == 1
+    assert '1-2' in capsys.readouterr().out
+    assert not (root / 'decisions.json').exists() and not (root / 'review/checked.json').exists()
+    with pytest.raises(ValueError, match='not on the current sheets'):
+        review.accept(accept_args(root, flagged=['9-9']))
+    assert review.accept(accept_args(root, flagged=['1-2'])) == 0
+    assert json.loads((root / 'decisions.json').read_text())['decisions']['finding/1-2'] == 'accepted'
+
+
+def test_rejected_item_fails_the_run_and_blocks_acceptance(tmp_path):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root, {'1-2': [['email', 'priv•••']]})
+    assert review.accept(accept_args(root, reject=['1-2'])) == 1
+    assert review.read(root)[1]['review_status'] == 'failed'
+    assert json.loads((root / 'decisions.json').read_text())['decisions']['finding/1-2'] == 'rejected'
+    with pytest.raises(ValueError, match='rejected'):
+        review.accept(accept_args(root, flagged=['1-2']))
+
+
+def test_accept_needs_the_owner_and_a_passing_run(tmp_path, monkeypatch):
+    root = run_fixture(tmp_path / 'run')
+    monkeypatch.setattr('sys.stdin', io.StringIO(''))
+    with pytest.raises(ValueError, match='owner'):
+        review.accept(accept_args(root, yes=False))
+    assert not (root / 'decisions.json').exists()
+    report = review.read(root)[1]
+    report['ok'] = False
+    (root / 'run.json').write_text(json.dumps(report))
+    with pytest.raises(ValueError, match='failed run'):
+        review.accept(accept_args(root))

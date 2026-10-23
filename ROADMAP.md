@@ -10,13 +10,7 @@ with a line on what it does. Trial evidence lives in the
 
 ## Now: make it adoptable
 
-1. **One-step acceptance.** Replace the current sequence (inspect every sheet,
-   `check --ok`, regenerate the page, set each beat, download a JSON file, move
-   it, import it) with one action: `reshoot accept RUN`, or an Accept button on a
-   locally served review page. Show flagged items first and let clean ones be
-   approved together. Keep the hash binding underneath. The maintainer's own
-   trials left scan sheets pending in nine records; users will skip it too.
-2. **First-run friction.** Choose a free port for the bundled example instead of
+1. **First-run friction.** Choose a free port for the bundled example instead of
    a fixed 8765. Print the real address when a port is busy; the message
    currently shows a redacted hash. Add `latest` and `accepted` run aliases and a
    `reshoot runs` listing so a refresh does not need a 32-character ID copied by
@@ -25,19 +19,20 @@ with a line on what it does. Trial evidence lives in the
 
 ## Next: prove the promise
 
-3. **CI refresh on GitHub.** Dispatch the candidate workflow on a real
+2. **CI refresh on GitHub.** Dispatch the candidate workflow on a real
    repository: a UI change opens a pull request with the new MP4, GIF and
    comparison page. This is the claim on the README's first screen and it has
    not run end to end.
-4. **Outside users.** Three people who are not the maintainer, each starting
+3. **Outside users.** Three people who are not the maintainer, each starting
    from the first-demo prompt. Measure time to an accepted video and where they
    got stuck. More maintainer trials on more machines add little now.
-5. **Playwright test importer.** Turn an existing end-to-end test into a
+4. **Playwright test importer.** Turn an existing end-to-end test into a
    storyboard with beats and expectations. Teams with tests get a demo almost
    for free.
 
 ## Later
 
+- Accept from the review page itself, served locally, instead of a terminal command.
 - Named export presets with verified limits for X, LinkedIn and README use.
 - A single first-demo page, with the other guides kept as reference.
 - Real changing remote services as a compatibility trial.
@@ -52,6 +47,9 @@ with a line on what it does. Trial evidence lives in the
 
 ## Done
 
+- **One-step acceptance:** `reshoot accept RUN` covers the exports, beats, scan items and scan checklist in one
+  verdict, bound to the exact run. Flagged items must be named; the run prints the command and writes the review
+  page. The two-step check and import route remains for separate verdicts per beat. Ships in the next release.
 - **PyPI releases:** 0.3.0 is on PyPI, so `uv tool install 'reshoot[browser]'` and `uvx reshoot` work.
   A version tag runs the release workflow, which tests, builds, checks the wheel and publishes through
   trusted publishing.

@@ -101,6 +101,15 @@ def main(argv=None):
     p = sub.add_parser('review', help='create a local review page or import owner decisions')
     p.add_argument('run_path'); p.add_argument('--previous'); p.add_argument('--import-decisions')
     p.set_defaults(run=review.main)
+    p = sub.add_parser('accept', help='accept a run after watching it: exports, beats and scan items in one step',
+                       description='Accept a run after watching its exports and looking at its scan sheets. Unflagged '
+                       'items are accepted together; each flagged item must be named with --flagged or --reject. The '
+                       'verdict is bound to the run\'s exact files and scan policy.')
+    p.add_argument('run_path', help='the run folder, such as demo/takes/runs/ID')
+    p.add_argument('--flagged', nargs='+', metavar='LABEL', help='flagged items you inspected and accept')
+    p.add_argument('--reject', nargs='+', metavar='LABEL', help='items that must not be shared; marks the run failed')
+    p.add_argument('--yes', action='store_true', help='skip the confirmation; only for the owner\'s own scripts')
+    p.set_defaults(run=review.accept)
     p = sub.add_parser('export', help='copy explicitly chosen run media to a local directory')
     p.add_argument('run_path'); p.add_argument('--directory', required=True)
     p.add_argument('--file', action='append')

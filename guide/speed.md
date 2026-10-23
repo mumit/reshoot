@@ -36,7 +36,7 @@ Each row is independent. Start at the top: those save the most.
 | Re-cut, don't re-record | When only the edit changes (captions on cards, timing, GIF size), copy a run's `takes/` folder to a new folder and run `reshoot edit` there | Everything but the edit | The new cut is outside a versioned run: its report doesn't cover it |
 | Tighten agent waits | Set a tape's final `Sleep` to the slowest run you've seen plus a margin | Minutes per terminal take | A slower agent is cut off before its answer. VHS can't safely wait for text instead ([pitfalls](pitfalls.md#terminal-takes)) |
 | Export less | One MP4 and one GIF, not also a vertical cut and a GIF per section | Edit and scan time: each export is scanned | Less ready-made media for other places |
-| Review less | Skip the review page and `reshoot check --ok` | Your time | The report stays "review pending". Nothing is blocked; sharing unreviewed media is your call |
+| Review less | Skip the review page and `reshoot accept` | Your time | The report stays "review pending". Nothing is blocked; sharing unreviewed media is your call |
 
 Copy the takes before re-cutting because an edit writes beside its first take.
 Run inside a run folder, it would overwrite that run's recorded files.

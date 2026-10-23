@@ -165,27 +165,28 @@ words need appropriate checks. A previous image decision is not approval of a vi
 The local review page opens exact artifacts, source-beat evidence, full-size frames,
 and previous/current comparisons, including beat durations, story definitions,
 result checks, and captured environment settings. Previous and current GIFs display
-as images; MP4s use video players. It exports a decisions JSON file. When the owner
-has made those decisions, import it with:
+as images; MP4s use video players. `reshoot run` and `reshoot preview` write
+it for each run; `reshoot review RUN --previous OLD_RUN` writes it with a comparison.
+
+After watching the exports and looking at the scan items, the owner accepts the run:
 
 ```bash
-reshoot review CURRENT_RUN --import-decisions decisions.json
+reshoot accept CURRENT_RUN
+reshoot accept CURRENT_RUN --flagged 1-2   # also accept an inspected flagged item
+reshoot accept CURRENT_RUN --reject 1-2    # this item must not be shared
 ```
 
-The decisions cover the video, beats, and individual flagged frames. Imports must
-match the run, artifact hashes, and review policy. All required decisions must be
-accepted before the run reports review completed. A changed file or new
-finding invalidates the decision. No run automatically replaces the chosen baseline.
-Watch the complete final video before sharing it.
+`accept` covers the video, every beat, every scan item and the scan checklist
+in one verdict. Each flagged item must be named; otherwise it stops and lists
+them. It asks for confirmation, and without a terminal refuses unless given
+`--yes`. The verdict is written to `decisions.json`, bound to the run, artifact
+hashes and review policy. A changed file or new finding invalidates it. No run
+automatically replaces the chosen baseline.
 
-The scan checklist is separate: after inspecting its current sheets, original
-frames and text findings, record your verdict with
-`reshoot check --review RUN/review --ok`. That updates the scan checklist, not
-the recording's decisions. Importing recording decisions does not fill the
-scan checklist either. The [tutorial](step-by-step.md#4-review-the-recording-and-scan-sheets)
-shows both, including the downloaded file and exact import command. A run report
-may retain its initial scan-review snapshot; the current checklist is in
-`RUN/review/report.json`.
+For separate verdicts per beat, the page also exports a decisions JSON file;
+import it with `reshoot review CURRENT_RUN --import-decisions decisions.json`.
+That records only the recording decisions; `reshoot check --review RUN/review --ok`
+records only the scan checklist. The current checklist is in `RUN/review/report.json`.
 
 Partial previews use `reshoot preview CONFIG --from BEAT`. Earlier actions and checks
 are replayed without capture. Partial previews skip the final edit and scan because

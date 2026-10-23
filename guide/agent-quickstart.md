@@ -68,9 +68,10 @@ are readable. Give a concrete revision if needed: “Hold the search result
 longer,” “Show the empty state first,” or “Use a different example task.”
 The agent can revise the source and record another candidate.
 
-Review the scan sheets and text findings before sharing. Recording acceptance
-and scan-sheet approval are separate decisions. The [review instructions](step-by-step.md#4-review-the-recording-and-scan-sheets)
-show how to record both. Nothing posts automatically.
+Then look at the scan items on the run's review page, flagged ones first. When
+both are acceptable, run the `reshoot accept` command the run printed, or tell
+the agent explicitly to accept. The [review instructions](step-by-step.md#4-accept-the-recording)
+cover flagged and rejected items. Nothing posts automatically.
 
 You can stop here with your first clip. When ready, [explore the features](features.md),
 [change a caption or timing](customize.md), then [build a fuller demo or tutorial](make-demo.md).
@@ -191,8 +192,10 @@ When receiving the prompt above, follow this workflow:
    read the report and generate the review page. For standalone native takes,
    generate check sheets and compare media manually. Present exact paths,
    coverage and unresolved findings. Open the exports when the environment permits.
-8. Ask the owner to watch the exports and review the scan sheets. Preserve pending
-   decisions until the owner supplies a verdict. Keep source files available for
+8. Ask the owner to watch the exports and look at the scan items, then give them
+   the exact `reshoot accept RUN` command, with `--flagged` for each flagged item
+   they must inspect. Run it only when the owner explicitly asks you to accept;
+   never pass `--yes` on your own judgment. Keep source files available for
    the next refresh; commit or publish only when authorized.
 
 The initial target is one readable task and a visible result. Add narration,

@@ -252,7 +252,8 @@ def perform(a, report):
         for label, flags in flagged.items():
             print(f"  {label}  {key[label][0]}: " + "; ".join(f"{why} {part}" for why, part in flags))
     print(f"{len(key)} frames, images, or text findings not checked yet, on {(len(todo) + 3) // 4} sheets in {review}/. Look at each one "
-          "at full size, then run `reshoot check --fail LABEL...` for any that fail and `reshoot check --ok`.")
+          "at full size. For a run, record the verdict with `reshoot accept RUN`; for these sheets alone, run "
+          "`reshoot check --fail LABEL...` for any that fail and `reshoot check --ok`.")
     return 1
 
 

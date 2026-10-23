@@ -261,6 +261,15 @@ def main(a):
     print(f"done in {report['seconds']:.0f} s. Report in {report_path}.")
     if report['review_status'] != 'completed':
         print('Human review is pending; execution success is not approval to publish.')
+        from types import SimpleNamespace
+        from reshoot import review
+        try:
+            review.main(SimpleNamespace(run_path=str(report_path.parent), previous=None, import_decisions=None))
+        except Exception as e:  # the run has succeeded; a missing page must not fail it
+            print('review page not written: ' + (redact(str(e)) or type(e).__name__))
+        else:
+            print('Watch the exports and look at the scan items on that page, then run:')
+            print('  reshoot accept ' + shlex.quote(str(report_path.parent)))
 
 
 def preview(a):

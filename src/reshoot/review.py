@@ -2,6 +2,7 @@
 import hashlib
 import html
 import json
+import shlex
 import shutil
 from pathlib import Path
 from urllib.parse import quote
@@ -105,6 +106,80 @@ def compare(a):
     else:
         print(text)
     return result
+
+
+def accept(a):
+    """Record the owner's verdict in one step: the exports, every beat and every scan item, bound to the exact run."""
+    import sys
+    from datetime import datetime, timezone
+    from reshoot.check import load
+    root, report = read(a.run_path)
+    sheets = root / 'review'
+    if not report.get('ok') or policy(root).get('status') == 'error':
+        raise ValueError('cannot accept a failed run or failed check')
+    key, flags = load(sheets / 'key.json', {}), load(sheets / 'flags.json', {})
+    failed = set(load(sheets / 'failed.json', []))
+    named = set(a.flagged or []) | set(a.reject or [])
+    if unknown := sorted(named - set(key)):
+        raise ValueError('not on the current sheets: ' + ' '.join(unknown))
+    if a.reject:
+        (sheets / 'failed.json').write_text(json.dumps(sorted(failed | {key[label][1] for label in a.reject}), indent=1))
+        print('Rejected. Take these out of the demo data or story, then record a new run:')
+        for label in a.reject:
+            print(f'  {label}  {key[label][0]}')
+        decide(root, report, {name: 'rejected' if name in {'finding/' + label for label in a.reject} else 'pending'
+                              for name in decision_names(root)}, 'failed')
+        return 1
+    if failed & {h for _, h in key.values()}:
+        raise ValueError('items on these sheets were rejected; record a new run')
+    if unnamed := [label for label in flags if label not in named]:
+        print('The scan flagged these. Inspect each at full size first:')
+        for label in unnamed:
+            print(f'  {label}  {key[label][0]}: ' + '; '.join(f'{why} {part}' for why, part in flags[label]))
+        print('Then name each one you accept with --flagged, or reject it with --reject.')
+        return 1
+    # Raw web takes sit beside their .take.json; the rest are the exports a person watches.
+    videos = [f['path'] for f in report.get('files', []) if Path(f['path']).suffix in ('.mp4', '.mov', '.gif')
+              and not (root / f['path']).with_suffix('.take.json').exists()]
+    beat_names = sorted(beats(root))
+    print(f'Accepting run {report["id"]} ({report.get("mode", "final")}):')
+    for path in videos:
+        print('  export  ' + path)
+    print(f'  {len(beat_names)} beats, expectations {report.get("expectations_status", "unverified")}')
+    if key:
+        print(f'  {len(key)} scan items on the sheets in {sheets}' + (f', including {len(flags)} flagged' if flags else ''))
+    if not a.yes:
+        if not sys.stdin.isatty():
+            raise ValueError('accepting needs the owner: run it in a terminal, or pass --yes for the owner')
+        try:
+            answer = input('Have you watched these and looked at every scan item? [y/N] ')
+        except (EOFError, KeyboardInterrupt):
+            answer = ''
+        if answer.strip().lower() not in ('y', 'yes'):
+            print('Nothing recorded.')
+            return 1
+    if key:
+        checked = load(sheets / 'checked.json', {})
+        scan_report = load(sheets / 'report.json', {})
+        today = datetime.now(timezone.utc).date().isoformat()
+        checked |= {h: {'source': src, 'checked': today, 'policy': scan_report.get('policy')} for src, h in key.values()}
+        (sheets / 'checked.json').write_text(json.dumps(checked, indent=1, sort_keys=True))
+        if scan_report:
+            scan_report['review'] = 'completed'
+            (sheets / 'report.json').write_text(json.dumps(scan_report, indent=2))
+    decide(root, report, {name: 'accepted' for name in decision_names(root)}, 'completed')
+    print('Accepted. Publishing is still up to you.')
+    return 0
+
+
+def decide(root, report, choices, status):
+    from datetime import datetime, timezone
+    decisions = {'schema_version': 1, 'run_id': report['id'], 'binding': binding(root, report),
+                 'decisions': dict(sorted(choices.items())), 'recorded_by': 'reshoot accept',
+                 'recorded_at': datetime.now(timezone.utc).isoformat(timespec='seconds')}
+    (root / 'decisions.json').write_text(json.dumps(decisions, indent=2))
+    report['review_status'] = status
+    (root / 'run.json').write_text(json.dumps(report, indent=2))
 
 
 def main(a):
@@ -212,6 +287,9 @@ def main(a):
     document = '''<!doctype html><meta charset="utf-8"><title>Reshoot review</title>
 <style>body{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem;background:#151515;color:#eee}video,img{max-width:100%;max-height:65vh}article{border-top:1px solid #777;padding:1rem 0}a{color:#add8ff}pre{white-space:pre-wrap;overflow-wrap:anywhere}select,button{font:inherit;margin:.5rem}</style>
 <h1>Review this recording</h1><p>Execution and automatic scanning do not approve a video. Inspect the original frames and watch every final export.</p>'''
+    command = 'reshoot accept ' + shlex.quote(str(root)) + ''.join(' --flagged ' + shlex.quote(label) for label in flags)
+    document += ('<p><strong>To accept:</strong> watch every export below and look at the scan items, flagged ones first. '
+                 'Then run <code>' + html.escape(command) + '</code>. Name a failed item with <code>--reject LABEL</code> instead.</p>')
     document += '<pre>' + html.escape(json.dumps({'execution': report.get('ok'), 'expectations': report.get('expectations_status', 'unverified'), 'scan': scan_report}, indent=2)) + '</pre>'
     document += previous_panel + ''.join(sections) + '<h2>Your decisions</h2><div id="choices"></div><button id="save">Download decisions</button>'
     document += '<script>const result=' + data + '''; document.addEventListener('click', e=>{const b=e.target.closest('button[data-time]');if(!b)return;const v=[...document.querySelectorAll('video')].find(v=>v.dataset.file===b.dataset.file);if(v){v.currentTime=Number(b.dataset.time);v.scrollIntoView();v.play()}}); const box=document.getElementById('choices');

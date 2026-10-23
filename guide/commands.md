@@ -19,6 +19,7 @@ settings are documented in the project reference.
 | `reshoot run CONFIG` | Starts the configured app, records, edits and checks a new candidate |
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results |
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
+| `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name flagged items with `--flagged` or `--reject` |
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
 | `reshoot export RUN --directory DEST --file takes/demo-final.mp4` | Copies explicitly selected artifacts locally without overwriting |
 | `reshoot skills codex --directory PROJECT` | Installs three project-local Codex skills |
@@ -61,7 +62,8 @@ detectors are recorded in its report.
 After inspecting the current sheets, original frames and text findings, record
 your verdict with `reshoot check --review REVIEW_DIR --fail LABEL` for a
 failure, or `reshoot check --review REVIEW_DIR --ok` after approving all remaining
-supplied items. Neither command watches or accepts the recording.
+supplied items. Neither command watches or accepts the recording. For a run,
+`reshoot accept RUN` records the scan checklist and the recording verdict together.
 
 Standalone check returns 0 for accepted supplied items, 1 for human review pending,
 and 2 for an error. Other commands do not use this three-way status convention.

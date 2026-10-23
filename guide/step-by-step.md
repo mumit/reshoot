@@ -55,6 +55,9 @@ The last lines include a report path like:
 ```text
 Report in /.../demo/takes/runs/UNIQUE_ID/run.json.
 Human review is pending; execution success is not approval to publish.
+/.../demo/takes/runs/UNIQUE_ID/review.html
+Watch the exports and look at the scan items on that page, then run:
+  reshoot accept /.../demo/takes/runs/UNIQUE_ID
 ```
 
 Save that run folder in a shell variable, replacing the example ID with the
@@ -62,10 +65,9 @@ one printed by the command:
 
 ```bash
 PREVIEW=demo/takes/runs/PASTE_PREVIEW_ID_HERE
-reshoot review "$PREVIEW"
 ```
 
-That writes `$PREVIEW/review.html`; it prints the path but does not open a
+The run wrote `$PREVIEW/review.html`; it prints the path but does not open a
 browser. Open that file using the browser's File > Open command or a file
 manager. On macOS, run `open "$PREVIEW/review.html"`; on a Linux desktop,
 run `xdg-open "$PREVIEW/review.html"`. In a headless environment, copy the complete
@@ -111,7 +113,6 @@ Save this new run folder separately:
 
 ```bash
 BASELINE=demo/takes/runs/PASTE_FINAL_ID_HERE
-reshoot review "$BASELINE"
 ```
 
 The final folder contains these files, plus source evidence and other sidecars:
@@ -137,80 +138,51 @@ Open the new `review.html` and watch both finished exports. Check the note,
 search result, caption timing and loop. The bundled edit stops at the start of
 the `end` beat; that beat's extra half-second hold is not in the finished cut.
 
-## 4. Review the recording and scan sheets
+## 4. Accept the recording
 
-There are two decisions: whether the frames are suitable to share, and whether
-the complete recording shows the intended task clearly. A clean automatic scan
-does not make either decision.
+Accepting says two things: the recording shows the task clearly, and nothing
+in its frames or captions should stay private. A clean automatic scan decides
+neither.
 
-### Review the scan sheets
+In `$BASELINE/review.html`, watch both final exports to the end. Then look at
+the scan items below them. Each numbered `.jpg` in `$BASELINE/review/` holds up
+to four labeled images, such as `1-1` and `1-2`; the page links each label to
+its full-size original. Flagged items come first, boxed in red. Look for
+unintended names, accounts, tokens, paths or people. In this tutorial all app
+data is made up.
 
-Open every numbered `.jpg` in `$BASELINE/review/`. Each sheet holds up to four
-labeled images, such as `1-1` and `1-2`. Inspect each image, including unflagged
-ones. The review page's matching labels have **Open original frame** links for
-full-size inspection. Read any text findings on the page too.
-
-A short recording can still produce many sheets because typing changes the
-image on successive frames. Use the numbered sequence to track review progress;
-full-frame coverage does not mean the scan can reliably recognize every detail.
-
-Look for unintended names, accounts, tokens, paths or people, and anything else
-that should not appear. In this tutorial all app data is made up. The scan report
-states the backend, available detectors and coverage; zero findings alone is not
-a review verdict.
-
-If a frame fails, record its actual label, for example:
+When everything is acceptable, run:
 
 ```bash
-reshoot check --review "$BASELINE/review" --fail 1-2
+reshoot accept "$BASELINE"
 ```
 
-Fix the demo data or story and make a new recording. A rejected take still
-contains the problem. Do not approve the remaining items to mark that take complete.
+It lists the exports, beats and scan items it covers and asks you to confirm.
+It then records the verdict for all of them, bound to the run's exact files and
+scan policy. `run.json` reports `review_status` as `completed`. A later change
+to a file or the scan policy invalidates the verdict.
 
-**Only after reviewing and approving all supplied images and text findings,**
-record your decision:
+If the scan flagged something, `accept` stops and lists it. Inspect each flagged
+item at full size, then name the ones you accept:
 
 ```bash
-reshoot check --review "$BASELINE/review" --ok
+reshoot accept "$BASELINE" --flagged 1-2
 ```
 
-This approves the current supplied items. It does not watch or accept the video,
-and does not approve a later render. Keep the reviewed sheets and reports.
-
-### Accept the recording
-
-Generate the page again after recording the sheet verdict, then open it:
+If an item must not be shared, reject it instead:
 
 ```bash
-reshoot review "$BASELINE"
+reshoot accept "$BASELINE" --reject 1-2
 ```
 
-At **Your decisions**, set `video` to `accepted` only after watching both final
-exports. Inspect each beat's evidence and set its decision too. For each
-`finding/...` entry, inspect the original frame or text before deciding.
-Leave unresolved entries as `pending`, or choose `rejected` when an item fails.
+That marks the run failed. Fix the demo data or story and make a new recording;
+a rejected take still contains the problem.
+
+To give separate verdicts per beat, use the **Your decisions** controls at the
+end of the review page, click **Download decisions**, and import the file with
+`reshoot review "$BASELINE" --import-decisions FILE`. Most reviews do not need this.
 
 ![The local review page's Your decisions controls, with all notes beats and video still pending](../docs/guide/review-decisions.png)
-
-This example shows the controls before a verdict. `video` covers the finished
-exports; `notes/add`, `notes/search` and the other entries cover individual beats.
-
-Click **Download decisions**. Move the downloaded file to
-`demo/baseline-decisions.json`, then import it:
-
-```bash
-reshoot review "$BASELINE" --import-decisions demo/baseline-decisions.json
-```
-
-The importer checks the run ID, artifact hashes and scan policy. It saves the
-decisions and updates `run.json`. The run's `review_status` becomes `completed`
-only when every required recording decision is accepted. The scan checklist and
-recording decisions have separate status fields; read both.
-
-Do not rerun the scan to resolve a pending recording decision.
-Changing artifacts or scan policy can invalidate downloaded decisions. See
-[Troubleshooting](troubleshooting.md#review-still-says-pending).
 
 ## 5. Change a caption
 
@@ -282,9 +254,8 @@ definitions changed; the expected task and result remain the same.
 
 ## 7. Review and export the update
 
-Repeat step 4 for `$UPDATED`, including its fresh scan sheets. Download the
-new recording decisions to `demo/updated-decisions.json` and import that file
-against `$UPDATED`, not `$BASELINE`.
+Repeat step 4 for `$UPDATED`, including its fresh scan sheets, and accept it
+with `reshoot accept "$UPDATED"`. The earlier verdict covers `$BASELINE` only.
 
 After accepting the update, copy its chosen files to a new local directory:
 

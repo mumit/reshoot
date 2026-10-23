@@ -177,7 +177,7 @@ reshoot run demo/reshoot.toml
 ```
 
 Inspect the preview before the final run and follow the tutorial's
-[review and export steps](step-by-step.md#4-review-the-recording-and-scan-sheets).
+[review and export steps](step-by-step.md#4-accept-the-recording).
 For full-frame final checks, set `full = true` in `[check]`. Choose a portrait
 crop or record a separate mobile take; fitting a wide page into a phone
 frame does not make its words readable.

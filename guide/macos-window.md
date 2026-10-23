@@ -92,9 +92,11 @@ reshoot check takes/native-01/app.mov takes/native-01/window-final.mp4 takes/nat
 
 Exit 1 means supplied items need human review; exit 2 means an error. Inspect
 the sheets and original frames before recording a scan verdict. Follow the
-[review checklist](step-by-step.md#4-review-the-recording-and-scan-sheets), using
-the actual media and standalone check directory. This route does not generate
-a versioned run's `review.html` or recording-decision form.
+[review checklist](step-by-step.md#4-accept-the-recording), using
+the actual media and standalone check directory. Record the verdict with
+`reshoot check --review takes/native-01/review --fail LABEL` for a failed item,
+then `--ok` once the rest pass. This route does not generate a versioned
+run's `review.html`, and `reshoot accept` needs a versioned run.
 
 Keep a brief, the edit, reset steps and any automation script in a source folder
 such as `demo/`. Keep generated takes outside version control. Compare old and

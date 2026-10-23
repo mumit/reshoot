@@ -66,7 +66,7 @@ running at the URL and leaves it running. For a local server, keep its terminal
 open. If you later have startup commands, add managed startup using the
 [source-app walkthrough](your-app.md#create-the-project).
 
-Follow the [recording and scan-sheet review](step-by-step.md#4-review-the-recording-and-scan-sheets)
+Follow the [recording and scan-sheet review](step-by-step.md#4-accept-the-recording)
 before sharing. Keep the URL, browser story and exact accepted run so you can
 [update the demo](publish.md) when the site changes.
 

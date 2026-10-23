@@ -29,7 +29,7 @@ For a standalone Linux environment, follow the [installation guide](install.md).
 After a run, download the `reshoot-review` artifact, find its run folder and
 open `review.html` locally. Keep the folder structure intact so media and
 original frames remain linked. Review the exports and sheets as in the
-[tutorial](step-by-step.md#4-review-the-recording-and-scan-sheets). Recording
+[tutorial](step-by-step.md#4-accept-the-recording). Recording
 success and an uploaded artifact are not approval.
 
 After recording review decisions locally, use `reshoot export` to copy the chosen

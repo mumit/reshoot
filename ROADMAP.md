@@ -10,18 +10,13 @@ with a line on what it does. Trial evidence lives in the
 
 ## Now: make it adoptable
 
-1. **Versioned releases.** Publish 0.3.0 to PyPI with a Git tag and a changelog,
-   so `uvx reshoot` works and the plugin and installed skills name a matching
-   version. Today the only install is the Git default branch, which is a hard
-   stop for most people and gives agents nothing stable to pin. Publishing needs
-   the owner's yes.
-2. **One-step acceptance.** Replace the current sequence (inspect every sheet,
+1. **One-step acceptance.** Replace the current sequence (inspect every sheet,
    `check --ok`, regenerate the page, set each beat, download a JSON file, move
    it, import it) with one action: `reshoot accept RUN`, or an Accept button on a
    locally served review page. Show flagged items first and let clean ones be
    approved together. Keep the hash binding underneath. The maintainer's own
    trials left scan sheets pending in nine records; users will skip it too.
-3. **First-run friction.** Choose a free port for the bundled example instead of
+2. **First-run friction.** Choose a free port for the bundled example instead of
    a fixed 8765. Print the real address when a port is busy; the message
    currently shows a redacted hash. Add `latest` and `accepted` run aliases and a
    `reshoot runs` listing so a refresh does not need a 32-character ID copied by
@@ -30,14 +25,14 @@ with a line on what it does. Trial evidence lives in the
 
 ## Next: prove the promise
 
-4. **CI refresh on GitHub.** Dispatch the candidate workflow on a real
+3. **CI refresh on GitHub.** Dispatch the candidate workflow on a real
    repository: a UI change opens a pull request with the new MP4, GIF and
    comparison page. This is the claim on the README's first screen and it has
    not run end to end.
-5. **Outside users.** Three people who are not the maintainer, each starting
+4. **Outside users.** Three people who are not the maintainer, each starting
    from the first-demo prompt. Measure time to an accepted video and where they
    got stuck. More maintainer trials on more machines add little now.
-6. **Playwright test importer.** Turn an existing end-to-end test into a
+5. **Playwright test importer.** Turn an existing end-to-end test into a
    storyboard with beats and expectations. Teams with tests get a demo almost
    for free.
 
@@ -57,6 +52,9 @@ with a line on what it does. Trial evidence lives in the
 
 ## Done
 
+- **PyPI releases:** 0.3.0 is on PyPI, so `uv tool install 'reshoot[browser]'` and `uvx reshoot` work.
+  A version tag runs the release workflow, which tests, builds, checks the wheel and publishes through
+  trusted publishing.
 - **Owner review of external candidates:** imported the owner's acceptance for
   all five selected recordings and their beats, bound to unchanged artifact hashes.
 - **Guided onboarding:** one TOML tutorial covers preview, final, deliberate

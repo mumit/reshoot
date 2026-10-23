@@ -90,6 +90,10 @@ Use this reference to diagnose recording, editing and review problems.
 
 - **VHS throws away the whole recording when a `Wait` times out.** Use a fixed `Sleep` longer than the slowest
   run, then cut at `reshoot last-change`.
+- **`Wait+Screen` misses text that's on screen.** In VHS 0.12.1 it reads an empty screen while the tape is
+  hidden (`Hide`), never matches a pattern with backslash classes such as `\s`, and timed out on an agent's
+  full-screen terminal UI with the awaited line in plain view. The timeout message ends `last value was:` with
+  nothing after it. Don't wait for an agent to finish: `Sleep` past its slowest run, as above.
 - **Agent response times vary between runs.** Allow enough time in `Sleep` for the
   response to finish. Label any speed changes in the edit.
 - **Leftovers from the last take.** Demo data from an earlier run can produce duplicate

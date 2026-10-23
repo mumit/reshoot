@@ -33,7 +33,7 @@ jobs:
         run: |
           uv build
           uv venv "$RUNNER_TEMP/reshoot-package"
-          uv pip install --python "$RUNNER_TEMP/reshoot-package/bin/python" "./dist/reshoot-0.2.0-py3-none-any.whl[browser]"
+          uv pip install --python "$RUNNER_TEMP/reshoot-package/bin/python" "$(ls ./dist/reshoot-*-py3-none-any.whl)[browser]"
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/reshoot-package/bin/reshoot" init packaged-demo
           "$RUNNER_TEMP/reshoot-package/bin/reshoot" skills codex --directory packaged-demo

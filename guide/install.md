@@ -61,7 +61,7 @@ The tested Linux environments and platform limits are listed in
 On either platform:
 
 ```bash
-uv tool install 'reshoot[browser] @ git+https://github.com/mumit/reshoot'
+uv tool install 'reshoot[browser]'
 reshoot --version
 python3 --version
 ```
@@ -71,18 +71,17 @@ Chrome or Chromium executable installed above; the tutorial does not require
 `playwright install`. If `reshoot` is not on the shell's path, run
 `uv tool update-shell`, start a new terminal and try again.
 
-This command installs the repository's current default branch. It is not a
-pinned release. To reproduce a particular revision, append its full commit
-SHA to the Git URL, following uv's [Git source syntax](https://docs.astral.sh/uv/guides/tools/#requesting-different-sources):
+This installs the latest release from [PyPI](https://pypi.org/project/reshoot/).
+To pin a release, name its version, such as `'reshoot[browser]==0.3.0'`. To
+try unreleased changes from the default branch, install from Git instead:
 
 ```bash
-uv tool install 'reshoot[browser] @ git+https://github.com/mumit/reshoot@COMMIT_SHA'
+uv tool install --force 'reshoot[browser] @ git+https://github.com/mumit/reshoot'
 ```
 
-Replace `COMMIT_SHA` with an actual revision. For an existing installation,
-use `uv tool install --force` with that same requirement to replace it. Retain
-the previous requirement to restore that revision later. The CLI version alone does not
-identify a Git revision when several commits share that version.
+Append `@COMMIT_SHA` to the Git URL to reproduce an exact revision, following
+uv's [Git source syntax](https://docs.astral.sh/uv/guides/tools/#requesting-different-sources).
+Run `uv tool install --force` with a release requirement to return to PyPI.
 
 ## Check a project
 
@@ -98,8 +97,6 @@ continue at the preview step instead of running `init` twice.
 
 ## Upgrade and remove
 
-For an unpinned installation:
-
 ```bash
 uv tool upgrade reshoot
 reshoot --version
@@ -107,7 +104,7 @@ reshoot --version
 
 uv respects the original source and version constraints when upgrading; see its
 [tool upgrade guide](https://docs.astral.sh/uv/guides/tools/#upgrading-tools).
-To change the source revision, reinstall explicitly as described above.
+To change a pinned version or a Git revision, reinstall as described above.
 
 `reshoot skills` installs project-local copies of the three primary skills.
 Upgrading the CLI does not replace those copies. The installer refuses to

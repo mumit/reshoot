@@ -57,7 +57,7 @@ pitfalls, and `../../examples/notes/` has a full example to copy from.
 
 ## Install
 
-The skills run the `reshoot` command. If it's missing: `uv tool install git+https://github.com/mumit/reshoot`. It
+The skills run the `reshoot` command. If it's missing: `uv tool install 'reshoot[browser]'`. It
 also needs ffmpeg, VHS for terminal takes, and Chrome or Chromium for web takes. On macOS: `brew install ffmpeg vhs`.
 On Linux, use the package manager.
 

@@ -15,7 +15,7 @@ Install the [platform dependencies](install.md) first, including Tesseract on
 Linux. Then:
 
 ```bash
-uv tool install 'reshoot[browser] @ git+https://github.com/mumit/reshoot'
+uv tool install 'reshoot[browser]'
 reshoot init demo
 reshoot doctor --config demo/reshoot.toml
 reshoot preview demo/reshoot.toml

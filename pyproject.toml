@@ -27,6 +27,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 markers = ["browser: records a real page in headless Chrome (slow)"]
 addopts = "-m 'not browser'"
 

@@ -21,9 +21,15 @@ Use this reference to diagnose recording, editing and review problems.
 - **The terminal shows more than you think:** the user and machine name in the prompt, the folder, shell history,
   API keys in typed commands. Start a clean shell with `env -i`, a plain `PS1` and a folder under `/tmp`, all in a
   hidden part of the tape.
+- **`env -i` also removes an agent's credentials.** An agent that reads its provider key from the environment
+  fails to connect (omp showed a 401). Don't name the key in the tape. Start
+  `PS1='$ ' HISTFILE=/dev/null exec bash --noprofile --norc` instead: no profile, prompt or history, but the
+  environment stays.
 - **An AI agent's banner shows the account, folder and setup.** For Claude Code, use a separate
   `CLAUDE_CONFIG_DIR`, a demo folder, and only the tools the take needs (`--strict-mcp-config`, `--allowedTools`).
 - **What an agent says.** An agent's answer can include private details. Read it before cutting.
+- **Expected flags in an agent's terminal.** The scan flagged npm's `> token-estimator@1.0.0 start` as an email,
+  struck-through todo lines as keys, and costs such as `$0.00002875` as phone numbers. Look at each one anyway.
 
 ## Web takes
 
@@ -85,6 +91,13 @@ Use this reference to diagnose recording, editing and review problems.
 - **Ids that change.** Frameworks make ids like `css-8f3k2z` that change between builds. `reshoot rec` skips ids
   that look made up and uses a test id, a name, a label or the element's words instead.
 - **A light or dark page when you wanted the other.** reshoot sets `prefers-color-scheme` (dark unless asked).
+- **A passed check with the result off screen.** Text checks found the token count in the page, but it was below
+  the fold, so the video never showed it. Look at the frames for each result, and add a `scroll` action so the
+  controls and the result share the view.
+- **No `select` action.** TOML storyboards can't choose from a `<select>`. When you control the app, use buttons
+  or radio buttons.
+- **An agent builds a different page each take.** Put the `data-testid`s the storyboard needs in the agent's
+  conventions file, such as `AGENTS.md` in its workspace. The checks then held when the layout changed.
 
 ## Terminal takes
 
@@ -96,6 +109,11 @@ Use this reference to diagnose recording, editing and review problems.
   nothing after it. Don't wait for an agent to finish: `Sleep` past its slowest run, as above.
 - **Agent response times vary between runs.** Allow enough time in `Sleep` for the
   response to finish. Label any speed changes in the edit.
+- **A take that varies in length can't be cut by beat.** Terminal takes have no beats, so the edit cuts them at
+  seconds. A fixed `Sleep` keeps the take's length fixed; play the part that varies at a labelled speed.
+- **The app is built during the take.** `[app]` must answer before the first take. Serve a placeholder on the
+  port until the tape touches a file, then start the built app on the same port. Tell the agent to test on
+  another port and stop its servers. Raise the run's `timeout` (600 s by default) to cover the build.
 - **Leftovers from the last take.** Demo data from an earlier run can produce duplicate
   results. Reset the demo data in the hidden setup.
 

@@ -4,7 +4,7 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
-## Unreleased
+## 0.3.1 (2026-10-23)
 
 ### Added
 
@@ -15,6 +15,31 @@ change project files or commands.
   and without a terminal it refuses unless given `--yes`.
 - `reshoot run` and `reshoot preview` write the review page and print the
   `reshoot accept` command for the run.
+- `reshoot runs PROJECT` lists a project's runs, newest first, with their
+  result and review status. Run paths accept `latest` (the newest successful
+  run) and `accepted` (the newest accepted run), such as `demo/accepted`.
+  Run reports record `finished_at`.
+- A refresh pull request in CI. `examples/github/refresh.yml` records the demo
+  when the app changes, compares it with the accepted run and opens a pull
+  request with the new MP4, GIF and a beat table. Merging it accepts the
+  recording.
+- `reshoot accept` writes `demo/accepted/`, a small committed record of the run
+  (report, beat results and evidence frames), so CI and fresh clones can
+  compare against it. `reshoot export --record DIR` writes one for any run.
+- `reshoot export --replace` updates media already in the destination, and
+  `reshoot compare --markdown FILE` writes a summary for a pull request.
+- In GitHub Actions, each run writes a job summary with its checks, scan and
+  errors.
+
+### Fixed
+
+- `reshoot init` moves the notes example off port 8765 when something else
+  is using it.
+- A busy port names its loopback address instead of a redacted hash.
+- `reshoot web --help` describes TOML storyboards, and `review`, `compare`
+  and `export` explain their arguments.
+- A target that matches no element, or several, names the target and the count.
+- A run's report includes the failed beat's error, not only the failed step.
 
 ## 0.3.0 (2026-10-23)
 

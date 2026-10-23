@@ -1,4 +1,28 @@
-"""Declarative storyboards with stable beats and explicit expected results."""
+"""Declarative storyboards with stable beats and explicit expected results.
+
+A storyboard is a TOML file. `reshoot init` writes a complete one:
+
+    schema_version = 1
+    id = "notes"
+    url = "http://127.0.0.1:8765/"
+    size = "1280x720@1"            # CSS width x height @ device pixel ratio
+
+    [[beat]]
+    id = "search"                  # stable across releases, so runs can be compared
+    caption = "Find the matching note"
+    hold = 2.0                     # seconds to hold after the beat
+    [[beat.action]]
+    type = "type"                  # click, type, key, scroll, navigate, wait, upload
+    target = {css = "#q"}          # or {test_id = "..."} or {role = "textbox", name = "Search"}
+    text = "bike"
+    [[beat.expect]]
+    type = "count"                 # text, visible, count, value, url, checked
+    target = {css = "#list li"}
+    count = 1
+
+Storyboards may also set theme, mobile, zoom, blur, setup, voice, seed, timeout and a [caption] style. A failed
+expectation fails the take and saves evidence. guide/projects.md lists every field.
+"""
 import math
 import re
 import tomllib

@@ -8,6 +8,10 @@ settings are documented in the project reference.
 
 ## Project workflow
 
+`RUN` is a run folder such as `demo/takes/runs/ID`. End it with `latest` for the
+newest successful run or `accepted` for the newest accepted run, such as
+`demo/latest` or `demo/takes/runs/accepted`. The command prints which run it chose.
+
 | Command | What it does |
 |---|---|
 | `reshoot --version` | Prints the installed package version |
@@ -17,11 +21,13 @@ settings are documented in the project reference.
 | `reshoot preview CONFIG` | Makes an isolated preview with the same actions |
 | `reshoot preview CONFIG --from BEAT` | Replays earlier actions without capturing them; skips the final edit and scan |
 | `reshoot run CONFIG` | Starts the configured app, records, edits and checks a new candidate |
-| `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results |
+| `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
+| `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
 | `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name flagged items with `--flagged` or `--reject` |
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
-| `reshoot export RUN --directory DEST --file takes/demo-final.mp4` | Copies explicitly selected artifacts locally without overwriting |
+| `reshoot export RUN --directory DEST --file takes/demo-final.mp4` | Copies explicitly selected artifacts locally; refuses to overwrite unless given `--replace` |
+| `reshoot export RUN --record demo/accepted` | Writes the run's small record (report, beat results, evidence frames) for later comparisons |
 | `reshoot skills codex --directory PROJECT` | Installs three project-local Codex skills |
 | `reshoot skills claude --directory PROJECT` | Installs the same primary skills for Claude Code |
 

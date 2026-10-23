@@ -56,8 +56,11 @@ def init(a):
     if conflicts:
         raise ValueError('existing files would be overwritten: ' + ', '.join(conflicts))
     root.mkdir(parents=True, exist_ok=True)
+    port = None if a.url else free_port()
     for name in names:
         text = template.joinpath(name).read_text()
+        if port:
+            text = text.replace('8765', str(port))
         if a.url:
             if name == 'storyboard.toml':
                 text = 'schema_version = 1\nurl = ' + json.dumps(a.url) + '\n[[beat]]\nid = "intro"\ncaption = "Replace this with one useful task"\nhold = 2\n'
@@ -69,19 +72,39 @@ def init(a):
     return 0
 
 
+def free_port():
+    """8765 if nothing is using it, otherwise any free local port, so the notes example doesn't collide with another app."""
+    import socket
+    for port in (8765, 0):
+        with socket.socket() as s:
+            try:
+                s.bind(('127.0.0.1', port))
+            except OSError:
+                continue
+            return s.getsockname()[1]
+
+
 def export(a):
-    from reshoot.review import read
+    from reshoot.review import read, record
     root, report = read(a.run_path)
     selected = a.file or []
+    if not selected and not getattr(a, 'record', None):
+        raise ValueError('choose at least one --file from run.json files, or --record')
+    if selected and not a.directory:
+        raise ValueError('--file needs --directory')
+    if getattr(a, 'record', None):
+        print(record(root, report, a.record))
     if not selected:
-        raise ValueError('choose at least one --file from run.json files')
+        return 0
     known = {item['path'] for item in report.get('files', [])}
     if not set(selected) <= known:
         raise ValueError('export names an artifact not recorded in this run')
     destination = Path(a.directory).resolve()
     targets = [destination / Path(name).name for name in selected]
-    if len(set(targets)) != len(targets) or any(p.exists() for p in targets):
-        raise ValueError('export would overwrite a file or collide with another selected name')
+    if len(set(targets)) != len(targets):
+        raise ValueError('export would collide with another selected name')
+    if not getattr(a, 'replace', False) and any(p.exists() for p in targets):
+        raise ValueError('export would overwrite a file; pass --replace to update media already there')
     if any(p.suffix not in ('.mp4', '.gif', '.srt', '.mov', '.png') for p in targets):
         raise ValueError('export accepts final media and subtitle files')
     destination.mkdir(parents=True, exist_ok=True)

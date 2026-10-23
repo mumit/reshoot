@@ -222,24 +222,24 @@ For Claude Code, use `/reshoot-demo` followed by the same task. With the plugin,
 use `/reshoot:reshoot-demo`. Choose the project-local skills or the plugin for
 the project. Both routes need the [CLI and recording tools](install.md).
 
-For an update, replace the run ID in this Codex prompt with the previous
-final's ID. In Claude Code, replace the first line with `/reshoot-refresh`:
+For an update, use this Codex prompt. `demo/accepted` names the newest run you
+accepted. In Claude Code, replace the first line with `/reshoot-refresh`:
 
 ```text
 $reshoot-refresh
-Refresh demo/reshoot.toml against demo/takes/runs/PREVIOUS_FINAL_ID.
+Refresh demo/reshoot.toml against demo/accepted, using its exact run ID.
 The app's search field changed. Keep the same task, beat IDs and result checks;
 repair the target if needed. Retain failed attempts and the previous recording.
 Inspect a repaired preview, make a fresh final and compare both runs.
 Report the final MP4/GIF paths and any unresolved review items.
 ```
 
-For review, use this prompt with the actual current and previous final IDs.
+For review, use this prompt. `demo/latest` names the newest successful run.
 In Claude Code, replace the first line with `/reshoot-review`:
 
 ```text
 $reshoot-review
-Review demo/takes/runs/CURRENT_FINAL_ID against demo/takes/runs/PREVIOUS_FINAL_ID.
+Review demo/latest against demo/accepted.
 Read the existing reports and inspect the actual MP4, GIF and beat evidence.
 Explain scan coverage, findings and which human decisions remain pending.
 Preserve existing recordings and review evidence; report whether a new check is needed.

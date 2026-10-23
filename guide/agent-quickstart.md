@@ -80,12 +80,12 @@ Use [updates and publishing](publish.md) when the recording becomes part of your
 ## Update the demo when the app changes
 
 For a browser or terminal project, use the refresh skill with the configuration
-and the accepted run folder.
-Replace `PREVIOUS_FINAL_ID` with the exact previous final's ID. In Codex:
+and the accepted run. `demo/accepted` names the newest run you accepted, and
+`demo/latest` the newest successful one. In Codex:
 
 ```text
 $reshoot-refresh
-Refresh demo/reshoot.toml against demo/takes/runs/PREVIOUS_FINAL_ID.
+Refresh demo/reshoot.toml against demo/accepted, using its exact run ID.
 Record the current UI performing the same task. Keep the beat IDs and result
 checks, repair changed controls if needed, and retain the previous run.
 Inspect a preview, make a fresh final, and open the comparison for review.
@@ -95,11 +95,11 @@ In Claude Code, replace the first line with `/reshoot-refresh`. With the plugin,
 use `/reshoot:reshoot-refresh`. Keep the old recording until you have watched
 and accepted the new one.
 
-For a separate review, supply both run IDs:
+For a separate review, compare the newest run with the accepted one:
 
 ```text
 $reshoot-review
-Review demo/takes/runs/CURRENT_FINAL_ID against demo/takes/runs/PREVIOUS_FINAL_ID.
+Review demo/latest against demo/accepted.
 Inspect the actual MP4 and GIF, result checks, scan coverage and beat evidence.
 Report readability or timing problems and any human decisions still pending.
 Preserve the existing recordings and review evidence.

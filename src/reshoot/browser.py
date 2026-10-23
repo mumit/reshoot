@@ -37,8 +37,9 @@ async def action(page, entry, events, root):
     if kind == 'wait':
         await item.wait_for(state='visible', timeout=timeout)
         return
-    if await item.count() != 1:
-        raise ValueError('action target must match exactly one element')
+    if (found := await item.count()) != 1:
+        target = ', '.join(f'{k} = {v!r}' for k, v in entry['target'].items())
+        raise ValueError(f'{kind} target {{{target}}} matched {found} elements; it must match exactly one')
     await item.scroll_into_view_if_needed(timeout=timeout)
     box = await item.bounding_box()
     rect = [box[k] for k in ('x', 'y', 'width', 'height')] if box else None

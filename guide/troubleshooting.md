@@ -35,8 +35,9 @@ the local recording and retain the failed attempt.
 
 ## The app will not start
 
-If the log says something is already answering at the app URL, identify the
-server and stop it if it is an old demo server. Reshoot refuses to record an existing
+If the log says something is already answering at a port, identify the server
+with `lsof -nP -iTCP:PORT -sTCP:LISTEN` and stop it if it is an old demo server.
+Otherwise move the demo to a free port. Reshoot refuses to record an existing
 server when `[app]` manages startup. To manage the server separately, omit
 `[app]` and keep the server running during capture.
 
@@ -44,7 +45,8 @@ Versioned project paths and startup commands resolve from the configuration's fo
 For `demo/reshoot.toml`, `npm run dev` runs in `demo/`; `cd .. && npm run dev`
 runs in its parent. Check the command, readiness URL, dependencies and reset
 command. An HTTP error response does not count as ready. In the notes tutorial,
-changing the port requires changing it in both `reshoot.toml` and `storyboard.toml`.
+changing the port requires changing it in both `reshoot.toml` and `storyboard.toml`;
+`reshoot init` picks a free one when 8765 is taken.
 
 ## An action or result check fails
 

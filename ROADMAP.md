@@ -8,25 +8,12 @@ Each item says what it is and why it matters. When one ships, move it to Done
 with a line on what it does. Trial evidence lives in the
 [validation records](docs/validation/README.md), not here.
 
-## Now: make it adoptable
+## Now: prove the promise
 
-1. **First-run friction.** Choose a free port for the bundled example instead of
-   a fixed 8765. Print the real address when a port is busy; the message
-   currently shows a redacted hash. Add `latest` and `accepted` run aliases and a
-   `reshoot runs` listing so a refresh does not need a 32-character ID copied by
-   hand. Make `reshoot web --help` describe TOML storyboards and give `review`
-   and `compare` real help text.
-
-## Next: prove the promise
-
-2. **CI refresh on GitHub.** Dispatch the candidate workflow on a real
-   repository: a UI change opens a pull request with the new MP4, GIF and
-   comparison page. This is the claim on the README's first screen and it has
-   not run end to end.
-3. **Outside users.** Three people who are not the maintainer, each starting
+1. **Outside users.** Three people who are not the maintainer, each starting
    from the first-demo prompt. Measure time to an accepted video and where they
    got stuck. More maintainer trials on more machines add little now.
-4. **Playwright test importer.** Turn an existing end-to-end test into a
+2. **Playwright test importer.** Turn an existing end-to-end test into a
    storyboard with beats and expectations. Teams with tests get a demo almost
    for free.
 
@@ -47,9 +34,15 @@ with a line on what it does. Trial evidence lives in the
 
 ## Done
 
+- **CI refresh on GitHub:** `examples/github/refresh.yml` records the demo after a change, compares it with the
+  committed `demo/accepted/` record and opens a pull request with the new media and a beat table; merging accepts it.
+  A broken story fails on its beat and opens nothing. Proven in a private trial repository; see the
+  [CI refresh record](docs/validation/2026-10-23-ci-refresh.md). Released in 0.3.1.
+- **First-run fixes:** `init` moves the notes example off a busy port, busy ports are named, `reshoot runs` lists
+  runs, and `latest` and `accepted` stand in for run IDs. `web --help` covers TOML storyboards. Released in 0.3.1.
 - **One-step acceptance:** `reshoot accept RUN` covers the exports, beats, scan items and scan checklist in one
   verdict, bound to the exact run. Flagged items must be named; the run prints the command and writes the review
-  page. The two-step check and import route remains for separate verdicts per beat. Ships in the next release.
+  page. The two-step check and import route remains for separate verdicts per beat. Released in 0.3.1.
 - **PyPI releases:** 0.3.0 is on PyPI, so `uv tool install 'reshoot[browser]'` and `uvx reshoot` work.
   A version tag runs the release workflow, which tests, builds, checks the wheel and publishes through
   trusted publishing.

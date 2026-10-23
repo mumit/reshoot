@@ -23,11 +23,13 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 - **Compatibility.** A five-minute animated recording, a native AppKit window,
   positive face and person detection, and a local service-change simulation
   all passed. Real remote services and other desktop apps remain untested.
+- **CI refresh.** In a private trial repository, app changes on `main` opened
+  pull requests with the new media and a comparison with the accepted record;
+  a breaking change failed on its beat and opened nothing.
 
 ## What it does not cover
 
 - Anyone other than the maintainer setting up or using reshoot.
-- A CI refresh dispatched on GitHub that opens a pull request.
 - Windows, mobile simulators, and face or person detection on Linux.
 
 ## Records
@@ -51,5 +53,6 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 | 2026-10-22 | [Agent-first review](2026-10-22-agent-first.md): the first-demo prompt and skill catalog |
 | 2026-10-22 | [Documentation onboarding](2026-10-22-documentation.md): synthetic runs of the guides |
 | 2026-10-22 | [Documentation journey](2026-10-22-documentation-journey.md): the five-stage guide review |
+| 2026-10-23 | [CI refresh](2026-10-23-ci-refresh.md): pull requests from app changes, in a trial repository |
 
 Generated evidence lives under `takes/`, which Git ignores.

@@ -14,6 +14,31 @@ def test_init_is_packaged_and_refuses_overwrites(tmp_path):
         project.init(SimpleNamespace(directory=str(tmp_path), url=None))
 
 
+def test_init_moves_the_notes_app_off_a_busy_port(tmp_path):
+    import socket
+    with socket.socket() as busy:
+        try:
+            busy.bind(('127.0.0.1', 8765))
+            busy.listen()
+        except OSError:
+            pass  # something else already holds it, which is the case under test
+        project.init(SimpleNamespace(directory=str(tmp_path), url=None))
+    data = config.read(tmp_path / 'reshoot.toml')[0]
+    port = data['app']['url'].rsplit(':', 1)[1].strip('/')
+    assert port != '8765' and port in data['app']['run']
+    assert f'127.0.0.1:{port}/' in (tmp_path / 'storyboard.toml').read_text()
+
+
+def test_busy_app_port_is_named_without_exposing_remote_urls(monkeypatch):
+    from reshoot import run
+    monkeypatch.setattr(run, 'answers', lambda url, ready=False: True)
+    with pytest.raises(SystemExit, match='port 8765 on 127.0.0.1'):
+        run.start_app({'url': 'http://127.0.0.1:8765/', 'run': 'true'})
+    with pytest.raises(SystemExit) as remote:
+        run.start_app({'url': 'https://demo.example.com/app', 'run': 'true'})
+    assert 'https://' in str(remote.value)  # the run reports it through redact(), which hides it
+
+
 def test_external_app_scaffold_is_valid_python(tmp_path):
     project.init(SimpleNamespace(directory=str(tmp_path), url='http://localhost:1234/'))
     __import__('tomllib').loads((tmp_path / 'storyboard.toml').read_text())

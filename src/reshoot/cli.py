@@ -8,9 +8,10 @@ def main(argv=None):
     ap.add_argument("--version", action="version", version=version("reshoot"))
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    from reshoot import web, window, check
+    from reshoot import web, window, check, story
     p = sub.add_parser("web", help="record a web page acting out a storyboard, in headless Chrome",
-                       description=web.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+                       description=story.__doc__ + "\nLegacy Python storyboards\n\n" + web.__doc__,
+                       formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("storyboard"); p.add_argument("out", help="the video to write, such as takes/web.mp4")
     p.add_argument("--url", help="the page to open (default: the storyboard's URL)")
     p.add_argument("--size", help="CSS width x height @ device pixel ratio, such as 390x844@3 (default 1280x720@1.5)")
@@ -95,24 +96,46 @@ def main(argv=None):
     p.add_argument('--directory', default='.', help='project root receiving the skill bundle')
     p.set_defaults(run=skills.install)
     from reshoot import review
-    p = sub.add_parser('compare', help='compare matching beat IDs between two explicit runs')
-    p.add_argument('previous'); p.add_argument('current'); p.add_argument('--out')
+    runs = ('A run is its folder, such as demo/takes/runs/ID. End the path with `latest` for the newest successful '
+            'run or `accepted` for the newest accepted one, such as demo/latest.')
+    p = sub.add_parser('runs', help='list a project\'s runs, newest first, with their result and review status',
+                       description='List the runs of a versioned project, newest first. ' + runs)
+    p.add_argument('project', nargs='?', default='.', help='the project folder or its reshoot.toml (default: here)')
+    p.set_defaults(run=review.listing)
+    p = sub.add_parser('compare', help='compare matching beat IDs between two explicit runs',
+                       description='Compare two runs beat by beat: which beat IDs match, and whether each beat\'s '
+                       'definition, duration, evidence frame and results changed. A matched ID does not mean equal '
+                       'pixels. ' + runs)
+    p.add_argument('previous', help='the earlier run, usually the accepted one')
+    p.add_argument('current', help='the run to compare against it')
+    p.add_argument('--out', help='write the comparison JSON here instead of printing it')
+    p.add_argument('--markdown', metavar='FILE', help='also write a short Markdown summary, such as for a pull request')
     p.set_defaults(run=lambda a: (review.compare(a), 0)[1])
-    p = sub.add_parser('review', help='create a local review page or import owner decisions')
-    p.add_argument('run_path'); p.add_argument('--previous'); p.add_argument('--import-decisions')
+    p = sub.add_parser('review', help='create a local review page or import owner decisions',
+                       description='Write RUN/review.html: the exports, each beat\'s result and evidence, and the scan '
+                       'items, with a comparison when --previous is given. Runs write this page themselves; use this to '
+                       'add a comparison or rebuild it. ' + runs)
+    p.add_argument('run_path', help='the run to review')
+    p.add_argument('--previous', help='an earlier run to compare against, usually the accepted one')
+    p.add_argument('--import-decisions', metavar='FILE',
+                   help='record per-beat decisions downloaded from the page; `reshoot accept` is the one-step route')
     p.set_defaults(run=review.main)
     p = sub.add_parser('accept', help='accept a run after watching it: exports, beats and scan items in one step',
                        description='Accept a run after watching its exports and looking at its scan sheets. Unflagged '
                        'items are accepted together; each flagged item must be named with --flagged or --reject. The '
                        'verdict is bound to the run\'s exact files and scan policy.')
-    p.add_argument('run_path', help='the run folder, such as demo/takes/runs/ID')
+    p.add_argument('run_path', help='the run folder, such as demo/takes/runs/ID or demo/latest')
     p.add_argument('--flagged', nargs='+', metavar='LABEL', help='flagged items you inspected and accept')
     p.add_argument('--reject', nargs='+', metavar='LABEL', help='items that must not be shared; marks the run failed')
     p.add_argument('--yes', action='store_true', help='skip the confirmation; only for the owner\'s own scripts')
     p.set_defaults(run=review.accept)
-    p = sub.add_parser('export', help='copy explicitly chosen run media to a local directory')
-    p.add_argument('run_path'); p.add_argument('--directory', required=True)
-    p.add_argument('--file', action='append')
+    p = sub.add_parser('export', help='copy explicitly chosen run media to a local directory', description=runs)
+    p.add_argument('run_path', help='the run to copy from, such as demo/latest')
+    p.add_argument('--directory', help='where to copy the chosen --file media')
+    p.add_argument('--file', action='append', help='a file listed in run.json, such as takes/demo-final.mp4')
+    p.add_argument('--replace', action='store_true', help='overwrite media already in --directory, such as the repo\'s demo')
+    p.add_argument('--record', metavar='DIR', help='also write the run\'s small record (report, beat results, evidence '
+                   'frames) to DIR, such as demo/accepted, for later comparisons')
     p.set_defaults(run=project.export)
     a = ap.parse_args(argv)
     try:

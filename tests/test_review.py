@@ -233,3 +233,85 @@ def test_accept_needs_the_owner_and_a_passing_run(tmp_path, monkeypatch):
     (root / 'run.json').write_text(json.dumps(report))
     with pytest.raises(ValueError, match='failed run'):
         review.accept(accept_args(root))
+
+
+def test_run_aliases_pick_the_newest_matching_run(tmp_path, capsys):
+    runs = tmp_path / 'demo/takes/runs'
+    runs.mkdir(parents=True)
+    for name, finished, ok, status in [('old', '2026-01-01T00:00:00+00:00', True, 'completed'),
+                                       ('new', '2026-01-02T00:00:00+00:00', True, 'pending'),
+                                       ('broken', '2026-01-03T00:00:00+00:00', False, 'pending')]:
+        root = run_fixture(runs / name, name)
+        report = review.read(root)[1]
+        report.update(finished_at=finished, ok=ok, review_status=status)
+        (root / 'run.json').write_text(json.dumps(report))
+    assert review.read(tmp_path / 'demo/latest')[1]['id'] == 'new'
+    assert review.read(runs / 'accepted')[1]['id'] == 'old'
+    assert 'latest is run new' in capsys.readouterr().err
+    assert review.listing(SimpleNamespace(project=str(tmp_path / 'demo/reshoot.toml'))) == 0
+    rows = capsys.readouterr().out.splitlines()[1:]
+    assert [row.split()[0] for row in rows] == ['broken', 'new', 'old']
+    assert rows[1].endswith('latest') and rows[2].endswith('accepted')
+    with pytest.raises(ValueError, match='no accepted run'):
+        review.read(tmp_path / 'elsewhere/accepted')
+
+
+def project_run(tmp_path, name='run'):
+    """A run inside a project, as `reshoot run` lays it out, with one beat and its evidence frame."""
+    root = tmp_path / 'demo/takes/runs' / name
+    root.mkdir(parents=True)
+    (root / 'takes/demo.evidence').mkdir(parents=True)
+    Image.new('RGB', (8, 8), 'blue').save(root / 'takes/demo.evidence/search.png')
+    (root / 'takes/demo.take.json').write_text(json.dumps({'story_id': 'notes', 'video': 'demo.mp4', 'beats': [
+        {'id': 'search', 'status': 'passed', 'start': 0, 'end': 1, 'screenshot': 'demo.evidence/search.png'}]}))
+    (root / 'takes/demo-final.mp4').write_bytes(b'synthetic media placeholder')
+    files = [{'path': p, 'sha256': digest(root / p)} for p in
+             ('takes/demo-final.mp4', 'takes/demo.take.json', 'takes/demo.evidence/search.png')]
+    (root / 'run.json').write_text(json.dumps({'schema_version': 1, 'id': name, 'ok': True, 'files': files,
+                                               'expectations_status': 'passed', 'expectations_count': 1}))
+    return root
+
+
+def test_accept_writes_a_record_that_later_runs_compare_against(tmp_path):
+    root = project_run(tmp_path)
+    assert review.accept(accept_args(root)) == 0
+    record = tmp_path / 'demo/accepted'
+    assert {str(p.relative_to(record)) for p in record.rglob('*') if p.is_file()} == {
+        'run.json', 'decisions.json', 'takes/demo.take.json', 'takes/demo.evidence/search.png'}
+    assert review.read(record)[0] == root.resolve()  # the run itself, with its media, while it is here
+    __import__('shutil').rmtree(root)  # as in CI or a fresh clone
+    assert review.read(record)[1]['record'] is True
+    with pytest.raises(ValueError, match='record'):
+        review.accept(accept_args(record))
+    newer = project_run(tmp_path, 'newer')
+    out = tmp_path / 'summary.md'
+    review.compare(SimpleNamespace(previous=str(record), current=str(newer), out=str(tmp_path / 'c.json'), markdown=str(out)))
+    text = out.read_text()
+    assert '`notes/search` | matched | same | 0 | same | same |' in text and 'Result checks: passed (1)' in text
+
+
+def test_export_replaces_media_and_writes_records_only_over_records(tmp_path):
+    from reshoot import project
+    root = project_run(tmp_path)
+    media = tmp_path / 'docs/demo'
+    args = SimpleNamespace(run_path=str(root), directory=str(media), file=['takes/demo-final.mp4'], replace=False,
+                           record=str(tmp_path / 'demo/accepted'))
+    assert project.export(args) == 0
+    with pytest.raises(ValueError, match='--replace'):
+        project.export(args)
+    args.replace = True
+    assert project.export(args) == 0 and (media / 'demo-final.mp4').exists()
+    args.record = str(media)
+    with pytest.raises(ValueError, match='not a run record'):
+        project.export(args)
+
+
+def test_run_writes_a_github_job_summary_with_the_failed_beat(tmp_path, monkeypatch):
+    from reshoot import run
+    summary = tmp_path / 'summary.md'
+    monkeypatch.setenv('GITHUB_STEP_SUMMARY', str(summary))
+    monkeypatch.delenv('GITHUB_OUTPUT', raising=False)
+    run.save({'ok': False, 'expectations_status': 'unverified', 'scan_status': 'skipped', 'review_status': 'pending',
+              'errors': ["beat 'search' failed: type target {css = '#q'} matched 0 elements"]}, tmp_path / 'run.json')
+    text = summary.read_text()
+    assert '### reshoot: failed' in text and "beat 'search' failed" in text

@@ -1,0 +1,85 @@
+# Records the demo again when the app changes, and opens a pull request with the new video, GIF and a comparison
+# with the accepted run. Merging the pull request accepts the new recording; closing it keeps the old one.
+#
+# Copy to .github/workflows/reshoot.yml in an app with a versioned demo project, and change the marked lines.
+# Before the first run:
+#   - Accept a run locally with `reshoot accept`, and commit the demo/accepted/ record it writes.
+#   - Let workflows open pull requests: Settings, Actions, General, "Allow GitHub Actions to create and approve
+#     pull requests".
+# Nothing is published by this workflow.
+name: Refresh the demo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'demo/**'                 # change: your demo project
+      - 'src/**'                  # change: your app's source
+      - '!demo/accepted/**'       # the merged pull request itself must not start another run
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Set up your app here, so that the [app] run command in demo/reshoot.toml works. For example:
+      # - uses: actions/setup-node@v4
+      #   with: { node-version: 22 }
+      # - run: npm ci
+
+      - id: shoot
+        uses: mumit/reshoot@v0.3.1 # pin to a reviewed commit for production use
+        with:
+          config: demo/reshoot.toml # change: your project
+
+      - name: Compare with the accepted run and stage the new files
+        if: steps.shoot.outputs.ok == 'true'
+        env:
+          REPORT: ${{ steps.shoot.outputs.report }}
+        run: |
+          RUN=$(dirname "$REPORT")
+          {
+            echo "reshoot recorded the demo again after a change to the app."
+            echo
+            # change: the GIF your README uses, at its path on the pull request's branch
+            echo "![The new README GIF](https://github.com/${GITHUB_REPOSITORY}/blob/reshoot/refresh/docs/demo/demo-final-readme.gif?raw=true)"
+            echo
+            if [ -f demo/accepted/run.json ]; then
+              reshoot compare demo/accepted "$RUN" --out "$RUNNER_TEMP/comparison.json" --markdown "$RUNNER_TEMP/comparison.md"
+              cat "$RUNNER_TEMP/comparison.md"
+            else
+              echo "There is no accepted record in demo/accepted yet, so there is nothing to compare with."
+            fi
+            echo
+            echo "**Before merging:** download the \`reshoot-review\` artifact from the workflow run, open its"
+            echo "\`review.html\`, watch both exports to the end and look at every scan item, flagged ones first."
+            echo "Merging accepts this recording. Close the pull request to keep the current one."
+          } > "$RUNNER_TEMP/body.md"
+          # change: the files your README uses
+          reshoot export "$RUN" --directory docs/demo --replace \
+            --file takes/demo-final.mp4 --file takes/demo-final-readme.gif \
+            --record demo/accepted
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: reshoot-review
+          path: demo/takes/ # change: your project's takes folder
+          retention-days: 14
+
+      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        if: steps.shoot.outputs.ok == 'true'
+        with:
+          branch: reshoot/refresh
+          add-paths: |
+            docs/demo/
+            demo/accepted/
+          commit-message: "docs: refresh the demo recording"
+          title: Refresh the demo recording
+          body-path: ${{ runner.temp }}/body.md

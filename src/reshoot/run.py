@@ -57,8 +57,13 @@ def answers(url, ready=False):
 def start_app(app):
     url = app.get("url")
     if url and answers(url):
-        raise SystemExit(f"something is already answering at {url}: stop it first, so the takes show the app this "
-                         "shoot starts")
+        from urllib.parse import urlsplit
+        parts = urlsplit(url)
+        # A loopback address is safe to print; anything else stays redacted.
+        where = (f"port {parts.port} on {parts.hostname}" if parts.hostname in ('127.0.0.1', 'localhost', '::1')
+                 and parts.port else url)
+        raise SystemExit(f"something is already answering at {where}: stop it, or change the port in [app] and the "
+                         "storyboard's url, so the takes show the app this shoot starts")
     if app.get('reset'):
         code = execute(['sh', '-c', app['reset']], app.get('reset_timeout', 30), app.get('cwd'))
         if code:
@@ -129,6 +134,16 @@ def save(report, path):
                     value = str(value).lower()
                 f.write(f"{name}={value if value is not None else 'unknown'}\n")
             f.write(f"report={path}\n")
+    if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+        # The job's summary page, so a failed beat is visible without reading the log.
+        lines = [f"### reshoot: {'recorded' if report.get('ok') else 'failed'}", '',
+                 f"- Result checks: {report.get('expectations_status', 'unverified')} ({report.get('expectations_count', 0)})",
+                 f"- Scan: {report.get('scan_status')}, {report.get('unchecked') or 0} items to look at, "
+                 f"{report.get('flagged') or 0} flagged",
+                 f"- Review: {report.get('review_status')}"]
+        lines += [f"- Error: {error}" for error in report.get('errors', [])]
+        with open(summary, "a") as f:
+            f.write('\n'.join(lines) + '\n\n')
 
 
 def execute(cmd, timeout, cwd=None):
@@ -232,6 +247,8 @@ def main(a):
     finally:
         stop_app(app)
         report['seconds'] = round(time.monotonic() - t0, 1)
+        from datetime import datetime, timezone
+        report['finished_at'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
         from reshoot.artifacts import digest
         report['files'] = [{'path': str(f.relative_to(report_path.parent)), 'sha256': digest(f)}
                            for f in report_path.parent.rglob('*')
@@ -247,6 +264,8 @@ def main(a):
             try:
                 result = json.loads(metadata.read_text())
                 incomplete = incomplete or result.get('status') != 'completed'
+                if result.get('error') and result['error'] not in report['errors']:
+                    report['errors'].append(result['error'])  # which beat failed, and why
                 for beat in result.get('beats', []):
                     checks.extend(beat.get('expectations', []))
             except (OSError, ValueError, TypeError):

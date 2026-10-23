@@ -9,8 +9,70 @@ from urllib.parse import quote
 from reshoot.artifacts import digest
 
 
-def read(path):
+# Run aliases: the last part of a run path picks the newest run that matches.
+ALIASES = {'latest': lambda report: bool(report.get('ok')),
+           'accepted': lambda report: report.get('review_status') == 'completed'}
+
+
+def runs_folder(path):
+    """The takes/runs folder for a project folder, its reshoot.toml, or the runs folder itself."""
     path = Path(path).resolve()
+    if path.suffix == '.toml' or path.is_file():
+        path = path.parent
+    return path if path.name == 'runs' else path / 'takes' / 'runs'
+
+
+def runs(path):
+    """Every run report under the folder, newest first, as (folder, report)."""
+    found = []
+    for report_path in runs_folder(path).glob('*/run.json'):
+        try:
+            report = json.loads(report_path.read_text())
+        except (OSError, ValueError):
+            continue
+        # Older runs have no finish time; their event log was last written as they finished.
+        events = report_path.parent / 'events.jsonl'
+        mtime = (events if events.exists() else report_path).stat().st_mtime
+        from datetime import datetime, timezone
+        report.setdefault('finished_at', datetime.fromtimestamp(mtime, timezone.utc).isoformat(timespec='seconds'))
+        found.append((report_path.parent, report))
+    return sorted(found, key=lambda run: run[1]['finished_at'], reverse=True)
+
+
+def resolve(path):
+    """A run folder, with `latest` (newest successful run) or `accepted` (newest accepted run) as its last part."""
+    path = Path(path)
+    marker = path / 'run.json'
+    if marker.is_file() and (report := json.loads(marker.read_text())).get('record'):
+        # A committed record stands in for its run; use the run itself, with its media, when it is still here.
+        full = runs_folder(path.parent) / report['id']
+        return full if (full / 'run.json').is_file() else path
+    if path.name not in ALIASES or path.exists():
+        return path
+    for folder, report in runs(path.parent):
+        if ALIASES[path.name](report):
+            import sys
+            print(f'{path.name} is run {folder.name}', file=sys.stderr)
+            return folder
+    raise ValueError(f'no {"successful" if path.name == "latest" else "accepted"} run in {runs_folder(path.parent)}')
+
+
+def listing(a):
+    found = runs(a.project)
+    if not found:
+        print(f'no runs in {runs_folder(a.project)}')
+        return 0
+    newest = {name: next((f.name for f, r in found if test(r)), None) for name, test in ALIASES.items()}
+    print(f'{"run":32}  {"finished (UTC)":19}  {"mode":15}  {"result":6}  {"review":9}')
+    for folder, report in found:
+        tags = ' '.join(name for name, id in newest.items() if id == folder.name)
+        print(f'{folder.name:32}  {report["finished_at"][:19].replace("T", " "):19}  {report.get("mode", "final"):15}  '
+              f'{"ok" if report.get("ok") else "failed":6}  {report.get("review_status", "pending"):9}  {tags}'.rstrip())
+    return 0
+
+
+def read(path):
+    path = resolve(path).resolve()
     if path.is_dir():
         path = path / 'run.json'
     report = json.loads(path.read_text())
@@ -100,6 +162,8 @@ def compare(a):
               'inputs_changed': old.get('inputs') != new.get('inputs'),
               'previous_environment': environment(old_root), 'current_environment': environment(new_root),
               'note': 'Matched means the ID matched, not that pixels or results are equal.'}
+    if getattr(a, 'markdown', None):
+        Path(a.markdown).write_text(summary(result, new, new_root))
     text = json.dumps(result, indent=2)
     if a.out:
         Path(a.out).write_text(text)
@@ -114,6 +178,8 @@ def accept(a):
     from datetime import datetime, timezone
     from reshoot.check import load
     root, report = read(a.run_path)
+    if report.get('record'):
+        raise ValueError('this is a run record without its media; accept the run itself')
     sheets = root / 'review'
     if not report.get('ok') or policy(root).get('status') == 'error':
         raise ValueError('cannot accept a failed run or failed check')
@@ -169,7 +235,33 @@ def accept(a):
             (sheets / 'report.json').write_text(json.dumps(scan_report, indent=2))
     decide(root, report, {name: 'accepted' for name in decision_names(root)}, 'completed')
     print('Accepted. Publishing is still up to you.')
+    if root.parent.name == 'runs' and root.parent.parent.name == 'takes':
+        target = record(root, report, root.parent.parent.parent / 'accepted')
+        print(f'Wrote {target}: commit it with the demo source, so CI and fresh checkouts compare against this run.')
     return 0
+
+
+def record(root, report, target):
+    """Write a run's small record: its report, beat results and evidence frames, without the media. Committed beside
+    the demo source, it lets a fresh checkout, such as CI, compare a new run with this one."""
+    target = Path(target).resolve()
+    if target.exists():
+        marker = target / 'run.json'
+        if not (marker.exists() and json.loads(marker.read_text()).get('record')):
+            raise ValueError(f'{target} exists and is not a run record; choose another folder')
+    keep = [f for f in report.get('files', []) if f['path'].endswith('.take.json') or '.evidence/' in f['path']]
+    staging = target.with_name(target.name + '.partial')
+    shutil.rmtree(staging, ignore_errors=True)
+    for item in keep:
+        (staging / item['path']).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / item['path'], staging / item['path'])
+    staging.mkdir(parents=True, exist_ok=True)
+    if (root / 'decisions.json').exists():
+        shutil.copyfile(root / 'decisions.json', staging / 'decisions.json')
+    (staging / 'run.json').write_text(json.dumps({**report, 'files': keep, 'record': True}, indent=2))
+    shutil.rmtree(target, ignore_errors=True)
+    staging.rename(target)
+    return target
 
 
 def decide(root, report, choices, status):
@@ -180,6 +272,29 @@ def decide(root, report, choices, status):
     (root / 'decisions.json').write_text(json.dumps(decisions, indent=2))
     report['review_status'] = status
     (root / 'run.json').write_text(json.dumps(report, indent=2))
+
+
+def summary(result, report, root):
+    """A short Markdown account of a comparison, for a pull request or a chat message."""
+    from reshoot.check import load
+    scan, flags = load(root / 'review' / 'report.json', {}), load(root / 'review' / 'flags.json', {})
+    counts = {}
+    for row in result['beats']:
+        counts[row['change']] = counts.get(row['change'], 0) + 1
+    def yes(value):
+        return '' if value is None else 'changed' if value else 'same'
+    lines = [f"Run `{result['current']}` compared with `{result['previous']}`.", '',
+             f"- Result checks: {report.get('expectations_status', 'unverified')} ({report.get('expectations_count', 0)})",
+             f"- Beats: " + ', '.join(f'{n} {state}' for state, n in sorted(counts.items())),
+             f"- Scan: {scan.get('status', 'not run')}, {scan.get('unchecked') or 0} items to look at, {len(flags)} flagged",
+             f"- Inputs changed: {'yes' if result['inputs_changed'] else 'no'}", '',
+             '| Beat | Change | Definition | Duration | Frame pixels | Results |', '|---|---|---|---|---|---|']
+    for row in result['beats']:
+        delta = row['duration_delta']
+        lines.append(f"| `{row['beat']}` | {row['change']} | {yes(row['definition_changed'])} | "
+                     f"{'' if delta is None else f'{delta:+.2f} s' if abs(delta) >= .005 else '0'} | {yes(row['evidence_changed'])} | {yes(row['results_changed'])} |")
+    lines += ['', result['note'] + ' Frame pixels change with small things such as the cursor; watch the video.']
+    return '\n'.join(lines) + '\n'
 
 
 def main(a):

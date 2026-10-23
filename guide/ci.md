@@ -7,40 +7,70 @@ candidate before replacing the previous video or README GIF.
 Start with a working local browser/VHS project and its reset procedure. Use the
 [local tutorial](step-by-step.md) if you need an example; it is not required for
 an app that already records correctly. Native windows require an interactive
-macOS capture session and are outside this Ubuntu template. New projects use versioned
-run folders and retain candidates until an explicit local export. There are two
-CI examples: a candidate-only workflow for these projects, and the original
-pull-request workflow for legacy `[keep]` projects. Both pin supporting actions
-to reviewed commits.
+macOS capture session and are outside these Ubuntu templates. There are three
+CI examples: a refresh workflow that opens a pull request for versioned projects,
+a candidate-only workflow, and the original pull-request workflow for legacy
+`[keep]` projects. All pin supporting actions to reviewed commits.
 
-## Versioned projects: retain a candidate for review
+## Versioned projects: open a pull request with the refreshed demo
 
-Copy [examples/github/candidate.yml](../examples/github/candidate.yml) into
-`.github/workflows/reshoot.yml` in your app repository. Commit the demo's source
-files, change the configuration and artifact paths if needed, and add the app's dependency
-setup before recording. The sample starts manually with `workflow_dispatch`.
+Copy [examples/github/refresh.yml](../examples/github/refresh.yml) into
+`.github/workflows/reshoot.yml` in your app repository and change the marked
+lines. Before the first run:
 
-The workflow runs `demo/reshoot.toml`, generates a local review page for a
-successful run, and uploads `demo/takes/` even when recording fails. It does not
-copy files into the README or open a pull request. The action uses the installed
-Chrome on the Ubuntu runner and installs ffmpeg and text scanning dependencies.
-For a standalone Linux environment, follow the [installation guide](install.md).
+1. Accept a run locally with `reshoot accept demo/latest`. It writes
+   `demo/accepted/`, a small record of that run: its report, beat results and
+   evidence frames, without the media. Commit it with the demo source.
+2. In the repository's Settings, Actions, General, turn on "Allow GitHub Actions
+   to create and approve pull requests". The pull request step fails without it.
+3. Add the steps your app needs before it can start, such as installing packages.
 
-After a run, download the `reshoot-review` artifact, find its run folder and
-open `review.html` locally. Keep the folder structure intact so media and
-original frames remain linked. Review the exports and sheets as in the
-[tutorial](step-by-step.md#4-accept-the-recording). Recording
-success and an uploaded artifact are not approval.
+When the app or demo source changes on `main`, or when started by hand, the workflow:
 
-After recording review decisions locally, use `reshoot export` to copy the chosen
-files into a new destination, then update the repository's demo media.
-Verify the template's first run against your app's setup and runner environment.
+1. records a fresh run of `demo/reshoot.toml`;
+2. compares it beat by beat with `demo/accepted`;
+3. copies the new MP4 and GIF into `docs/demo/` and the new run's record into
+   `demo/accepted/`;
+4. uploads the run, its review page and scan sheets as the `reshoot-review` artifact;
+5. opens a pull request on the `reshoot/refresh` branch.
+
+The pull request shows the new GIF and a table of matched, added and removed
+beats, with whether each one's definition, duration, frame pixels and results
+changed. Pixel changes are common and small; watch the video. Before merging,
+download the artifact, open its `review.html`, watch both exports to the end and
+look at every scan item, flagged ones first. **Merging the pull request accepts
+the recording**: the next run compares against it. Close the pull request to
+keep the current demo.
+
+If the repository has no `demo/accepted/` yet, the first run still opens a pull
+request, without a comparison. Merging it starts the record.
+
+When a change breaks the story, such as a renamed input, the run fails on that
+beat and opens no pull request. The job's summary page names the beat and its
+target, for example `type target {css = '#q'} matched 0 elements`, and the
+artifact holds a screenshot of the failure. Repair the story locally or with
+the [refresh skill](../skills/reshoot-refresh/SKILL.md), push, and the next run
+opens the pull request. The workflow never repairs a story itself.
+
+The `!demo/accepted/**` path keeps a merged refresh from starting another run.
+Adapt the other paths to your app's source.
+
+## Versioned projects: retain a candidate only
+
+[examples/github/candidate.yml](../examples/github/candidate.yml) records a
+candidate, writes its review page and uploads `demo/takes/` even when recording
+fails. It does not change the repository or open a pull request. Use it to test
+CI recording before adopting the refresh workflow. After a run, download the
+`reshoot-review` artifact, open `review.html` locally and keep the folder
+structure intact so media and original frames remain linked. Review the exports
+and sheets as in the [tutorial](step-by-step.md#4-accept-the-recording).
+Recording success and an uploaded artifact are not approval.
 
 ## Choose when to record
 
-Start with the template's manual trigger. Once that works, replace its `on:`
-block with this example to retain manual recording and add recordings on
-releases and relevant changes to `main`:
+The refresh template records on changes to `main` and by hand. The candidate
+template starts by hand only. To add releases, or to record a candidate on
+relevant changes, use an `on:` block like this:
 
 ```yaml
 on:

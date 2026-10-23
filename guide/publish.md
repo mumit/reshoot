@@ -61,15 +61,15 @@ viewer's way, but available to maintainers.
 Ask the agent to prepare these files and draft copy, then authorize any commit,
 push or public post explicitly. Recording success does not publish anything.
 
-## Automate candidate recordings
+## Refresh the demo in CI
 
-Start with a local script that calls `reshoot run demo/reshoot.toml` and retains
-its exit status and run folder. Resolve startup, fixtures and secrets locally.
-Then use the [GitHub Actions guide](ci.md) to record on demand, after relevant
-commits or on releases, and retain review artifacts even on failure.
+Make sure `reshoot run demo/reshoot.toml` works locally, accept a run and commit
+the `demo/accepted/` record it writes. Then use the [GitHub Actions guide](ci.md):
+its refresh workflow records the demo after relevant changes to `main`, compares
+it with the accepted run and opens a pull request with the new media. Merging
+the pull request accepts it.
 
 CI replays the configured task. It does not author a story, repair broken
-selectors or approve media. Repair failures locally, then record another
-candidate. Keep publication separate from candidate generation until you have
-an explicit review and promotion process. The browser/VHS template does not
+selectors or approve media. When a change breaks the story, the run fails on
+that beat; repair it locally, then push. The browser/VHS template does not
 automate native windows on a hosted Ubuntu runner.

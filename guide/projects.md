@@ -41,7 +41,9 @@ files, the story, edit file, configuration, and tracked Git changes. Unlisted ex
 services and untracked app files are not captured by those hashes.
 
 Versioned configurations use paths relative to their file. Each run writes to
-`takes/runs/ID/` beside the configuration and prints its report path. `preview` reduces output
+`takes/runs/ID/` beside the configuration and prints its report path. `reshoot runs PROJECT`
+lists them. Commands that take a run also accept `latest` (the newest successful run) or
+`accepted` (the newest accepted run) in place of the ID, such as `demo/latest`. `preview` reduces output
 resolution without changing the actions. Projects with VHS takes retain the configured
 browser dimensions so the preview edit can join matching takes. Python storyboards
 and unversioned configurations keep their legacy behavior. Versioned projects support
@@ -128,9 +130,18 @@ ffmpeg work without a map cannot claim accurate links to source beats.
 reshoot export RUN --directory docs/demo --file takes/demo-final.mp4
 ```
 
-`RUN` is the printed run folder or `run.json`. Select files recorded in that report.
-The command checks their hashes and refuses overwrites. It copies locally without
-changing review or publishing status. Legacy `[keep]` configurations retain their
+`RUN` is the printed run folder, its `run.json`, or an alias such as `demo/accepted`. Select files recorded in that report.
+The command checks their hashes and refuses overwrites unless given `--replace`,
+as when updating media already in the repository. It copies locally without
+changing review or publishing status.
+
+`reshoot accept` also writes `demo/accepted/` beside the configuration: a small
+record of the run with its report, beat results and evidence frames, but no
+media. Commit it. `demo/accepted` then names that run: the run itself while its
+folder is under `takes/runs/`, otherwise the record, as in CI or a fresh clone.
+`reshoot compare demo/accepted demo/latest` works in both. `reshoot export RUN
+--record DIR` writes the same record for a run that has not been accepted, as
+the [CI refresh workflow](ci.md) does for its pull request. Legacy `[keep]` configurations retain their
 existing copy behavior.
 
 ## Check and compare

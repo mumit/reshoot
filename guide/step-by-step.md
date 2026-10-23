@@ -46,7 +46,8 @@ Tesseract reads text; faces and people need visual inspection.
 reshoot preview demo/reshoot.toml
 ```
 
-Reshoot starts its own local notes server on port 8765, records a browser page,
+Reshoot starts its own local notes server on port 8765, or on the free port
+`reshoot init` chose if 8765 was in use. It records a browser page,
 cuts the video, writes a GIF, checks the outputs, and stops its server. It never
 captures the desktop. The notes reset on each new page load.
 
@@ -61,7 +62,7 @@ Watch the exports and look at the scan items on that page, then run:
 ```
 
 Save that run folder in a shell variable, replacing the example ID with the
-one printed by the command:
+one printed by the command. `reshoot runs demo` lists every run with its ID:
 
 ```bash
 PREVIEW=demo/takes/runs/PASTE_PREVIEW_ID_HERE
@@ -272,8 +273,10 @@ It copies locally; it does not publish or select a new baseline automatically.
 Retain both run folders and explicitly choose which final to use next time.
 
 If using Git, keep the brief, app fixtures, TOML files and their dependencies
-under version control. Ignore `demo/takes/`, local export directories and
-downloaded review files unless deliberately including them in the repository.
+under version control, with `demo/accepted/`. Accepting a run writes that small
+record of it, so a fresh checkout or [CI](ci.md) can compare later runs with it.
+Ignore `demo/takes/`, local export directories and downloaded review files
+unless deliberately including them in the repository.
 
 For another app, continue with [Record your own app](your-app.md). For settings
 and less common actions, see the [project reference](projects.md) and

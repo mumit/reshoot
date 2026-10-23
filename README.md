@@ -153,8 +153,9 @@ takes outside it. Select an explicit baseline when comparing updates.
 
 Native demos keep their capture instructions and edit script separately; see
 the [macOS window workflow](guide/macos-window.md).
-Use the [CI workflow](guide/ci.md) to record browser and terminal candidates after
-app changes. Review the outputs before updating published demo media.
+The [CI workflow](guide/ci.md) records the demo again when the app changes and
+opens a pull request with the new video, GIF and a beat-by-beat comparison with
+the accepted run. Merging it accepts the new recording.
 
 ## Choose the recording for the task
 

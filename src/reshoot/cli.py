@@ -71,6 +71,8 @@ def main(argv=None):
     p = sub.add_parser("run", help="run a whole shoot from a reshoot.toml: the app, every take, the cut and the check",
                        description=run.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("config", nargs="?", default="reshoot.toml")
+    p.add_argument("--full", action="store_true",
+                   help="scan every frame of the exports this time, as full = true in [check] does")
     p.set_defaults(run=run.main)
 
     p = sub.add_parser("edit", help="run an edit script that uses reshoot.cut, passing it the rest of the arguments")

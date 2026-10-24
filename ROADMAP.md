@@ -15,19 +15,16 @@ found that the tool does the hard part well and loses the joy where a user
 meets it first: the README, the end of a run and the agent's handoff. Items
 are ordered by how early a user meets them.
 
-1. **Review that fits the data.** With made-up data, show flagged scan items
-   first and say the rest can be skimmed. Make the full scan a flag on `run`
-   instead of a config edit.
-2. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
+1. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
    one start-here (agent user, CLI user, team lead, pull-request reviewer),
    add field tables for the three TOML files, a team page (who owns
    `demo/accepted/`, failure alerts, CI cost) and an index of error messages.
    Pick one word each for run, result check, accept and baseline. Give every
    command help text that describes the current format.
-3. **Review inside the pull request.** Link the MP4 on the pull request's
+2. **Review inside the pull request.** Link the MP4 on the pull request's
     branch and show flagged scan items as images, so reviewing a refresh needs
     no artifact download.
-4. **Outside users.** Deferred by the owner. Three people who are not the
+3. **Outside users.** Deferred by the owner. Three people who are not the
     maintainer, each starting from the first-demo prompt.
 
 ## Later
@@ -54,6 +51,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **Review that fits the data:** flagged items are grouped into findings that `accept` names once, the review page
+  shows the exports, the findings and the scan sheets in that order, and `run --full` replaces a config edit.
 - **Sharp video at higher pixel ratios:** Chrome starts at the recording's pixel ratio, so the screencast sends
   device-size frames: `@2` records twice the pixels, zoomed text stays sharp, and the short first frames are gone.
 - **Show the craft:** [How the videos look](guide/look.md) shows the cursor, auto-zoom, captions, title cards,

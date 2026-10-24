@@ -179,6 +179,10 @@ def main(a):
         raise SystemExit(f"no {describe(path)}: see reshoot run --help")
     from reshoot.config import prepare
     shoot = prepare(path)
+    if getattr(a, 'full', False):
+        if 'check' not in shoot:
+            raise SystemExit(f'--full scans the exports, but {describe(path)} has no [check]')
+        shoot['check']['full'] = True
     if os.environ.get('RESHOOT_FROM_BEAT'):
         shoot.pop('edit', None)
         shoot.pop('check', None)
@@ -320,10 +324,11 @@ def main(a):
               f'  reshoot run {shlex.quote(str(a.config))}')
         return
     from reshoot.check import load
-    flags = load(root / 'review' / 'flags.json', {})
-    print('\nNothing is accepted or shared yet. Watch the exports' + (' and look at the scan items, flagged ones first,'
+    from reshoot.check import findings
+    groups = findings(load(root / 'review' / 'flags.json', {}))
+    print('\nNothing is accepted or shared yet. Watch the exports' + (' and look at the scan items, findings first,'
           if page else '') + ' then accept the run:')
-    print('  reshoot accept ' + shlex.quote(shown(root)) + ''.join(' --flagged ' + shlex.quote(label) for label in flags))
+    print('  reshoot accept ' + shlex.quote(shown(root)) + (' --flagged ' + ' '.join(groups) if groups else ''))
 
 
 def shown(path):

@@ -200,8 +200,11 @@ def status(root, report):
     checks = (f'{count} of {count} result checks passed' if state == 'passed' else
               'result checks failed' if state == 'failed' else 'result checks not verified')
     scan, flags = load(root / 'review' / 'report.json', None), load(root / 'review' / 'flags.json', {})
+    from reshoot.check import findings
+    groups = len(findings(flags))
     scanned = ('no scan' if scan is None else
-               f'scan: {len(load(root / "review" / "key.json", {}))} items, {len(flags)} flagged')
+               f'scan: {len(load(root / "review" / "key.json", {}))} items, ' +
+               (f'{groups} finding{"s" if groups > 1 else ""} in {len(flags)} of them' if flags else '0 flagged'))
     verdict = {'completed': 'accepted', 'failed': 'rejected'}.get(report.get('review_status'), 'not accepted yet')
     return ' · '.join((checks, scanned, verdict))
 
@@ -222,6 +225,12 @@ def accept(a):
                          'one with `reshoot run`, or pass --preview to accept this one anyway')
     key, flags = load(sheets / 'key.json', {}), load(sheets / 'flags.json', {})
     failed = set(load(sheets / 'failed.json', []))
+    from reshoot.check import findings, span
+    groups = findings(flags)
+    # A finding's ID, such as F1, stands for every frame it was found in.
+    def labels(names):
+        return [label for name in names or [] for label in (groups[name][1] if name in groups else [name])]
+    a.flagged, a.reject = labels(a.flagged) or None, labels(a.reject) or None
     named = set(a.flagged or []) | set(a.reject or [])
     if unknown := sorted(named - set(key)):
         raise ValueError('not on the current sheets: ' + ' '.join(unknown))
@@ -236,10 +245,11 @@ def accept(a):
     if failed & {h for _, h in key.values()}:
         raise ValueError('items on these sheets were rejected; record a new run')
     if unnamed := [label for label in flags if label not in named]:
-        print('The scan flagged these. Inspect each at full size first:')
-        for label in unnamed:
-            print(f'  {label}  {key[label][0]}: ' + '; '.join(f'{why} {part}' for why, part in flags[label]))
-        print('Then name each one you accept with --flagged, or reject it with --reject.')
+        print('The scan found these. Inspect each at full size first:')
+        for name, (found, members) in groups.items():
+            if left := [label for label in members if label in unnamed]:
+                print(f'  {name}  {found}: {span(left)}')
+        print('Then accept each with --flagged, such as --flagged F1, or reject it with --reject.')
         return 1
     videos = exports(root, report)
     beat_names = sorted(beats(root))
@@ -249,7 +259,8 @@ def accept(a):
     print(f'  {len(beat_names)} beats, expectations {report.get("expectations_status", "unverified")}')
     if key:
         from reshoot.run import shown
-        print(f'  {len(key)} scan items on the sheets in {shown(sheets)}' + (f', including {len(flags)} flagged' if flags else ''))
+        print(f'  {len(key)} scan items on the sheets in {shown(sheets)}' +
+              (f', including {len(groups)} finding{"s" if len(groups) > 1 else ""} in {len(flags)}' if flags else ''))
     if not a.yes:
         if not sys.stdin.isatty():
             raise ValueError('accepting needs the owner: run it in a terminal, or pass --yes for the owner')
@@ -354,18 +365,20 @@ def main(a):
         (root / 'run.json').write_text(json.dumps(report, indent=2))
         print('Saved decisions for run', report['id'])
         return 0
-    candidates = report.get('files', [])
-    sections = []
-    for item in candidates:
+    # The page reads top to bottom as the review goes: the exports, what the scan found, the scan sheets, then each
+    # beat with its original take, and the run's other files folded away at the end.
+    watched = exports(root, report)
+    media, sections, scanned, other = [], [], [], []
+    for item in report.get('files', []):
         name = item['path']
         src = html.escape(quote(name), quote=True)
-        if Path(name).suffix in ('.mp4', '.mov'):
-            content = f'<video controls preload="metadata" data-file="{src}" src="{src}"></video>'
-        elif Path(name).suffix == '.gif':
-            content = f'<img src="{src}" alt="Recorded GIF">'
+        if Path(name).suffix in ('.mp4', '.mov', '.gif'):
+            content = (f'<img src="{src}" alt="Recorded GIF">' if name.endswith('.gif') else
+                       f'<video controls preload="metadata" data-file="{src}" src="{src}"></video>')
+            (media if name in watched else sections).append(
+                '<article><h2>' + ('' if name in watched else 'Original take: ') + html.escape(name) + '</h2>' + content + '</article>')
         else:
-            content = f'<a href="{src}">Open file</a>'
-        sections.append('<article><h2>' + html.escape(name) + '</h2>' + content + '</article>')
+            other.append(f'<li><a href="{src}">{html.escape(name)}</a></li>')
     for take_path in root.rglob('*.take.json'):
         captured = json.loads(take_path.read_text())
         gaps = [r for r in captured.get('resources', []) if r.get('status') != 'saved']
@@ -395,10 +408,32 @@ def main(a):
     keys = json.loads(keys_path.read_text()) if keys_path.exists() else {}
     flags_path = root / 'review' / 'flags.json'
     flags = json.loads(flags_path.read_text()) if flags_path.exists() else {}
-    for label, (source, h) in keys.items():
-        original = root / 'review' / 'originals' / (h + '.png')
-        href = quote(str(original.relative_to(root)))
-        sections.append('<article><h2>' + html.escape(label) + '</h2><p>' + html.escape(source) + '</p><p>' + html.escape(json.dumps(flags.get(label, []))) + '</p>' + (f'<a href="{href}">Open original frame</a>' if original.exists() else '') + '</article>')
+    def original(label):
+        path = root / 'review' / 'originals' / (keys[label][1] + '.png')
+        return quote(str(path.relative_to(root))) if path.exists() else None
+    # Flagged items first, each with its frame and what the scan found; then the sheets of everything else.
+    from reshoot.check import findings, span
+    groups = findings(flags)
+    for name, (found, members) in groups.items():
+        href = original(members[0])
+        others = ''.join(f'<li><a href="{h}">{html.escape(label)}</a>: {html.escape(keys[label][0])}</li>' if (h := original(label))
+                         else f'<li>{html.escape(label)}</li>' for label in members)
+        scanned.append('<article class="flagged"><h2>Finding ' + html.escape(name) + ': ' + html.escape(found) + '</h2><p>'
+                        + html.escape(span(members)) + '. The first is ' + html.escape(keys[members[0]][0]) + '.</p>'
+                        + (f'<a href="{href}"><img alt="Flagged frame {html.escape(members[0])}" src="{href}"></a>' if href else '')
+                        + (f'<details><summary>Every frame it was found in</summary><ul>{others}</ul></details>' if len(members) > 1 else '')
+                        + '</article>')
+    pages = sorted((root / 'review').glob('[0-9]*.jpg'))
+    if keys:
+        rest = len(keys) - len(flags)
+        sheet_images = ''.join(f'<a href="{quote(str(p.relative_to(root)))}"><img alt="Scan sheet {p.stem}" src="{quote(str(p.relative_to(root)))}"></a>'
+                               for p in pages)
+        items = ''.join(f'<li>{html.escape(label)}: ' + (f'<a href="{href}">' if (href := original(label)) else '')
+                        + html.escape(keys[label][0]) + ('</a>' if href else '') + '</li>' for label in keys)
+        scanned.append(f'<article><h2>Scan sheets</h2><p>{len(keys)} items on {len(pages)} sheets'
+                        + (f', flagged ones first. {rest} more the scan found nothing in.' if flags else '. The scan found nothing in them.')
+                        + ' Look over them for what a scan can miss, such as a name in a picture or a face on Linux.</p>'
+                        + f'<div class="sheets">{sheet_images}</div><details><summary>Each item at full size</summary><ul>{items}</ul></details></article>')
     previous_panel = ''
     if a.previous:
         old_root, old = read(a.previous)
@@ -443,15 +478,17 @@ def main(a):
             initial = prior
     data = json.dumps(initial).replace('<', '\\u003c')
     document = '''<!doctype html><meta charset="utf-8"><title>Reshoot review</title>
-<style>body{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem;background:#151515;color:#eee}video,img{max-width:100%;max-height:65vh}article{border-top:1px solid #777;padding:1rem 0}a{color:#add8ff}pre{white-space:pre-wrap;overflow-wrap:anywhere}select,button{font:inherit;margin:.5rem}</style>
+<style>body{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem;background:#151515;color:#eee}video,img{max-width:100%;max-height:65vh}article{border-top:1px solid #777;padding:1rem 0}a{color:#add8ff}.sheets{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.5rem}.sheets img{width:100%}.flagged{border-left:4px solid #e33;padding-left:1rem}pre{white-space:pre-wrap;overflow-wrap:anywhere}select,button{font:inherit;margin:.5rem}</style>
 <h1>Review this recording</h1>'''
     document += '<p><strong>' + html.escape(status(root, report)) + '</strong></p>'
-    command = 'reshoot accept ' + shlex.quote(str(root)) + ''.join(' --flagged ' + shlex.quote(label) for label in flags)
+    command = 'reshoot accept ' + shlex.quote(str(root)) + (' --flagged ' + ' '.join(groups) if groups else '')
     document += ('<p><strong>To accept:</strong> watch every export below and look at the scan items, flagged ones first. '
-                 'Then run <code>' + html.escape(command) + '</code>. Name a failed item with <code>--reject LABEL</code> instead.</p>')
+                 'Then run <code>' + html.escape(command) + '</code>. Name a finding that must not be shared with '
+                 '<code>--reject</code> instead, such as <code>--reject F1</code>.</p>')
     document += ('<details><summary>Run data</summary><pre>' + html.escape(json.dumps({'execution': report.get('ok'), 'expectations': report.get('expectations_status', 'unverified'), 'scan': scan_report}, indent=2))
                  + '</pre></details>')
-    document += previous_panel + ''.join(sections) + '<h2>Your decisions</h2><div id="choices"></div><button id="save">Download decisions</button>'
+    files = f'<article><details><summary>Other files in the run ({len(other)})</summary><ul>{"".join(other)}</ul></details></article>' if other else ''
+    document += previous_panel + ''.join(media + scanned + sections) + files + '<h2>Your decisions</h2><div id="choices"></div><button id="save">Download decisions</button>'
     document += '<script>const result=' + data + '''; document.addEventListener('click', e=>{const b=e.target.closest('button[data-time]');if(!b)return;const v=[...document.querySelectorAll('video')].find(v=>v.dataset.file===b.dataset.file);if(v){v.currentTime=Number(b.dataset.time);v.scrollIntoView();v.play()}}); const box=document.getElementById('choices');
 for(const [name,value] of Object.entries(result.decisions)){const label=document.createElement('label');label.textContent=name;const select=document.createElement('select');for(const v of ['pending','accepted','rejected']){const o=document.createElement('option');o.value=v;o.textContent=v;o.selected=v===value;select.append(o)}select.onchange=()=>result.decisions[name]=select.value;label.append(select);box.append(label,document.createElement('br'))}
 document.getElementById('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));a.download='decisions.json';a.click();URL.revokeObjectURL(a.href)};</script>'''

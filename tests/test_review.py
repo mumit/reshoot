@@ -345,7 +345,19 @@ def test_compare_says_which_beats_changed_when_it_writes_a_file(tmp_path, capsys
 def test_review_page_opens_with_one_status_line(tmp_path):
     root = run_fixture(tmp_path / 'run')
     sheets_fixture(root, {'1-2': [['email', 'priv•••']]})
-    assert review.status(root, review.read(root)[1]) == 'result checks not verified · scan: 2 items, 1 flagged · not accepted yet'
+    assert review.status(root, review.read(root)[1]) == 'result checks not verified · scan: 2 items, 1 finding in 1 of them · not accepted yet'
     review.main(SimpleNamespace(run_path=str(root), previous=None, import_decisions=None))
     page = (root / 'review.html').read_text()
-    assert page.index('scan: 2 items, 1 flagged') < page.index('<details>')
+    assert page.index('1 finding in 1 of them') < page.index('<details>')
+    assert page.index('Finding F1: email priv•••') < page.index('Scan sheets')
+
+
+def test_one_finding_covers_every_frame_it_is_in(tmp_path, capsys):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root, {'1-1': [['email', 'sam•••']], '1-2': [['email', 'sam•••']]})
+    assert review.accept(accept_args(root)) == 1
+    out = capsys.readouterr().out
+    assert 'F1  email sam•••: 2 frames, 1-1 to 1-2' in out and out.count('sam•••') == 1
+    assert review.accept(accept_args(root, flagged=['F1'])) == 0
+    decisions = json.loads((root / 'decisions.json').read_text())['decisions']
+    assert decisions['finding/1-1'] == decisions['finding/1-2'] == 'accepted'

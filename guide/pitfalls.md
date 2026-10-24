@@ -112,6 +112,9 @@ Use this reference to diagnose recording, editing and review problems.
   `demo/accepted/takes/`, so the record's beat results and evidence frames were never committed. Ignore
   `/demo/takes/` from the repository root, or `/takes/` inside `demo/`. Fixed in reshoot: `reshoot init` writes
   `demo/.gitignore` with `/takes/`.
+- **One email address made hundreds of flagged items.** A typed address stayed on screen, so a full scan
+  flagged it in 318 frames, and `accept` needed every label named. Fixed in reshoot: flagged items are grouped by
+  what was found, and `--flagged F1` names the finding.
 - **A preview accepted as the CI baseline.** `demo/latest` is the newest successful run, previews included, so
   `reshoot accept demo/latest` after a preview committed a small, quick preview as the baseline. Fixed in reshoot:
   `accept` refuses a preview unless given `--preview`.

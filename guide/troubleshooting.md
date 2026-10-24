@@ -103,8 +103,10 @@ First identify which review is pending:
 
 Watch the final exports and look at the scan items, then run
 `reshoot accept RUN`. It records both the verdict and the scan checklist. If
-it stops and lists flagged items, inspect each one and name it with
-`--flagged LABEL`, or `--reject LABEL` if it must not be shared. Without a
+it stops and lists what the scan found, inspect each finding and name it with
+`--flagged F1`, or `--reject F1` if it must not be shared. A finding, such as
+an email address on screen for the whole video, covers every frame it appears
+in; a single label such as `1-2` names one frame. Without a
 terminal it refuses unless given `--yes`; only the owner should pass that.
 
 The earlier two-step route still works: `reshoot check --review RUN/review --ok`

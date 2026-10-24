@@ -4,6 +4,22 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Changed
+
+- The scan groups what it flags into findings: one email address on screen for
+  a whole video is one finding, such as `F1`, not hundreds of frames to name.
+  `accept --flagged F1` or `--reject F1` covers every frame it is in; a label
+  such as `1-2` still names one frame.
+- The review page reads in review order: the exports, each finding with its
+  frame, the scan sheets as images, then the beats, with the run's other files
+  folded into one list.
+- `reshoot run --full` scans every frame this time, without editing the
+  config. The tutorial uses it.
+- Scan messages say to look at findings first and then look over the rest for
+  what a scan can miss, instead of asking for every item at full size.
+
 ## 0.3.4 (2026-10-24)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

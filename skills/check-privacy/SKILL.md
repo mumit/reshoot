@@ -35,7 +35,7 @@ keeps a face, a name or a house number out of a public video.
 6. Repeat until `reshoot check` says everything has been checked.
 
 For a versioned run, `reshoot accept RUN` replaces steps 4 and 5 when this CLI provides it: it records the scan
-checklist and the recording verdict together, and needs each flagged label named with `--flagged` or `--reject`.
+checklist and the recording verdict together, and needs each finding named with `--flagged F1` or `--reject F1`; a finding covers every frame the same text was found in, and a label such as `1-2` names one frame.
 The person runs it, or tells you explicitly to.
 
 ## What fails an image

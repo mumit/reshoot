@@ -95,6 +95,20 @@ def mask(why, part):
     return part[:4] + "•••" if len(part) > 6 else "•••"
 
 
+def findings(flagged):
+    """Flagged items grouped by what the scan found, so one email on screen for a whole video is one finding, not
+    hundreds: {'F1': (what was found, [labels])}, in the order the labels first appear."""
+    groups = {}
+    for label, flags in flagged.items():
+        groups.setdefault('; '.join(f'{why} {part}' for why, part in flags), []).append(label)
+    return {f'F{n}': (found, labels) for n, (found, labels) in enumerate(groups.items(), 1)}
+
+
+def span(labels):
+    """Labels as a short phrase: '1-2', or '318 frames, 1-1 to 80-2'."""
+    return labels[0] if len(labels) == 1 else f'{len(labels)} frames, {labels[0]} to {labels[-1]}'
+
+
 def sheets(todo, review):
     """Numbered sheets of the images, four at a time, flagged ones first; returns {label: [source, hash]} and writes
     flags.json, {label: [[reason, masked], ...]}."""
@@ -248,15 +262,21 @@ def perform(a, report):
     (review / 'flags.json').write_text(json.dumps(flagged, indent=1, ensure_ascii=False))
     report.update(unchecked=len(key), flagged=len(flagged), review="pending")
     if flagged:
-        print(f"The scan flagged {len(flagged)} of them (boxed in red, on the first sheets). Look at these first:")
-        for label, flags in flagged.items():
-            print(f"  {label}  {key[label][0]}: " + "; ".join(f"{why} {part}" for why, part in flags))
+        groups = findings(flagged)
+        print(f"The scan found {len(groups)} thing{'s' if len(groups) > 1 else ''} to check, in {len(flagged)} of them "
+              "(boxed in red, on the first sheets). Look at these first:")
+        for name, (found, labels) in groups.items():
+            print(f"  {name}  {found}: {span(labels)}")
+    pages = (len(todo) + 3) // 4
     if os.environ.get('RESHOOT_IN_RUN'):  # the run says what to do next
-        print(f"{len(key)} scan items on {(len(todo) + 3) // 4} sheets, in the run's review/ folder.")
+        print(f"{len(key)} scan items on {pages} sheets, in the run's review/ folder"
+              + (f", {len(flagged)} flagged first." if flagged else "; the scan flagged none."))
         return 1
-    print(f"{len(key)} frames, images, or text findings not checked yet, on {(len(todo) + 3) // 4} sheets in {review}/. Look at each one "
-          "at full size. For a run, record the verdict with `reshoot accept RUN`; for these sheets alone, run "
-          "`reshoot check --fail LABEL...` for any that fail and `reshoot check --ok`.")
+    print(f"{len(key)} frames, images, or text findings to look at, on {pages} sheets in {review}/. "
+          + ("Look at each flagged one at full size, then " if flagged else "The scan flagged none; ")
+          + "look over the rest for what a scan can miss, such as a name in a picture. For a run, record the verdict "
+          "with `reshoot accept RUN`; for these sheets alone, run `reshoot check --fail LABEL...` for any that fail "
+          "and `reshoot check --ok`.")
     return 1
 
 

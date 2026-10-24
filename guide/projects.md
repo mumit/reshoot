@@ -171,8 +171,9 @@ face detection finds every private detail. Missing inputs and required detectors
 are errors. `--no-scan` explicitly skips detection. Sources use opaque IDs so URLs
 and filenames do not enter scan logs. Sheets link labels to saved original frames.
 
-For project runs, set `full = true` inside `[check]` to scan every frame of the
-declared sources in a final. Previews still sample, to stay quick. `every = SECONDS` controls sampled checks when full mode is off.
+For project runs, `reshoot run CONFIG --full`, or `full = true` inside
+`[check]`, scans every frame of the declared sources in a final. Previews
+still sample, to stay quick. `every = SECONDS` controls sampled checks when full mode is off.
 Full scans often take most of a run; [Faster shoots](speed.md) weighs the options.
 
 Check exits 0 for accepted supplied items, 1 for human review pending, and 2 for an
@@ -192,8 +193,8 @@ After watching the exports and looking at the scan items, the owner accepts the 
 
 ```bash
 reshoot accept CURRENT_RUN
-reshoot accept CURRENT_RUN --flagged 1-2   # also accept an inspected flagged item
-reshoot accept CURRENT_RUN --reject 1-2    # this item must not be shared
+reshoot accept CURRENT_RUN --flagged F1    # also accept an inspected finding, in every frame it is in
+reshoot accept CURRENT_RUN --reject F1     # this finding must not be shared
 ```
 
 `accept` covers the video, every beat, every scan item and the scan checklist

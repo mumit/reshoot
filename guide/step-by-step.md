@@ -86,24 +86,15 @@ choose [source code](your-app.md), a [running URL](running-web-app.md) or a
 
 ## 3. Make a final recording
 
-Add `full = true` inside the existing `[check]` table in `demo/reshoot.toml`:
-
-```toml
-[check]
-sources = ["takes/demo-final.mp4", "takes/demo-final-readme.gif"]
-review = "review"
-scan = true
-full = true
-```
-
-This checks every decoded frame of both final exports, reusing exact duplicates.
-Previews still check samples every three seconds, which could miss brief
-content, so they stay quick. Full checks take longer and still need a person's
-review.
-
 ```bash
-reshoot run demo/reshoot.toml
+reshoot run demo/reshoot.toml --full
 ```
+
+`--full` checks every decoded frame of both final exports, reusing exact
+duplicates. Without it, a run checks samples every three seconds, which could
+miss brief content, as previews do to stay quick. Full checks take longer and
+still need a person's review. To make every final full, set `full = true` in
+the `[check]` table of `demo/reshoot.toml`.
 
 The final's folder contains these files, plus evidence frames and other
 metadata:
@@ -136,12 +127,12 @@ Accepting says two things: the recording shows the task clearly, and nothing
 in its frames or captions should stay private. A clean automatic scan decides
 neither.
 
-On the final's review page, watch both exports to the end. Then look at the
-scan items below them. Each numbered `.jpg` in the run's `review/` folder holds up
-to four labeled images, such as `1-1` and `1-2`; the page links each label to
-its full-size original. Flagged items come first, boxed in red. Look for
+On the final's review page, watch both exports to the end. Below them, any
+item the scan flagged comes first, with its frame and what was found. Then the
+scan sheets: each holds up to four labeled images, such as `1-1` and `1-2`, and
+"Each item at full size" links every label to its original. Look for
 unintended names, accounts, tokens, paths or people. In this tutorial all app
-data is made up.
+data is made up, so a quick look over the unflagged sheets is enough.
 
 When everything is acceptable, run:
 
@@ -156,17 +147,18 @@ scan policy, and writes `demo/accepted/`, a small record of the run. From now
 on `demo/accepted` stands for this run. A later change to a file or the scan
 policy invalidates the verdict.
 
-If the scan flagged something, `accept` stops and lists it. Inspect each flagged
-item at full size, then name the ones you accept:
+If the scan found something, `accept` stops and lists each finding once, with
+the frames it is in, such as `F1  email sam.•••: 318 frames, 1-1 to 80-2`.
+Inspect it at full size on the review page, then name the findings you accept:
 
 ```bash
-reshoot accept demo/latest --flagged 1-2
+reshoot accept demo/latest --flagged F1
 ```
 
 If an item must not be shared, reject it instead:
 
 ```bash
-reshoot accept demo/latest --reject 1-2
+reshoot accept demo/latest --reject F1
 ```
 
 That marks the run failed. Fix the demo data or story and make a new recording;
@@ -229,7 +221,7 @@ Then record a repaired preview and a fresh final:
 
 ```bash
 reshoot preview demo/reshoot.toml
-reshoot run demo/reshoot.toml
+reshoot run demo/reshoot.toml --full
 ```
 
 Both should end with all three result checks passing. Compare the new final

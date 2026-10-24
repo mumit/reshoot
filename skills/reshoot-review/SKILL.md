@@ -19,7 +19,7 @@ For a versioned run, use the local page from `reshoot review RUN` to inspect tim
 Previous and current GIFs display as images in the comparison page; inspect their
 animation and loop as well as the MP4 playback.
 
-The owner decides whether a recording is accepted. For a versioned run, give the owner the exact command: `reshoot accept RUN`, plus `--flagged LABEL` for each flagged item they must inspect, or `--reject LABEL` for one that fails. Do not run `accept`, `check --ok` or an import, pass `--yes`, or promote a baseline merely because your inspection found nothing. Carry out those actions only when the owner explicitly authorizes the decision. Give the owner the files, evidence, and unresolved findings; do not publish without authorization.
+The owner decides whether a recording is accepted. For a versioned run, give the owner the exact command: `reshoot accept RUN`, plus `--flagged F1` for each finding they must inspect, or `--reject F1` for one that fails. A finding, such as F1, covers every frame the same text was found in. Do not run `accept`, `check --ok` or an import, pass `--yes`, or promote a baseline merely because your inspection found nothing. Carry out those actions only when the owner explicitly authorizes the decision. Give the owner the files, evidence, and unresolved findings; do not publish without authorization.
 
 `check --text-file FINAL.srt` scans exact caption text. Runs also check generated
 subtitle and narration sidecars. Inspect text findings at their recorded cue times.

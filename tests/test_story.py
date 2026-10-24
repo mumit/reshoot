@@ -347,8 +347,10 @@ hold = 0.3
         assert result.value.code == 0
     finally:
         server.shutdown()
-    beats = json.loads((tmp_path / 'take.beats.json').read_text())
-    at = beats['go'] + 1.2  # well after the click, still inside the hold
+    beat = next(b for b in json.loads((tmp_path / 'take.take.json').read_text())['beats'] if b['id'] == 'go')
+    # Inside the hold, which starts once the result is there. Timing from the beat's start fails on a slow runner,
+    # where the cursor's glide and press before the click take longer.
+    at = beat['end'] - 0.5
     frame = tmp_path / 'frame.png'
     subprocess.run(['ffmpeg', '-loglevel', 'error', '-i', str(tmp_path / 'take.mp4'), '-vf', f"select='gte(t,{at})'",
                     '-frames:v', '1', '-y', str(frame)], check=True)

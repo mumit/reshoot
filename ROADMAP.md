@@ -8,20 +8,57 @@ Each item says what it is and why it matters. When one ships, move it to Done
 with a line on what it does. Trial evidence lives in the
 [validation records](docs/validation/README.md), not here.
 
-## Now: make reshoot a joy to use
+## Now: a studio beside the CLI
 
 A [persona review of the docs](docs/validation/2026-10-23-persona-review.md)
 found that the tool does the hard part well and loses the joy where a user
-meets it first: the README, the end of a run and the agent's handoff. Items
-are ordered by how early a user meets them.
+meets it first. The CLI and the agent skills already cover the hard part. Next
+is a local place to see a story and shape it by pointing, with the files in the
+repository still the source of truth, so agents and CI work as before.
 
-1. **Outside users.** Deferred by the owner. Three people who are not the
-    maintainer, each starting from the first-demo prompt.
+1. **Captions drawn after recording.** Captions move from the recorded page into the cut, as the zoom
+    captions already are, so a re-cut can change their text, place and timing. Why: the studio's quick
+    caption edits need it; without it every caption change means recording again.
+2. **`reshoot studio`.** A local page in the browser, served like `review --serve` on 127.0.0.1 with a
+    token. It shows the beats as a timeline: each beat's last frame, caption, result checks passed or failed
+    and duration, and plays one beat on a click. Captions, cards, the frame, music and the preset are edited
+    in place and written to `storyboard.toml` and `edit.toml`, then re-cut in seconds. A changed beat is
+    re-recorded on its own through partial replay. The export shapes sit side by side with their limit
+    checks, and the findings sit on the timeline with the accept panel. Why: seeing the whole story and
+    changing it by pointing is quicker and kinder than editing files and rerunning.
+3. **A toolbar in the recording window.** While `reshoot rec` runs, a small toolbar in the page offers
+    "Check this" (click an element to make it a result check), "Caption here", "Hide this" (blurred in every
+    take), "Pause" and "Retake last step". Why: pointing at what matters is exact where suggested checks
+    guess, and it writes most of the story while you show the app.
+4. **Suggested repair when a story breaks.** `reshoot rec` saves fallback ways to find each element: test
+    id, id, name or label, text. When the main selector matches nothing, reshoot tries them, and if exactly
+    one matches, the failure prints a ready fix, such as "`Save` is now `#save-btn`", that one command
+    applies. When none or several match, the studio shows the failure frame and asks the person to click the
+    element. CI shows the fix in the failure summary. The run still fails until someone applies it. Why: a
+    renamed button is the most common way a demo goes stale, and finding the new selector is the dull part.
+5. **Screenshots for docs that stay current.** `reshoot export --screenshots DIR` writes each beat's frame,
+    or the beats a story names, as images for the docs, refreshed and reviewed in the same pull request as the
+    video. Why: stale screenshots are in nearly every product's docs, and the frames are already there.
+6. **A clickable tour.** Export a self-contained HTML tour from the beats: each step shows its frame with
+    the clicked element highlighted, and the viewer clicks it to go on. Why: hosted tour tools go stale when
+    the UI changes; this one refreshes with the demo.
+7. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
+    first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
 ## Later
 
-- Captions drawn after recording, so a re-cut can change them too.
-- A single first-demo page, with the other guides kept as reference.
+- **From clicking to a finished video in one command.** `reshoot rec URL --run` writes the storyboard with
+  its suggested checks, records the final take and opens it in the studio.
+- **Narrate as you click.** `rec` listens to the microphone and turns what is said during each action into
+  that beat's caption or voiceover line.
+- **Storyboards in VS Code.** Hovering a beat shows its last frame, the gutter shows whether its checks
+  passed, and "Record from here" above each beat starts a partial run, all from the run reports.
+- **A web player with chapters.** Each beat is a chapter, and the captions are readable, searchable text
+  beside the video.
+- **Before and after.** A changed beat's old and new takes play side by side or under a slider, in the
+  studio, the review page and the refresh pull request, and can be cut into a short clip for release notes.
+- A single first-demo page, with the other guides kept as reference, if `rec` and the studio do not carry a
+  newcomer on their own.
 - Real changing remote services as a compatibility trial.
 
 ## Parked until someone asks
@@ -32,6 +69,9 @@ are ordered by how early a user meets them.
 - Face and person detection on Linux.
 - Translated captions and narration.
 - Further duration, platform and workload trials.
+- A read-only MCP server: list runs, read a report, fetch a finding's frame as an image, for agents in
+  clients without a shell. Not accept, which stays with a person. Claude Code and Codex already run the CLI
+  through the skills.
 
 ## Done
 

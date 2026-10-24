@@ -328,3 +328,24 @@ def test_run_writes_a_github_job_summary_with_the_failed_beat(tmp_path, monkeypa
               'errors': ["beat 'search' failed: type target {css = '#q'} matched 0 elements"]}, tmp_path / 'run.json')
     text = summary.read_text()
     assert '### reshoot: failed' in text and "beat 'search' failed" in text
+
+
+def test_compare_says_which_beats_changed_when_it_writes_a_file(tmp_path, capsys):
+    old = run_fixture(tmp_path / 'old', 'old')
+    new = run_fixture(tmp_path / 'new', 'new')
+    for root, actual in [(old, 'one note'), (new, 'two notes')]:
+        (root / 'web.take.json').write_text(json.dumps({'story_id': 'notes', 'beats': [
+            {'id': 'search', 'status': 'passed', 'expectations': [{'actual': actual}]}]}))
+    review.compare(SimpleNamespace(previous=str(old), current=str(new), out=str(tmp_path / 'comparison.json')))
+    out = capsys.readouterr().out
+    assert 'Beats: 1 matched.' in out and 'notes/search: matched, changed results' in out
+    assert json.loads((tmp_path / 'comparison.json').read_text())['beats'][0]['results_changed'] is True
+
+
+def test_review_page_opens_with_one_status_line(tmp_path):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root, {'1-2': [['email', 'priv•••']]})
+    assert review.status(root, review.read(root)[1]) == 'result checks not verified · scan: 2 items, 1 flagged · not accepted yet'
+    review.main(SimpleNamespace(run_path=str(root), previous=None, import_decisions=None))
+    page = (root / 'review.html').read_text()
+    assert page.index('scan: 2 items, 1 flagged') < page.index('<details>')

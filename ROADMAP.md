@@ -15,48 +15,42 @@ found that the tool does the hard part well and loses the joy where a user
 meets it first: the README, the end of a run and the agent's handoff. Items
 are ordered by how early a user meets them.
 
-1. **A finish line worth reaching.** End every run with what was made: checks
-   passed, the MP4 and GIF paths and the review page, then the accept command.
-   Keep the app server's log out of the output. A failed run prints its folder
-   and failure image, `compare` prints which beats matched and changed, and the
-   review page opens with one status line. The tutorial uses `latest` and
-   `accepted` instead of pasted run IDs and turns the full scan off again.
-2. **A README that sells in ten seconds.** Lead with "Demos that stay
+1. **A README that sells in ten seconds.** Lead with "Demos that stay
    current", the install line and three commands, show five lines of a
    storyboard, say what reshoot does that VHS, Screen Studio and Playwright
    video don't, and give the requirements in one line. One "where next" table
    instead of four, and warmer words than "verdict" and "approval".
-3. **A clear agent handoff.** Tell the human before they paste the prompt what
+2. **A clear agent handoff.** Tell the human before they paste the prompt what
    it takes: minutes, cost, the files it writes, the permissions it asks for.
    End with a fixed handoff: the exports, the checks, "reply accept, or ask for
    changes like these", and follow-up prompts for shorter captions, slower
    pacing, a portrait cut, a voiceover and CI. After accepting, export to
    `docs/demo/` as the CI template expects, and have `init` write a
    `demo/.gitignore` for `takes/`.
-4. **The same cursor on every route.** TOML storyboards get the click ripple,
+3. **The same cursor on every route.** TOML storyboards get the click ripple,
    press and varied typing speed that Python storyboards have, with options
    for cursor size and typing speed.
-5. **Show the craft.** A look gallery made from the notes example: zoom on and
+4. **Show the craft.** A look gallery made from the notes example: zoom on and
    off, the cursor, caption positions, cards, 16:9, 4:5 and 9:16, GIF widths
    with sizes. Name auto-zoom and audio ducking, and turn the camera's fixed
    bugs into a page on how the camera moves.
-6. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at
+5. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at
    the page's CSS size, so `@1.5` and `@2` only scale them up, including the
    `1280x720@1.5` default. Capture at the device resolution, or say plainly
    that the ratio only sets the output size.
-7. **Review that fits the data.** With made-up data, show flagged scan items
+6. **Review that fits the data.** With made-up data, show flagged scan items
    first and say the rest can be skimmed. Make the full scan a flag on `run`
    instead of a config edit.
-8. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
+7. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
    one start-here (agent user, CLI user, team lead, pull-request reviewer),
    add field tables for the three TOML files, a team page (who owns
    `demo/accepted/`, failure alerts, CI cost) and an index of error messages.
    Pick one word each for run, result check, accept and baseline. Give every
    command help text that describes the current format.
-9. **Review inside the pull request.** Link the MP4 on the pull request's
+8. **Review inside the pull request.** Link the MP4 on the pull request's
     branch and show flagged scan items as images, so reviewing a refresh needs
     no artifact download.
-10. **Outside users.** Deferred by the owner. Three people who are not the
+9. **Outside users.** Deferred by the owner. Three people who are not the
     maintainer, each starting from the first-demo prompt.
 
 ## Later
@@ -83,6 +77,9 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **A finish line worth reaching:** a run ends with its result checks and the paths of what it made, a failure
+  names its run folder and failure image, the app's log goes to a file, `compare` says what changed, and the
+  review page opens with one status line. The tutorial uses `latest` and `accepted` and stays quick after a full scan.
 - **Docs that had drifted:** `accept` refuses a preview, so the CI guide can no longer commit one as the baseline,
   and `reshoot skills --replace` installs new skills after an upgrade. The "no `select`" claims, the CLI 0.2
   requirement, the archive-by-ID baseline, the skills' hedges and the sharp-zoom claim are gone.

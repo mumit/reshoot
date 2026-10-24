@@ -167,7 +167,7 @@ are errors. `--no-scan` explicitly skips detection. Sources use opaque IDs so UR
 and filenames do not enter scan logs. Sheets link labels to saved original frames.
 
 For project runs, set `full = true` inside `[check]` to scan every frame of the
-declared sources. `every = SECONDS` controls sampled checks when full mode is off.
+declared sources in a final. Previews still sample, to stay quick. `every = SECONDS` controls sampled checks when full mode is off.
 Full scans often take most of a run; [Faster shoots](speed.md) weighs the options.
 
 Check exits 0 for accepted supplied items, 1 for human review pending, and 2 for an

@@ -54,7 +54,16 @@ def answers(url, ready=False):
         return False
 
 
-def start_app(app):
+def tail(log, lines=15):
+    """The end of the app's log, to show beside an error."""
+    try:
+        text = Path(log).read_text(errors='replace').splitlines()[-lines:]
+    except (OSError, TypeError):
+        return ''
+    return ('\nThe app\'s last output, from ' + str(log) + ':\n  ' + '\n  '.join(text)) if text else ''
+
+
+def start_app(app, log=None):
     url = app.get("url")
     if url and answers(url):
         from urllib.parse import urlsplit
@@ -69,15 +78,22 @@ def start_app(app):
         if code:
             raise RuntimeError('demo data reset failed')
     print("starting the demo app", flush=True)
-    proc = subprocess.Popen(app["run"], shell=True, start_new_session=True, cwd=app.get("cwd"))
+    # The app's own output, such as a server's request log, goes to a file in the run folder, not between reshoot's.
+    out = open(log, 'ab') if log else None
+    try:
+        proc = subprocess.Popen(app["run"], shell=True, start_new_session=True, cwd=app.get("cwd"),
+                                stdout=out, stderr=subprocess.STDOUT if out else None)
+    finally:
+        if out:
+            out.close()
     if url:
         deadline = time.time() + app.get("timeout", 60)
         while not answers(url, ready=True):
             if proc.poll() is not None:
-                raise SystemExit(f"the app stopped before it answered at {url} (exit {proc.returncode})")
+                raise SystemExit(f"the app stopped before it answered at {url} (exit {proc.returncode})" + tail(log))
             if time.time() > deadline:
                 stop_app(proc)
-                raise SystemExit(f"the app didn't answer at {url} within {app.get('timeout', 60)} s")
+                raise SystemExit(f"the app didn't answer at {url} within {app.get('timeout', 60)} s" + tail(log))
             time.sleep(0.5)
     return proc
 
@@ -147,7 +163,7 @@ def save(report, path):
 
 
 def execute(cmd, timeout, cwd=None):
-    env = dict(os.environ)
+    env = {**os.environ, 'RESHOOT_IN_RUN': '1'}
     if cwd:
         env['RESHOOT_VOICE_CACHE'] = str(Path(cwd) / 'takes' / 'voice-cache')
     proc = subprocess.Popen(cmd, start_new_session=True, cwd=cwd, env=env)
@@ -192,7 +208,7 @@ def main(a):
         tracked_diff = subprocess.run(['git', '-C', root, 'diff', 'HEAD', '--binary'], capture_output=True).stdout
         report['inputs']['tracked_diff_sha256'] = __import__('hashlib').sha256(tracked_diff).hexdigest()
         report['inputs'].update(commit=revision.stdout.strip(), dirty=bool(dirty), dirty_index_sha256=__import__('hashlib').sha256(dirty).hexdigest())
-    app, t0 = None, time.monotonic()
+    app, t0, failure = None, time.monotonic(), None
     timeout = shoot.get('timeout', 600)
     report.update(id=shoot.get('_run_id') or __import__('uuid').uuid4().hex, exports=shoot.get('_exports', {}),
                   mode='partial-preview' if os.environ.get('RESHOOT_FROM_BEAT') else 'preview' if os.environ.get('RESHOOT_PREVIEW') else 'final')
@@ -204,9 +220,10 @@ def main(a):
                 f.write(json.dumps({'run': report['id'], 'kind': kind, 'at': time.monotonic()-t0, **fields})+'\n')
         event('start')
         if 'app' in shoot:
-            app = start_app({**shoot['app'], 'timeout': min(shoot['app'].get('timeout',60), timeout)})
+            app = start_app({**shoot['app'], 'timeout': min(shoot['app'].get('timeout',60), timeout)},
+                            report_path.parent / 'app.log')
         for name, cmd in plan:
-            print('\n== ' + redact(name), flush=True)
+            print('\n== ' + redact(name).replace(str(Path.cwd().resolve()) + os.sep, ''), flush=True)
             t = time.monotonic()
             event('step_start', index=len(report['steps']))
             remaining = timeout - (t - t0)
@@ -223,7 +240,7 @@ def main(a):
             review = Path(check.get('review', 'takes/review'))
             check_path = review / 'report.json'
             check_path.unlink(missing_ok=True)
-            cmd = reshoot('check', *check.get('sources', []), *(['--ocr', check['ocr']] if 'ocr' in check else []), *(['--full'] if check.get('full') else []), '--review', review, '--every', check.get('every', 3),
+            cmd = reshoot('check', *check.get('sources', []), *(['--ocr', check['ocr']] if 'ocr' in check else []), *(['--full'] if check.get('full') and not os.environ.get('RESHOOT_PREVIEW') else []), '--review', review, '--every', check.get('every', 3),
                           *[a for w in check.get('watch_for', []) for a in ('--watch-for', w)],
                           *([] if check.get('scan', True) else ['--no-scan']))
             text_paths = sorted({str(p) for p in report_path.parent.rglob('*') if p.suffix == '.srt' or p.name.endswith('.voice.json')})
@@ -243,7 +260,7 @@ def main(a):
         event('completed')
     except (Exception, SystemExit, KeyboardInterrupt) as e:
         report['errors'].append(redact(str(e)) or type(e).__name__)
-        raise SystemExit('run failed: ' + report['errors'][-1]) from None
+        failure = 'run failed: ' + report['errors'][-1]
     finally:
         stop_app(app)
         report['seconds'] = round(time.monotonic() - t0, 1)
@@ -275,20 +292,47 @@ def main(a):
         report['expectations_status'] = 'failed' if any(x.get('status') == 'failed' for x in checks) else 'passed' if checks and not incomplete else 'unverified'
         report['expectations_count'] = len(checks)
         save(report, report_path)
-    if not report["ok"]:
-        raise SystemExit(2)
-    print(f"done in {report['seconds']:.0f} s. Report in {report_path}.")
-    if report['review_status'] != 'completed':
-        print('Human review is pending; execution success is not approval to publish.')
-        from types import SimpleNamespace
-        from reshoot import review
-        try:
-            review.main(SimpleNamespace(run_path=str(report_path.parent), previous=None, import_decisions=None))
-        except Exception as e:  # the run has succeeded; a missing page must not fail it
-            print('review page not written: ' + (redact(str(e)) or type(e).__name__))
-        else:
-            print('Watch the exports and look at the scan items on that page, then run:')
-            print('  reshoot accept ' + shlex.quote(str(report_path.parent)))
+    root = report_path.parent
+    if failure or not report["ok"]:
+        lines = [(failure or 'run failed').replace(str(Path.cwd().resolve()) + os.sep, ''), '  run folder     ' + shown(root)]
+        lines += ['  failure image  ' + shown(p) for p in sorted(root.rglob('*.failure.png'))]
+        if app is not None and (root / 'app.log').exists():
+            lines.append('  app output     ' + shown(root / 'app.log'))
+        raise SystemExit('\n'.join(lines))
+    from types import SimpleNamespace
+    from reshoot import review
+    preview = report.get('mode', 'final') != 'final'
+    print(f"\nDone in {report['seconds']:.0f} s: {review.status(root, report)}.")
+    for path in review.exports(root, report):
+        print(f"  {'GIF' if path.endswith('.gif') else 'video':6} " + shown(root / path))
+    if report['review_status'] == 'completed':
+        return
+    try:
+        review.main(SimpleNamespace(run_path=str(root), previous=None, import_decisions=None, quiet=True))
+    except Exception as e:  # the run has succeeded; a missing page must not fail it
+        print('review page not written: ' + (redact(str(e)) or type(e).__name__))
+        page = None
+    else:
+        page = root / 'review.html'
+        print('  review ' + shown(page))
+    if preview:
+        print(f'\nThis is a preview, smaller and quicker than a final. When it looks right, record the final:\n'
+              f'  reshoot run {shlex.quote(str(a.config))}')
+        return
+    from reshoot.check import load
+    flags = load(root / 'review' / 'flags.json', {})
+    print('\nNothing is accepted or shared yet. Watch the exports' + (' and look at the scan items, flagged ones first,'
+          if page else '') + ' then accept the run:')
+    print('  reshoot accept ' + shlex.quote(shown(root)) + ''.join(' --flagged ' + shlex.quote(label) for label in flags))
+
+
+def shown(path):
+    """A path as short as it can be from here."""
+    path = Path(path)
+    try:
+        return str(path.resolve().relative_to(Path.cwd().resolve()))
+    except ValueError:
+        return str(path)
 
 
 def preview(a):

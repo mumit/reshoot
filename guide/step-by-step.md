@@ -51,38 +51,31 @@ Reshoot starts its own local notes server on port 8765, or on the free port
 cuts the video, writes a GIF, checks the outputs, and stops its server. It never
 captures the desktop. The notes reset on each new page load.
 
-The last lines include a report path like:
+It ends by saying what it made:
 
 ```text
-Report in /.../demo/takes/runs/UNIQUE_ID/run.json.
-Human review is pending; execution success is not approval to publish.
-/.../demo/takes/runs/UNIQUE_ID/review.html
-Watch the exports and look at the scan items on that page, then run:
-  reshoot accept /.../demo/takes/runs/UNIQUE_ID
+Done in 13 s: 3 of 3 result checks passed · scan: 6 items, 0 flagged · not accepted yet.
+  video  demo/takes/runs/RUN_ID/takes/demo-final.mp4
+  GIF    demo/takes/runs/RUN_ID/takes/demo-final-readme.gif
+  review demo/takes/runs/RUN_ID/review.html
+
+This is a preview, smaller and quicker than a final. When it looks right, record the final:
+  reshoot run demo/reshoot.toml
 ```
 
-Save that run folder in a shell variable, replacing the example ID with the
-one printed by the command. `reshoot runs demo` lists every run with its ID:
+Open the GIF, the video or the review page from the paths it printed: on
+macOS with `open PATH`, on a Linux desktop with `xdg-open PATH`, or with a
+browser's File > Open. Each run has its own folder under `demo/takes/runs/`,
+and `reshoot runs demo` lists them.
 
-```bash
-PREVIEW=demo/takes/runs/PASTE_PREVIEW_ID_HERE
-```
+The note “Pick up the bikes” should be saved, then remain as the single result
+for “bike”. The three result checks are in the save and search beats; the
+`intro` and `end` beats have none, so the review page labels them
+`unverified`.
 
-The run wrote `$PREVIEW/review.html`; it prints the path but does not open a
-browser. Open that file using the browser's File > Open command or a file
-manager. On macOS, run `open "$PREVIEW/review.html"`; on a Linux desktop,
-run `xdg-open "$PREVIEW/review.html"`. In a headless environment, copy the complete
-run folder to a machine with a browser, preserving its subdirectories.
-
-Watch `takes/demo-final.mp4` and `takes/demo-final-readme.gif`. The note
-“Pick up the bikes” should be saved, then remain as the single result for “bike”.
-The report should show successful execution and three passed expectations.
-The `intro` and `end` beats have no assertions and may be labeled `unverified`;
-the save and search beats have the actual result checks.
-
-The preview is smaller than the final. Use it to catch wrong actions or unreadable
-captions before making the final recording. If a command fails, keep its run
-folder and see [Troubleshooting](troubleshooting.md).
+Use the preview to catch wrong actions or unreadable captions before making
+the final recording. If a command fails, it prints the run folder and failure
+image; see [Troubleshooting](troubleshooting.md).
 
 You have the first clip. Stop here to [explore features](features.md) or
 [change captions, timing and export size](customize.md). Continue below when
@@ -103,20 +96,16 @@ full = true
 ```
 
 This checks every decoded frame of both final exports, reusing exact duplicates.
-The default preview checked samples every three seconds; those samples could
-miss brief content. Full checks take longer and still need a person's review.
+Previews still check samples every three seconds, which could miss brief
+content, so they stay quick. Full checks take longer and still need a person's
+review.
 
 ```bash
 reshoot run demo/reshoot.toml
 ```
 
-Save this new run folder separately:
-
-```bash
-BASELINE=demo/takes/runs/PASTE_FINAL_ID_HERE
-```
-
-The final folder contains these files, plus source evidence and other sidecars:
+The final's folder contains these files, plus evidence frames and other
+metadata:
 
 ```text
 run.json
@@ -133,6 +122,7 @@ takes/
   demo-final.mp4           Finished 1280×720 video
   demo-final.srt           Subtitles
   demo-final-readme.gif    800×450 loop
+app.log                    The notes server's own output
 ```
 
 Open the new `review.html` and watch both finished exports. Check the note,
@@ -145,8 +135,8 @@ Accepting says two things: the recording shows the task clearly, and nothing
 in its frames or captions should stay private. A clean automatic scan decides
 neither.
 
-In `$BASELINE/review.html`, watch both final exports to the end. Then look at
-the scan items below them. Each numbered `.jpg` in `$BASELINE/review/` holds up
+On the final's review page, watch both exports to the end. Then look at the
+scan items below them. Each numbered `.jpg` in the run's `review/` folder holds up
 to four labeled images, such as `1-1` and `1-2`; the page links each label to
 its full-size original. Flagged items come first, boxed in red. Look for
 unintended names, accounts, tokens, paths or people. In this tutorial all app
@@ -155,25 +145,27 @@ data is made up.
 When everything is acceptable, run:
 
 ```bash
-reshoot accept "$BASELINE"
+reshoot accept demo/latest
 ```
 
-It lists the exports, beats and scan items it covers and asks you to confirm.
+`demo/latest` stands for the newest successful run, here the final. Use a run's
+folder instead to pick another. `accept` refuses a preview. It lists the exports, beats and scan items it covers and asks you to confirm.
 It then records the verdict for all of them, bound to the run's exact files and
-scan policy. `run.json` reports `review_status` as `completed`. A later change
-to a file or the scan policy invalidates the verdict.
+scan policy, and writes `demo/accepted/`, a small record of the run. From now
+on `demo/accepted` stands for this run. A later change to a file or the scan
+policy invalidates the verdict.
 
 If the scan flagged something, `accept` stops and lists it. Inspect each flagged
 item at full size, then name the ones you accept:
 
 ```bash
-reshoot accept "$BASELINE" --flagged 1-2
+reshoot accept demo/latest --flagged 1-2
 ```
 
 If an item must not be shared, reject it instead:
 
 ```bash
-reshoot accept "$BASELINE" --reject 1-2
+reshoot accept demo/latest --reject 1-2
 ```
 
 That marks the run failed. Fix the demo data or story and make a new recording;
@@ -181,7 +173,7 @@ a rejected take still contains the problem.
 
 To give separate verdicts per beat, use the **Your decisions** controls at the
 end of the review page, click **Download decisions**, and import the file with
-`reshoot review "$BASELINE" --import-decisions FILE`. Most reviews do not need this.
+`reshoot review RUN_FOLDER --import-decisions FILE`. Most reviews do not need this.
 
 ![The local review page's Your decisions controls, with all notes beats and video still pending](../docs/guide/review-decisions.png)
 
@@ -200,7 +192,7 @@ reshoot preview demo/reshoot.toml
 ```
 
 Open this new preview as in step 2. It should show the new words while performing
-the same task. The earlier final in `$BASELINE` remains unchanged.
+the same task. The accepted final remains unchanged.
 
 ## 6. Change the app and repair the story
 
@@ -221,9 +213,9 @@ reshoot preview demo/reshoot.toml
 ```
 
 The preview should fail on `#q`: the app now calls that input `note-search`.
-This is an expected failure. Keep its run folder; earlier passed assertions do
-not prove the interrupted search worked. The final edit may not exist for that
-failed run. Its `takes/demo.take.json` and failure image help diagnose it.
+This is an expected failure. It prints the beat that failed, the run folder
+and the failure image, a frame of the page when the search box wasn't found.
+Earlier passed checks do not prove the interrupted search worked.
 
 In `demo/storyboard.toml`, change only the search target:
 
@@ -239,29 +231,38 @@ reshoot preview demo/reshoot.toml
 reshoot run demo/reshoot.toml
 ```
 
-Both should complete with all three expectations passing. Save the final
-folder printed by the second command:
+Both should end with all three result checks passing. Compare the new final
+with the accepted one:
 
 ```bash
-UPDATED=demo/takes/runs/PASTE_UPDATED_FINAL_ID_HERE
-reshoot compare "$BASELINE" "$UPDATED" --out demo/comparison.json
-reshoot review "$UPDATED" --previous "$BASELINE"
+reshoot compare demo/accepted demo/latest --out demo/comparison.json
+reshoot review demo/latest --previous demo/accepted
 ```
 
-Open `$UPDATED/review.html`. The old and new videos and GIFs appear together,
-with matching beat evidence below. Four matched IDs mean the same beats were
-found; they do not mean identical pixels. The intro caption and search target
-definitions changed; the expected task and result remain the same.
+`compare` prints which beats matched and which changed their steps or results:
+
+```text
+Compared run NEW_ID with ACCEPTED_ID. Beats: 4 matched.
+  notes/intro: matched, changed steps
+  notes/search: matched, changed steps
+Result checks passed before, passed now. Wrote demo/comparison.json.
+```
+
+The intro caption and the search target changed; the task and its result did
+not. Four matched beats means the same beats were found, not identical pixels.
+Open the new run's `review.html` to see the old and new videos and GIFs
+together, with each beat's evidence frames side by side.
 
 ## 7. Review and export the update
 
-Repeat step 4 for `$UPDATED`, including its fresh scan sheets, and accept it
-with `reshoot accept "$UPDATED"`. The earlier verdict covers `$BASELINE` only.
+Repeat step 4 for the new final, including its fresh scan sheets, and accept
+it with `reshoot accept demo/latest`. The earlier verdict covers the earlier
+run only. `demo/accepted` now stands for the update.
 
-After accepting the update, copy its chosen files to a new local directory:
+Copy its chosen files to a local directory:
 
 ```bash
-reshoot export "$UPDATED" --directory demo/exports-v2 \
+reshoot export demo/accepted --directory docs/demo \
   --file takes/demo-final.mp4 \
   --file takes/demo-final-readme.gif \
   --file takes/demo-final.srt
@@ -269,8 +270,7 @@ reshoot export "$UPDATED" --directory demo/exports-v2 \
 
 The output directory contains `demo-final.mp4`, `demo-final-readme.gif` and
 `demo-final.srt`. Export verifies source hashes and refuses to overwrite files.
-It copies locally; it does not publish or select a new baseline automatically.
-Retain both run folders and explicitly choose which final to use next time.
+It copies locally; it does not publish anything.
 
 If using Git, keep the brief, app fixtures, TOML files and their dependencies
 under version control, with `demo/accepted/`. Accepting a run writes that small

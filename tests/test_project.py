@@ -39,6 +39,17 @@ def test_busy_app_port_is_named_without_exposing_remote_urls(monkeypatch):
     assert 'https://' in str(remote.value)  # the run reports it through redact(), which hides it
 
 
+def test_the_app_log_stays_out_of_the_output_and_shows_when_the_app_stops(tmp_path, capfd, monkeypatch):
+    from reshoot import run
+    monkeypatch.setattr(run, 'answers', lambda url, ready=False: False)
+    log = tmp_path / 'app.log'
+    with pytest.raises(SystemExit) as stopped:
+        run.start_app({'url': 'http://127.0.0.1:9/', 'run': 'echo GET /favicon.ico 404; exit 3'}, log)
+    assert 'exit 3' in str(stopped.value) and 'GET /favicon.ico 404' in str(stopped.value)
+    assert 'favicon' not in capfd.readouterr().out
+    assert 'favicon' in log.read_text()
+
+
 def test_doctor_says_when_a_newer_release_is_out(monkeypatch, capsys):
     monkeypatch.setattr(project, 'latest_release', lambda: '99.0.0')
     project.doctor(SimpleNamespace(config=None, json=False))

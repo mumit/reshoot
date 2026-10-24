@@ -165,11 +165,45 @@ def compare(a):
     if getattr(a, 'markdown', None):
         Path(a.markdown).write_text(summary(result, new, new_root))
     text = json.dumps(result, indent=2)
-    if a.out:
-        Path(a.out).write_text(text)
-    else:
+    if not a.out:
         print(text)
+        return result
+    Path(a.out).write_text(text)
+    if not getattr(a, 'quiet', False):
+        counts = {}
+        for row in result['beats']:
+            counts[row['change']] = counts.get(row['change'], 0) + 1
+        print(f"Compared run {new['id']} with {old['id']}. Beats: " + ', '.join(f'{n} {s}' for s, n in sorted(counts.items())) + '.')
+        changed = False
+        for row in result['beats']:
+            what = [w for w, key in (('steps', 'definition_changed'), ('results', 'results_changed')) if row[key]]
+            if row['change'] != 'matched' or what:
+                changed = True
+                print(f"  {row['beat']}: {row['change']}" + (', changed ' + ' and '.join(what) if what else ''))
+        if not changed:
+            print('No beat changed its steps or results.')
+        print(f"Result checks {old.get('expectations_status', 'unverified')} before, "
+              f"{new.get('expectations_status', 'unverified')} now. Wrote {a.out}.")
     return result
+
+
+def exports(root, report):
+    """The videos a person watches: raw web takes sit beside their .take.json, the rest are exports."""
+    return [f['path'] for f in report.get('files', []) if Path(f['path']).suffix in ('.mp4', '.mov', '.gif')
+            and not (root / f['path']).with_suffix('.take.json').exists()]
+
+
+def status(root, report):
+    """One line on what a run showed: its result checks, its scan, and whether it is accepted."""
+    from reshoot.check import load
+    count, state = report.get('expectations_count', 0), report.get('expectations_status', 'unverified')
+    checks = (f'{count} of {count} result checks passed' if state == 'passed' else
+              'result checks failed' if state == 'failed' else 'result checks not verified')
+    scan, flags = load(root / 'review' / 'report.json', None), load(root / 'review' / 'flags.json', {})
+    scanned = ('no scan' if scan is None else
+               f'scan: {len(load(root / "review" / "key.json", {}))} items, {len(flags)} flagged')
+    verdict = {'completed': 'accepted', 'failed': 'rejected'}.get(report.get('review_status'), 'not accepted yet')
+    return ' · '.join((checks, scanned, verdict))
 
 
 def accept(a):
@@ -207,16 +241,15 @@ def accept(a):
             print(f'  {label}  {key[label][0]}: ' + '; '.join(f'{why} {part}' for why, part in flags[label]))
         print('Then name each one you accept with --flagged, or reject it with --reject.')
         return 1
-    # Raw web takes sit beside their .take.json; the rest are the exports a person watches.
-    videos = [f['path'] for f in report.get('files', []) if Path(f['path']).suffix in ('.mp4', '.mov', '.gif')
-              and not (root / f['path']).with_suffix('.take.json').exists()]
+    videos = exports(root, report)
     beat_names = sorted(beats(root))
     print(f'Accepting run {report["id"]} ({report.get("mode", "final")}):')
     for path in videos:
         print('  export  ' + path)
     print(f'  {len(beat_names)} beats, expectations {report.get("expectations_status", "unverified")}')
     if key:
-        print(f'  {len(key)} scan items on the sheets in {sheets}' + (f', including {len(flags)} flagged' if flags else ''))
+        from reshoot.run import shown
+        print(f'  {len(key)} scan items on the sheets in {shown(sheets)}' + (f', including {len(flags)} flagged' if flags else ''))
     if not a.yes:
         if not sys.stdin.isatty():
             raise ValueError('accepting needs the owner: run it in a terminal, or pass --yes for the owner')
@@ -240,7 +273,8 @@ def accept(a):
     print('Accepted. Publishing is still up to you.')
     if root.parent.name == 'runs' and root.parent.parent.name == 'takes':
         target = record(root, report, root.parent.parent.parent / 'accepted')
-        print(f'Wrote {target}: commit it with the demo source, so CI and fresh checkouts compare against this run.')
+        from reshoot.run import shown
+        print(f'Wrote {shown(target)}: commit it with the demo source, so CI and fresh checkouts compare against this run.')
     return 0
 
 
@@ -349,7 +383,11 @@ def main(a):
         if source and Path(source).resolve().is_relative_to(root) and 'start' in beat:
             relative = quote(str(Path(source).resolve().relative_to(root)))
             jump = f'<button data-file="{html.escape(relative, quote=True)}" data-time="{float(beat["start"])}">Play this beat</button>'
-        sections.append('<article><h2>' + html.escape(name) + '</h2><p>' + html.escape(beat.get('status', 'unverified')) + '</p>' + '<pre>' + html.escape(json.dumps(beat.get('expectations', []), indent=2)) + '</pre>' + jump + image + '</article>')
+        checks = beat.get('expectations', [])
+        passed = sum(x.get('status') == 'passed' for x in checks)
+        line = beat.get('status', 'unverified') + (f', {passed} of {len(checks)} result checks passed' if checks else '')
+        detail = ('<details><summary>Check data</summary><pre>' + html.escape(json.dumps(checks, indent=2)) + '</pre></details>') if checks else ''
+        sections.append('<article><h2>' + html.escape(name) + '</h2><p>' + html.escape(line) + '</p>' + detail + jump + image + '</article>')
     scan_path = root / 'review' / 'report.json'
     scan_report = json.loads(scan_path.read_text()) if scan_path.exists() else {'status': 'not run'}
     keys_path = root / 'review' / 'key.json'
@@ -363,7 +401,8 @@ def main(a):
     previous_panel = ''
     if a.previous:
         old_root, old = read(a.previous)
-        result = compare(type('Args', (), {'previous': a.previous, 'current': a.run_path, 'out': str(root / 'comparison.json')})())
+        result = compare(type('Args', (), {'previous': a.previous, 'current': a.run_path, 'out': str(root / 'comparison.json'),
+                                           'quiet': True})())
         # Copy the exact baseline into the local bundle so the HTML remains portable.
         baseline = root / 'baseline'
         baseline.mkdir(exist_ok=True)
@@ -394,7 +433,7 @@ def main(a):
                     previous_panel += '<img alt="Beat evidence" src="' + quote(str(target.relative_to(root))) + '">'
                 previous_panel += '</div>'
             previous_panel += '</div></article>'
-        previous_panel += '<pre>' + html.escape(json.dumps(result, indent=2)) + '</pre>'
+        previous_panel += '<details><summary>Comparison data</summary><pre>' + html.escape(json.dumps(result, indent=2)) + '</pre></details>'
     initial = {'schema_version': 1, 'run_id': report['id'], 'binding': token, 'decisions': {name: 'pending' for name in sorted(decision_names(root))}}
     saved = root / 'decisions.json'
     if saved.exists():
@@ -404,16 +443,19 @@ def main(a):
     data = json.dumps(initial).replace('<', '\\u003c')
     document = '''<!doctype html><meta charset="utf-8"><title>Reshoot review</title>
 <style>body{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem;background:#151515;color:#eee}video,img{max-width:100%;max-height:65vh}article{border-top:1px solid #777;padding:1rem 0}a{color:#add8ff}pre{white-space:pre-wrap;overflow-wrap:anywhere}select,button{font:inherit;margin:.5rem}</style>
-<h1>Review this recording</h1><p>Execution and automatic scanning do not approve a video. Inspect the original frames and watch every final export.</p>'''
+<h1>Review this recording</h1>'''
+    document += '<p><strong>' + html.escape(status(root, report)) + '</strong></p>'
     command = 'reshoot accept ' + shlex.quote(str(root)) + ''.join(' --flagged ' + shlex.quote(label) for label in flags)
     document += ('<p><strong>To accept:</strong> watch every export below and look at the scan items, flagged ones first. '
                  'Then run <code>' + html.escape(command) + '</code>. Name a failed item with <code>--reject LABEL</code> instead.</p>')
-    document += '<pre>' + html.escape(json.dumps({'execution': report.get('ok'), 'expectations': report.get('expectations_status', 'unverified'), 'scan': scan_report}, indent=2)) + '</pre>'
+    document += ('<details><summary>Run data</summary><pre>' + html.escape(json.dumps({'execution': report.get('ok'), 'expectations': report.get('expectations_status', 'unverified'), 'scan': scan_report}, indent=2))
+                 + '</pre></details>')
     document += previous_panel + ''.join(sections) + '<h2>Your decisions</h2><div id="choices"></div><button id="save">Download decisions</button>'
     document += '<script>const result=' + data + '''; document.addEventListener('click', e=>{const b=e.target.closest('button[data-time]');if(!b)return;const v=[...document.querySelectorAll('video')].find(v=>v.dataset.file===b.dataset.file);if(v){v.currentTime=Number(b.dataset.time);v.scrollIntoView();v.play()}}); const box=document.getElementById('choices');
 for(const [name,value] of Object.entries(result.decisions)){const label=document.createElement('label');label.textContent=name;const select=document.createElement('select');for(const v of ['pending','accepted','rejected']){const o=document.createElement('option');o.value=v;o.textContent=v;o.selected=v===value;select.append(o)}select.onchange=()=>result.decisions[name]=select.value;label.append(select);box.append(label,document.createElement('br'))}
 document.getElementById('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));a.download='decisions.json';a.click();URL.revokeObjectURL(a.href)};</script>'''
     target = root / 'review.html'
     target.write_text(document)
-    print(target)
+    if not getattr(a, 'quiet', False):
+        print(target)
     return 0

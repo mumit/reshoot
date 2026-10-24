@@ -8,6 +8,19 @@ change project files or commands.
 
 ### Changed
 
+- A run ends by saying what it made: its result checks, scan items and
+  whether it is accepted, then the paths of the video, the GIF and the review
+  page. A preview says to record the final; a final gives the accept command.
+- A failed run prints its run folder, failure image and the app's output.
+- The app's own output, such as a server's request log, goes to `app.log` in
+  the run folder instead of between reshoot's lines.
+- `reshoot compare --out` prints which beats matched and which changed their
+  steps or results.
+- The review page opens with one status line; the raw data is folded away.
+- Previews sample frames even when `full = true`, so they stay quick.
+- The tutorial uses `demo/latest` and `demo/accepted` instead of pasted run
+  IDs, and exports to `docs/demo/`.
+
 - `reshoot accept` refuses a preview unless given `--preview`. The CI guide's
   `reshoot accept demo/latest` could commit a preview as the baseline.
 - `reshoot skills` takes `--replace` to install the new version over skills

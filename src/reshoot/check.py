@@ -14,7 +14,7 @@ user name, street addresses, and the words given with --watch-for) and for faces
 in red on the sheets, which put flagged images first, and listed with what was found masked, so a key doesn't end
 up in a log. The scan points at problems; it never passes an image.
 """
-import hashlib, io, json, mimetypes, platform, subprocess, tempfile, urllib.request, uuid
+import hashlib, io, json, mimetypes, os, platform, subprocess, tempfile, urllib.request, uuid
 from reshoot.safety import describe
 from datetime import date
 from pathlib import Path
@@ -251,6 +251,9 @@ def perform(a, report):
         print(f"The scan flagged {len(flagged)} of them (boxed in red, on the first sheets). Look at these first:")
         for label, flags in flagged.items():
             print(f"  {label}  {key[label][0]}: " + "; ".join(f"{why} {part}" for why, part in flags))
+    if os.environ.get('RESHOOT_IN_RUN'):  # the run says what to do next
+        print(f"{len(key)} scan items on {(len(todo) + 3) // 4} sheets, in the run's review/ folder.")
+        return 1
     print(f"{len(key)} frames, images, or text findings not checked yet, on {(len(todo) + 3) // 4} sheets in {review}/. Look at each one "
           "at full size. For a run, record the verdict with `reshoot accept RUN`; for these sheets alone, run "
           "`reshoot check --fail LABEL...` for any that fail and `reshoot check --ok`.")

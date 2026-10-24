@@ -105,9 +105,11 @@ put it in the next beat.
 
 1. Start the app on demo data, on its own port.
 2. Get a first storyboard, one of two ways:
-   - **The person clicks through it:** `reshoot rec http://localhost:8000/ tools/demo/storyboard.py` opens Chrome
-     with a fresh profile. They click and type through what the video should show and close the window, and it
-     writes the beats. Ask them to do this when the flow is long or the selectors are hard to find.
+   - **The person clicks through it:** `reshoot rec http://localhost:8000/ demo/draft.toml` opens Chrome with a
+     fresh profile. They click and type through what the video should show and close the window, and it writes the
+     beats, with result checks suggested from what each action changed on the page. Keep the suggestions that show
+     the result. Ask them to do this when the flow is long or the selectors are hard to find. A `.py` path writes the
+     legacy format, without suggestions.
    - **You write it:** read the app's HTML for the selectors. Prefer test ids, ids and names.
 3. Finish the storyboard: add captions, check the holds, and give the beats names the cut can use. Try a beat at a
    time: put the beats so far in the file and record a short take.

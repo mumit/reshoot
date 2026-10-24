@@ -20,8 +20,6 @@ are ordered by how early a user meets them.
 
 ## Later
 
-- Checks suggested by `reshoot rec` from what each action changed on the page. The cold runs showed agents
-  write good stories and checks unaided, so this helps people working without an agent.
 - Accept from the review page itself, served locally, instead of a terminal command.
 - Named export presets with verified limits for X, LinkedIn and README use, and a brand table for fonts, colors,
   a logo and a framed browser look with padding, rounded corners and a shadow.
@@ -40,6 +38,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **Checks suggested by `reshoot rec`:** a TOML draft suggests result checks from what each action changed on the
+  page, and every suggestion in the notes tour passes when the draft is recorded.
 - **The upgrade notice in Codex:** a cold Codex session that started on 0.3.4 checked PyPI and upgraded to
   0.3.5 before writing anything ([round 6](docs/validation/2026-10-23-cold-first-demo.md#round-6-the-upgrade-notice-on-035)).
 - **Review inside the pull request:** a refresh pull request shows the GIF, links the MP4 on its branch and shows

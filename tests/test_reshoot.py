@@ -562,6 +562,26 @@ def test_rec_writes_a_storyboard_that_replays(tmp_path, notes_app):
 
 @pytest.mark.browser
 @needs_ffmpeg
+def test_rec_suggests_checks_that_pass_when_the_draft_replays(tmp_path, notes_app):
+    import asyncio, sys
+    sys.path.insert(0, str(ROOT / "tests"))
+    import person
+    calls = []
+    asyncio.run(rec.session(notes_app, 1280, 720, calls, headless=True, drive=person.notes_tour))
+    board = tmp_path / "draft.toml"
+    rec.write_toml(board, notes_app, "640x360@1", calls)
+    beats = {b["id"]: b for b in __import__("reshoot.story", fromlist=["load"]).load(board)["beat"]}
+    found = [x for b in beats.values() for x in b.get("expect", [])]
+    assert {"type": "url", "contains": "/about.html"} in found
+    assert {"type": "text", "target": {"css": "#list"}, "contains": "Buy stamps"} in found
+    assert {"type": "count", "target": {"css": "#list > li"}, "count": 1} in found
+    with pytest.raises(SystemExit) as result:
+        cli(["web", str(board), str(tmp_path / "draft.mp4")])
+    assert result.value.code == 0  # every suggested check passes on replay
+
+
+@pytest.mark.browser
+@needs_ffmpeg
 def test_blur_hides_elements_including_ones_added_later(tmp_path, notes_app):
     assert record(ROOT / "tests/boards/blur.py", tmp_path / "blur.mp4", notes_app) == 0  # each beat checks itself
 

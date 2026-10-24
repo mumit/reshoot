@@ -3,7 +3,9 @@
 (() => {
   if (window.__reshootRecording) return;
   window.__reshootRecording = true;
-  const send = ev => { try { window.__reshootRec(JSON.stringify(ev)); } catch {} };
+  const report = ev => { try { window.__reshootRec(JSON.stringify(ev)); } catch {} };
+  // Each action first closes what the last one changed, so that report comes before the new action.
+  const send = ev => { if (ev.kind !== "changed") watch(ev); report(ev); };
   const css = s => (window.CSS && CSS.escape ? CSS.escape(s) : s.replace(/[^\w-]/g, "\\$&"));
   const unique = sel => { try { return document.querySelectorAll(sel).length === 1; } catch { return false; } };
   // ids and classes made by a framework or a build change between versions: "css-1x2y3z", "r:12:", "ember123"
@@ -47,6 +49,78 @@
     return parts.join(" > ");
   }
 
+  // What each action changed on the page, so the draft can suggest result checks: text that appeared, a list that
+  // got shorter, a label that changed, a new address. The page is compared just before the action and once it has
+  // settled, a second later or when the next action starts. Typing in one field is one action until something else is
+  // done, so a search is compared before its first letter and after its last.
+  const INLINE = new Set(["span", "small", "b", "i", "em", "strong", "a", "code", "mark", "time", "abbr", "sub", "sup",
+                          "br", "img", "svg", "label"]);
+  const shown = e => e.isConnected && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== "hidden";
+  const words = e => (e.innerText || "").trim().replace(/\s+/g, " ");
+  const spot = e => { const w = locate(e); return w[0] === "css" ? w[1] : path(e); };  // a selector, not a text match
+  // Elements that hold words of their own: a list item, a heading, a status line. Not the field being typed in.
+  function snapshot() {
+    const items = [], lists = [];
+    const all = document.body ? document.body.querySelectorAll("*") : [];
+    if (all.length > 5000) return null;  // too big a page to compare quickly
+    for (const e of all) {
+      const tag = e.tagName.toLowerCase();
+      if (["script", "style", "template", "input", "textarea", "select", "option"].includes(tag)) continue;
+      const kids = [...e.children];
+      if (kids.length > 1) {
+        const first = kids[0].tagName;
+        if (kids.every(k => k.tagName === first)) lists.push([e, first.toLowerCase(), kids.filter(shown).length]);
+      }
+      if (kids.every(k => INLINE.has(k.tagName.toLowerCase())) && shown(e)) {
+        const text = words(e);
+        if (text && text.length <= 120) items.push([e, text]);
+      }
+    }
+    return { items, lists };
+  }
+  let watching = null, timer;
+  function watch(ev) {
+    if (watching && ev.kind === "type" && watching.kind === "type" && JSON.stringify(ev.where) === watching.where) {
+      clearTimeout(timer); timer = setTimeout(flush, 1000);  // the same run of typing
+      return;
+    }
+    flush();
+    if (!["click", "type", "key", "select"].includes(ev.kind)) return;
+    watching = { kind: ev.kind, where: JSON.stringify(ev.where), href: location.href, before: snapshot() };
+    timer = setTimeout(flush, 1000);
+  }
+  function flush() {
+    clearTimeout(timer);
+    const w = watching;
+    watching = null;
+    if (!w) return;
+    const changes = [];
+    if (location.href !== w.href) changes.push({ kind: "url", href: location.href });
+    const after = w.before && snapshot();
+    if (after) {
+      const had = new Set(w.before.items.map(([, text]) => text));
+      const old = new Map(w.before.items);
+      for (const [e, text] of after.items) {
+        if (old.has(e) && old.get(e) !== text) changes.push({ kind: "changed", where: spot(e), text });
+        else if (!had.has(text)) {
+          // The list it's in, when there is one: "#list" contains it, whichever place it takes.
+          let row = e;
+          while (row.parentElement && row.parentElement !== document.body &&
+                 ![...row.parentElement.children].some(s => s !== row && s.tagName === row.tagName)) row = row.parentElement;
+          const box = row.parentElement && row.parentElement !== document.body ? row.parentElement : e.parentElement;
+          changes.push({ kind: "added", where: spot(box), text });
+        }
+      }
+      for (const [e, tag, n] of w.before.lists) {  // the same list, now shorter, as a search leaves it
+        const now = e.isConnected ? [...e.children].filter(k => k.tagName.toLowerCase() === tag && shown(k)).length : n;
+        if (now < n) changes.push({ kind: "fewer", where: spot(e) + " > " + tag, count: now, was: n });
+      }
+    }
+    if (changes.length) report({ kind: "changed", changes });
+  }
+  addEventListener("pagehide", flush);
+  window.__reshootFlush = flush;  // for the end of a session that is driven, not closed by hand
+
   // Clicks on what's really clickable, not the span inside the button.
   const target = e => e.closest("a, button, input, textarea, select, label, summary, [role=button], [role=tab], [onclick], [contenteditable=true]") || e;
   const field = e => e && (e.matches("input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]), textarea") || e.isContentEditable);
@@ -89,5 +163,8 @@
     clearTimeout(settle);
     settle = setTimeout(() => { if (Math.abs(y - scrolled) > 40) send({ kind: "scroll", dy: Math.round(y - scrolled) }); scrolled = y; }, 300);
   }, { passive: true });
-  addEventListener("DOMContentLoaded", () => { scrolled = document.scrollingElement ? document.scrollingElement.scrollTop : 0; });
+  addEventListener("DOMContentLoaded", () => {
+    scrolled = document.scrollingElement ? document.scrollingElement.scrollTop : 0;
+    report({ kind: "page", href: location.href });  // a new page: the action before it may have opened it
+  });
 })();

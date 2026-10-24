@@ -148,8 +148,33 @@ def test_rec_toml_writes_dropdown_choices_as_select_actions(tmp_path):
     rec.write_toml(path, 'http://localhost/', '640x360@1', [
         (0, {'kind': 'click', 'where': ['css', '#label']}),
         (1, {'kind': 'select', 'where': ['css', '#label'], 'option': 'feature'})])
-    actions = [a for beat in story.load(path)['beat'] for a in beat['action']]
+    actions = [a for beat in story.load(path)['beat'] for a in beat.get('action', [])]
     assert actions == [{'type': 'select', 'target': {'css': '#label'}, 'option': 'feature'}]
+
+
+def test_rec_suggests_result_checks_from_what_each_action_changed(tmp_path):
+    from reshoot import rec
+    path = tmp_path / 'recorded.toml'
+    beats, suggested = rec.write_toml(path, 'http://localhost/', '640x360@1', [
+        (0, {'kind': 'page', 'href': 'http://localhost/'}),
+        (1, {'kind': 'type', 'where': ['css', '#text'], 'value': 'Buy stamps', 'before': ''}),
+        (2, {'kind': 'key', 'where': ['css', '#text'], 'key': 'Enter'}),
+        (3, {'kind': 'changed', 'changes': [{'kind': 'added', 'where': '#list', 'text': 'Just now'},
+                                            {'kind': 'added', 'where': '#list', 'text': 'Buy stamps Just now'}]}),
+        (4, {'kind': 'type', 'where': ['css', '#q'], 'value': 'stamps', 'before': ''}),
+        (5, {'kind': 'changed', 'changes': [{'kind': 'fewer', 'where': '#list > li', 'count': 1, 'was': 4}]}),
+        (6, {'kind': 'click', 'where': ['css', '#about']}),
+        (7, {'kind': 'page', 'href': 'http://localhost/about.html'}),
+        (8, {'kind': 'click', 'where': ['css', '#save']}),
+        (9, {'kind': 'changed', 'changes': [{'kind': 'changed', 'where': '#status', 'text': 'Saved'}]})])
+    data = story.load(path)
+    checks = {beat['id']: beat.get('expect') for beat in data['beat']}
+    assert checks['action-2'] == [{'type': 'text', 'target': {'css': '#list'}, 'contains': 'Buy stamps'}]  # what was typed
+    assert checks['action-3'] == [{'type': 'count', 'target': {'css': '#list > li'}, 'count': 1}]
+    assert checks['action-4'] == [{'type': 'url', 'contains': '/about.html'}]
+    assert checks['action-5'] == [{'type': 'text', 'target': {'css': '#status'}, 'contains': 'Saved'}]
+    assert checks['action-1'] is None and data['beat'][-1] == {'id': 'end', 'hold': 0.5}
+    assert (beats, suggested) == (5, 4) and path.read_text().count('# suggested from what this changed') == 4
 
 
 def test_rec_toml_keeps_target_and_replaces_password(tmp_path):

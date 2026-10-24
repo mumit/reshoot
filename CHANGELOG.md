@@ -4,6 +4,16 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Changed
+
+- `reshoot rec URL draft.toml` suggests result checks from what each action
+  changed on the page: the words typed showing up in a list, a list getting
+  shorter, a new address, a label that changed. Each is marked as a
+  suggestion to keep or delete. The draft also ends with the `end` beat the
+  generated edit needs.
+
 ## 0.3.5 (2026-10-24)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

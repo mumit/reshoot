@@ -145,9 +145,16 @@ reshoot rec http://127.0.0.1:3000/ demo/draft.toml
 This opens a fresh browser for you to do the task with demo data. Close it when
 you finish, and it writes the clicks, typing and dropdown choices as beats.
 Checkboxes, radio buttons, multiple-choice lists and drops are not recorded: it
-says so and writes nothing. The draft has no captions, purposes or result
-checks. Add them, keep a final beat named `end`, and use the draft to replace
-`demo/storyboard.toml`. Every action is in the
+says so and writes nothing.
+
+It also suggests result checks from what each action changed on the page:
+the words you typed showing up in a list, a list getting shorter, a new
+address, a label that changed. Each is marked
+`# suggested from what this changed on the page`. Keep the ones that show the
+result, delete the rest, and check counts that depend on data the app keeps.
+The draft ends with the `end` beat the generated edit needs. Add captions and
+purposes, give the beats better IDs than `action-1`, and use the draft to
+replace `demo/storyboard.toml`. Every action and result check is in the
 [project reference](projects.md#storyboardtoml).
 
 ## Login and demo data

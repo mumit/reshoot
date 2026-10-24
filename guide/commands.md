@@ -40,7 +40,7 @@ files. `CONFIG` is a `reshoot.toml` path. Versioned runs write under the configu
 
 | Command | What it does |
 |---|---|
-| `reshoot rec URL story.toml` | Opens a fresh browser and drafts a storyboard from recorded actions |
+| `reshoot rec URL story.toml` | Opens a fresh browser and drafts a storyboard from recorded actions, with suggested result checks |
 | `reshoot web story.toml takes/web.mp4` | Records a declarative TOML browser story |
 | `reshoot web story.py takes/web.mp4` | Records a supported Python browser story |
 | `reshoot window --list` | Lists macOS windows available to capture |

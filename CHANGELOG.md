@@ -4,7 +4,13 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
-## Unreleased
+## 0.3.6 (2026-10-24)
+
+Upgrade the project skills with `reshoot skills claude --directory . --replace`
+(or `codex`): they now need 0.3.6 and know the studio and `recut`. Runs on
+0.3.6 draw TOML captions after recording, so evidence frames no longer show
+captions, and the first comparison with a run accepted on 0.3.5 shows each
+beat's frame as changed once.
 
 ### Changed
 

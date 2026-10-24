@@ -32,8 +32,8 @@ are ordered by how early a user meets them.
 
 ## Later
 
-- When a release after 0.3.3 is out, check in a cold Codex session that `doctor`'s upgrade notice leads it to
-  upgrade an older install. The notice first shipped in 0.3.3, so nothing could show it yet.
+- In a cold Codex session with an older reshoot, check that `doctor`'s upgrade notice leads it to upgrade. The
+  notice itself works: 0.3.3's `doctor` reported 0.3.4 when it came out.
 - Checks suggested by `reshoot rec` from what each action changed on the page. The cold runs showed agents
   write good stories and checks unaided, so this helps people working without an agent.
 - Accept from the review page itself, served locally, instead of a terminal command.

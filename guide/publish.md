@@ -53,8 +53,8 @@ the repository's demo. It copies locally and uploads nothing.
 
 | Destination | Prepare |
 |---|---|
-| GitHub README | A short, readable GIF with alt text, linked to the full MP4 |
-| X or LinkedIn | An MP4 that makes sense without sound; look at any crop at actual size |
+| GitHub README | A short, readable GIF with alt text, linked to the full MP4; the `readme` preset keeps it under GitHub's 10 MB |
+| X or LinkedIn | An MP4 that makes sense without sound, from the `x` or `linkedin` [preset](projects.md#export-presets); look at any crop at actual size |
 | Product guide or tutorial | The fuller MP4, its subtitles, and the prerequisites in writing |
 
 Check the rendered README and the playback before you push. The `.srt` file

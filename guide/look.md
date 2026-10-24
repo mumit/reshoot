@@ -73,6 +73,27 @@ card = "Notes, now with search"
 duration = 2
 ```
 
+## A browser frame
+
+A `[frame]` table in `edit.toml` puts each take in a window with a title bar,
+rounded corners and a soft shadow, on the `[style]` background: one colour, or
+a top and bottom colour for a gradient. Title cards stay full size. The page is
+shrunk to fit, so text gets smaller: frame a recording whose text is large
+enough already.
+
+![The notes demo in a browser window on a blue gradient](../docs/look/frame.jpg)
+
+```toml
+[style]
+background = ["#2a3f5f", "#101826"]
+
+[frame]
+padding = 0.06   # each side, as a fraction of the width; these are the defaults
+radius = 12      # corner radius in pixels
+shadow = true
+bar = true       # the title bar with three dots
+```
+
 ## Shapes
 
 An `[[export]]` profile makes another size from the same recording.
@@ -94,6 +115,9 @@ height = 1350
 fit = "crop"
 ```
 
+The `x`, `linkedin` and `readme` [presets](projects.md#export-presets) make
+these shapes for a platform and check its limits.
+
 ## GIF size
 
 A README GIF is made with its own palette. `max_bytes` in an export profile
@@ -102,8 +126,8 @@ past a page's limit. The notes example's loop:
 
 | Width | File |
 |---|---|
-| 800 wide (the default) | 340 KB |
-| 640 wide | 236 KB |
+| 800 wide (the default) | 381 KB |
+| 640 wide | 259 KB |
 
 ## Sound
 

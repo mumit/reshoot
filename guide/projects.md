@@ -206,10 +206,7 @@ start = 0
 end = "end"
 
 [[export]]
-name = "readme"
-format = "gif"
-width = 800
-height = 450
+preset = "readme"
 ```
 
 | Field | Default | What it does |
@@ -218,15 +215,21 @@ height = 450
 | `output` | `"demo-final.mp4"` | The final video, beside the first take |
 | `music` | none | A music file, relative to this file. It ducks under the voiceover and fades out. Use music you may share |
 | `trim_waits` | `false` | Shorten the waits of beats marked `trim_wait`, keeping at least 0.8 s or their `min_reading`, and label them "Wait shortened" |
-| `[style] background`, `foreground` | dark, white | Title card colors |
+| `[style] background`, `foreground` | dark, white | Title card colors. `background` can be `[top, bottom]` for a frame's gradient; cards use the top one |
 | `[style] font`, `logo` | none | Files for title cards, relative to this file |
+| `[frame]` | none | Puts each take in a browser-like window on the `[style]` background, at the same size; the page shrinks to fit. Title cards stay full size |
+| `[frame] padding` | `0.06` | Space on each side, as a fraction of the width, up to 0.25 |
+| `[frame] radius` | `12` | Corner radius in pixels, up to 64 |
+| `[frame] shadow`, `bar` | `true`, `true` | A soft shadow, and a title bar with three dots |
+| `[frame] background`, `bar_color` | `[style] background`, `"#2b2f36"` | Colors for this frame only |
 | `[[part]] take` | `0` | Which take in `[edit] args` |
 | `[[part]] start`, `end` | the whole take | Seconds or beat IDs |
 | `[[part]] speed` | `1` | Any other speed needs a `label` shown on screen, and cannot shorten a voiceover line |
 | `[[part]] label` | none | Words burned into the part, such as "Sped up 2x" |
 | `[[part]] card` | | A title card's words, instead of `take` |
 | `[[part]] duration` | `2` | Seconds a card stays up |
-| `[[export]] name` | `"landscape"` | Letters, digits, `_` and `-`; the file is `demo-final-NAME.mp4` or `.gif` |
+| `[[export]] preset` | none | A place to post, below: sets the format, size and frame rate, and checks the export against that place's limits. Fields you give override it |
+| `[[export]] name` | `"landscape"`, or the preset | Letters, digits, `_` and `-`; the file is `demo-final-NAME.mp4` or `.gif` |
 | `[[export]] format` | `"mp4"` | `"mp4"` or `"gif"` |
 | `[[export]] width`, `height` | `1280`, `720` | Even numbers |
 | `[[export]] fit` | `"contain"` | `"contain"` fits the whole frame in; `"crop"` fills the shape from the middle |
@@ -240,6 +243,27 @@ page shrinks its text: crop on purpose, or record a narrower take. Every cut
 writes a `.timeline.json`, which keeps the review page's links from the final
 video back to the source beats. `reshoot edit edit.py TAKE...` runs a Python
 edit instead; see the [manual workflow](manual.md#cut).
+
+### Export presets
+
+| `preset` | Makes | Checked against |
+|---|---|---|
+| `readme` | GIF, 800x450, 15 fps | GitHub: 10 MB for an image or GIF |
+| `readme-video` | MP4, 1280x720, 30 fps | GitHub: 10 MB for a video on a free plan |
+| `x` | MP4, 1280x720, 30 fps | X: 0.5 s to 20 min, at most 1280x1024, shape up to 3:1, 60 fps or less |
+| `x-square`, `x-portrait` | MP4, 720x720 or 720x1280 | The same |
+| `linkedin` | MP4, 1920x1080, 30 fps | LinkedIn: 3 s to 15 min, 75 KB to 5 GB, 256x144 to 4096x2304, shape up to 2.4:1, 10 to 60 fps |
+| `linkedin-square`, `linkedin-portrait` | MP4, 1080x1080 or 1080x1350 | The same |
+
+An export that breaks a limit fails and says which, such as `export linkedin
+does not fit LinkedIn: it is 2.0 s; LinkedIn takes 3 to 900 s`. The limits come
+from [X's media guide](https://docs.x.com/x-api/media/quickstart/best-practices),
+[LinkedIn's help](https://www.linkedin.com/help/linkedin/answer/a548372) and
+[GitHub's docs](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files),
+read on 2026-10-24. X's are for an account without Premium. Platforms change
+them, so check before a launch. A square or portrait preset fits the whole
+frame in by default; set `fit = "crop"`, or record a narrower take, so the text
+stays readable.
 
 ## What a run writes
 

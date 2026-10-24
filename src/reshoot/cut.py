@@ -72,6 +72,53 @@ def speed(src, start, end, factor, out):
     return out
 
 
+def frame(src, out, background="#1d2433", padding=0.06, radius=12, shadow=True, bar=True, bar_color="#2b2f36"):
+    """src shrunk into a browser-like window on a background, the same size as src: rounded corners, a soft shadow and,
+    with bar, a title bar with three dots. background is a colour or [top, bottom] for a gradient; radius is in the
+    output's pixels; padding is a fraction of the width on each side."""
+    from PIL import Image, ImageColor, ImageDraw, ImageFilter
+    import tempfile
+    w, h, seconds = probe(src)
+    pad = round(w * padding)
+    top = round(h * 0.045) if bar else 0
+    scale = min((w - 2 * pad) / w, (h - 2 * pad - top) / h)
+    cw, ch = int(w * scale) // 2 * 2, int(h * scale) // 2 * 2
+    x, y = (w - cw) // 2, (h - ch - top) // 2
+    colors = [background] * 2 if isinstance(background, str) else list(background)
+    a, b = (ImageColor.getrgb(c) for c in colors)
+    canvas = Image.new("RGB", (w, h))
+    for row in range(h):  # a vertical gradient, or one colour
+        f = row / max(1, h - 1)
+        canvas.paste(tuple(round(a[i] + (b[i] - a[i]) * f) for i in range(3)), (0, row, w, row + 1))
+    window = (x, y, x + cw - 1, y + top + ch - 1)
+    if shadow:
+        soft = Image.new("L", (w, h), 0)
+        ImageDraw.Draw(soft).rounded_rectangle((window[0], window[1] + h // 60, window[2], window[3] + h // 60),
+                                               radius, fill=110)
+        soft = soft.filter(ImageFilter.GaussianBlur(h / 40))
+        canvas.paste((0, 0, 0), (0, 0), soft)
+    if bar:
+        d = ImageDraw.Draw(canvas)
+        d.rounded_rectangle((x, y, x + cw - 1, y + top + radius), radius, fill=ImageColor.getrgb(bar_color))
+        dot = max(3, top // 5)
+        for n, colour in enumerate(("#ff5f57", "#febc2e", "#28c840")):
+            cx = x + top // 2 + n * dot * 3
+            d.ellipse((cx - dot, y + top // 2 - dot, cx + dot, y + top // 2 + dot), fill=colour)
+    mask = Image.new("L", (cw, ch), 0)  # the page's corners: rounded at the bottom, and at the top without a bar
+    ImageDraw.Draw(mask).rounded_rectangle((0, -radius if bar else 0, cw - 1, ch - 1), radius, fill=255)
+    with tempfile.TemporaryDirectory() as temp:
+        canvas.save(Path(temp) / "back.png")
+        mask.save(Path(temp) / "mask.png")
+        # The pictures are looped only as long as the clip, or ffmpeg would wait on them for ever.
+        ff("-loop", 1, "-t", seconds, "-i", Path(temp) / "back.png", "-i", src,
+           "-loop", 1, "-t", seconds, "-i", Path(temp) / "mask.png",
+           "-filter_complex", f"[1:v]scale={cw}:{ch},format=rgba[page];[2:v]format=gray[m];[page][m]alphamerge[cut];"
+           f"[0:v][cut]overlay={x}:{y + top}:shortest=1,fps={FPS},format=yuv420p", "-an", *ENC, out)
+    from reshoot import timeline
+    timeline.copy(src, out)
+    return out
+
+
 def still(png, seconds, out, fade_in=0.5):
     """An image held for some seconds, such as a title or end card."""
     ff("-loop", 1, "-i", png, "-vf", f"fps={FPS},format=yuv420p" + (f",fade=in:st=0:d={fade_in}" if fade_in else ""),

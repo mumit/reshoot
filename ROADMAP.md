@@ -20,8 +20,6 @@ are ordered by how early a user meets them.
 
 ## Later
 
-- Named export presets with verified limits for X, LinkedIn and README use, and a brand table for fonts, colors,
-  a logo and a framed browser look with padding, rounded corners and a shadow.
 - Re-cut a run, changing captions, cards and music, without recording it again.
 - A single first-demo page, with the other guides kept as reference.
 - Real changing remote services as a compatibility trial.
@@ -37,6 +35,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **Presets and a frame:** export presets for README, X and LinkedIn check each platform's limits, and a
+  `[frame]` table gives takes a browser window, rounded corners and a shadow on a brand background.
 - **Accept from the review page:** `reshoot review RUN --serve` serves the page locally with a choice for each
   finding and an Accept button, recording the same decision as `reshoot accept`.
 - **Checks suggested by `reshoot rec`:** a TOML draft suggests result checks from what each action changed on the

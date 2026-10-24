@@ -7,7 +7,4 @@ start = 0
 end = "end"
 
 [[export]]
-name = "readme"
-format = "gif"
-width = 800
-height = 450
+preset = "readme"   # an 800x450 GIF, checked against GitHub's 10 MB limit

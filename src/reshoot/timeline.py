@@ -105,6 +105,22 @@ def label_clip(source, output, text, temp):
     return output
 
 
+def frame_style(board):
+    """The [frame] table as cut.frame's settings, with its background taken from [style] when it has none."""
+    style, frame = board.get('style', {}), board['frame']
+    if not isinstance(frame, dict):
+        raise ValueError('frame must be a table, such as [frame] with padding = 0.06')
+    if unknown := set(frame) - {'background', 'padding', 'radius', 'shadow', 'bar', 'bar_color'}:
+        raise ValueError('unknown frame option: ' + ', '.join(sorted(unknown)) + '; use background, padding, radius, '
+                         'shadow, bar or bar_color')
+    settings = {'background': style.get('background', '#1d2433'), **frame}
+    if not 0 <= settings.get('padding', 0.06) <= 0.25:
+        raise ValueError('frame padding must be between 0 and 0.25 of the width')
+    if not 0 <= settings.get('radius', 12) <= 64:
+        raise ValueError('frame radius must be between 0 and 64 pixels')
+    return settings
+
+
 def edit(a):
     import tempfile
     import tomllib
@@ -130,7 +146,8 @@ def edit(a):
                     raise ValueError('card duration must be positive')
                 style = board.get('style', {})
                 font_path = (Path(a.script).resolve().parent / style['font']) if style.get('font') else None
-                card = cut.Card(width, height, style.get('background', '#0e0d0c'), font_path=font_path)
+                background = style.get('background', '#0e0d0c')  # a gradient's top colour, for a card
+                card = cut.Card(width, height, background if isinstance(background, str) else background[0], font_path=font_path)
                 card.text(None, int(height*.4), part['card'], min(64, max(18, height//10)), fill=style.get('foreground', 'white'))
                 if style.get('logo'):
                     from PIL import Image
@@ -180,6 +197,8 @@ def edit(a):
                 labeled = clip.with_name(f'{i}-labeled.mp4')
                 label_clip(clip, labeled, part['label'], temp)
                 clip = labeled
+            if 'frame' in board:
+                clip = cut.frame(clip, Path(temp) / f'{i}-framed.mp4', **frame_style(board))
             clips.append(clip)
         silent = cut.concat(clips, Path(temp) / 'final.mp4')
         lines = []
@@ -201,8 +220,61 @@ def edit(a):
     print(output)
 
 
+# Export presets: a shape and format for a place to post, and that place's limits, which the export is checked
+# against. The limits were read on 2026-10-24 from each platform's own pages; check them again before relying on a
+# change:
+#   X:        https://docs.x.com/x-api/media/quickstart/best-practices (an account without Premium)
+#   LinkedIn: https://www.linkedin.com/help/linkedin/answer/a548372
+#   GitHub:   https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files
+X = {'platform': 'X', 'seconds': (0.5, 1200), 'max_bytes': 8_000_000_000, 'long': (32, 1280), 'short': (32, 1024),
+     'aspect': 3, 'fps': (1, 60)}
+LINKEDIN = {'platform': 'LinkedIn', 'seconds': (3, 900), 'min_bytes': 75_000, 'max_bytes': 5_000_000_000,
+            'long': (256, 4096), 'short': (144, 2304), 'aspect': 2.4, 'fps': (10, 60)}
+GITHUB = {'platform': 'GitHub', 'max_bytes': 10_000_000}  # images, GIFs, and videos on a free plan
+PRESETS = {
+    'readme': ({'format': 'gif', 'width': 800, 'height': 450, 'fps': 15}, GITHUB),
+    'readme-video': ({'format': 'mp4', 'width': 1280, 'height': 720, 'fps': 30}, GITHUB),
+    'x': ({'format': 'mp4', 'width': 1280, 'height': 720, 'fps': 30}, X),
+    'x-square': ({'format': 'mp4', 'width': 720, 'height': 720, 'fps': 30}, X),
+    'x-portrait': ({'format': 'mp4', 'width': 720, 'height': 1280, 'fps': 30}, X),
+    'linkedin': ({'format': 'mp4', 'width': 1920, 'height': 1080, 'fps': 30}, LINKEDIN),
+    'linkedin-square': ({'format': 'mp4', 'width': 1080, 'height': 1080, 'fps': 30}, LINKEDIN),
+    'linkedin-portrait': ({'format': 'mp4', 'width': 1080, 'height': 1350, 'fps': 30}, LINKEDIN),
+}
+
+
+def within(output, profile, limits):
+    """Fail an export that breaks the limits of the place its preset is for, naming the limit."""
+    from reshoot import cut
+    where = limits['platform']
+    seconds, size = cut.duration(output), output.stat().st_size
+    w, h, fps = profile['width'], profile['height'], profile['fps']
+    problems = []
+    if 'seconds' in limits and not limits['seconds'][0] <= seconds <= limits['seconds'][1]:
+        problems.append(f'it is {seconds:.1f} s; {where} takes {limits["seconds"][0]:g} to {limits["seconds"][1]:g} s')
+    if size > limits.get('max_bytes', math.inf) or size < limits.get('min_bytes', 0):
+        problems.append(f'it is {size:,} bytes; {where} takes ' + (f'{limits["min_bytes"]:,} to ' if 'min_bytes' in limits
+                        else 'at most ') + f'{limits["max_bytes"]:,}')
+    for side, value, (low, high) in (('long', max(w, h), limits.get('long', (0, math.inf))),
+                                     ('short', min(w, h), limits.get('short', (0, math.inf)))):
+        if not low <= value <= high:
+            problems.append(f'its {side} side is {value} px; {where} takes {low} to {high}')
+    if max(w, h) / min(w, h) > limits.get('aspect', math.inf):
+        problems.append(f'its shape is {w}x{h}; {where} takes at most {limits["aspect"]:g}:1')
+    if 'fps' in limits and not limits['fps'][0] <= fps <= limits['fps'][1]:
+        problems.append(f'it is {fps} fps; {where} takes {limits["fps"][0]} to {limits["fps"][1]}')
+    if problems:
+        raise ValueError(f'export {profile["name"]} does not fit {where}: ' + '; '.join(problems))
+
+
 def export(video, profile):
     from reshoot import cut
+    limits = None
+    if 'preset' in profile:
+        if profile['preset'] not in PRESETS:
+            raise ValueError(f'unknown export preset {profile["preset"]!r}; use ' + ', '.join(PRESETS))
+        defaults, limits = PRESETS[profile['preset']]
+        profile = {'name': profile['preset'], **defaults, **{k: v for k, v in profile.items() if k != 'preset'}}
     width, height = profile.get('width', 1280), profile.get('height', 720)
     name = profile.get('name', 'landscape')
     import re
@@ -241,4 +313,6 @@ def export(video, profile):
     cut.ff('-ss', at, '-i', output, '-frames:v', 1, output.with_suffix('.poster.png'))
     if profile.get('max_bytes') is not None and output.stat().st_size > profile['max_bytes']:
         raise ValueError('export exceeds its configured max_bytes')
+    if limits:
+        within(output, {**profile, 'name': name, 'width': width, 'height': height, 'fps': fps}, limits)
     return output

@@ -81,20 +81,39 @@ typing = 20    # characters a second; the default is 13
 
 `ripple = false` leaves out the ring. Record another preview to see it.
 
+## Frame it like a browser window
+
+Add this to `demo/edit.toml`, above the first `[[part]]`:
+
+```toml
+[style]
+background = ["#2a3f5f", "#101826"]   # a gradient, top to bottom; or one colour
+
+[frame]
+```
+
+Each take then sits in a window with a title bar, rounded corners and a soft
+shadow, on that background. The page shrinks to fit, so check that its text is
+still easy to read. [How the videos look](look.md#a-browser-frame) shows it
+and its settings.
+
 ## Change a destination
 
-In `demo/edit.toml`, change the existing README export's dimensions:
+In `demo/edit.toml`, make the README GIF smaller. The `readme` preset makes an
+800x450 GIF and checks it against GitHub's 10 MB limit; a field you give
+overrides the preset's:
 
 ```toml
 [[export]]
-name = "readme"
-format = "gif"
+preset = "readme"
 width = 640
 height = 360
 ```
 
 Replace that existing export table; do not append a second export with the same
-name. Record another preview. Compare the GIF at its actual size: smaller text
+name. To add a clip for X or LinkedIn, add another export with
+`preset = "x"` or `preset = "linkedin"`; the
+[presets](projects.md#export-presets) check each platform's limits. Record another preview. Compare the GIF at its actual size: smaller text
 may need a tighter task or different framing. Keep the MP4 as the fuller version.
 See [export profiles](projects.md#edittoml) for crops, frame rates and
 size limits. Fitting a wide page into portrait dimensions does not make a
@@ -160,10 +179,7 @@ start = 0
 end = "end"
 
 [[export]]
-name = "readme"
-format = "gif"
-width = 800
-height = 450
+preset = "readme"
 ```
 
 Replace the notes project's edit with it and record another preview. For your

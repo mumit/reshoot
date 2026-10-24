@@ -19,6 +19,13 @@ change project files or commands.
   only from that page, records it as `reshoot accept` does, and stops.
 - After `accept`, the review page says the run is accepted, instead of still
   showing how to accept it.
+- Export presets: `preset = "readme"`, `"x"`, `"linkedin"` and square and
+  portrait versions set the size, format and frame rate, and fail the export
+  when it breaks that platform's limits, read from each platform's own pages.
+  New projects' README GIF uses `preset = "readme"`.
+- A `[frame]` table in `edit.toml` puts each take in a browser-like window with
+  a title bar, rounded corners and a shadow, on the `[style]` background, which
+  can now be a gradient.
 
 ## 0.3.5 (2026-10-24)
 

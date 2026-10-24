@@ -81,3 +81,46 @@ def test_export_refuses_unreadably_short_caption(tmp_path):
     source.with_suffix('.events.json').write_text(json.dumps([{'t': 0, 'kind': 'caption', 'text': 'Read this'}]))
     with pytest.raises(ValueError, match='min_reading'):
         timeline.export(source, {'name': 'short', 'min_reading': 2})
+
+
+def test_a_preset_sets_the_shape_and_checks_the_platforms_limits(tmp_path):
+    source = tmp_path / 'source.mp4'
+    cut.ff('-f', 'lavfi', '-i', 'color=s=320x180:r=30:d=4', '-c:v', 'libx264', source)
+    out = timeline.export(source, {'preset': 'x-square'})
+    assert out.name == 'source-x-square.mp4' and cut.probe(out)[:2] == (720, 720)
+    out = timeline.export(source, {'preset': 'readme', 'name': 'loop'})  # a field given overrides the preset's
+    assert out.name == 'source-loop.gif'
+    with pytest.raises(ValueError, match=r'does not fit X: its long side is 1920 px; X takes 32 to 1280'):
+        timeline.export(source, {'preset': 'x', 'width': 1920, 'height': 1080})
+    with pytest.raises(ValueError, match='unknown export preset'):
+        timeline.export(source, {'preset': 'tiktok'})
+
+
+def test_linkedin_refuses_a_video_shorter_than_three_seconds(tmp_path):
+    source = tmp_path / 'source.mp4'
+    cut.ff('-f', 'lavfi', '-i', 'color=s=320x180:r=30:d=2', '-c:v', 'libx264', source)
+    with pytest.raises(ValueError, match=r'it is 2\.0 s; LinkedIn takes 3 to 900 s'):
+        timeline.export(source, {'preset': 'linkedin'})
+
+
+def test_a_frame_puts_the_take_in_a_window_on_the_background(tmp_path):
+    from PIL import Image
+    source = tmp_path / 'source.mp4'
+    cut.ff('-f', 'lavfi', '-i', 'color=c=white:s=640x360:r=30:d=1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', source)
+    edit = tmp_path / 'edit.toml'
+    edit.write_text('schema_version = 1\noutput = "final.mp4"\n[style]\nbackground = "#0000ff"\n[frame]\nshadow = false\n'
+                    '[[part]]\ntake = 0\n[[part]]\ncard = "Blue"\nduration = 0.5\n')
+    with pytest.raises(SystemExit) as result:
+        main(['edit', str(edit), str(source)])
+    assert result.value.code == 0
+    out = tmp_path / 'final.mp4'
+    assert cut.probe(out)[:2] == (640, 360)  # the same size: the page is shrunk into the window
+    cut.ff('-ss', 0.5, '-i', out, '-frames:v', 1, tmp_path / 'still.png')
+    im = Image.open(tmp_path / 'still.png').convert('RGB')
+    r, g, b = im.getpixel((5, 5))
+    assert b > 200 and r < 40 and g < 40  # the background from [style]
+    assert min(im.getpixel((320, 200))) > 230  # the page, white, in the middle
+    r, g, b = im.getpixel((150, 45))  # the window's title bar, above the page
+    assert max(r, g, b) < 80 and abs(r - b) < 30
+    with pytest.raises(ValueError, match='unknown frame option: shadows'):
+        timeline.frame_style({'frame': {'shadows': True}})

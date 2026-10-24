@@ -16,13 +16,11 @@ meets it first. The CLI and the agent skills already cover the hard part. Next
 is a local place to see a story and shape it by pointing, with the files in the
 repository still the source of truth, so agents and CI work as before.
 
-1. **`reshoot studio`.** A local page in the browser, served like `review --serve` on 127.0.0.1 with a
-    token. It shows the beats as a timeline: each beat's last frame, caption, result checks passed or failed
-    and duration, and plays one beat on a click. Captions, cards, the frame, music and the preset are edited
-    in place and written to `storyboard.toml` and `edit.toml`, then re-cut in seconds. A changed beat is
-    re-recorded on its own through partial replay. The export shapes sit side by side with their limit
-    checks, and the findings sit on the timeline with the accept panel. Why: seeing the whole story and
-    changing it by pointing is quicker and kinder than editing files and rerunning.
+1. **The rest of the studio.** `reshoot studio` shows the latest run beat by beat, edits caption words and the
+    caption look, re-cuts, records and accepts. Still to come: editing cards, the frame, music and the preset
+    on the page; re-recording one changed beat through partial replay; and the export shapes side by side with
+    their limit checks. Why: most changes to a demo are to the edit, and pointing at them beats finding the
+    right line in `edit.toml`.
 2. **A toolbar in the recording window.** While `reshoot rec` runs, a small toolbar in the page offers
     "Check this" (click an element to make it a result check), "Caption here", "Hide this" (blurred in every
     take), "Pause" and "Retake last step". Why: pointing at what matters is exact where suggested checks
@@ -72,6 +70,9 @@ repository still the source of truth, so agents and CI work as before.
 
 ## Done
 
+- **The studio, first part:** `reshoot studio` serves a local page with the latest run's video, its beats on a
+  timeline with their frames, result checks and captions, the scan's findings and the accept panel. Captions
+  and their look are edited in place and written to the storyboard, and Re-cut or Record runs from the page.
 - **Captions drawn after recording:** TOML takes are recorded without captions, and the storyboard's are drawn on
   afterwards, so `reshoot recut` can change their words and look.
 - **Re-cut without recording:** `reshoot recut RUN` edits and scans a run's takes again into a new run, for

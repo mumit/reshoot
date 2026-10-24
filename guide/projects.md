@@ -324,7 +324,8 @@ decision to the run's exact files and scan settings, and writes `accepted/`.
 Each finding must be named with `--flagged` or `--reject`; it stops and lists
 them otherwise. It asks for confirmation, and without a terminal needs `--yes`.
 `reshoot review RUN --serve` offers the same decision on the review page, from
-a server on `127.0.0.1` that takes it only from its own page.
+a server on `127.0.0.1` that takes it only from its own page. `reshoot studio`
+offers it too, beside the beats.
 A changed file or a new scan undoes the decision. The
 [tutorial](step-by-step.md#4-accept-the-recording) walks through it.
 

@@ -23,6 +23,35 @@ export settings live. Change one caption and hold the result one second longer.
 Keep the task and result checks. Record a preview and show both versions.
 ```
 
+## Shape it in the studio
+
+To see the whole demo and change it by pointing, open the studio:
+
+```bash
+reshoot studio demo
+```
+
+It opens a page on this computer with the latest run's video and its beats on
+a timeline under it, green where the result checks passed. Each beat shows its
+last frame, its result checks, and its caption and second line, ready to edit.
+Click a beat to play just that part.
+
+- **Change a caption** and leave the field: it is saved to
+  `demo/storyboard.toml`, and the beat says it is not in the video yet.
+- **Change the caption look**, its place and colours, the same way.
+- **Re-cut** draws the captions again on the same recording, edits and scans it,
+  in seconds, and loads the new run.
+- **Record a preview** or **Record** starts the app and records again, for a
+  change to actions or holds.
+- **What the scan found** marks each finding on the timeline, and the accept
+  panel accepts the run, as `reshoot accept` does.
+
+The files stay the source of truth: edit them by hand or ask an agent while the
+studio is open, and reload the page to see the change. Only caption words and
+the caption look are edited on the page so far; change everything else in the
+files. The studio serves on `127.0.0.1` behind a random address, takes changes
+only from its own page, and runs until you press Ctrl-C.
+
 ## Find the files
 
 | File | Change it to |

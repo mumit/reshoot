@@ -36,6 +36,13 @@ change project files or commands.
   frames no longer show them, so a comparison with an older accepted run
   shows each beat's frame as changed once.
 
+- `reshoot studio [PROJECT]` opens a page on this computer for shaping a demo:
+  the latest run's video with its beats on a timeline, each beat's frame,
+  result checks and caption, and what the scan found. Caption words and the
+  caption look are saved to the storyboard as you edit; Re-cut shows them on
+  the same recording in seconds, Record records again, and the run is
+  accepted beside the beats.
+
 ## 0.3.5 (2026-10-24)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

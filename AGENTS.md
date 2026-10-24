@@ -22,6 +22,8 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/run.py` | `reshoot run`: a whole shoot from a reshoot.toml |
 | `src/reshoot/rec.py`, `rec.js` | `reshoot rec`: a storyboard written by watching someone use the app |
 | `src/reshoot/zoom.py` | Zoom on clicks, and captions drawn after the zoom |
+| `src/reshoot/captions.py` | TOML storyboard captions, drawn on a take after recording and again on a re-cut |
+| `src/reshoot/studio.py` | `reshoot studio`: a local page for the latest run, its beats, captions and acceptance |
 | `src/reshoot/voice.py` | The voiceover: each line spoken before recording, so beats can wait for it |
 | `action.yml` | The GitHub Action: installs everything and runs `reshoot run` |
 | `skills/` | The Claude Code skills |

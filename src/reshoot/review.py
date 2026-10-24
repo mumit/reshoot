@@ -631,10 +631,73 @@ PANEL_SCRIPT = '''<script>(() => {
 })();</script>'''
 
 
+def reply(handler, code, body, kind='text/html; charset=utf-8', extra=()):
+    """A response from a page server on this computer: never cached, with the body unless it was a HEAD."""
+    handler.send_response(code)
+    handler.send_header('Content-Type', kind)
+    handler.send_header('Content-Length', str(len(body)))
+    handler.send_header('Cache-Control', 'no-store')
+    for k, v in extra:
+        handler.send_header(k, v)
+    handler.end_headers()
+    if handler.command != 'HEAD':
+        handler.wfile.write(body)
+
+
+def send_file(handler, root, name):
+    """A file from inside root, with byte ranges, so a video can seek; anything outside it is not found."""
+    import mimetypes
+    file = (root / name).resolve()
+    if not file.is_relative_to(root.resolve()) or not file.is_file():
+        return reply(handler, 404, b'not found', 'text/plain')
+    data = file.read_bytes()
+    kind = mimetypes.guess_type(file.name)[0] or 'application/octet-stream'
+    if m := re.fullmatch(r'bytes=(\d*)-(\d*)', handler.headers.get('Range', '')):
+        start = int(m[1]) if m[1] else max(0, len(data) - int(m[2] or 0))
+        end = min(int(m[2]), len(data) - 1) if m[1] and m[2] else len(data) - 1
+        return reply(handler, 206, data[start:end + 1], kind,
+                     [('Content-Range', f'bytes {start}-{end}/{len(data)}'), ('Accept-Ranges', 'bytes')])
+    reply(handler, 200, data, kind, [('Accept-Ranges', 'bytes')])
+
+
+def from_page(handler, path):
+    """Whether a POST came from the page this server sent: to path, which holds the token, at this host and port,
+    as JSON, which another site's page cannot send here without the browser asking first. Returns its body, or
+    None after refusing it."""
+    host = f'127.0.0.1:{handler.server.server_address[1]}'
+    if (handler.path != path or handler.headers.get('Host') != host
+            or handler.headers.get('Origin') not in (None, 'http://' + host)
+            or not handler.headers.get('Content-Type', '').startswith('application/json')):
+        reply(handler, 403, b'not from this review page', 'text/plain')
+        return None
+    try:
+        body = json.loads(handler.rfile.read(int(handler.headers.get('Content-Length') or 0)) or b'{}')
+    except ValueError:
+        body = None
+    if not isinstance(body, dict):
+        reply(handler, 400, b'not a JSON object', 'text/plain')
+        return None
+    return body
+
+
+def accept_from_page(run_path, body):
+    """The page's decision, recorded as `reshoot accept` records it: (exit code, what it printed)."""
+    import contextlib, io
+    from types import SimpleNamespace
+    out = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out):
+            code = accept(SimpleNamespace(run_path=run_path, flagged=body.get('flagged') or None,
+                                          reject=body.get('reject') or None, yes=True, preview=False))
+        return code, out.getvalue()
+    except ValueError as e:
+        return 2, str(e)
+
+
 def serve(a):
     """Serve the run's review page on this computer only, with a panel that accepts or rejects the run, as
     `reshoot accept` does. The address has a random token, and the server takes decisions only from its own page."""
-    import contextlib, http.server, io, mimetypes, secrets, threading, time, webbrowser
+    import http.server, secrets, threading, time, webbrowser
     from types import SimpleNamespace
     from urllib.parse import unquote
     main(SimpleNamespace(run_path=a.run_path, previous=a.previous, import_decisions=None, quiet=True))
@@ -646,60 +709,26 @@ def serve(a):
         def log_message(self, *args):  # the terminal shows the outcome, not each request
             pass
 
-        def reply(self, code, body, kind='text/html; charset=utf-8', extra=()):
-            self.send_response(code)
-            self.send_header('Content-Type', kind)
-            self.send_header('Content-Length', str(len(body)))
-            self.send_header('Cache-Control', 'no-store')
-            for k, v in extra:
-                self.send_header(k, v)
-            self.end_headers()
-            if self.command != 'HEAD':
-                self.wfile.write(body)
-
         def do_GET(self):
             prefix, path = f'/{token}/', self.path.split('?', 1)[0]
             if not path.startswith(prefix):
-                return self.reply(404, b'not found', 'text/plain')
+                return reply(self, 404, b'not found', 'text/plain')
             name = unquote(path[len(prefix):]) or 'review.html'
             if name == 'review.html':
                 page = re.sub(r'<div id="to-accept">.*?</div>', lambda m: panel(*read(a.run_path)),
                               (root / 'review.html').read_text(), count=1, flags=re.S)
-                return self.reply(200, page.encode())
-            file = (root / name).resolve()
-            if not file.is_relative_to(root.resolve()) or not file.is_file():
-                return self.reply(404, b'not found', 'text/plain')
-            data = file.read_bytes()
-            kind = mimetypes.guess_type(file.name)[0] or 'application/octet-stream'
-            if m := re.fullmatch(r'bytes=(\d*)-(\d*)', self.headers.get('Range', '')):  # so a video can seek
-                start = int(m[1]) if m[1] else max(0, len(data) - int(m[2] or 0))
-                end = min(int(m[2]), len(data) - 1) if m[1] and m[2] else len(data) - 1
-                return self.reply(206, data[start:end + 1], kind,
-                                  [('Content-Range', f'bytes {start}-{end}/{len(data)}'), ('Accept-Ranges', 'bytes')])
-            self.reply(200, data, kind, [('Accept-Ranges', 'bytes')])
+                return reply(self, 200, page.encode())
+            send_file(self, root, name)
 
         do_HEAD = do_GET
 
         def do_POST(self):
-            # Only the page this server sent may decide: the token, this host and port, and a JSON request, which
-            # another site's page cannot send here without the browser asking first.
-            host = f'127.0.0.1:{self.server.server_address[1]}'
-            if (self.path != f'/{token}/accept' or self.headers.get('Host') != host
-                    or self.headers.get('Origin') not in (None, 'http://' + host)
-                    or not self.headers.get('Content-Type', '').startswith('application/json')):
-                return self.reply(403, b'not from this review page', 'text/plain')
-            body = {}
-            try:
-                body = json.loads(self.rfile.read(int(self.headers.get('Content-Length') or 0)) or b'{}')
-                out = io.StringIO()
-                with contextlib.redirect_stdout(out):
-                    code = accept(SimpleNamespace(run_path=a.run_path, flagged=body.get('flagged') or None,
-                                                  reject=body.get('reject') or None, yes=True, preview=False))
-                text = out.getvalue()
-            except ValueError as e:
-                code, text = 2, str(e)
+            body = from_page(self, f'/{token}/accept')
+            if body is None:
+                return
+            code, text = accept_from_page(a.run_path, body)
             print(text.rstrip(), flush=True)
-            self.reply(200, json.dumps({'code': code, 'output': text}).encode(), 'application/json')
+            reply(self, 200, json.dumps({'code': code, 'output': text}).encode(), 'application/json')
             if code == 0 or body.get('reject'):
                 done.set()
 

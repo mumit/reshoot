@@ -19,7 +19,7 @@ jobs:
       # The project config's [app] command must work from its own directory.
 
       - id: shoot
-        uses: mumit/reshoot@719feaf4cc3faf383a085bb7203944c54fdd7728 # v0.3.5; update deliberately
+        uses: mumit/reshoot@b1a4f834f3c7e3497acddcadcaf30dff7cb3d710 # v0.3.6; update deliberately
         with:
           config: demo/reshoot.toml # change: versioned project config
 

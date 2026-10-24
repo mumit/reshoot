@@ -12,7 +12,7 @@ def test_primary_skills_have_frontmatter_and_codex_metadata():
         text = (folder / 'SKILL.md').read_text()
         header = text.split('---', 2)[1]
         assert 'name: ' + name in header and 'description: ' in header
-        assert 'Requires reshoot CLI 0.3.4' in text
+        assert 'Requires reshoot CLI 0.3.5' in text
         assert '../../' not in text
         metadata = (folder / 'agents/openai.yaml').read_text()
         assert '$' + name in metadata and 'short_description:' in metadata

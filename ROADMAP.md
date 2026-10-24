@@ -10,25 +10,20 @@ with a line on what it does. Trial evidence lives in the
 
 ## Now: prove the front door
 
-1. **Cold first-demo runs.** On 0.3.2, Claude Code made postable demos of all
-   three source apps unaided in under 3 minutes each, and Codex finished all four
-   in 5 to 9 minutes. A further Codex round confirmed that it now upgrades a stale
-   install and leaves the README alone. See the
-   [cold-run record](docs/validation/2026-10-23-cold-first-demo.md). Next, on the
-   next release: check that `doctor`'s upgrade notice and the sandbox message
-   for Chrome reach Codex.
-2. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at the
+1. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at the
    page's CSS size, so `@1.5` and `@2` only scale them up, including the
    `1280x720@1.5` default. Capture at the device resolution, or say plainly that
    the ratio only sets the output size.
-3. **Review inside the pull request.** Link the MP4 on the pull request's
+2. **Review inside the pull request.** Link the MP4 on the pull request's
    branch and show flagged scan items as images, so reviewing a refresh needs
    no artifact download.
-4. **Outside users.** Deferred by the owner. Three people who are not the
+3. **Outside users.** Deferred by the owner. Three people who are not the
    maintainer, each starting from the first-demo prompt.
 
 ## Later
 
+- When a release after 0.3.3 is out, check in a cold Codex session that `doctor`'s upgrade notice leads it to
+  upgrade an older install. The notice first shipped in 0.3.3, so nothing could show it yet.
 - Checks suggested by `reshoot rec` from what each action changed on the page. The cold runs showed agents
   write good stories and checks unaided, so this helps people working without an agent.
 - Accept from the review page itself, served locally, instead of a terminal command.
@@ -47,6 +42,10 @@ with a line on what it does. Trial evidence lives in the
 
 ## Done
 
+- **Cold first-demo runs:** from the README's prompt alone, Claude Code made postable demos of three made-up apps
+  in under 3 minutes each, and Codex of four in 5 to 9 minutes. The runs led to `select`, located storyboard
+  errors, on-time results at higher pixel ratios, stale-install and sandbox fixes, and agents staying in `demo/`.
+  See the [cold-run record](docs/validation/2026-10-23-cold-first-demo.md). Released in 0.3.2 and 0.3.3.
 - **CI refresh on GitHub:** `examples/github/refresh.yml` records the demo after a change, compares it with the
   committed `demo/accepted/` record and opens a pull request with the new media and a beat table; merging accepts it.
   A broken story fails on its beat and opens nothing. Proven in a private trial repository; see the

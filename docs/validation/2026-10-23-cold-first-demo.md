@@ -113,6 +113,20 @@ the new quickstart from GitHub but installed 0.3.2 from PyPI, so the new
   `demo/` over local HTTP and opened it in Chrome, one asked for access.
 - Every scan found nothing to flag.
 
+## Round 5: Codex on 0.3.3
+
+Two fresh Codex sessions, Recipe Box and Team Standup, ran on the released
+0.3.3. Both finished with a preview and a final, 9 and 14 checks, no flags, and
+no changes outside `demo/` and `.agents/`, in 5.4 and 8.2 minutes.
+
+- **Chrome in the sandbox: fixed.** Both first previews still failed inside
+  the sandbox, now with `Chrome could not start` and the note naming Codex's
+  sandbox. Both reran outside it and went on.
+- The upgrade notice could not be tested: 0.3.3 was the latest release, and
+  the owner's own install had been upgraded to it.
+- The Standup agent saw a caption overlap a heading in the preview and moved it
+  before the final.
+
 ## Limits
 
 - One model per harness: `claude-opus-5-5` and Codex's configured default.
@@ -120,6 +134,6 @@ the new quickstart from GitHub but installed 0.3.2 from PyPI, so the new
 - `claude -p` cannot answer a question, so the URL-only run's stop is the
   correct ending here, not a measure of what a person would do next.
 - Rounds 1 and 2 used 0.3.1; their fixes are in 0.3.2, which rounds 3 and 4
-  used. Round 4 read the guides from `main`.
+  used. Round 4 read the guides from `main`; round 5 used 0.3.3.
 - Codex loaded the owner's Codex configuration, including its MCP tools, so it
   was less isolated than the Claude Code sessions.

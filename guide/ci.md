@@ -32,17 +32,23 @@ When the app or demo source changes on `main`, or when started by hand, the work
 1. records a fresh run of `demo/reshoot.toml`;
 2. compares it beat by beat with `demo/accepted`;
 3. copies the new MP4 and GIF into `docs/demo/` and the new run's record into
-   `demo/accepted/`;
+   `demo/accepted/`, with the first frame of each scan finding;
 4. uploads the run, its review page and scan sheets as the `reshoot-review` artifact;
 5. opens a pull request on the `reshoot/refresh` branch.
 
-The pull request shows the new GIF and a table of matched, added and removed
+The pull request shows the new GIF, a link to the MP4 on its branch, each
+scan finding with its first frame, and a table of matched, added and removed
 beats, with whether each one's definition, duration, frame pixels and results
-changed. Pixel changes are common and small; watch the video. Before merging,
-download the artifact, open its `review.html`, watch both exports to the end and
-look at every scan item, flagged ones first. **Merging the pull request accepts
-the recording**: the next run compares against it. Close the pull request to
-keep the current demo.
+changed. Pixel changes are common and small; watch the video. The full scan
+sheets and review page stay in the artifact. [Review a refresh pull request](team.md#review-a-refresh-pull-request)
+lists the steps. **Merging the pull request accepts the recording**: the next
+run compares against it. Close the pull request to keep the current demo.
+
+`reshoot export --markdown` writes the media and findings part of the
+description, and `--link` makes its paths URLs on the pull request's branch.
+Finding frames go into `demo/accepted/findings/`, and only for findings in the
+files the export copies. In a private repository, the images show to people
+who can read it.
 
 If the repository has no `demo/accepted/` yet, the first run still opens a pull
 request, without a comparison. Merging it starts the record.

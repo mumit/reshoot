@@ -361,3 +361,28 @@ def test_one_finding_covers_every_frame_it_is_in(tmp_path, capsys):
     assert review.accept(accept_args(root, flagged=['F1'])) == 0
     decisions = json.loads((root / 'decisions.json').read_text())['decisions']
     assert decisions['finding/1-1'] == decisions['finding/1-2'] == 'accepted'
+
+
+def test_a_pull_request_shows_each_finding_with_its_frame_from_the_shared_files(tmp_path, monkeypatch):
+    from reshoot import project
+    from reshoot.safety import describe
+    root = project_run(tmp_path)
+    (root / 'review').mkdir()
+    sheet = Image.new('RGB', (2020, 1580), 'white')
+    sheet.paste(Image.new('RGB', (400, 225), 'navy'), (1010, 34))  # label 1-2's frame
+    sheet.save(root / 'review/01.jpg')
+    video = describe(str(root / 'takes/demo-final.mp4'))
+    (root / 'review/key.json').write_text(json.dumps({'1-1': [video + '@2.0s', 'a'], '1-2': [video + '@4.5s', 'b'],
+                                                      '1-3': [describe('/elsewhere/page.png'), 'c']}))
+    (root / 'review/flags.json').write_text(json.dumps({'1-2': [['email', 'sam.•••']], '1-3': [['key', 'sk-•••']]}))
+    monkeypatch.chdir(tmp_path)
+    args = SimpleNamespace(run_path=str(root), directory='docs/demo', file=['takes/demo-final.mp4'], replace=False,
+                           record='demo/accepted', markdown='body.md', link='https://github.com/o/r/blob/reshoot/refresh/')
+    assert project.export(args) == 0
+    text = (tmp_path / 'body.md').read_text()
+    assert '[Watch demo-final.mp4](https://github.com/o/r/blob/reshoot/refresh/docs/demo/demo-final.mp4)' in text
+    assert '**F1** email sam.•••: 1-2. The first is takes/demo-final.mp4 at 4.5 s.' in text
+    assert '![Finding F1, frame 1-2](https://github.com/o/r/blob/reshoot/refresh/demo/accepted/findings/F1.jpg?raw=true)' in text
+    assert Image.open(tmp_path / 'demo/accepted/findings/F1.jpg').size == (400, 225)  # just the frame
+    # A finding in a file the pull request doesn't carry is named, but its frame stays out of the repository.
+    assert '**F2** key sk-•••' in text and not (tmp_path / 'demo/accepted/findings/F2.jpg').exists()

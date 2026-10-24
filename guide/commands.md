@@ -27,6 +27,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
 | `reshoot export RUN --directory DEST` | Copies the run's videos, GIFs and subtitles locally and prints README Markdown for the GIF; `--file` picks single files; refuses to overwrite unless given `--replace` |
 | `reshoot export RUN --record demo/accepted` | Writes the run's small record (report, beat results, evidence frames) for later comparisons |
+| `reshoot export RUN --directory DEST --record DIR --markdown FILE --link URL` | Also writes Markdown showing the GIF, the MP4 and each scan finding with its frame, such as for a pull request; finding frames go in `DIR/findings/` |
 | `reshoot skills codex --directory PROJECT` | Installs three project-local Codex skills; `--replace` installs over them after an upgrade |
 | `reshoot skills claude --directory PROJECT` | Installs the same primary skills for Claude Code |
 

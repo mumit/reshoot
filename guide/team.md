@@ -40,7 +40,8 @@ The owner reviews the new recording that follows.
 2. The workflow records the demo again, about a minute and a half on a hosted
    Ubuntu runner for a short demo with a sampled scan.
 3. If every result check passes, it opens a pull request on `reshoot/refresh`
-   with the new GIF, the MP4, `demo/accepted/` and a beat-by-beat comparison.
+   with the new GIF, a link to the MP4, each scan finding with its frame,
+   `demo/accepted/` and a beat-by-beat comparison.
 4. The owner reviews it, below, and merges it to accept the new recording, or
    closes it to keep the current one.
 
@@ -50,18 +51,27 @@ broke, and its summary names the beat and the control, such as
 
 ## Review a refresh pull request
 
-1. Read the comparison table in the description: which beats matched, and
-   whether each one's definition, duration, frame and results changed. Small
-   pixel changes are normal; a changed result is not.
-2. Open the workflow run from the pull request's Checks tab and download the
-   `reshoot-review` artifact. Unzip it with its folders intact.
-3. Open `review.html`. Watch the MP4 and GIF to the end. Check that the result
-   each caption promises is on screen long enough to read.
-4. Look at the findings first, then the scan sheets, for anything that must not
-   be shared: real names, email addresses, keys, other people's data. The scan
-   points at likely problems; it does not prove a frame is safe.
-5. Merge to accept. To ask for changes, comment and close the pull request;
+Everything a usual review needs is in the pull request's description:
+
+1. Watch the GIF, then follow "Watch demo-final.mp4" and watch the video to the
+   end. Check that the result each caption promises is on screen long enough
+   to read.
+2. Look at each finding under "What the scan found": what was found, how many
+   frames it is in, and its first frame with a red box round it. Decide whether
+   it may be shared: real names, email addresses, keys, other people's data.
+3. Read the comparison table: which beats matched, and whether each one's
+   definition, duration, frame and results changed. Small pixel changes are
+   normal; a changed result is not.
+4. Merge to accept. To ask for changes, comment and close the pull request;
    the next refresh opens a new one.
+
+The scan points at likely problems; it does not prove a frame is safe, so the
+video itself is the review. For the full scan sheets, every flagged frame and
+the review page, download the `reshoot-review` artifact from the workflow run,
+on the Checks tab, and open its `review.html` with the folders intact.
+The finding frames are kept in `demo/accepted/findings/`. They come only from
+the MP4 and GIF the pull request already adds, so they show nothing new; a
+finding in any other file is named without a frame.
 
 Merging is the acceptance: the workflow already wrote the new run into
 `demo/accepted/`. Nothing is posted anywhere else.

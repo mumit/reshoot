@@ -192,6 +192,10 @@ def main(argv=None):
     p.add_argument('--replace', action='store_true', help='overwrite media already in --directory, such as the repo\'s demo')
     p.add_argument('--record', metavar='DIR', help='also write the run\'s small record (report, beat results, evidence '
                    'frames) to DIR, such as demo/accepted, for later comparisons')
+    p.add_argument('--markdown', metavar='FILE', help='write Markdown showing the copied GIF and video and each scan '
+                   'finding, with its frame when --record is given, such as for a pull request')
+    p.add_argument('--link', metavar='URL', help='with --markdown, the URL that repository paths are added to, such as '
+                   'https://github.com/OWNER/REPO/blob/BRANCH/')
     p.set_defaults(run=project.export)
     a = ap.parse_args(argv)
     try:

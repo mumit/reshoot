@@ -15,7 +15,7 @@ each command.
 | `storyboard.toml` | The beats: actions, captions, result checks and holds |
 | `edit.toml` | Which parts of the takes to keep, title cards, music and the exports |
 | `takes/runs/ID/` | One run: its report, recordings, scan sheets and review page. Ignored by git |
-| `accepted/` | The accepted run's report, beat results and evidence frames, without media. Commit it |
+| `accepted/` | The accepted run's report, beat results and evidence frames, without media, and in CI each scan finding's first frame. Commit it |
 
 `reshoot init demo` writes a complete project with a made-up notes app, and
 `reshoot init demo --url URL` a draft for your app. Paths in each file are

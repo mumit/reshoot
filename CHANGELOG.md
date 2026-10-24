@@ -19,6 +19,14 @@ change project files or commands.
   config. The tutorial uses it.
 - Scan messages say to look at findings first and then look over the rest for
   what a scan can miss, instead of asking for every item at full size.
+- A refresh pull request shows what to review without downloading anything:
+  the GIF, a link to the MP4 on its branch, and each scan finding with its
+  first frame, boxed in red. `reshoot export --markdown FILE --link URL` writes
+  that part, and `--record` keeps the frames in `demo/accepted/findings/`, only
+  for findings in the files it copies. Update the refresh workflow from
+  `examples/github/refresh.yml`.
+- The review page names the file and time each scan item comes from, such as
+  `takes/demo-final.mp4 at 6 s`, instead of an opaque source ID.
 - Every command's `--help` describes it with examples. `run --help` shows a
   complete versioned `reshoot.toml`, with the legacy format after it.
 - An unknown field in `reshoot.toml`, a storyboard, a beat, an action or a

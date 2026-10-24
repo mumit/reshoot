@@ -24,8 +24,9 @@ description: Set up a reshoot.toml so one command (`reshoot run`) records a proj
    the app needs before it starts (installing packages, making demo data), and change the marked lines. The repo
    must let workflows open pull requests (Settings, Actions, General, "Allow GitHub Actions to create and approve
    pull requests"); it's off by default. Changing it is the person's call.
-4. **Tell the person** what the workflow does, and that they review each pull request's sheets (the
-   `reshoot-review` artifact) before merging. Push only with their yes.
+4. **Tell the person** what the workflow does, and that they watch each pull request's video and look at its
+   findings before merging. For a versioned project the description shows both; the full sheets are in the
+   `reshoot-review` artifact. Push only with their yes.
 
 ## Pitfalls
 

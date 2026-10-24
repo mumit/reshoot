@@ -2,6 +2,7 @@
 import hashlib
 import html
 import json
+import re
 import shlex
 import shutil
 from pathlib import Path
@@ -96,6 +97,67 @@ def policy(root):
 def binding(root, report):
     data = {'run_id': report['id'], 'files': report.get('files', []), 'policy': policy(root)}
     return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+
+def named(root, report):
+    """The run's files by the opaque name the scan gives each source, which keeps paths out of its logs."""
+    from reshoot.safety import describe
+    return {describe(path).split(' source ', 1)[1]: item['path'] for item in report.get('files', [])
+            for path in {str(root / item['path']), str((root / item['path']).resolve())}}
+
+
+def where(text, names):
+    """'local source ed36b587c98c@4.7s' as 'takes/demo-final.mp4 at 4.7 s', when it names one of the run's files."""
+    m = re.fullmatch(r'local source ([0-9a-f]{12})(?:@([0-9.]+)s)?(.*)', text, re.S)
+    if not m or m[1] not in names:
+        return text
+    return names[m[1]] + (f' at {float(m[2]):g} s' if m[2] else '') + m[3]
+
+
+def frame(root, label):
+    """A label's cell of its scan sheet, with the red box round what was found, or None for a text finding."""
+    m = re.fullmatch(r'(\d+)-([1-4])', label)
+    sheet = root / 'review' / f'{int(m[1]):02}.jpg' if m else None
+    if not sheet or not sheet.exists():
+        return None
+    from PIL import Image, ImageChops
+    j = int(m[2]) - 1
+    x, y = (j % 2) * 1010, (j // 2) * 790
+    cell = Image.open(sheet).convert('RGB').crop((x, y + 31, x + 1000, y + 787))  # below the label, with the box
+    ink = ImageChops.difference(cell, Image.new('RGB', cell.size, 'white')).convert('L').point(lambda v: 255 if v > 40 else 0)
+    box = ink.getbbox()
+    return cell.crop(box) if box else None
+
+
+def shared(root, report, copied, findings_dir, link=None):
+    """Markdown for a pull request or a README: the copied GIF and video, and each finding with its frame. With a
+    link, such as https://github.com/OWNER/REPO/blob/BRANCH/, paths become URLs a pull request can show."""
+    from reshoot.check import findings, load, span
+    from reshoot.run import shown
+    def url(path, image=False):
+        path = shown(path)
+        return link.rstrip('/') + '/' + quote(path) + ('?raw=true' if image else '') if link else quote(path)
+    gifs = [p for p in copied if p.suffix == '.gif']
+    videos = [p for p in copied if p.suffix in ('.mp4', '.mov')]
+    lines = []
+    if gifs:
+        image = f'![The recorded demo]({url(gifs[0], True)})'
+        lines += [f'[{image}]({url(videos[0])})' if videos else image, '']
+    lines += [f'[Watch {p.name}]({url(p)})' for p in videos]
+    keys, flags = load(root / 'review' / 'key.json', {}), load(root / 'review' / 'flags.json', {})
+    if keys:
+        groups, names = findings(flags), named(root, report)
+        lines += ['', '### What the scan found', '',
+                  f"{len(keys)} items scanned, {len(groups)} finding{'s' if len(groups) != 1 else ''}. The scan points at "
+                  "likely problems; it cannot prove a frame is safe, so watch the video too."]
+        for name, (found, members) in groups.items():
+            lines += ['', f'**{name}** {found}: {span(members)}. The first is {where(keys[members[0]][0], names)}.']
+            picture = Path(findings_dir) / f'{name}.jpg' if findings_dir else None
+            if picture and picture.exists():
+                lines += ['', f'![Finding {name}, frame {members[0]}]({url(picture, True)})']
+            else:
+                lines += ['', 'Its frame is in the review page, in the run\'s files.']
+    return '\n'.join(lines).strip() + '\n'
 
 
 def beats(root):
@@ -290,9 +352,11 @@ def accept(a):
     return 0
 
 
-def record(root, report, target):
+def record(root, report, target, shared=()):
     """Write a run's small record: its report, beat results and evidence frames, without the media. Committed beside
-    the demo source, it lets a fresh checkout, such as CI, compare a new run with this one."""
+    the demo source, it lets a fresh checkout, such as CI, compare a new run with this one. For the files in shared,
+    which are being copied out with it, it also keeps the first frame of each finding in them, as findings/F1.jpg,
+    so a pull request can show it: those frames are already in the shared files."""
     target = Path(target).resolve()
     if target.exists():
         marker = target / 'run.json'
@@ -307,6 +371,13 @@ def record(root, report, target):
     staging.mkdir(parents=True, exist_ok=True)
     if (root / 'decisions.json').exists():
         shutil.copyfile(root / 'decisions.json', staging / 'decisions.json')
+    from reshoot.check import findings, load
+    keys, names = load(root / 'review' / 'key.json', {}), named(root, report)
+    for name, (_, members) in findings(load(root / 'review' / 'flags.json', {})).items():
+        first = next((label for label in members if where(keys.get(label, [''])[0], names).split(' at ')[0] in shared), None)
+        if first and (picture := frame(root, first)):
+            (staging / 'findings').mkdir(exist_ok=True)
+            picture.save(staging / 'findings' / f'{name}.jpg', quality=88)
     (staging / 'run.json').write_text(json.dumps({**report, 'files': keep, 'record': True}, indent=2))
     shutil.rmtree(target, ignore_errors=True)
     staging.rename(target)
@@ -408,6 +479,8 @@ def main(a):
     keys = json.loads(keys_path.read_text()) if keys_path.exists() else {}
     flags_path = root / 'review' / 'flags.json'
     flags = json.loads(flags_path.read_text()) if flags_path.exists() else {}
+    names = named(root, report)
+    keys = {label: [where(found, names), h] for label, (found, h) in keys.items()}
     def original(label):
         path = root / 'review' / 'originals' / (keys[label][1] + '.png')
         return quote(str(path.relative_to(root))) if path.exists() else None

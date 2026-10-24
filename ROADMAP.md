@@ -15,10 +15,7 @@ found that the tool does the hard part well and loses the joy where a user
 meets it first: the README, the end of a run and the agent's handoff. Items
 are ordered by how early a user meets them.
 
-1. **Review inside the pull request.** Link the MP4 on the pull request's
-    branch and show flagged scan items as images, so reviewing a refresh needs
-    no artifact download.
-2. **Outside users.** Deferred by the owner. Three people who are not the
+1. **Outside users.** Deferred by the owner. Three people who are not the
     maintainer, each starting from the first-demo prompt.
 
 ## Later
@@ -45,6 +42,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **Review inside the pull request:** a refresh pull request shows the GIF, links the MP4 on its branch and shows
+  each scan finding with its frame, so a usual review needs no artifact download.
 - **Fewer, clearer guides:** one start-here per reader, including a [team page](guide/team.md), field tables
   for the three project files, an index of error messages, one word for each idea, help text for every command,
   and three overlapping pages merged into others.

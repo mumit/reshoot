@@ -128,7 +128,7 @@ def export(a):
     if selected and not a.directory:
         raise ValueError('--file needs --directory')
     if getattr(a, 'record', None):
-        print(record(root, report, a.record))
+        print(record(root, report, a.record, shared=selected if a.directory else ()))
     if not selected:
         return 0
     known = {item['path'] for item in report.get('files', [])}
@@ -148,6 +148,12 @@ def export(a):
         shutil.copyfile(root / source, target)
         print(shown(target))
     print('Copied locally; nothing is published.')
+    if getattr(a, 'markdown', None):
+        from reshoot.review import shared
+        findings = Path(a.record) / 'findings' if getattr(a, 'record', None) else None
+        Path(a.markdown).write_text(shared(root, report, targets, findings, getattr(a, 'link', None)))
+        print('Wrote ' + shown(a.markdown))
+        return 0
     gifs, videos = [shown(t) for t in targets if t.suffix == '.gif'], [shown(t) for t in targets if t.suffix == '.mp4']
     if gifs:
         image = f'![Describe what the demo shows]({gifs[0]})'

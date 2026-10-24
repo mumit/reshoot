@@ -44,27 +44,31 @@ jobs:
           REPORT: ${{ steps.shoot.outputs.report }}
         run: |
           RUN=$(dirname "$REPORT")
-          {
-            echo "reshoot recorded the demo again after a change to the app."
-            echo
-            # change: the GIF your README uses, at its path on the pull request's branch
-            echo "![The new README GIF](https://github.com/${GITHUB_REPOSITORY}/blob/reshoot/refresh/docs/demo/demo-final-readme.gif?raw=true)"
-            echo
-            if [ -f demo/accepted/run.json ]; then
-              reshoot compare demo/accepted "$RUN" --out "$RUNNER_TEMP/comparison.json" --markdown "$RUNNER_TEMP/comparison.md"
-              cat "$RUNNER_TEMP/comparison.md"
-            else
-              echo "There is no accepted record in demo/accepted yet, so there is nothing to compare with."
-            fi
-            echo
-            echo "**Before merging:** download the \`reshoot-review\` artifact from the workflow run, open its"
-            echo "\`review.html\`, watch both exports to the end and look at every scan item, flagged ones first."
-            echo "Merging accepts this recording. Close the pull request to keep the current one."
-          } > "$RUNNER_TEMP/body.md"
+          if [ -f demo/accepted/run.json ]; then
+            reshoot compare demo/accepted "$RUN" --out "$RUNNER_TEMP/comparison.json" --markdown "$RUNNER_TEMP/comparison.md"
+          else
+            echo "There is no accepted record in demo/accepted yet, so there is nothing to compare with." > "$RUNNER_TEMP/comparison.md"
+          fi
+          # Copies the new media and the run's record, with the first frame of each scan finding, and writes Markdown
+          # that shows them from the pull request's branch.
           # change: the files your README uses
           reshoot export "$RUN" --directory docs/demo --replace \
             --file takes/demo-final.mp4 --file takes/demo-final-readme.gif \
-            --record demo/accepted
+            --record demo/accepted \
+            --markdown "$RUNNER_TEMP/media.md" --link "https://github.com/${GITHUB_REPOSITORY}/blob/reshoot/refresh/"
+          {
+            echo "reshoot recorded the demo again after a change to the app."
+            echo
+            cat "$RUNNER_TEMP/media.md"
+            echo
+            echo "### Compared with the accepted run"
+            echo
+            cat "$RUNNER_TEMP/comparison.md"
+            echo
+            echo "**Before merging:** watch the video to the end and look at each finding above. The full scan sheets"
+            echo "and review page are in the \`reshoot-review\` artifact of the workflow run."
+            echo "Merging accepts this recording. Close the pull request to keep the current one."
+          } > "$RUNNER_TEMP/body.md"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

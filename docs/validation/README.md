@@ -58,6 +58,7 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 | 2026-10-22 | [Documentation journey](2026-10-22-documentation-journey.md): the five-stage guide review |
 | 2026-10-23 | [CI refresh](2026-10-23-ci-refresh.md): pull requests from app changes, in a trial repository |
 | 2026-10-23 | [Cold first-demo runs](2026-10-23-cold-first-demo.md): the README prompt in fresh sessions on four new apps |
+| 2026-10-24 | [Review inside the pull request](2026-10-24-pr-review.md): the GIF, MP4 link and finding frames in a refresh pull request |
 | 2026-10-23 | [Persona review](2026-10-23-persona-review.md): the docs read by five kinds of user, and the tutorial run by one |
 
 Generated evidence lives under `takes/`, which Git ignores.

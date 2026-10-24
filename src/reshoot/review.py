@@ -396,7 +396,7 @@ def decide(root, report, choices, status):
 
 def summary(result, report, root):
     """A short Markdown account of a comparison, for a pull request or a chat message."""
-    from reshoot.check import load
+    from reshoot.check import findings, load
     scan, flags = load(root / 'review' / 'report.json', {}), load(root / 'review' / 'flags.json', {})
     counts = {}
     for row in result['beats']:
@@ -406,7 +406,8 @@ def summary(result, report, root):
     lines = [f"Run `{result['current']}` compared with `{result['previous']}`.", '',
              f"- Result checks: {report.get('expectations_status', 'unverified')} ({report.get('expectations_count', 0)})",
              f"- Beats: " + ', '.join(f'{n} {state}' for state, n in sorted(counts.items())),
-             f"- Scan: {scan.get('status', 'not run')}, {scan.get('unchecked') or 0} items to look at, {len(flags)} flagged",
+             f"- Scan: {scan.get('status', 'not run')}, {scan.get('unchecked') or 0} items to look at, "
+             + (f"{len(findings(flags))} finding{'s' if len(findings(flags)) != 1 else ''} in {len(flags)} of them" if flags else 'nothing flagged'),
              f"- Inputs changed: {'yes' if result['inputs_changed'] else 'no'}", '',
              '| Beat | Change | Definition | Duration | Frame pixels | Results |', '|---|---|---|---|---|---|']
     for row in result['beats']:

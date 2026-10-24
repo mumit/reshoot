@@ -292,6 +292,8 @@ def test_native_recording_includes_the_bottom_of_a_tall_viewport(tmp_path, nativ
     assert result.value.code == 0
     from reshoot import cut
     from PIL import Image
+    take = json.loads((tmp_path/'edges.take.json').read_text())
+    assert cut.duration(output) > .3, f"a {cut.duration(output):.2f} s video from {take.get('browser')}: {take.get('capture')}"
     cut.ff('-ss', .3, '-i', output, '-frames:v', 1, tmp_path/'edges.png')
     im = Image.open(tmp_path/'edges.png').convert('RGB')
     r,g,b = im.getpixel((640,710))

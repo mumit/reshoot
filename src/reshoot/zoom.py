@@ -4,8 +4,8 @@ one action to the next, and moves back out when things go quiet.
 The page reports each action with where its element is (overlay.js). Zooming out and back in for nothing is
 distracting, so the view only moves when it has to: when the next action is out of view, after a long quiet spell,
 at a new caption, or when something outside the view changes. Since the zoom is worked out afterwards, it
-can start before a click and land as the click happens. Chrome sends frames at the page's CSS size, whatever
-the pixel ratio, so enlarged text softens. Captions are drawn after the zoom, so they stay in place.
+can start before a click and land as the click happens. The page is recorded at a higher pixel ratio, so text
+stays sharp when enlarged. Captions are drawn after the zoom, so they stay in place.
 
     ZOOM = True                                   # in a storyboard, or `reshoot web --zoom`
     ZOOM = {"scale": 1.8, "lead": 0.7, "hold": 1.0, "quiet": 4.0, "watch": True, "show": 1.0}

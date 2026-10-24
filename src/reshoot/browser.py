@@ -137,7 +137,11 @@ async def capture(board, a, frames, out, metadata, spoken):
     root = Path(a.storyboard).resolve().parent
     async with async_playwright() as pw:
         try:
-            browser = await pw.chromium.launch(executable_path=web.find_chrome(), headless=True, args=web.chrome_flags())
+            # Without these flags the screencast sends frames at the page's CSS size whatever the pixel ratio, so @2
+            # was only scaled up, and the first frames come from a window shorter than the page.
+            sharp = [f'--force-device-scale-factor={cap_dpr:g}', f'--window-size={w},{h}']
+            browser = await pw.chromium.launch(executable_path=web.find_chrome(), headless=True,
+                                               args=web.chrome_flags() + sharp)
         except Exception as e:
             raise RuntimeError(f'Chrome could not start: {redact(str(e).splitlines()[0])}. If this runs inside an agent\'s '
                                'sandbox, such as Codex\'s, Chrome is usually what the sandbox blocks: run the reshoot '

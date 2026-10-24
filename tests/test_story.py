@@ -369,3 +369,32 @@ def test_a_browser_that_cannot_start_points_at_sandboxes(tmp_path, monkeypatch):
     assert result.value.code == 2
     error = json.loads((tmp_path / 'take.take.json').read_text())['error']
     assert error.startswith('Chrome could not start') and 'sandbox' in error
+
+
+@pytest.mark.browser
+def test_a_higher_pixel_ratio_records_device_pixels(tmp_path):
+    """Chrome's screencast sent frames at the page's CSS size whatever the pixel ratio, so @2 was only scaled up.
+    Stripes one device pixel wide survive only in a frame recorded at device size; a scaled-up one shows grey."""
+    import subprocess
+    from PIL import Image, ImageStat
+    (tmp_path / 'index.html').write_text('''<body style="margin:0;background:#000"><canvas id="c" style="width:320px;height:180px"></canvas>
+<script>const c = document.getElementById('c'), r = devicePixelRatio; c.width = 320 * r; c.height = 180 * r;
+const g = c.getContext('2d'); g.fillStyle = '#fff'; for (let x = 0; x < c.width; x += 2) g.fillRect(x, 0, 1, c.height);</script>''')
+    handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(tmp_path))
+    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        p = tmp_path / 'story.toml'
+        p.write_text(f'schema_version = 1\nurl = "http://127.0.0.1:{server.server_port}/"\nsize = "640x360@2"\n'
+                     '[[beat]]\nid = "still"\nhold = 0.6\n')
+        with pytest.raises(SystemExit) as result:
+            main(['web', str(p), str(tmp_path / 'take.mp4')])
+        assert result.value.code == 0
+    finally:
+        server.shutdown()
+    frame = tmp_path / 'frame.png'
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-sseof', '-0.2', '-i', str(tmp_path / 'take.mp4'), '-frames:v', '1',
+                    str(frame)], check=True)
+    image = Image.open(frame).convert('L')
+    assert image.size == (1280, 720)
+    assert ImageStat.Stat(image.crop((40, 40, 600, 320))).stddev[0] > 60  # stripes, not an even grey

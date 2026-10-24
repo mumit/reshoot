@@ -55,8 +55,10 @@ Use this reference to diagnose recording, editing and review problems.
   evidence frame is the last frame the video shows, saved at the end of the hold, and no screenshot is taken
   during capture. Watch the video, not only the checks.
 
-- **A higher pixel ratio doesn't sharpen the video.** Chrome sends screencast frames at the page's CSS size, so
-  `@1.5` or `@2` scales them up. A narrower viewport, such as `960x540`, makes text larger in the GIF.
+- **A higher pixel ratio didn't sharpen the video.** Chrome's screencast sent frames at the page's CSS size, so
+  `@1.5` or `@2` only scaled them up, and zoomed text went soft. Fixed in reshoot: Chrome is started at the
+  recording's pixel ratio, so `@2` records twice the pixels and zoom stays sharp. A higher ratio makes text
+  sharper, not larger: a narrower viewport, such as `960x540`, makes text larger in the GIF.
 - **A 5-second take came out 389 seconds long.** The Mac went to sleep during it. The beats and the end of recording
   were timed with the system clock, which keeps counting through sleep; Chrome's frame times don't. Fixed in
   reshoot: it times everything with a clock that stops during sleep too, matched to Chrome's at the first frame.

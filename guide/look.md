@@ -34,8 +34,9 @@ they stay where they are.
 |---|---|
 | ![Typing the search without zoom](../docs/look/zoom-off.jpg) | ![Typing the search, zoomed in](../docs/look/zoom-on.jpg) |
 
-Zoom enlarges the recorded frames, so text softens as it zooms in. A narrower
-viewport, such as `size = "960x540@1"`, makes text larger without that.
+The page is recorded at up to twice its pixel ratio while zoom is on, so text
+stays sharp as it zooms in. For larger text without zoom, use a narrower
+viewport, such as `size = "960x540@2"`.
 
 ## Captions
 
@@ -101,8 +102,8 @@ past a page's limit. The notes example's loop:
 
 | Width | File |
 |---|---|
-| 800 wide (the default) | 377 KB |
-| 640 wide | 262 KB |
+| 800 wide (the default) | 340 KB |
+| 640 wide | 236 KB |
 
 ## Sound
 

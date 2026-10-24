@@ -6,6 +6,14 @@ change project files or commands.
 
 ## Unreleased
 
+### Fixed
+
+- A higher pixel ratio records sharper video. Chrome's screencast had sent
+  frames at the page's CSS size whatever the ratio, so `@2` was only scaled up
+  and zoomed text went soft. Chrome now starts at the recording's pixel ratio;
+  on the notes example at `960x540@2`, a sharpness measure of the same frame
+  doubled. The odd short frames at the start of a take are gone too.
+
 ### Added
 
 - [How the videos look](guide/look.md): the cursor, auto-zoom, captions,

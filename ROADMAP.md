@@ -15,23 +15,19 @@ found that the tool does the hard part well and loses the joy where a user
 meets it first: the README, the end of a run and the agent's handoff. Items
 are ordered by how early a user meets them.
 
-1. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at
-   the page's CSS size, so `@1.5` and `@2` only scale them up, including the
-   `1280x720@1.5` default. Capture at the device resolution, or say plainly
-   that the ratio only sets the output size.
-2. **Review that fits the data.** With made-up data, show flagged scan items
+1. **Review that fits the data.** With made-up data, show flagged scan items
    first and say the rest can be skimmed. Make the full scan a flag on `run`
    instead of a config edit.
-3. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
+2. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
    one start-here (agent user, CLI user, team lead, pull-request reviewer),
    add field tables for the three TOML files, a team page (who owns
    `demo/accepted/`, failure alerts, CI cost) and an index of error messages.
    Pick one word each for run, result check, accept and baseline. Give every
    command help text that describes the current format.
-4. **Review inside the pull request.** Link the MP4 on the pull request's
+3. **Review inside the pull request.** Link the MP4 on the pull request's
     branch and show flagged scan items as images, so reviewing a refresh needs
     no artifact download.
-5. **Outside users.** Deferred by the owner. Three people who are not the
+4. **Outside users.** Deferred by the owner. Three people who are not the
     maintainer, each starting from the first-demo prompt.
 
 ## Later
@@ -58,6 +54,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **Sharp video at higher pixel ratios:** Chrome starts at the recording's pixel ratio, so the screencast sends
+  device-size frames: `@2` records twice the pixels, zoomed text stays sharp, and the short first frames are gone.
 - **Show the craft:** [How the videos look](guide/look.md) shows the cursor, auto-zoom, captions, title cards,
   export shapes and GIF sizes, recorded from the notes example by a script that rebuilds the page.
 - **The same cursor on every route:** TOML storyboards glide, press, ripple and type at an uneven pace like Python

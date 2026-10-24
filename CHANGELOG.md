@@ -4,7 +4,7 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
-## Unreleased
+## 0.3.3 (2026-10-23)
 
 ### Added
 

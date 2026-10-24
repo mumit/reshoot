@@ -20,7 +20,7 @@ are ordered by how early a user meets them.
 
 ## Later
 
-- Re-cut a run, changing captions, cards and music, without recording it again.
+- Captions drawn after recording, so a re-cut can change them too.
 - A single first-demo page, with the other guides kept as reference.
 - Real changing remote services as a compatibility trial.
 
@@ -35,6 +35,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **Re-cut without recording:** `reshoot recut RUN` edits and scans a run's takes again into a new run, for
+  changes to cards, music, the frame and exports.
 - **Presets and a frame:** export presets for README, X and LinkedIn check each platform's limits, and a
   `[frame]` table gives takes a browser window, rounded corners and a shadow on a brand background.
 - **Accept from the review page:** `reshoot review RUN --serve` serves the page locally with a choice for each

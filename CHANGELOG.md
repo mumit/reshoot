@@ -26,6 +26,9 @@ change project files or commands.
 - A `[frame]` table in `edit.toml` puts each take in a browser-like window with
   a title bar, rounded corners and a shadow, on the `[style]` background, which
   can now be a gradient.
+- `reshoot recut RUN` edits and scans a run's takes again into a new run, after
+  a change to `edit.toml`, without starting the app or recording. The new run
+  names the run it came from and keeps its result checks.
 
 ## 0.3.5 (2026-10-24)
 

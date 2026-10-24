@@ -33,13 +33,13 @@ Each row is independent. Start at the top: those save the most.
 | Scan fewer sources | Leave `takes/web.assets.json` out of `[check] sources` | Large on pages with maps, galleries or many images | Loaded images are seen only as they appear in frames, not at full size. Content picked at random goes unchecked |
 | Preview less | Preview after changing the storyboard or a tape, not on every refresh | A whole extra run | A refresh that broke shows up in the final, which you then run again |
 | Preview one beat | `reshoot preview CONFIG --from BEAT` | The beats before it | Skips the edit and scan, so it shows only that beat working |
-| Re-cut, don't re-record | When only the edit changes (captions on cards, timing, GIF size), copy a run's `takes/` folder to a new folder and run `reshoot edit` there | Everything but the edit | The new cut is outside a versioned run: its report doesn't cover it |
+| Re-cut, don't re-record | When only `edit.toml` changes (title cards, music, a frame, the cuts, GIF size), `reshoot recut demo/latest` | Starting the app and recording: the notes example's re-cut took 7 s against 19 s | Captions, actions and the app are as that run recorded them; it says so when the storyboard has changed since |
 | Tighten agent waits | Set a tape's final `Sleep` to the slowest run you've seen plus a margin | Minutes per terminal take | A slower agent is cut off before its answer. VHS can't safely wait for text instead ([pitfalls](pitfalls.md#terminal-takes)) |
 | Export less | One MP4 and one GIF, not also a vertical cut and a GIF per section | Edit and scan time: each export is scanned | Less ready-made media for other places |
 | Review less | Skip the review page and `reshoot accept` | Your time | The report stays "review pending". Nothing is blocked; sharing unreviewed media is your call |
 
-Copy the takes before re-cutting because an edit writes beside its first take.
-Run inside a run folder, it would overwrite that run's recorded files.
+A re-cut is a new run, with its own report and review, that names the run it
+came from and keeps its result checks. Accept it like any other.
 
 ## When the fast settings are fine
 

@@ -39,7 +39,7 @@ Legacy shoot files, without schema_version, write into the project instead of a 
 `run = "COMMAND"` takes, `[edit] script = "edit.py"` and `[keep] "takes/final.mp4" = "docs/demo.mp4"` copies. In
 GitHub Actions a run sets the step outputs ok, unchecked, flagged and report.
 """
-import json, os, shlex, shutil, signal, subprocess, sys, time, tomllib, urllib.error, urllib.request
+import json, os, re, shlex, shutil, signal, subprocess, sys, time, tomllib, urllib.error, urllib.request
 from pathlib import Path
 from reshoot.safety import describe, redact
 
@@ -187,6 +187,25 @@ def main(a):
         shoot.pop('edit', None)
         shoot.pop('check', None)
         shoot.pop('keep', None)
+    source = getattr(a, 'source', None)  # a re-cut: the takes of that run, edited and scanned again
+    if source:
+        source_root, source_report = source
+        for take in shoot.get('take', []):
+            out = take.get('out') or (re.search(r'(?m)^Output\s+"([^"\n]+)"', Path(take['tape']).read_text()) or [None, None])[1]
+            if not out:
+                raise ValueError('a take without an out cannot be re-cut')
+            relative = Path(out).relative_to(shoot['_run_dir'])
+            found = [f for f in (source_root / relative.parent).glob(relative.stem + '.*')]
+            if not (source_root / relative).is_file():
+                raise ValueError(f'{relative} is not in run {source_report["id"]}: record a new run')
+            for f in found:
+                target = Path(shoot['_run_dir']) / relative.parent / f.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                (shutil.copytree if f.is_dir() else shutil.copyfile)(f, target)
+        shoot.pop('app', None)
+        shoot['take'] = []
+        if source_report.get('mode', 'final') != 'final':
+            os.environ['RESHOOT_PREVIEW'] = '1'  # a preview's takes stay a preview, scanned the quick way
     plan = list(steps(shoot))
     takes = [Path(t['out']) for t in shoot.get('take', []) if 'out' in t]
     report_path = Path(shoot.get('report', takes[0].parent / 'run.json' if takes else 'takes/run.json'))
@@ -198,9 +217,13 @@ def main(a):
     report['inputs'] = {'config_sha256': digest(path), 'reshoot': version('reshoot'), 'stories': [],
                         'fixtures': [{'source': describe(f), 'sha256': digest(f)} for f in shoot.get('inputs', [])]}
     for take in shoot.get('take', []):
-        source = take.get('web') or take.get('tape')
-        if source and Path(source).is_file():
-            report['inputs']['stories'].append({'sha256': digest(source), 'kind': 'web' if 'web' in take else 'tape'})
+        story = take.get('web') or take.get('tape')
+        if story and Path(story).is_file():
+            report['inputs']['stories'].append({'sha256': digest(story), 'kind': 'web' if 'web' in take else 'tape'})
+    if source:  # what was recorded is the earlier run's, so its stories and demo data are too
+        report['inputs'].update(stories=source_report.get('inputs', {}).get('stories', []),
+                                fixtures=source_report.get('inputs', {}).get('fixtures', []))
+        report['recut_from'] = source_report['id']
     if edit := shoot.get('edit'):
         edit_path = edit.get('file', edit.get('script'))
         if edit_path and Path(edit_path).is_file():
@@ -216,6 +239,8 @@ def main(a):
     timeout = shoot.get('timeout', 600)
     report.update(id=shoot.get('_run_id') or __import__('uuid').uuid4().hex, exports=shoot.get('_exports', {}),
                   mode='partial-preview' if os.environ.get('RESHOOT_FROM_BEAT') else 'preview' if os.environ.get('RESHOOT_PREVIEW') else 'final')
+    if source:
+        report['mode'] = source_report.get('mode', 'final')
     try:
         event_path = report_path.parent / 'events.jsonl'
         event_path.parent.mkdir(parents=True, exist_ok=True)
@@ -331,6 +356,38 @@ def main(a):
     print('  reshoot accept ' + shlex.quote(shown(root)) + (' --flagged ' + ' '.join(groups) if groups else ''))
     if page:
         print('or on its review page, with a button for each finding:\n  reshoot review ' + shlex.quote(shown(root)) + ' --serve')
+
+
+def recut(a):
+    """Edit and scan an earlier run's takes again, into a new run, without starting the app or recording: for a
+    change to edit.toml, such as cards, music, a frame or the exports. The new run keeps that recording's result
+    checks. Captions are drawn while recording, so changing one means recording again."""
+    from reshoot.review import read
+    source_root, source_report = read(a.run_path)
+    if source_report.get('record'):
+        raise ValueError('this is a run record without its media; re-cut the run itself, under takes/runs/')
+    if not source_report.get('ok'):
+        raise ValueError(f'run {source_report["id"]} failed, so there is nothing to re-cut: record a new run')
+    config = Path(a.config) if a.config else source_root.parent.parent.parent / 'reshoot.toml'
+    if not config.is_file():
+        raise ValueError(f'no {describe(config)}: name the project with --config')
+    from reshoot.artifacts import digest
+    stories = {s['sha256'] for s in source_report.get('inputs', {}).get('stories', [])}
+    from reshoot.config import read as read_config
+    shoot, folder = read_config(config)
+    now = {digest(folder / t[k]) for t in shoot.get('take', []) for k in ('web', 'tape') if k in t and (folder / t[k]).is_file()}
+    if stories and now != stories:
+        print(f'The storyboard changed since run {source_report["id"]} was recorded. This re-cut uses that recording, '
+              'with its actions and captions as they were; record a new run to see the changes.', flush=True)
+    print(f'Re-cutting the takes of run {source_report["id"]}; nothing is recorded.', flush=True)
+    previous = os.environ.get('RESHOOT_PREVIEW')
+    try:
+        return main(type('Args', (), {'config': str(config), 'full': a.full, 'source': (source_root, source_report)})())
+    finally:
+        if previous is None:
+            os.environ.pop('RESHOOT_PREVIEW', None)
+        else:
+            os.environ['RESHOOT_PREVIEW'] = previous
 
 
 def shown(path):

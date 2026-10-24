@@ -283,6 +283,11 @@ smaller size with faster encoding and a sampled scan, and `accept` refuses it.
 | `takes/demo-final*.mp4`, `.gif`, `.srt` | The exports |
 | `review/` | The scan: numbered sheets, original frames, `flags.json` and `report.json` |
 
+`reshoot recut RUN` makes a new run from that run's takes, editing and scanning
+them again with the current `edit.toml` and `[check]`. Its report has
+`recut_from`, the earlier run's ID, and keeps that run's result checks, story
+hashes and demo data, since the recording is the same.
+
 The report hashes the story, the edit, `reshoot.toml`, the declared inputs and
 uncommitted git changes. Services the app calls and untracked files are not
 covered.

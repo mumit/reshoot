@@ -19,6 +19,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot doctor --config CONFIG` | Checks tools and installed detectors without recording |
 | `reshoot preview CONFIG` | Makes an isolated preview with the same actions |
 | `reshoot preview CONFIG --from BEAT` | Replays earlier actions without capturing them; skips the final edit and scan |
+| `reshoot recut RUN` | Edits and scans that run's takes again into a new run, after a change to `edit.toml`; nothing is recorded |
 | `reshoot run CONFIG` | Starts the configured app, records, edits and scans a new run |
 | `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |

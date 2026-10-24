@@ -81,6 +81,20 @@ typing = 20    # characters a second; the default is 13
 
 `ripple = false` leaves out the ring. Record another preview to see it.
 
+## Change only the edit, quickly
+
+Title cards, music, the frame, the cuts and the exports are all in
+`demo/edit.toml`, which works on what was already recorded. After changing only
+that file, skip the recording:
+
+```bash
+reshoot recut demo/latest
+```
+
+It edits and scans the latest run's takes again, into a new run, in seconds.
+Captions are drawn while the page is recorded, so changing a caption in
+`storyboard.toml` still needs `reshoot preview` or `reshoot run`.
+
 ## Frame it like a browser window
 
 Add this to `demo/edit.toml`, above the first `[[part]]`:

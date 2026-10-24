@@ -93,6 +93,18 @@ def main(argv=None):
                    help="scan every frame of the exports this time, as full = true in [check] does")
     p.set_defaults(run=run.main)
 
+    p = sub.add_parser("recut", help="edit and scan an earlier run's takes again, into a new run, without recording",
+                       description="Edit and scan an earlier run's takes again, into a new run, without starting "
+                       "the app or recording: for a change to edit.toml, such as title cards, music, a frame or the "
+                       "exports. The new run keeps that recording's result checks and names the run it came from. "
+                       "Captions are drawn while recording, so changing a caption means recording again.\n\n"
+                       "    reshoot recut demo/latest\n"
+                       "    reshoot recut demo/takes/runs/ID --full", formatter_class=Examples)
+    p.add_argument("run_path", metavar="RUN", help="the run whose takes to use, such as demo/latest")
+    p.add_argument("--config", help="the project's reshoot.toml (default: the one beside the run's takes folder)")
+    p.add_argument("--full", action="store_true", help="scan every frame of the exports this time")
+    p.set_defaults(run=run.recut)
+
     p = sub.add_parser("edit", help="cut takes into the final video and its exports, from an edit.toml or a Python script",
                        description="Cut takes into a final video and its exports. A run does this itself from "
                        "[edit] in reshoot.toml; use this to edit takes you recorded separately.\n\n"

@@ -148,6 +148,42 @@ def test_generated_project_records_an_isolated_preview(tmp_path):
 
 
 @pytest.mark.browser
+def test_a_recut_edits_a_runs_takes_again_without_recording(tmp_path, capsys):
+    from test_reshoot import free_port
+    from reshoot.cli import main
+    from reshoot import cut
+    project.init(SimpleNamespace(directory=str(tmp_path), url=None))
+    port = free_port()
+    path = tmp_path / 'reshoot.toml'
+    path.write_text(path.read_text().replace('8765', str(port)).replace('scan = true', 'scan = false'))
+    board = tmp_path / 'storyboard.toml'
+    board.write_text(board.read_text().replace('8765', str(port)))
+    with pytest.raises(SystemExit) as result:
+        main(['run', str(path)])
+    assert result.value.code == 0
+    first = json.loads((tmp_path / 'takes/runs').glob('*/run.json').__next__().read_text())
+    edit = tmp_path / 'edit.toml'
+    edit.write_text(edit.read_text().replace('[[part]]', '[[part]]\ncard = "Notes"\nduration = 1\n\n[[part]]', 1))
+    board.write_text(board.read_text().replace('Find the matching note', 'A new caption'))
+    capsys.readouterr()
+    with pytest.raises(SystemExit) as result:
+        main(['recut', str(tmp_path / 'latest')])
+    assert result.value.code == 0
+    said = capsys.readouterr().out
+    assert 'The storyboard changed since run' in said and 'nothing is recorded' in said and '== web' not in said
+    runs = {json.loads(p.read_text())['id']: p.parent for p in (tmp_path / 'takes/runs').glob('*/run.json')}
+    new = next(folder for name, folder in runs.items() if name != first['id'])
+    report = json.loads((new / 'run.json').read_text())
+    assert report['recut_from'] == first['id'] and report['mode'] == 'final'
+    assert report['expectations_status'] == 'passed' and report['inputs']['stories'] == first['inputs']['stories']
+    assert not (new / 'app.log').exists()  # the app was never started
+    old = runs[first['id']] / 'takes/demo-final.mp4'
+    assert cut.duration(new / 'takes/demo-final.mp4') > cut.duration(old) + .5  # the new card is in it
+    with pytest.raises(SystemExit):
+        main(['recut', str(tmp_path / 'takes/runs/missing')])
+
+
+@pytest.mark.browser
 def test_mixed_preview_can_join_web_and_terminal_takes(tmp_path, monkeypatch):
     import re
     from test_reshoot import free_port

@@ -8,17 +8,63 @@ Each item says what it is and why it matters. When one ships, move it to Done
 with a line on what it does. Trial evidence lives in the
 [validation records](docs/validation/README.md), not here.
 
-## Now: prove the front door
+## Now: make reshoot a joy to use
 
-1. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at the
-   page's CSS size, so `@1.5` and `@2` only scale them up, including the
-   `1280x720@1.5` default. Capture at the device resolution, or say plainly that
-   the ratio only sets the output size.
-2. **Review inside the pull request.** Link the MP4 on the pull request's
-   branch and show flagged scan items as images, so reviewing a refresh needs
-   no artifact download.
-3. **Outside users.** Deferred by the owner. Three people who are not the
-   maintainer, each starting from the first-demo prompt.
+A [persona review of the docs](docs/validation/2026-10-23-persona-review.md)
+found that the tool does the hard part well and loses the joy where a user
+meets it first: the README, the end of a run and the agent's handoff. Items
+are ordered by how early a user meets them.
+
+1. **Fix what the docs get wrong.** `guide/ci.md` accepts `demo/latest`, which
+   can be a preview, and `accept` doesn't refuse one, so a team can commit a
+   preview as its baseline: make `accept` refuse previews unless asked. Remove
+   the "no `select`" claims, the CLI 0.2 requirement in `projects.md`, the
+   "if this CLI provides" hedges in the skills and the archive-by-ID baseline
+   in `publish.md`. Resolve the pixel-ratio contradiction. Make the quickstart
+   replace skills after an upgrade instead of keeping the old ones.
+2. **A finish line worth reaching.** End every run with what was made: checks
+   passed, the MP4 and GIF paths and the review page, then the accept command.
+   Keep the app server's log out of the output. A failed run prints its folder
+   and failure image, `compare` prints which beats matched and changed, and the
+   review page opens with one status line. The tutorial uses `latest` and
+   `accepted` instead of pasted run IDs and turns the full scan off again.
+3. **A README that sells in ten seconds.** Lead with "Demos that stay
+   current", the install line and three commands, show five lines of a
+   storyboard, say what reshoot does that VHS, Screen Studio and Playwright
+   video don't, and give the requirements in one line. One "where next" table
+   instead of four, and warmer words than "verdict" and "approval".
+4. **A clear agent handoff.** Tell the human before they paste the prompt what
+   it takes: minutes, cost, the files it writes, the permissions it asks for.
+   End with a fixed handoff: the exports, the checks, "reply accept, or ask for
+   changes like these", and follow-up prompts for shorter captions, slower
+   pacing, a portrait cut, a voiceover and CI. After accepting, export to
+   `docs/demo/` as the CI template expects, and have `init` write a
+   `demo/.gitignore` for `takes/`.
+5. **The same cursor on every route.** TOML storyboards get the click ripple,
+   press and varied typing speed that Python storyboards have, with options
+   for cursor size and typing speed.
+6. **Show the craft.** A look gallery made from the notes example: zoom on and
+   off, the cursor, caption positions, cards, 16:9, 4:5 and 9:16, GIF widths
+   with sizes. Name auto-zoom and audio ducking, and turn the camera's fixed
+   bugs into a page on how the camera moves.
+7. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at
+   the page's CSS size, so `@1.5` and `@2` only scale them up, including the
+   `1280x720@1.5` default. Capture at the device resolution, or say plainly
+   that the ratio only sets the output size.
+8. **Review that fits the data.** With made-up data, show flagged scan items
+   first and say the rest can be skimmed. Make the full scan a flag on `run`
+   instead of a config edit.
+9. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
+   one start-here (agent user, CLI user, team lead, pull-request reviewer),
+   add field tables for the three TOML files, a team page (who owns
+   `demo/accepted/`, failure alerts, CI cost) and an index of error messages.
+   Pick one word each for run, result check, accept and baseline. Give every
+   command help text that describes the current format.
+10. **Review inside the pull request.** Link the MP4 on the pull request's
+    branch and show flagged scan items as images, so reviewing a refresh needs
+    no artifact download.
+11. **Outside users.** Deferred by the owner. Three people who are not the
+    maintainer, each starting from the first-demo prompt.
 
 ## Later
 
@@ -27,7 +73,9 @@ with a line on what it does. Trial evidence lives in the
 - Checks suggested by `reshoot rec` from what each action changed on the page. The cold runs showed agents
   write good stories and checks unaided, so this helps people working without an agent.
 - Accept from the review page itself, served locally, instead of a terminal command.
-- Named export presets with verified limits for X, LinkedIn and README use.
+- Named export presets with verified limits for X, LinkedIn and README use, and a brand table for fonts, colors,
+  a logo and a framed browser look with padding, rounded corners and a shadow.
+- Re-cut a run, changing captions, cards and music, without recording it again.
 - A single first-demo page, with the other guides kept as reference.
 - Real changing remote services as a compatibility trial.
 

@@ -2,9 +2,8 @@
 
 Use this page to find a command. For a complete first recording and update,
 follow the [tutorial](step-by-step.md); for file settings, see the
-[project reference](projects.md). `reshoot COMMAND --help` gives its CLI arguments.
-`reshoot run --help` also describes the legacy shoot format; versioned TOML
-settings are documented in the project reference.
+[project reference](projects.md). `reshoot COMMAND --help` describes each
+command with examples; `reshoot run --help` shows a complete `reshoot.toml`.
 
 ## Project workflow
 

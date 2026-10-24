@@ -1,43 +1,43 @@
-"""Runs a whole shoot from a reshoot.toml: starts the app, records each take, cuts, makes the review sheets, and
-copies the finished files to where they're kept. Each step runs in its own process, so one failure is reported
-clearly and the app is always stopped.
+"""Records a whole demo from a reshoot.toml: starts the app, records each take, edits, scans the exports, and
+writes a review page. Each run gets its own folder, takes/runs/ID beside the reshoot.toml, so a failed run never
+replaces an earlier one.
 
-    reshoot run                    # reshoot.toml in this folder
-    reshoot run tools/demo/reshoot.toml
+    reshoot run demo/reshoot.toml          # a final
+    reshoot run demo/reshoot.toml --full   # a final that scans every frame
+    reshoot preview demo/reshoot.toml      # the same actions, smaller and quicker
 
-A reshoot.toml looks like this (paths are relative to the folder it's run from):
+`reshoot init demo` writes a complete project. Its reshoot.toml (paths are relative to this file):
 
-    [app]                                  # optional: the app to record, started first and stopped at the end
-    run = "npm run dev -- --port 8000"     # a shell command
-    url = "http://localhost:8000/"         # recording waits until this answers
+    schema_version = 1
+    inputs = ["seed.json"]                 # optional: demo data files, hashed into the report
+
+    [app]                                  # optional: started first, stopped at the end
+    run = "npm run dev -- --port 3000"     # runs in this file's folder
+    url = "http://127.0.0.1:3000/"         # recording waits until this answers
     timeout = 60                           # seconds to wait
+    reset = "npm run demo:reset"           # optional: resets demo data before startup
 
     [[take]]
-    web = "tools/demo/storyboard.py"       # reshoot web STORYBOARD OUT
-    out = "takes/web.mp4"
-
-    [[take]]
-    tape = "tools/demo/cli.tape"           # vhs TAPE; the tape's Output names the file
-
-    [[take]]
-    run = "reshoot window MyApp takes/app.mov -s 8"   # any other command
+    web = "storyboard.toml"                # a browser take, or tape = "cli.tape" for a VHS terminal take
+    out = "takes/demo.mp4"
 
     [edit]
-    script = "tools/demo/edit.py"          # reshoot edit SCRIPT ARGS
-    args = ["takes/web.mp4", "takes/cli.mp4"]
+    file = "edit.toml"                     # cuts, cards and exports
+    args = ["takes/demo.mp4"]
 
-    [check]                                # reshoot check, for the review by eye
-    sources = ["takes/web.assets.json", "takes/final.mp4"]
-    review = "takes/review"
-    watch_for = ["Acme", "Jane Roe"]       # optional: words to flag wherever they appear
-    scan = true                            # scan for likely problems (the default)
+    [check]                                # the privacy scan of the exports
+    sources = ["takes/demo-final.mp4", "takes/demo-final-readme.gif"]
+    review = "review"
+    watch_for = ["Acme"]                   # optional: words to flag wherever they appear
+    full = false                           # true scans every frame, as --full does
 
-    [keep]                                 # copies of the finished files, such as into the docs
-    "takes/final.mp4" = "docs/demo.mp4"
-    "takes/web.gif" = "docs/demo.gif"
+guide/projects.md has a table of every field. A run ends with its result checks, what the scan found, the paths of
+the video, GIF and review page, and the `reshoot accept` command. It exits 0 when the run worked, even though it
+still needs accepting, and nonzero with the failed step, run folder and failure image when it didn't.
 
-It writes run.json next to the first take (or at `report = "..."`) with what happened. In GitHub Actions it also
-sets the step's outputs: ok, unchecked, flagged and report.
+Legacy shoot files, without schema_version, write into the project instead of a run folder. They can also have
+`run = "COMMAND"` takes, `[edit] script = "edit.py"` and `[keep] "takes/final.mp4" = "docs/demo.mp4"` copies. In
+GitHub Actions a run sets the step outputs ok, unchecked, flagged and report.
 """
 import json, os, shlex, shutil, signal, subprocess, sys, time, tomllib, urllib.error, urllib.request
 from pathlib import Path

@@ -1,12 +1,15 @@
 """Writes a storyboard by watching you use the app: it opens Chrome in a window, you click and type through what the
 video should show, and when you close the window it writes the beats.
 
-    reshoot rec http://localhost:8000/ tools/demo/storyboard.py
+    reshoot rec http://127.0.0.1:3000/ demo/draft.toml        # a storyboard.toml draft
+    reshoot rec http://localhost:8000/ tools/demo/storyboard.py  # the legacy Python format
 
 Chrome starts with a fresh, empty profile, so none of your own accounts or history are there. Use demo data and a
 demo account only. Each click and each run of typing becomes a beat, found by the most stable selector it can work
 out (a test id, an id, a name or label, a button's words, then its place in the page). The holds come from your own
-pauses. Captions are left for you to add. Anything typed into a password field is replaced with a placeholder.
+pauses. Captions and result checks are left for you to add. Anything typed into a password field is replaced with a
+placeholder. A dropdown choice becomes a select action; checkboxes, radio buttons, multiple choice and drops are not
+recorded: it says so and writes no storyboard.
 """
 import asyncio, json, re
 from datetime import date

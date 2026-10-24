@@ -1,5 +1,12 @@
 """reshoot: demo videos of software, made from scripts so you can shoot them again when the app changes."""
-import argparse, sys
+import argparse, sys, textwrap
+
+
+class Examples(argparse.HelpFormatter):
+    """Wraps a description's prose and keeps its indented examples as they are."""
+    def _fill_text(self, text, width, indent):
+        return '\n\n'.join(part if part.startswith('    ') else textwrap.fill(part, min(width, 110))
+                             for part in text.split('\n\n'))
 
 
 def main(argv=None):
@@ -12,7 +19,8 @@ def main(argv=None):
     p = sub.add_parser("web", help="record a web page acting out a storyboard, in headless Chrome",
                        description=story.__doc__ + "\nLegacy Python storyboards\n\n" + web.__doc__,
                        formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("storyboard"); p.add_argument("out", help="the video to write, such as takes/web.mp4")
+    p.add_argument("storyboard", help="a storyboard.toml, or a legacy Python storyboard")
+    p.add_argument("out", help="the video to write, such as takes/web.mp4")
     p.add_argument("--url", help="the page to open (default: the storyboard's URL)")
     p.add_argument("--size", help="CSS width x height @ device pixel ratio, such as 390x844@3 (default 1280x720@1.5)")
     p.add_argument("--theme", choices=["dark", "light"])
@@ -26,7 +34,7 @@ def main(argv=None):
                        description=window.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("app", nargs="?", help="the app's name, as `--list` shows it")
     p.add_argument("out", nargs="?", help="the .mov to write")
-    p.add_argument("-s", "--seconds", type=int, default=8)
+    p.add_argument("-s", "--seconds", type=int, default=8, help="how long to record (default 8)")
     p.add_argument("--title", help="only a window whose title contains this")
     p.add_argument("--id", type=int, help="a window id from --list, if the app has several windows")
     p.add_argument("--list", action="store_true", help="list the windows on screen")
@@ -48,21 +56,31 @@ def main(argv=None):
     p.set_defaults(run=check.main)
 
     from reshoot import cut
-    p = sub.add_parser("gif", help="a GIF of part of a take, between two beats or times")
-    p.add_argument("take"); p.add_argument("out")
+    p = sub.add_parser("gif", help="a GIF of part of a take, between two beats or times",
+                       description="Make a GIF of part of a take, with its own palette.\n\n"
+                       "    reshoot gif takes/web.mp4 takes/loop.gif search end\n"
+                       "    reshoot gif takes/web.mp4 takes/loop.gif 2.5 9\n\n"
+                       "Beat names come from TAKE.beats.json, which `reshoot web` writes beside the video. For a "
+                       "project's exports, use an [[export]] with format = \"gif\" in edit.toml instead.", formatter_class=Examples)
+    p.add_argument("take", help="the video, such as takes/web.mp4"); p.add_argument("out", help="the GIF to write")
     p.add_argument("start", help="a beat name from TAKE.beats.json, or seconds")
     p.add_argument("end", nargs="?", help="a beat name or seconds (default: the end of the take)")
-    p.add_argument("--fps", type=int, default=15); p.add_argument("--width", type=int, default=800)
+    p.add_argument("--fps", type=int, default=15, help="frames a second (default 15)")
+    p.add_argument("--width", type=int, default=800, help="width in pixels (default 800)")
     p.set_defaults(run=cut.gifs_main)
 
-    p = sub.add_parser("last-change", help="when a take last changed, such as when a command in a terminal finished")
-    p.add_argument("take")
+    p = sub.add_parser("last-change", help="when a take last changed, such as when a command in a terminal finished",
+                       description="Print the time in seconds of the last visible change in a video. For a terminal "
+                       "take recorded with a long fixed Sleep, that is about when the command finished, so an edit "
+                       "can cut there: reshoot last-change takes/cli.mp4", formatter_class=Examples)
+    p.add_argument("take", help="the video to look at")
     p.set_defaults(run=lambda a: print(f"{cut.last_change(a.take):.2f}"))
 
     from reshoot import rec
     p = sub.add_parser("rec", help="write a storyboard by clicking and typing through the app in Chrome",
                        description=rec.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("url"); p.add_argument("out", help="the storyboard to write, such as tools/demo/storyboard.py")
+    p.add_argument("url", help="the page to start on, such as http://127.0.0.1:3000/")
+    p.add_argument("out", help="the storyboard to write: demo/draft.toml, or a .py file for the legacy format")
     p.add_argument("--size", default="1280x720@1.5", help="the page size the storyboard is for (default 1280x720@1.5)")
     p.add_argument("--headless", action="store_true", help=argparse.SUPPRESS)
     p.set_defaults(run=rec.main)
@@ -70,31 +88,63 @@ def main(argv=None):
     from reshoot import run
     p = sub.add_parser("run", help="run a whole shoot from a reshoot.toml: the app, every take, the cut and the check",
                        description=run.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("config", nargs="?", default="reshoot.toml")
+    p.add_argument("config", nargs="?", default="reshoot.toml", help="the project's reshoot.toml (default: here)")
     p.add_argument("--full", action="store_true",
                    help="scan every frame of the exports this time, as full = true in [check] does")
     p.set_defaults(run=run.main)
 
-    p = sub.add_parser("edit", help="run an edit script that uses reshoot.cut, passing it the rest of the arguments")
-    p.add_argument("script"); p.add_argument("args", nargs=argparse.REMAINDER)
+    p = sub.add_parser("edit", help="cut takes into the final video and its exports, from an edit.toml or a Python script",
+                       description="Cut takes into a final video and its exports. A run does this itself from "
+                       "[edit] in reshoot.toml; use this to edit takes you recorded separately.\n\n"
+                       "    reshoot edit edit.toml takes/web.mp4              # take 0 is takes/web.mp4\n"
+                       "    reshoot edit edit.py takes/web.mp4 takes/cli.mp4  # a script using reshoot.cut\n\n"
+                       "An edit.toml lists [[part]] ranges by take index and beat name, title cards, music, and "
+                       "[[export]] profiles; guide/projects.md has every field. A .py script gets the other "
+                       "arguments in sys.argv.", formatter_class=Examples)
+    p.add_argument("script", help="an edit.toml, or a Python script that uses reshoot.cut")
+    p.add_argument("args", nargs=argparse.REMAINDER, help="the takes, in the order the edit numbers them")
     p.set_defaults(run=run_script)
 
     from reshoot import project
-    p = sub.add_parser('doctor', help='check project tools without recording')
-    p.add_argument('--config')
-    p.add_argument('--json', action='store_true')
+    p = sub.add_parser('doctor', help='check that the tools a project needs are installed, without recording',
+                       description='Check that ffmpeg, Chrome, Playwright, VHS and the scan detectors a project needs '
+                       'are installed, and say whether a newer reshoot is out. It does not record or run a scan, so '
+                       'a run can still fail. Exits 0 when everything needed is there and 2 when something is missing.'
+                       '\n\n    reshoot doctor --config demo/reshoot.toml', formatter_class=Examples)
+    p.add_argument('--config', help='the project to check for; without it, the tools for a browser take')
+    p.add_argument('--json', action='store_true', help='print paths, versions and detectors as JSON')
     p.set_defaults(run=project.doctor)
-    p = sub.add_parser('init', help='create a demo project from packaged templates')
-    p.add_argument('directory', nargs='?', default='.')
+    p = sub.add_parser('init', help='create a demo project: the made-up notes example, or a draft for your app',
+                       description='Create a demo project: BRIEF.md, storyboard.toml, edit.toml, reshoot.toml and a '
+                       '.gitignore that keeps recordings out of git.\n\n'
+                       '    reshoot init demo                                 # the notes example, ready to record\n'
+                       '    reshoot init demo --url http://127.0.0.1:3000/    # a draft story for your app\n\n'
+                       'The notes example includes its own small app on a free port. A --url draft has one '
+                       'placeholder beat to replace with your app\'s task. It refuses to overwrite existing files.',
+                       formatter_class=Examples)
+    p.add_argument('directory', nargs='?', default='.', help='the folder to create, such as demo (default: here)')
     p.add_argument('--url', help='your demo app; omit to use the made-up notes example')
     p.set_defaults(run=project.init)
-    p = sub.add_parser('preview', help='record an isolated lower-resolution preview')
-    p.add_argument('config', nargs='?', default='reshoot.toml')
-    p.add_argument('--from', dest='from_beat', help='partial preview, replaying setup and earlier actions')
+    p = sub.add_parser('preview', help='record a quick, smaller run with the same actions, to look at before a final',
+                       description='Record a preview: the same actions and result checks as a final, at a smaller '
+                       'size with faster encoding and a sampled scan. It gets its own run folder and cannot be '
+                       'accepted without --preview, so record a final with `reshoot run` once it looks right.\n\n'
+                       '    reshoot preview demo/reshoot.toml\n'
+                       '    reshoot preview demo/reshoot.toml --from search   # record from the search beat on',
+                       formatter_class=Examples)
+    p.add_argument('config', nargs='?', default='reshoot.toml', help="the project's reshoot.toml (default: here)")
+    p.add_argument('--from', dest='from_beat', metavar='BEAT',
+                   help='replay setup and earlier beats without recording them, then record from BEAT; skips the edit '
+                   'and scan')
     p.set_defaults(run=run.preview)
     from reshoot import skills
-    p = sub.add_parser('skills', help='install the primary reshoot skills for a harness')
-    p.add_argument('harness', choices=['codex', 'claude'])
+    p = sub.add_parser('skills', help='install the reshoot-demo, reshoot-refresh and reshoot-review skills in a project',
+                       description='Copy the three main skills, reshoot-demo, reshoot-refresh and reshoot-review, '
+                       'into a project: .agents/skills for Codex or .claude/skills for Claude Code. They match this '
+                       'version of reshoot, so after an upgrade run it again with --replace. The Claude Code plugin '
+                       'has these and seven supporting skills.\n\n    reshoot skills claude --directory .',
+                       formatter_class=Examples)
+    p.add_argument('harness', choices=['codex', 'claude'], help='the agent that will use them')
     p.add_argument('--directory', default='.', help='project root receiving the skill bundle')
     p.add_argument('--replace', action='store_true',
                    help='replace skills already there, such as after an upgrade; changes made to them are lost')

@@ -13,10 +13,10 @@ Before and after a UI change, from one storyboard.
 
 - **Re-record, don't redo.** The demo is a `storyboard.toml` of clicks, typing,
   captions and the result that should appear. Run it after every UI change.
-- **Checked, not just captured.** Each run confirms the saved note shows up or
-  the search finds it, and fails on the exact step when a button moves. It
-  scans the frames for email addresses, keys and, on macOS, faces before you
-  share anything.
+- **Checked, not just captured.** Each run confirms that the result you named
+  appeared, such as a saved item or a search match, and stops on the exact step
+  whose control or label no longer matches. It scans the frames for email
+  addresses, keys and, on macOS, faces before you share anything.
 - **Your agent can drive it.** Skills for Claude Code and Codex write the story
   from your app, and a GitHub workflow records it again when the app changes and
   opens a pull request with the new video.
@@ -29,19 +29,24 @@ reshoot init demo                # a made-up notes app and its storyboard
 reshoot preview demo/reshoot.toml
 ```
 
-About 15 seconds later it ends with what it made:
+Once Chrome is up, the preview takes seconds and ends with what it made:
 
 ```text
 Done in 13 s: 3 of 3 result checks passed · scan: 6 items, 0 flagged · not accepted yet.
   video  demo/takes/runs/RUN_ID/takes/demo-final.mp4
   GIF    demo/takes/runs/RUN_ID/takes/demo-final-readme.gif
   review demo/takes/runs/RUN_ID/review.html
+
+This is a preview, smaller and quicker than a final. When it looks right, record the final:
+  reshoot run demo/reshoot.toml
 ```
 
 reshoot runs on macOS or Linux with Python 3.11+, ffmpeg and Chrome or
-Chromium; [installation](guide/install.md) covers each platform. The
-[CLI tutorial](guide/step-by-step.md) goes on to a final recording, an app
-change that breaks the story, the one-line repair and a comparison.
+Chromium, plus Tesseract on Linux; [installation](guide/install.md) covers each
+platform. The
+[CLI tutorial](guide/step-by-step.md) shows the part only reshoot does: change
+the app, watch the story stop on the beat that broke, fix one line, and compare
+the new recording with the old one.
 
 ## Or let your agent make it
 
@@ -71,8 +76,8 @@ What to expect, from [trials on four new apps](docs/validation/2026-10-23-cold-f
 - **Time:** 2 to 3 minutes in Claude Code, 5 to 9 in Codex.
 - **Files:** the agent writes `demo/` and its skills, in `.claude/skills/` or
   `.agents/skills/`, and leaves your README and other files alone.
-- **Permissions:** it may ask to install reshoot and ffmpeg. In Codex, expect a
-  request to run Chrome outside the sandbox, which blocks it.
+- **Permissions:** it may ask to install reshoot and ffmpeg, and in Codex to
+  run Chrome outside the sandbox.
 - **At the end:** it opens the MP4 and GIF and gives you the command that
   accepts them. Nothing is published.
 
@@ -101,8 +106,16 @@ with the same results.
 
 ## Keep it current
 
-Commit `demo/` with your code. After a change, record again and compare with
-the run you accepted:
+Record a final, watch it, and accept it once. That writes `demo/accepted/`, a
+small record to commit with `demo/`:
+
+```bash
+reshoot run demo/reshoot.toml
+reshoot accept demo/latest
+```
+
+After the app changes, record again and compare with the accepted run before
+accepting the new one:
 
 ```bash
 reshoot run demo/reshoot.toml
@@ -147,8 +160,8 @@ lists what runs where.
 The first-demo prompt installs them. To install them yourself, run
 `reshoot skills claude --directory .` or `reshoot skills codex --directory .`
 in the project, and add `--replace` after an upgrade. In Claude Code, the
-plugin adds seven supporting skills for planning, recording, editing, privacy
-checks and CI:
+plugin installs all ten: these three, plus seven supporting skills for
+planning, recording, editing, privacy checks and CI:
 
 ```text
 /plugin marketplace add mumit/reshoot
@@ -156,8 +169,8 @@ checks and CI:
 ```
 
 The [agent quickstart](guide/agent-quickstart.md) has follow-up prompts for
-refreshing and reviewing, and the [skill catalog](skills/README.md) lists all
-ten.
+refreshing and reviewing, and the [skill catalog](skills/README.md) describes
+each skill.
 
 ## Where next
 

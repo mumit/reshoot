@@ -20,7 +20,8 @@ A storyboard is a TOML file. `reshoot init` writes a complete one:
     target = {css = "#list li"}
     count = 1
 
-Storyboards may also set theme, mobile, zoom, blur, setup, voice, seed, timeout and a [caption] style. A failed
+Storyboards may also set theme, mobile, zoom, blur, setup, voice, seed, timeout, a [caption] style and a [cursor]
+(size, typing in characters a second, ripple). A failed
 expectation fails the take and saves evidence. guide/projects.md lists every field.
 """
 import math
@@ -45,7 +46,7 @@ def load(path):
     data = tomllib.loads(Path(path).read_text())
     if data.get('schema_version') != 1:
         raise ValueError('storyboard needs schema_version = 1')
-    if set(data) - {'schema_version', 'id', 'url', 'size', 'theme', 'zoom', 'blur', 'beat', 'setup', 'voice', 'voice_engine', 'timeout', 'seed', 'mobile', 'caption'}:
+    if set(data) - {'schema_version', 'id', 'url', 'size', 'theme', 'zoom', 'blur', 'beat', 'setup', 'voice', 'voice_engine', 'timeout', 'seed', 'mobile', 'caption', 'cursor'}:
         raise ValueError('unknown storyboard option')
     if not data.get('beat'):
         raise ValueError('storyboard has no beats')
@@ -60,6 +61,16 @@ def load(path):
     minimum = caption.get('min_seconds', 0)
     if not isinstance(minimum, (int,float)) or not math.isfinite(minimum) or minimum < 0:
         raise ValueError('caption min_seconds must be nonnegative')
+    cursor = data.get('cursor', {})
+    if set(cursor) - {'size', 'typing', 'ripple'}:
+        raise ValueError('unknown cursor option; use size, typing or ripple')
+    size, typing = cursor.get('size', 1), cursor.get('typing', 13)
+    if isinstance(size, bool) or not isinstance(size, (int, float)) or not .5 <= size <= 3:
+        raise ValueError('cursor size must be between 0.5 and 3')
+    if isinstance(typing, bool) or not isinstance(typing, (int, float)) or not 1 <= typing <= 60:
+        raise ValueError('cursor typing must be between 1 and 60 characters a second')
+    if not isinstance(cursor.get('ripple', True), bool):
+        raise ValueError('cursor ripple must be true or false')
     seen = set()
     for beat in data['beat']:
         name = beat.get('id', '')

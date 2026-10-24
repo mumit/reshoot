@@ -96,7 +96,12 @@ for camera work, `blur = ["SELECTOR"]` for persistent blur, and `seed` for curso
 rhythm. An optional `[caption]` table sets `position` (`top` or `bottom`),
 `margin` (fraction of frame height), `min_seconds`, `background`, `foreground`,
 and a relative `font` path. Styled captions are drawn after reframing and fail if
-they cannot fit inside the safe area. A `.take.json` records results, frames, resources, and the actual browser.
+they cannot fit inside the safe area. An optional `[cursor]` table sets `size`
+(0.5 to 3 times the default arrow), `typing` (characters a second, 13 by
+default) and `ripple` (`false` leaves out the ring that spreads on each click).
+While recording, the cursor glides along a slight curve, taking longer for
+longer trips, presses down on each click, and types at an uneven rhythm set by
+`seed`. A `.take.json` records results, frames, resources, and the actual browser.
 
 `reshoot rec URL story.toml` writes a draft in the new format. Passwords become a
 placeholder. Dropdown choices become `select` actions. Recognized unsupported multi-select,

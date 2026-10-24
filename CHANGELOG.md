@@ -8,6 +8,10 @@ change project files or commands.
 
 ### Added
 
+- TOML storyboards get the cursor Python storyboards have: a glide that takes
+  longer for longer trips, a press and a ring on each click, and typing at an
+  uneven pace set by `seed`. A `[cursor]` table sets `size`, `typing` speed and
+  `ripple`.
 - `reshoot init` writes `demo/.gitignore`, which keeps recordings out of Git
   and the `demo/accepted/` record in.
 - `reshoot export RUN --directory DIR` copies the run's videos, GIFs and video

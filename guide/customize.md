@@ -64,6 +64,20 @@ for its explicit checks, then holds the successful result for an extra second.
 Use a hold for reading time; use an expectation for the app's readiness.
 Do not hide a real service delay by speeding it up without a visible label.
 
+## Change the cursor
+
+The cursor glides to each control, presses down with a ring on each click, and
+types at an uneven pace. To make it larger in a small GIF, or type faster, add
+this to the top of `demo/storyboard.toml`, above the first `[[beat]]`:
+
+```toml
+[cursor]
+size = 1.5     # times the default arrow
+typing = 20    # characters a second; the default is 13
+```
+
+`ripple = false` leaves out the ring. Record another preview to see it.
+
 ## Change a destination
 
 In `demo/edit.toml`, change the existing README export's dimensions:

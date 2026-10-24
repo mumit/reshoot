@@ -156,5 +156,7 @@ For new takes, use a schema-version-1 TOML storyboard with named `[[beat]]` entr
 `reshoot preview CONFIG --from BEAT` replays earlier actions without capture, then records the selected part. Partial previews skip editing and checking and never replace a final run. Captions wrap to fit the frame; keep copy short enough to read. Narration cache files are keyed by text and engine command and can be reused across isolated runs.
 
 TOML stories can set `[caption]` position, safe margin, minimum seconds, font,
-background, and foreground. Inspect a recorded frame near the bottom as well as a
+background, and foreground, and `[cursor]` `size` (0.5 to 3), `typing` (characters a second, default 13) and
+`ripple` (default true). Clicks, typing and choices show the same glide, press, ripple and uneven typing as
+Python storyboards. Inspect a recorded frame near the bottom as well as a
 browser screenshot; they use different capture paths.

@@ -23,7 +23,9 @@ def locator(page, spec):
     return item
 
 
-async def action(page, entry, events, root):
+async def action(page, entry, events, root, hand=None):
+    """One storyboard action. While recording, hand is how the cursor and typing look: the [cursor] settings and a
+    seeded random rhythm. Setup and replayed actions, which are not in the video, leave it out and run quickly."""
     kind = entry['type']
     timeout = entry.get('timeout', 10000)
     if kind == 'navigate':
@@ -45,16 +47,26 @@ async def action(page, entry, events, root):
     rect = [box[k] for k in ('x', 'y', 'width', 'height')] if box else None
     events.append((time.monotonic(), {'kind': 'act', 'phase': 'start', 'rect': rect}))
     if box:
-        await page.evaluate('p => __demo.moveTo(p[0], p[1], 350)', [box['x'] + box['width']/2, box['y'] + box['height']/2])
+        # While recording, the glide takes longer for longer trips, as the Python route's does.
+        await page.evaluate('p => __demo.moveTo(p[0], p[1], p[2])', [box['x'] + box['width']/2,
+                            box['y'] + box['height']/2, None if hand else 350])
+    if hand and box and kind in ('click', 'type', 'select'):
+        await page.evaluate('() => __demo.tap()')
     if kind == 'click':
         await item.click(timeout=timeout)
     elif kind == 'type':
         await item.click(timeout=timeout)
         if entry.get('clear', True):
             await item.fill('', timeout=timeout)
-        await item.press_sequentially(entry['text'], delay=65, timeout=timeout)
+        if not hand:
+            await item.press_sequentially(entry['text'], delay=65, timeout=timeout)
+        else:  # an uneven rhythm, a little longer after a space
+            for ch in entry['text']:
+                await page.keyboard.type(ch)
+                await page.wait_for_timeout(1000 / hand['typing'] * (0.55 + hand['random']() * 0.9) + (70 if ch == ' ' else 0))
     elif kind == 'select':
-        await page.wait_for_timeout(250)  # let the cursor rest on the control before the choice changes
+        if not hand:
+            await page.wait_for_timeout(250)  # let the cursor rest on the control before the choice changes
         await item.select_option(entry['option'], timeout=timeout)
     elif kind == 'key':
         await item.press(entry['key'], timeout=timeout)
@@ -138,7 +150,9 @@ async def capture(board, a, frames, out, metadata, spoken):
         errors = []
         page.on('pageerror', lambda e: errors.append(redact(str(e))))
         await page.expose_binding('__reshoot', lambda source, payload: events.append((time.monotonic(), json.loads(payload))))
-        await page.add_init_script('window.__reshootPostCaptions = ' + json.dumps(bool(z)) + '; window.__reshootBlur = ' + json.dumps(board.get('blur', [])) + '; window.__reshootSeed = ' + str(board.get('seed', 1)) + ';')
+        cursor = board.get('cursor', {})
+        hand = {'typing': cursor.get('typing', 13), 'random': __import__('random').Random(board.get('seed', 1)).random}
+        await page.add_init_script('window.__reshootPostCaptions = ' + json.dumps(bool(z)) + '; window.__reshootBlur = ' + json.dumps(board.get('blur', [])) + '; window.__reshootSeed = ' + str(board.get('seed', 1)) + '; window.__reshootCursor = ' + json.dumps({k: cursor[k] for k in ('size', 'ripple') if k in cursor}) + ';')
         await page.add_init_script((web.HERE / 'overlay.js').read_text())
         asset_folder = out.with_suffix('.resources')
         asset_folder.mkdir(exist_ok=True)
@@ -206,7 +220,7 @@ async def capture(board, a, frames, out, metadata, spoken):
                 metadata['beats'].append(result)
                 await page.evaluate('p => __demo.caption(p[0], p[1])', [beat.get('caption'), beat.get('sub')])
                 for entry in beat.get('action', []):
-                    await action(page, entry, events, root)
+                    await action(page, entry, events, root, hand)
                 for entry in beat.get('expect', []):
                     try:
                         actual = await assertion(page, entry)

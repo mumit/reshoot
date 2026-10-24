@@ -20,9 +20,11 @@ window.__demo = window.__demo || (() => {
              box-shadow:0 12px 40px rgba(0,0,0,.35); transition:opacity .35s, transform .35s; }
     #__cap.on { opacity:1; transform:translate(-50%, 0); }
     #__cap small { display:block; margin-top:4px; font-weight:500; font-size:.6em; color:rgba(255,255,255,.75); }`;
+  // A TOML storyboard's [cursor] table: size scales the arrow and its ripple, ripple = false leaves the ring out.
+  const look = { size: 1, ripple: true, ...(window.__reshootCursor || {}) };
   const cur = document.createElement("div");
   cur.id = "__cur";
-  cur.innerHTML = `<svg width="26" height="30" viewBox="0 0 26 30"><path d="M3 2 L3 24 L9 18.5 L13.2 27.5 L17.4 25.6 L13.3 16.8 L21.5 16.6 Z"
+  cur.innerHTML = `<svg width="${26 * look.size}" height="${30 * look.size}" viewBox="0 0 26 30"><path d="M3 2 L3 24 L9 18.5 L13.2 27.5 L17.4 25.6 L13.3 16.8 L21.5 16.6 Z"
     fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>`;
   const cap = document.createElement("div");
   cap.id = "__cap";
@@ -51,7 +53,7 @@ window.__demo = window.__demo || (() => {
   // The cursor starts where it was on the last page, so it doesn't jump when a link opens a new one.
   let x = innerWidth * 0.62, y = innerHeight * 0.72;
   try { [x, y] = JSON.parse(sessionStorage.__demoXY) ?? [x, y]; } catch {}
-  const place = () => { cur.style.transform = `translate(${x - 3}px, ${y - 2}px)`; };
+  const place = () => { cur.style.transform = `translate(${x - 3 * look.size}px, ${y - 2 * look.size}px)`; };
   addEventListener("pagehide", () => {
     try {
       sessionStorage.__demoXY = JSON.stringify([x, y]);
@@ -153,15 +155,24 @@ window.__demo = window.__demo || (() => {
     return act(e, () => clickNow(e, opts));
   }
 
-  async function clickNow(e, opts) {
-    await to(e, opts);
+  // How a click looks: the arrow presses down and a ring spreads from it. It sends no events.
+  async function tap() {
+    ready();
     await sleep(90);
     cur.classList.add("down");
-    const ring = document.createElement("div");
-    ring.className = "__ripple"; ring.style.left = x + "px"; ring.style.top = y + "px";
-    document.body.append(ring); setTimeout(() => ring.remove(), 700);
+    if (look.ripple) {
+      const ring = document.createElement("div");
+      ring.className = "__ripple"; ring.style.left = x + "px"; ring.style.top = y + "px";
+      if (look.size !== 1) ring.style.scale = look.size;
+      document.body.append(ring); setTimeout(() => ring.remove(), 700);
+    }
     await sleep(110);
     cur.classList.remove("down");
+  }
+
+  async function clickNow(e, opts) {
+    await to(e, opts);
+    await tap();
     press(e);
     return e;
   }
@@ -243,5 +254,5 @@ window.__demo = window.__demo || (() => {
 
   const hide = () => { cur.style.opacity = 0; };
   const show = () => { cur.style.opacity = 1; };
-  return { moveTo, to, click, type, key, scroll, waitFor, caption, sleep, hide, show, zoom, zoomOut, byText, blur, unblur };
+  return { moveTo, tap, to, click, type, key, scroll, waitFor, caption, sleep, hide, show, zoom, zoomOut, byText, blur, unblur };
 })();

@@ -15,30 +15,27 @@ found that the tool does the hard part well and loses the joy where a user
 meets it first: the README, the end of a run and the agent's handoff. Items
 are ordered by how early a user meets them.
 
-1. **The same cursor on every route.** TOML storyboards get the click ripple,
-   press and varied typing speed that Python storyboards have, with options
-   for cursor size and typing speed.
-2. **Show the craft.** A look gallery made from the notes example: zoom on and
+1. **Show the craft.** A look gallery made from the notes example: zoom on and
    off, the cursor, caption positions, cards, 16:9, 4:5 and 9:16, GIF widths
    with sizes. Name auto-zoom and audio ducking, and turn the camera's fixed
    bugs into a page on how the camera moves.
-3. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at
+2. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at
    the page's CSS size, so `@1.5` and `@2` only scale them up, including the
    `1280x720@1.5` default. Capture at the device resolution, or say plainly
    that the ratio only sets the output size.
-4. **Review that fits the data.** With made-up data, show flagged scan items
+3. **Review that fits the data.** With made-up data, show flagged scan items
    first and say the rest can be skimmed. Make the full scan a flag on `run`
    instead of a config edit.
-5. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
+4. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
    one start-here (agent user, CLI user, team lead, pull-request reviewer),
    add field tables for the three TOML files, a team page (who owns
    `demo/accepted/`, failure alerts, CI cost) and an index of error messages.
    Pick one word each for run, result check, accept and baseline. Give every
    command help text that describes the current format.
-6. **Review inside the pull request.** Link the MP4 on the pull request's
+5. **Review inside the pull request.** Link the MP4 on the pull request's
     branch and show flagged scan items as images, so reviewing a refresh needs
     no artifact download.
-7. **Outside users.** Deferred by the owner. Three people who are not the
+6. **Outside users.** Deferred by the owner. Three people who are not the
     maintainer, each starting from the first-demo prompt.
 
 ## Later
@@ -65,6 +62,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **The same cursor on every route:** TOML storyboards glide, press, ripple and type at an uneven pace like Python
+  ones, and a `[cursor]` table sets the size, typing speed and ripple.
 - **A clear agent handoff:** agents end with the exports, the checks, "reply accept, or ask for changes" and the
   accept command, and the quickstart lists follow-up requests. `export` copies the exports without naming files
   and prints README Markdown, and `init` writes a `demo/.gitignore` that keeps the accepted record in.

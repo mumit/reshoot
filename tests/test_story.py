@@ -60,6 +60,17 @@ def test_story_rejects_duplicate_beats_and_unknown_operations(tmp_path):
         story.load(p)
 
 
+def test_cursor_options_are_checked(tmp_path):
+    p = board(tmp_path / 'story.toml', 'http://localhost/')
+    base = p.read_text()
+    p.write_text(base + '\n[cursor]\nsize = 1.5\ntyping = 20\nripple = false\n')
+    assert story.load(p)['cursor'] == {'size': 1.5, 'typing': 20, 'ripple': False}
+    for bad, message in [('size = 9', 'size'), ('typing = 0', 'typing'), ('ripple = "no"', 'ripple'), ('speed = 2', 'unknown')]:
+        p.write_text(base + f'\n[cursor]\n{bad}\n')
+        with pytest.raises(ValueError, match=message):
+            story.load(p)
+
+
 @pytest.mark.browser
 def test_native_click_is_trusted_and_result_is_verified(tmp_path, native_page):
     p = board(tmp_path / 'story.toml', native_page, '''[[beat.action]]

@@ -19,7 +19,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot doctor --config CONFIG` | Checks tools and installed detectors without recording |
 | `reshoot preview CONFIG` | Makes an isolated preview with the same actions |
 | `reshoot preview CONFIG --from BEAT` | Replays earlier actions without capturing them; skips the final edit and scan |
-| `reshoot run CONFIG` | Starts the configured app, records, edits and checks a new candidate |
+| `reshoot run CONFIG` | Starts the configured app, records, edits and scans a new run |
 | `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
@@ -66,7 +66,7 @@ detectors are recorded in its report.
 
 After inspecting the current sheets, original frames and text findings, record
 your verdict with `reshoot check --review REVIEW_DIR --fail LABEL` for a
-failure, or `reshoot check --review REVIEW_DIR --ok` after approving all remaining
+failure, or `reshoot check --review REVIEW_DIR --ok` after accepting all remaining
 supplied items. Neither command watches or accepts the recording. For a run,
 `reshoot accept RUN` records the scan checklist and the recording verdict together.
 

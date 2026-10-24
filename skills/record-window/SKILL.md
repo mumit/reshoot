@@ -25,7 +25,7 @@ demo window and keep the recipe for the next take.
    they often show names.
 
 The command captures the window; it does not drive the app or add browser typing,
-cursor effects, captions or assertions. Use app-specific automation or coordinate
+cursor effects, captions or result checks. Use app-specific automation or coordinate
 manual input during capture. Save that script or procedure with the edit.
 Export standalone media using numeric cuts; versioned web/VHS projects do not
 support native takes. Compare native recordings manually.

@@ -1,223 +1,310 @@
-# Projects, updates, and review
+# Project reference
 
-This is the reference for versioned project files. For a guided first recording,
-use the [agent quickstart](agent-quickstart.md) or the
-[CLI tutorial](step-by-step.md). To author files for an existing app,
-follow the [own-app walkthrough](your-app.md). The [command map](commands.md)
-lists CLI entry points and [Troubleshooting](troubleshooting.md) covers failures.
+Every field of the three files in a demo project, and what a run writes. For a
+guided first recording, use the [agent quickstart](agent-quickstart.md) or the
+[CLI tutorial](step-by-step.md); for your own app, [Record your own web app](your-app.md).
+[Commands](commands.md) lists the CLI, and `reshoot COMMAND --help` describes
+each command.
 
-Start with one task and a result the viewer can read. `BRIEF.md` keeps the audience,
-problem, result, and next action beside the recording source.
+## The files
 
-## Install and start
+| File | What it holds |
+|---|---|
+| `BRIEF.md` | The audience, the task, the visible result, the destination, and how to reset the demo data |
+| `reshoot.toml` | How to start the app, which takes to record, the edit and the scan |
+| `storyboard.toml` | The beats: actions, captions, result checks and holds |
+| `edit.toml` | Which parts of the takes to keep, title cards, music and the exports |
+| `takes/runs/ID/` | One run: its report, recordings, scan sheets and review page. Ignored by git |
+| `accepted/` | The accepted run's report, beat results and evidence frames, without media. Commit it |
 
-Install the [platform dependencies](install.md) first, including Tesseract on
-Linux. Then:
+`reshoot init demo` writes a complete project with a made-up notes app, and
+`reshoot init demo --url URL` a draft for your app. Paths in each file are
+relative to that file.
 
-```bash
-uv tool install 'reshoot[browser]'
-reshoot init demo
-reshoot doctor --config demo/reshoot.toml
-reshoot preview demo/reshoot.toml
-reshoot run demo/reshoot.toml
+## reshoot.toml
+
+```toml
+schema_version = 1
+inputs = ["seed.json"]
+
+[app]
+run = "cd .. && npm run dev -- --port 3000"
+url = "http://127.0.0.1:3000/"
+reset = "cd .. && npm run demo:reset"
+
+[[take]]
+web = "storyboard.toml"
+out = "takes/demo.mp4"
+
+[edit]
+file = "edit.toml"
+args = ["takes/demo.mp4"]
+
+[check]
+sources = ["takes/demo-final.mp4", "takes/demo-final-readme.gif"]
+review = "review"
 ```
 
-The generated project uses made-up notes data and native Playwright input. Chrome or
-Chromium and ffmpeg must be installed. The browser extra is pinned; reshoot uses the
-installed Chrome and records its version. `doctor` does not install software.
-It reports a missing browser when `RESHOOT_CHROME` points to a missing or
-nonexecutable file. Correct or unset that path before recording.
+| Field | Default | What it does |
+|---|---|---|
+| `schema_version` | required | `1`. Without it the file is a legacy shoot, below |
+| `inputs` | none | Demo data files inside the project, such as `["seed.json"]`. The report hashes them, so a comparison shows when they changed. It cannot hash an external database |
+| `timeout` | `600` | Seconds the app startup, takes and edit may take together |
+| `[app] run` | none | The shell command that starts the app, run in this file's folder. Leave `[app]` out to record a server that is already running |
+| `[app] url` | required with `run` | Recording waits until this answers without an HTTP error. Nothing may answer there before the run starts |
+| `[app] timeout` | `60` | Seconds to wait for `url` |
+| `[app] reset` | none | A shell command that resets the demo data before startup. Never point it at real data |
+| `[app] reset_timeout` | `30` | Seconds `reset` may take |
+| `[[take]] web` | | A `storyboard.toml` (or a legacy `.py` storyboard) recorded in headless Chrome |
+| `[[take]] out` | required with `web` | The video to write, inside the run, such as `takes/demo.mp4` |
+| `[[take]] tape` | | A [VHS](https://github.com/charmbracelet/vhs) tape for a terminal take. Its `Output "..."` line names the video |
+| `[edit] file` | none | The `edit.toml`, or `script` for a Python edit |
+| `[edit] args` | `[]` | The takes the edit numbers 0, 1, ... |
+| `[check] sources` | `[]` | The files to scan, usually the final MP4 and GIF. `takes/demo.assets.json` adds every image the page loaded |
+| `[check] review` | | The folder for scan sheets, inside the run |
+| `[check] scan` | `true` | `false` skips detection; the sheets are still made for your eyes |
+| `[check] full` | `false` | Scan every frame of a final, as `reshoot run --full` does. Previews always sample |
+| `[check] every` | `3` | Seconds between sampled frames |
+| `[check] watch_for` | `[]` | Words to flag wherever they appear, such as a real company name |
+| `[check] ocr` | `"auto"` | `"vision"` (macOS), `"tesseract"`, or `auto` for Vision on macOS and Tesseract elsewhere. A chosen engine that fails never falls back |
 
-For another app, `reshoot init demo --url http://localhost:3000/` creates a draft.
-Replace the placeholder before recording. Give the app a separate demo database or
-account. Configure `[app] reset = "COMMAND"` to reset that data before startup;
-`reset_timeout` defaults to 30 seconds. Never use a reset that touches real data.
-When `[app]` manages startup, its URL must be free before setup. Without that
-table, start the app separately and leave it running. An HTTP error does not count
-as ready for managed startup.
+Each take has exactly one of `web` or `tape`. A run with `[app]` stops the app
+at the end, even when a step fails. `RESHOOT_OCR` sets the scan engine when the
+file doesn't.
 
-Declare demo fixture files with top-level `inputs = ["seed.json"]`. Reports hash those
-files, the story, edit file, configuration, and tracked Git changes. Unlisted external
-services and untracked app files are not captured by those hashes.
+## storyboard.toml
 
-Versioned configurations use paths relative to their file. Each run writes to
-`takes/runs/ID/` beside the configuration and prints its report path. `reshoot runs PROJECT`
-lists them. Commands that take a run also accept `latest` (the newest successful run) or
-`accepted` (the newest accepted run) in place of the ID, such as `demo/latest`. `preview` reduces output
-resolution without changing the actions. Projects with VHS takes retain the configured
-browser dimensions so the preview edit can join matching takes. Python storyboards
-and unversioned configurations keep their legacy behavior. Versioned projects support
-web and VHS takes; arbitrary
-`run` takes remain a legacy option.
+```toml
+schema_version = 1
+id = "notes"
+url = "http://127.0.0.1:8765/"
+size = "1280x720@1"
+seed = 1
 
-## Harnesses
-
-The overlay carries the current caption and cursor position across same-origin full
-page loads. Inspect the recorded result after navigation. Zoomed and styled captions
-are rendered after capture from the caption events.
-
-```bash
-reshoot skills codex --directory /path/to/project
-reshoot skills claude --directory /path/to/project
+[[beat]]
+id = "search"
+purpose = "Show only the matching note"
+caption = "Find the matching note"
+hold = 2.0
+[[beat.action]]
+type = "type"
+target = {css = "#q"}
+text = "bike"
+[[beat.expect]]
+type = "count"
+target = {css = "#list li"}
+count = 1
 ```
 
-Use the command for your harness. Each installs the three main skills and
-refuses to overwrite them unless given `--replace`. The Claude plugin also includes the supporting recording skills.
-Codex discovers the installed project skills in `.agents/skills`, and Claude uses
-`.claude/skills`. The main entry points are `reshoot-demo`, `reshoot-refresh`, and
-`reshoot-review`. Installed skills require CLI 0.3.4 or newer and use packaged templates.
-After upgrading the CLI, run the same command with `--replace` to install its
-version of the skills; changes made to the installed copies are lost.
-Maintainer-operated [separate-Mac trials](../docs/validation/2026-10-22-separate-mac-harnesses.md)
-verified implicit refresh and explicit review invocation in both harnesses.
-Independent new-user testing is deferred. Example prompts are in the
-[own-app guide](your-app.md#use-an-agent).
+### Top level
 
-## Storyboards
+| Field | Default | What it does |
+|---|---|---|
+| `schema_version` | required | `1` |
+| `id` | | A name for the story, shown in comparisons |
+| `url` | required | The page to open |
+| `size` | `"1280x720@1"` | CSS width x height @ pixel ratio. `@2` records twice the pixels for sharper text |
+| `theme` | `"dark"` | `"dark"` or `"light"`, for `prefers-color-scheme` |
+| `mobile` | `false` | A phone: touch and a mobile viewport. Use a phone `size`, such as `"390x844@3"` |
+| `zoom` | `false` | `true` follows clicks and typing with the camera; a number sets the most it enlarges (1.8) |
+| `blur` | `[]` | Selectors blurred on every page for the whole take, such as `[".avatar"]` |
+| `seed` | `1` | Sets the cursor's path and typing rhythm, so takes match |
+| `timeout` | `600` | Seconds the whole take may take |
+| `voice` | none | A voiceover: `{beat_id = "Words"}`. Each line is spoken before recording, and its beat waits for it |
+| `voice_engine` | `say` or `espeak-ng` | A text-to-speech command; `{out}` is the sound file and the text comes on stdin. Lines are cached by their words and this command, in `takes/voice-cache`, so change the command to change the voice |
+| `[[setup]]` | none | Actions run before recording, such as a demo login. Same fields as `[[beat.action]]` |
+| `[caption]` | | How captions look, below |
+| `[cursor]` | | How the cursor looks, below |
 
-A `.toml` storyboard has `schema_version = 1`, an `id`, a `url`, and named `[[beat]]`
-entries. Beats have `purpose`, `caption`, `sub`, `hold`, `action`, and `expect` fields.
-`reshoot init` supplies a complete example.
+### Beats
 
-Actions are `click`, `type`, `select`, `key`, `scroll`, `navigate`, `wait`, and `upload`. Targets
-use exactly one of `css`, `test_id`, or `role`, with an optional role `name`, text
-filter, or iframe selector `frame`. `type` uses `text` and clears first unless
-`clear = false`; `select` needs an `option`, matched against each option's value
-or visible label, for a single-choice dropdown; `key` needs a `key`; `navigate` needs `url`; `scroll` uses `dy`;
-`upload` uses a fixture `file` relative to the storyboard. Unsupported operations fail.
+Each `[[beat]]` is one step. Its ID stays the same across releases, so runs can
+be compared beat by beat.
 
-Expectations are `text` with `contains`, `count` with `count`, `value` with `value`,
-`visible`, `checked`, and `url` with `contains`. Visible-text checks also check
-visibility. Each can set a millisecond `timeout`. Hidden, disabled, covered, missing,
-and ambiguous targets fail rather than forcing a click. Failed beats save evidence.
+| Field | Default | What it does |
+|---|---|---|
+| `id` | required | Letters, digits, `_` and `-`, unique in the story. Edits cut at beat IDs |
+| `purpose` | | What the beat proves, for reviewers |
+| `caption` | none | The caption shown from this beat on |
+| `sub` | none | A smaller second line under the caption |
+| `hold` | `1` | Seconds to stay on the result after the actions and result checks |
+| `min_reading` | `0` | Seconds the beat must stay on screen, even when its wait is shortened |
+| `trim_wait` | `false` | Lets the edit shorten this beat's wait, once its result check passed. Needs `trim_waits = true` in the edit |
+| `[[beat.action]]` | none | Actions, in order |
+| `[[beat.expect]]` | none | Result checks, after the actions |
 
-Use `voice = { beat_id = "Words" }` and `voice_engine` for narration, `zoom = true`
-for camera work, `blur = ["SELECTOR"]` for persistent blur, and `seed` for cursor
-rhythm. An optional `[caption]` table sets `position` (`top` or `bottom`),
-`margin` (fraction of frame height), `min_seconds`, `background`, `foreground`,
-and a relative `font` path. Styled captions are drawn after reframing and fail if
-they cannot fit inside the safe area. An optional `[cursor]` table sets `size`
-(0.5 to 3 times the default arrow), `typing` (characters a second, 13 by
-default) and `ripple` (`false` leaves out the ring that spreads on each click).
-While recording, the cursor glides along a slight curve, taking longer for
-longer trips, presses down on each click, and types at an uneven rhythm set by
-`seed`. A `.take.json` records results, frames, resources, and the actual browser.
+### Actions
 
-`reshoot rec URL story.toml` writes a draft in the new format. Passwords become a
-placeholder. Dropdown choices become `select` actions. Recognized unsupported multi-select,
-checkbox, radio, and drop interactions fail; add captions,
-purposes, result checks, and setup before using the draft. Python storyboards keep
-the legacy JavaScript overlay input and are labeled unverified in comparisons.
+| `type` | Fields | Does |
+|---|---|---|
+| `click` | `target` | Glides the cursor there and clicks |
+| `type` | `target`, `text`, `clear` (`true`) | Clicks the field, clears it, and types at a person's pace |
+| `select` | `target`, `option` | Picks a dropdown option by its value or label |
+| `key` | `target`, `key` | Presses a key in the target, such as `"Enter"` in a search field |
+| `scroll` | `dy` (`300`) | Scrolls the page down by `dy` pixels |
+| `navigate` | `url` | Opens a page |
+| `wait` | `target` | Waits until the target is visible |
+| `upload` | `target`, `file` | Uploads a demo file, relative to the storyboard |
 
-## Edit and export
+### Result checks
 
-Inspect each GIF's opening, ending and duration independently of the MP4.
-GIF exports preserve joined sections when card and browser metadata differ.
+| `type` | Fields | Passes when |
+|---|---|---|
+| `text` | `target`, `contains` | The visible target contains the text |
+| `count` | `target`, `count` | Exactly that many elements match |
+| `value` | `target`, `value` | A field holds the value |
+| `visible` | `target` | The target is visible |
+| `checked` | `target`, `checked` (`true`) | A checkbox or radio button is checked, or with `checked = false`, not |
+| `url` | `contains` | The page's URL contains the text |
 
-The generated `edit.toml` lists `[[part]]` ranges from indexed takes in `[edit] args`.
-`start` and `end` accept seconds or beat names. A `speed` other than 1 needs a visible
-`label` and cannot cut or shorten narration. Set `trim_wait = true` and
-`min_reading = SECONDS` on a result beat, then
-`trim_waits = true` at the top of the edit file to shorten its verified hold. The
-edit keeps at least 0.8 seconds or the declared reading time, preserves spoken
-lines, and burns “Wait shortened” into affected parts. Unmarked holds stay intact.
+Every action and result check can set `timeout` in milliseconds (default
+`10000`). A target has exactly one of `css`, `test_id` or `role`, with an
+optional `name` (the accessible name, with `role`), `text` (only elements with
+these words) and `frame` (an iframe's selector):
 
-Optional `music` is relative to the edit file. A card part uses `card` and
-`duration`; `[style]` can set its `background`, `foreground`, and relative `font`
-and `logo` paths. Use music you have permission to share.
-
-`[[export]]` profiles have a safe `name`, even `width` and `height`, `format` (`mp4` or
-`gif`), and `fit` (`contain` or `crop` for MP4). Optional `fps`, `max_bytes`,
-`min_reading` (minimum seconds for every exported caption), and `poster_at` control
-frame rate, file budget, and poster time. Portrait requires an intentional crop
-or a separate responsive take; fitting landscape footage does not make its text
-readable on a phone. Exports include subtitles and a poster frame. The cut helpers
-write `.timeline.json` maps, which keep source cues aligned after edits. Custom
-ffmpeg work without a map cannot claim accurate links to source beats.
-
-```bash
-reshoot export RUN --directory docs/demo --file takes/demo-final.mp4
+```toml
+target = {role = "button", name = "Add note"}
+target = {test_id = "note-list"}
+target = {css = "#list li", text = "bikes"}
 ```
 
-`RUN` is the printed run folder, its `run.json`, or an alias such as `demo/accepted`. Select files recorded in that report.
-The command checks their hashes and refuses overwrites unless given `--replace`,
-as when updating media already in the repository. It copies locally without
-changing review or publishing status.
+Actions use real input. A target that is missing, hidden, disabled, covered or
+matches more than one element fails the beat, and the run saves a failure
+image, rather than forcing the click. Beats without result checks are labeled
+`unverified` on the review page.
 
-`reshoot accept` also writes `demo/accepted/` beside the configuration: a small
-record of the run with its report, beat results and evidence frames, but no
-media. Commit it. `demo/accepted` then names that run: the run itself while its
-folder is under `takes/runs/`, otherwise the record, as in CI or a fresh clone.
-`reshoot compare demo/accepted demo/latest` works in both. `reshoot export RUN
---record DIR` writes the same record for a run that has not been accepted, as
-the [CI refresh workflow](ci.md) does for its pull request. Legacy `[keep]` configurations retain their
-existing copy behavior.
+### Captions and cursor
 
-## Check and compare
+| Field | Default | What it does |
+|---|---|---|
+| `[caption] position` | `"bottom"` | `"top"` or `"bottom"` |
+| `[caption] margin` | `0.065` | Distance from the edge, as a fraction of the frame's height, up to 0.4 |
+| `[caption] min_seconds` | `0` | The shortest time a caption stays up |
+| `[caption] background`, `foreground` | translucent dark, white | Colors, such as `"#f4f1ea"` |
+| `[caption] font` | system | A font file, relative to the storyboard |
+| `[cursor] size` | `1` | 0.5 to 3 times the default arrow |
+| `[cursor] typing` | `13` | Characters a second, 1 to 60 |
+| `[cursor] ripple` | `true` | `false` leaves out the ring that spreads on each click |
 
-```bash
-reshoot check FINAL.mp4 --full --review REVIEW_DIR
-reshoot compare PREVIOUS_RUN CURRENT_RUN --out comparison.json
-reshoot review CURRENT_RUN --previous PREVIOUS_RUN
+Styled and zoomed captions are drawn after recording, and a run fails if one
+cannot fit inside the margins. [How the videos look](look.md) shows each.
+Python storyboards, the legacy format, are in the [manual workflow](manual.md).
+
+## edit.toml
+
+```toml
+schema_version = 1
+output = "demo-final.mp4"
+
+[[part]]
+card = "Save a note. Find it again."
+duration = 1.5
+
+[[part]]
+take = 0
+start = 0
+end = "end"
+
+[[export]]
+name = "readme"
+format = "gif"
+width = 800
+height = 450
 ```
 
-Runs also scan generated subtitle and narration text directly. Standalone checks can add
-`--text-file FINAL.srt` or `--text-file TAKE.voice.json`. Text findings show cue times
-without copying private words into the report.
+| Field | Default | What it does |
+|---|---|---|
+| `schema_version` | required | `1` |
+| `output` | `"demo-final.mp4"` | The final video, beside the first take |
+| `music` | none | A music file, relative to this file. It ducks under the voiceover and fades out. Use music you may share |
+| `trim_waits` | `false` | Shorten the waits of beats marked `trim_wait`, keeping at least 0.8 s or their `min_reading`, and label them "Wait shortened" |
+| `[style] background`, `foreground` | dark, white | Title card colors |
+| `[style] font`, `logo` | none | Files for title cards, relative to this file |
+| `[[part]] take` | `0` | Which take in `[edit] args` |
+| `[[part]] start`, `end` | the whole take | Seconds or beat IDs |
+| `[[part]] speed` | `1` | Any other speed needs a `label` shown on screen, and cannot shorten a voiceover line |
+| `[[part]] label` | none | Words burned into the part, such as "Sped up 2x" |
+| `[[part]] card` | | A title card's words, instead of `take` |
+| `[[part]] duration` | `2` | Seconds a card stays up |
+| `[[export]] name` | `"landscape"` | Letters, digits, `_` and `-`; the file is `demo-final-NAME.mp4` or `.gif` |
+| `[[export]] format` | `"mp4"` | `"mp4"` or `"gif"` |
+| `[[export]] width`, `height` | `1280`, `720` | Even numbers |
+| `[[export]] fit` | `"contain"` | `"contain"` fits the whole frame in; `"crop"` fills the shape from the middle |
+| `[[export]] fps` | 60, or 15 for a GIF | Frames a second, 1 to 120 |
+| `[[export]] max_bytes` | none | Fail the export if the file comes out larger |
+| `[[export]] min_reading` | `0` | Fail the export if any caption is on screen for less than this |
+| `[[export]] poster_at` | three quarters in | Seconds into the export for its poster frame |
 
-The default check samples frames every three seconds. `--full` decodes every video
-or GIF frame and reuses exact duplicate scans. Neither mode guarantees that OCR or
-face detection finds every private detail. Missing inputs and required detectors
-are errors. `--no-scan` explicitly skips detection. Sources use opaque IDs so URLs
-and filenames do not enter scan logs. Sheets link labels to saved original frames.
+Each export also gets subtitles and a poster image. A portrait export of a wide
+page shrinks its text: crop on purpose, or record a narrower take. Every cut
+writes a `.timeline.json`, which keeps the review page's links from the final
+video back to the source beats. `reshoot edit edit.py TAKE...` runs a Python
+edit instead; see the [manual workflow](manual.md#cut).
 
-For project runs, `reshoot run CONFIG --full`, or `full = true` inside
-`[check]`, scans every frame of the declared sources in a final. Previews
-still sample, to stay quick. `every = SECONDS` controls sampled checks when full mode is off.
-Full scans often take most of a run; [Faster shoots](speed.md) weighs the options.
+## What a run writes
 
-Check exits 0 for accepted supplied items, 1 for human review pending, and 2 for an
-operational error. The run report separates execution, scan, and review status.
-An incomplete browser take leaves expectations unverified unless an assertion failed;
-earlier passed assertions do not verify the rest of the flow.
-An empty findings list is not approval. New renders, changed scan settings, or watch
-words need appropriate checks. A previous image decision is not approval of a video.
+Each run gets its own folder, `takes/runs/ID/`, beside `reshoot.toml`, so a
+failed run never replaces an earlier one. `reshoot runs demo` lists them.
+Commands that take a run also accept `demo/latest`, the newest successful run,
+and `demo/accepted`, the accepted run. A preview records the same actions at a
+smaller size with faster encoding and a sampled scan, and `accept` refuses it.
 
-The local review page opens exact artifacts, source-beat evidence, full-size frames,
-and previous/current comparisons, including beat durations, story definitions,
-result checks, and captured environment settings. Previous and current GIFs display
-as images; MP4s use video players. `reshoot run` and `reshoot preview` write
-it for each run; `reshoot review RUN --previous OLD_RUN` writes it with a comparison.
+| File | What it is |
+|---|---|
+| `run.json` | What ran, how long each step took, the result checks, the scan and the review status |
+| `review.html` | The exports, findings, scan sheets and each beat's result, for looking at |
+| `app.log` | The app's own output |
+| `takes/NAME.take.json` | Each beat's actions, result checks, timings and evidence frames, and the browser used |
+| `takes/NAME.failure.png` | The page when a beat failed |
+| `takes/demo-final*.mp4`, `.gif`, `.srt` | The exports |
+| `review/` | The scan: numbered sheets, original frames, `flags.json` and `report.json` |
 
-After watching the exports and looking at the scan items, the owner accepts the run:
+The report hashes the story, the edit, `reshoot.toml`, the declared inputs and
+uncommitted git changes. Services the app calls and untracked files are not
+covered.
+
+## Scan, compare and accept
+
+A run scans the files in `[check] sources`, plus subtitles and voiceover text,
+for email addresses, phone numbers, keys, paths with a user name, street
+addresses, the `watch_for` words and, with Vision on macOS, faces and people.
+It points at likely problems; it never proves a frame is safe. Flagged items
+are grouped into findings by what was found, so an address on screen for the
+whole video is one finding, `F1`, not hundreds. Tesseract reads text only;
+faces and people then need your eyes. A detector that fails is an error, not an
+empty list.
 
 ```bash
-reshoot accept CURRENT_RUN
-reshoot accept CURRENT_RUN --flagged F1    # also accept an inspected finding, in every frame it is in
-reshoot accept CURRENT_RUN --reject F1     # this finding must not be shared
+reshoot compare demo/accepted demo/latest --out demo/comparison.json
+reshoot review demo/latest --previous demo/accepted
+reshoot accept demo/latest --flagged F1
 ```
 
-`accept` covers the video, every beat, every scan item and the scan checklist
-in one verdict. Each flagged item must be named; otherwise it stops and lists
-them. It asks for confirmation, and without a terminal refuses unless given
-`--yes`. The verdict is written to `decisions.json`, bound to the run, artifact
-hashes and review policy. A changed file or new finding invalidates it. No run
-automatically replaces the chosen baseline.
+`compare` matches beats by ID and reports whether each one's definition,
+duration, evidence frame and result checks changed; `--markdown FILE` adds a
+summary for a pull request. A matched beat does not mean equal pixels.
+`review --previous` writes the review page with both runs side by side.
 
-For separate verdicts per beat, the page also exports a decisions JSON file;
-import it with `reshoot review CURRENT_RUN --import-decisions decisions.json`.
-That records only the recording decisions; `reshoot check --review RUN/review --ok`
-records only the scan checklist. The current checklist is in `RUN/review/report.json`.
+`accept` covers the exports, every beat and every scan item at once, binds the
+decision to the run's exact files and scan settings, and writes `accepted/`.
+Each finding must be named with `--flagged` or `--reject`; it stops and lists
+them otherwise. It asks for confirmation, and without a terminal needs `--yes`.
+A changed file or a new scan undoes the decision. The
+[tutorial](step-by-step.md#4-accept-the-recording) walks through it.
 
-Partial previews use `reshoot preview CONFIG --from BEAT`. Earlier actions and checks
-are replayed without capture. Partial previews skip the final edit and scan because
-those may refer to missing beats. They remain candidates, not final exports.
-Narration is cached by text and engine command under the project's `takes/voice-cache`.
-Change the engine command when changing a voice or model so the cache changes too.
+For a decision per beat, the review page's **Your decisions** controls download
+a file for `reshoot review RUN --import-decisions FILE`; that covers the
+recording only, and `reshoot check --review RUN/review --ok` the scan only.
+`reshoot check` on its own exits 0 when every item is accepted, 1 when some
+still need a person, and 2 on an error.
 
-Select OCR explicitly with `[check] ocr = "tesseract"` or `check --ocr tesseract`.
-`auto` uses Vision on macOS and Tesseract elsewhere. `RESHOOT_OCR` sets the default
-when the project or command does not select one. An explicit backend failure never
-silently falls back. Tesseract provides text detection only; faces and people remain
-unavailable and are reported that way. `doctor` reports installed capabilities, not
-a successful scan of the final video.
+## Legacy shoot files
+
+A `reshoot.toml` without `schema_version` is a legacy shoot. It writes into
+the project rather than a run folder, and can also have:
+
+- `[[take]] run = "COMMAND"`: any command, such as `reshoot window MyApp takes/app.mov -s 8`;
+- `[edit] script = "edit.py"`: a Python edit using `reshoot.cut`;
+- `[keep]`: copies of finished files, such as `"takes/final.mp4" = "docs/demo.mp4"`, made by every run.
+
+`reshoot run --help` shows one. New projects should use `schema_version = 1`.

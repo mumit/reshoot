@@ -150,7 +150,7 @@ For a quick whole-project take use `reshoot preview reshoot.toml`; it uses a sma
 
 ## Native input and TOML stories
 
-For new takes, use a schema-version-1 TOML storyboard with named `[[beat]]` entries, `[[beat.action]]` operations and `[[beat.expect]]` results. `reshoot init DIR` supplies a complete notes example. Install the `browser` extra. TOML targets use `css`, `test_id`, or `role` with an optional `name` and `frame`. Actions use native input and fail on covered, disabled, missing, or ambiguous controls. Never force a click to bypass a broken demo. A `.take.json` records each expected result and screenshot. Python storyboards still use the legacy overlay input and cannot claim the same native-input checks.
+For new takes, use a schema-version-1 TOML storyboard with named `[[beat]]` entries, `[[beat.action]]` operations and `[[beat.expect]]` result checks. `reshoot init DIR` supplies a complete notes example. Install the `browser` extra. TOML targets use `css`, `test_id`, or `role` with an optional `name`, `text` and `frame`; guide/projects.md lists every field. Actions use native input and fail on covered, disabled, missing, or ambiguous controls. Never force a click to bypass a broken demo. A `.take.json` records each result check and its screenshot. Python storyboards still use the legacy overlay input and cannot claim the same native-input checks.
 
 `reshoot preview CONFIG --from BEAT` replays earlier actions without capture, then records the selected part. Partial previews skip editing and checking and never replace a final run. Captions wrap to fit the frame; keep copy short enough to read. Narration cache files are keyed by text and engine command and can be reused across isolated runs.
 

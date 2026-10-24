@@ -117,7 +117,7 @@ imperative: “Run the command,” “Open the file,” “Review the export.”
 “your” when needed for clarity. Describe tool behavior in the present tense.
 
 Use sentence case for headings and consistent terms from the
-[guide's definitions](guide/README.md#the-workflow). Keep command names, paths,
+[guide's words](guide/README.md#words). Keep command names, paths,
 options and output fields exact. Distinguish automatic checks from human review.
 Avoid personal anecdotes and first-person narration in guides, examples and
 reference material. The README's project origin may use first person. Preserve

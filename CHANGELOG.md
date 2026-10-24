@@ -19,6 +19,15 @@ change project files or commands.
   config. The tutorial uses it.
 - Scan messages say to look at findings first and then look over the rest for
   what a scan can miss, instead of asking for every item at full size.
+- Every command's `--help` describes it with examples. `run --help` shows a
+  complete versioned `reshoot.toml`, with the legacy format after it.
+- An unknown field in `reshoot.toml`, a storyboard, a beat, an action or a
+  target is named in the error, with the fields that are allowed.
+- The guide has one start-here for each kind of reader, a page for teams
+  (ownership, reviewing a refresh pull request, failure alerts, CI cost), a
+  table of every field in the three project files, an index of error messages,
+  and one word for each idea. The running-URL, build-a-demo and features pages
+  are merged into the own-app, customize and index pages.
 
 ## 0.3.4 (2026-10-24)
 

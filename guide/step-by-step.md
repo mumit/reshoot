@@ -78,10 +78,10 @@ Use the preview to catch wrong actions or unreadable captions before making
 the final recording. If a command fails, it prints the run folder and failure
 image; see [Troubleshooting](troubleshooting.md).
 
-You have the first clip. Stop here to [explore features](features.md) or
+You have the first clip. Stop here to see [how the videos look](look.md) or
 [change captions, timing and export size](customize.md). Continue below when
 ready to learn final review, updates and comparison. To record your own target,
-choose [source code](your-app.md), a [running URL](running-web-app.md) or a
+choose [a web app, from source or a URL](your-app.md), or a
 [macOS window](macos-window.md).
 
 ## 3. Make a final recording

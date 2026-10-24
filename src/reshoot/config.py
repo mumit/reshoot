@@ -13,8 +13,8 @@ def read(path):
     version = data.get('schema_version', 0)
     if version not in (0, 1):
         raise ValueError('unsupported project schema_version')
-    if version == 1 and set(data) - {'schema_version', 'app', 'take', 'edit', 'check', 'keep', 'timeout', 'report', 'inputs'}:
-        raise ValueError('unknown project option')
+    if version == 1 and (unknown := set(data) - {'schema_version', 'app', 'take', 'edit', 'check', 'keep', 'timeout', 'report', 'inputs'}):
+        raise ValueError('unknown reshoot.toml option: ' + ', '.join(sorted(unknown)) + '; guide/projects.md lists them')
     for i, take in enumerate(data.get('take', []), 1):
         if sum(k in take for k in ('web', 'tape', 'run')) != 1:
             raise ValueError(f'take {i} needs exactly one capture method')

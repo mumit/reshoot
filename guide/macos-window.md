@@ -47,7 +47,7 @@ prepare the command and explain when you should act. App automation may require
 separate Accessibility or Automation permissions.
 
 The capture command records the window; it does not generate typing, cursor
-effects, captions or native result assertions. Record another attempt in a new
+effects, captions or result checks. Record another take in a new
 directory when timing or framing needs adjustment.
 
 ## Export an MP4 and GIF
@@ -102,8 +102,8 @@ Keep a brief, the edit, reset steps and any automation script in a source folder
 such as `demo/`. Keep generated takes outside version control. Compare old and
 new native recordings manually; versioned `reshoot.toml` projects and automated
 beat comparison support browser and VHS takes, not standalone native capture.
-Do not invent a run manifest for a window recording. Copy only approved exports
+Do not invent a run manifest for a window recording. Copy only accepted exports
 to a new sharing folder when ready.
 
-Next: [build a fuller demo](make-demo.md). Native capture needs an interactive
+Next: [grow a fuller demo](customize.md#grow-it-into-a-fuller-demo). Native capture needs an interactive
 macOS session; the Ubuntu browser CI template does not automate this route.

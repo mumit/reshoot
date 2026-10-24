@@ -1,77 +1,72 @@
-# Maintain and publish a demo
+# Keep a demo current and share it
 
-Keep the recording source with the app when you develop it, or in a separate
-demo repository when you only have a URL or installed app. Save a working local
-recording before moving to automation.
+Keep the recording source with the app, or in its own repository when you only
+have a URL or an installed app. Get a recording working locally before you
+automate it. On a team, [Reshoot on a team](team.md) covers ownership, review
+and alerts.
 
-## Keep the accepted run as the baseline
+## The accepted run
 
-Commit the brief, story, edit, configuration and synthetic reset scripts when
-ready. Keep credentials out of them. Ignore the generated `demo/takes/` folder.
-Accepting a final with `reshoot accept` writes `demo/accepted/`, a small record
-of that run: its report, beat results and evidence frames, without the media.
-Commit it with the source; later runs compare against it. A run does not
-become the baseline because it is the newest.
+Commit the brief, story, edit, `reshoot.toml` and any demo-data reset scripts,
+without credentials. `demo/.gitignore` already keeps `demo/takes/` out.
 
-When the app changes, use the
-[refresh prompt](agent-quickstart.md#update-the-demo-when-the-app-changes) or
-record through the CLI:
+[Accepting a run](step-by-step.md#4-accept-the-recording) writes
+`demo/accepted/`: the run's report, beat results and evidence frames, without
+the media. Commit it with the source. Later runs are compared with it, and
+`demo/accepted` names it in every command. A newer run never replaces it until
+you accept that run.
+
+## Record it again after a change
+
+Ask the agent with the
+[refresh prompt](agent-quickstart.md#update-the-demo-when-the-app-changes), or
+use the CLI:
 
 ```bash
 reshoot preview demo/reshoot.toml
 reshoot run demo/reshoot.toml
+reshoot compare demo/accepted demo/latest --out demo/comparison.json
 reshoot review demo/latest --previous demo/accepted
 ```
 
-`demo/latest` is the newest successful run and `demo/accepted` the accepted
-record. Inspect the preview before the final. Preserve stable beat IDs and the task's expected result. If a changed
-label breaks a target, repair the selector rather than deleting its check.
-Compare the finished exports and review the new scan evidence. Approval of the
-old recording does not accept the new one.
+`demo/latest` is the newest successful run. Keep the beat IDs and the result
+checks. When a renamed control breaks a beat, repair its target rather than
+deleting its result check; the [tutorial](step-by-step.md#6-change-the-app-and-repair-the-story)
+walks through one. Watch the new exports, look at the new scan items, and
+accept the new run: accepting the old one says nothing about it.
 
-For native windows, record to a new folder using the saved
+For a native window, record into a new folder with the saved
 [capture recipe](macos-window.md), look up the current window ID, and compare
-old and new exports manually. Native captures do not use versioned beat
-comparison or `reshoot export`.
+the old and new videos yourself. Native recordings have no beat comparison and
+no `reshoot export`.
 
-## Prepare files for sharing
-
-After recording and scan-sheet approval, select the versioned run's exports:
+## Share the files
 
 ```bash
 reshoot export demo/accepted --directory docs/demo
 ```
 
-It copies the run's videos, GIFs and subtitles and prints the README Markdown
-for the GIF. Use `--file` to pick single files from the run's report. Choose an unused
-destination directory. The command copies selected files locally and refuses
-to overwrite; it does not upload them. For standalone native media, copy the
-approved MP4 and GIF into a new sharing folder yourself.
+It copies the accepted run's videos, GIFs and subtitles, checks their hashes,
+and prints the README Markdown for the GIF, linked to the video. `--file` picks
+single files, and `--replace` overwrites files already there, as when updating
+the repository's demo. It copies locally and uploads nothing.
 
 | Destination | Prepare |
 |---|---|
-| GitHub README | A short, readable GIF; add alt text and a link to the full MP4 |
-| X or LinkedIn | An MP4 that explains the result without sound; review any crop at actual size |
-| Product guide or tutorial | The fuller MP4, subtitles when available, and written prerequisites |
+| GitHub README | A short, readable GIF with alt text, linked to the full MP4 |
+| X or LinkedIn | An MP4 that makes sense without sound; look at any crop at actual size |
+| Product guide or tutorial | The fuller MP4, its subtitles, and the prerequisites in writing |
 
-For a repository, copy approved files to `docs/demo/` and link them from the
-README. Check the rendered page and playback before publishing. The exported
-subtitle file is useful for players and upload flows that accept SRT; confirm
-the destination's current requirements. Keep the source project out of the
-viewer's way, but available to maintainers.
+Check the rendered README and the playback before you push. The `.srt` file
+suits players and upload forms that take subtitles. Ask the agent to prepare
+these files and draft the copy if you like; it commits, pushes or posts only
+when you say so.
 
-Ask the agent to prepare these files and draft copy, then authorize any commit,
-push or public post explicitly. Recording success does not publish anything.
+## Refresh it in CI
 
-## Refresh the demo in CI
-
-Make sure `reshoot run demo/reshoot.toml` works locally, accept a run and commit
-the `demo/accepted/` record it writes. Then use the [GitHub Actions guide](ci.md):
-its refresh workflow records the demo after relevant changes to `main`, compares
-it with the accepted run and opens a pull request with the new media. Merging
-the pull request accepts it.
-
-CI replays the configured task. It does not author a story, repair broken
-selectors or approve media. When a change breaks the story, the run fails on
-that beat; repair it locally, then push. The browser/VHS template does not
-automate native windows on a hosted Ubuntu runner.
+Once a local run works and `demo/accepted/` is committed, the
+[GitHub workflow](ci.md) records the demo after relevant changes to `main`,
+compares it with the accepted run and opens a pull request with the new media.
+Merging the pull request accepts it. A broken story fails on its beat and opens
+nothing; repair it locally and push. CI never writes or repairs a story, and
+it does not record native windows.

@@ -1,19 +1,13 @@
-# Record a web app from source
+# Record your own web app
 
-For the shortest agent workflow, [paste the first-demo prompt](agent-quickstart.md)
-into Codex or Claude Code in the app's repository. Let the agent handle setup
-and authoring, then review its exports.
+The shortest route is to [paste the first-demo prompt](agent-quickstart.md)
+into Codex or Claude Code and let the agent write these files. Use this page to
+write them yourself, or to guide the agent's choices. It covers an app whose
+source you have and one you can only reach by URL. For an installed macOS app,
+see [Record a macOS window](macos-window.md).
 
-Use this walkthrough to write the files yourself or guide the agent's choices.
-Choose one useful task in the app and keep the brief and recording source
-beside its code. The [notes tutorial](step-by-step.md) provides a complete CLI
-example to try separately; it is not a prerequisite for recording your app.
-
-Use this route when you can read the web app's code and configure startup or
-fixtures. If you only have a URL, use [the running-app guide](running-web-app.md).
-For an installed desktop app, use [the macOS window guide](macos-window.md).
-After the first clip, [customize its words and timing](customize.md), then
-[build a fuller story](make-demo.md).
+[Install reshoot](install.md) first. The [notes tutorial](step-by-step.md) is
+a complete example to try separately; it is not a prerequisite.
 
 ## Choose one result
 
@@ -35,7 +29,7 @@ that in the brief and wherever the demo's claim requires that context.
 
 ## Create the project
 
-From the app repository's root:
+From the app repository's root, or from an empty folder for a URL-only app:
 
 ```bash
 reshoot init demo --url http://127.0.0.1:3000/
@@ -65,6 +59,15 @@ Replace that placeholder with a command that affects only demo data. Reset
 runs from the same directory before startup and defaults to a 30-second timeout.
 An existing server must be stopped when `[app]` manages startup. Without `[app]`,
 reshoot uses the existing server and leaves it running.
+
+### With only a URL
+
+Leave out `[app]`; reshoot records the site already running at the URL, local
+or hosted, in a fresh headless browser. Use a test environment or an account
+that holds only made-up data. Find out how to reset its data. A saved item on a
+hosted service stays after recording unless the app or your reset removes it.
+Without a reset, the preview and the final each add one, so write result checks
+that still pass then, such as the new item being shown, and avoid exact totals.
 
 ## Write a checked story
 
@@ -127,28 +130,30 @@ Replace the entire placeholder `demo/storyboard.toml` with the new story. The
 generated edit ends at the start of the `end` beat, so keep that ID unless you
 also change the edit. Named result beats and their holds keep the proof readable.
 
-Find targets in the app's source or browser inspector. An accessible role and
+Find targets in the app's source, or in the browser's inspector when you have only the URL. An accessible role and
 name work when they identify one control; a stable `data-testid` also works.
 Use CSS when that is the clearest stable target. Reshoot fails on missing,
 covered, disabled or ambiguous controls rather than forcing a click. Repair
-the target or app state instead of removing the expected result.
+the target or app state instead of removing the result check.
 
-To draft a story from recorded clicks, run:
+## Draft it by clicking through
 
 ```bash
 reshoot rec http://127.0.0.1:3000/ demo/draft.toml
 ```
 
-This opens a fresh browser profile for manual interaction. Use only demo data
-and close that browser when finished. The draft still needs purposes, captions
-and assertions. Inspect it before replacing the story. A dropdown choice
-becomes a `select` action. Checkbox, radio, multiple-choice list and drop
-changes are not supported by the recorder and fail explicitly. Hand-authored TOML actions are listed in the
-[project reference](projects.md#storyboards).
+This opens a fresh browser for you to do the task with demo data. Close it when
+you finish, and it writes the clicks, typing and dropdown choices as beats.
+Checkboxes, radio buttons, multiple-choice lists and drops are not recorded: it
+says so and writes nothing. The draft has no captions, purposes or result
+checks. Add them, keep a final beat named `end`, and use the draft to replace
+`demo/storyboard.toml`. Every action is in the
+[project reference](projects.md#storyboardtoml).
 
-## Authentication and fixtures
+## Login and demo data
 
-Every take starts with a fresh browser profile. If the app needs authentication,
+Every take starts with a fresh browser profile, so reshoot never uses your own
+browser's login. If the app needs one,
 use a separate demo account and TOML `[[setup]]` actions before the recorded
 beats. Setup actions use the same action fields, for example:
 
@@ -160,15 +165,16 @@ url = "http://127.0.0.1:3000/demo-login"
 
 That route is an example, not a feature reshoot adds. Implement an isolated
 demo login or the app's actual test-account flow. Do not put real credentials
-into a committed storyboard. `blur = ["SELECTOR"]` can hide a persistent demo
-header, but it is not a substitute for isolated data.
+into a committed storyboard. If the login cannot be automated, solve that
+before promising a recording CI can repeat. `blur = ["SELECTOR"]` can hide a
+persistent demo header, but it is not a substitute for isolated data.
 
 If fixture files live inside `demo/`, declare them with top-level
 `inputs = ["seed.json"]` in `reshoot.toml`, before any table. Only existing files
 inside that project directory are accepted. The report hashes declared inputs;
 it does not capture an external database or service automatically.
 
-## Preview, finish and update
+## Record it
 
 ```bash
 reshoot doctor --config demo/reshoot.toml
@@ -176,82 +182,13 @@ reshoot preview demo/reshoot.toml
 reshoot run demo/reshoot.toml
 ```
 
-Inspect the preview before the final run and follow the tutorial's
-[review and export steps](step-by-step.md#4-accept-the-recording).
-For full-frame final checks, run `reshoot run demo/reshoot.toml --full`, or set `full = true` in `[check]`. Choose a portrait
-crop or record a separate mobile take; fitting a wide page into a phone
-frame does not make its words readable.
+Watch the preview before the final. A failing beat names its control; see
+[Troubleshooting](troubleshooting.md#an-action-or-result-check-fails). Then
+[accept the final](step-by-step.md#4-accept-the-recording). For a portrait
+export, choose a crop or record a separate mobile take: fitting a wide page
+into a phone frame does not make its words readable.
 
-When the app changes, keep the accepted run folder, retain stable beat IDs,
-and record a new candidate. Repair selectors while keeping the task and its
-proof intact, then compare the two explicit runs. Changed mock data, claims,
-speed or narration deserve their own explanation in the brief.
-
-## Use an agent
-
-Use the [agent quickstart](agent-quickstart.md) for setup and a first demo in
-one conversation. The examples below specify the task and run IDs explicitly
-when working with an existing setup.
-
-To use this workflow with an agent, install the bundle for your harness from
-the app repository's root:
-
-```bash
-reshoot skills codex --directory .
-```
-
-Or, for Claude Code:
-
-```bash
-reshoot skills claude --directory .
-```
-
-Start a conversation in that project and invoke the skill with a concrete
-task. For Codex:
-
-```text
-$reshoot-demo
-Use or create the demo/ project for the local app at http://127.0.0.1:3000/.
-Use its isolated synthetic fixture data. Show saving a task and finding it by
-search. Read the app code to choose controls and explicit result checks.
-Produce a README GIF and an MP4 with captions. Inspect a preview before the
-fresh final and report the output paths and review instructions.
-```
-
-For Claude Code, use `/reshoot-demo` followed by the same task. With the plugin,
-use `/reshoot:reshoot-demo`. Choose the project-local skills or the plugin for
-the project. Both routes need the [CLI and recording tools](install.md).
-
-For an update, use this Codex prompt. `demo/accepted` names the newest run you
-accepted. In Claude Code, replace the first line with `/reshoot-refresh`:
-
-```text
-$reshoot-refresh
-Refresh demo/reshoot.toml against demo/accepted, using its exact run ID.
-The app's search field changed. Keep the same task, beat IDs and result checks;
-repair the target if needed. Retain failed attempts and the previous recording.
-Inspect a repaired preview, make a fresh final and compare both runs.
-Report the final MP4/GIF paths and any unresolved review items.
-```
-
-For review, use this prompt. `demo/latest` names the newest successful run.
-In Claude Code, replace the first line with `/reshoot-review`:
-
-```text
-$reshoot-review
-Review demo/latest against demo/accepted.
-Read the existing reports and inspect the actual MP4, GIF and beat evidence.
-Explain scan coverage, findings and which human decisions remain pending.
-Preserve existing recordings and review evidence; report whether a new check is needed.
-```
-
-Include the task after the skill invocation so the agent knows which recording
-to inspect. A new conversation does not imply it has forgotten project
-instructions or account-level memory.
-
-Plugin installations use `/reshoot:reshoot-refresh` and `/reshoot:reshoot-review`
-for those two tasks. The marketplace installation follows Claude's
-[plugin instructions](https://code.claude.com/docs/en/discover-plugins).
-
-The agent can prepare, run and inspect the demo. Watch the final exports and
-make the recording and scan-sheet decisions before sharing.
+When the app changes, keep the beat IDs and the result checks and record
+again; [Keep a demo current](publish.md) covers comparing and sharing the new
+run, and [Change and grow a demo](customize.md) covers captions, timing and
+longer stories.

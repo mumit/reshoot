@@ -1,93 +1,75 @@
-# Make and maintain a demo
+# The reshoot guide
 
-Use your coding agent to make a demo of one task in your app. Keep its actions,
-captions, expected results and edit in a demo folder. When the app changes, ask
-the agent to update the story and record it again.
+Make a demo of one task in your app, keep its story beside the code, and record
+it again when the app changes.
 
 ## Start here
 
-| Start with | Do this |
+| You are | Start with |
 |---|---|
-| App source code and a coding agent | [Paste the first-demo prompt](agent-quickstart.md) into a local session in the app repository |
-| A running web app, without source code | Set the prompt's target to the URL; use the [running-app route](running-web-app.md) |
-| An installed native app on a Mac | Set the prompt's target to the app and demo window; use the [window route](macos-window.md) |
-| An existing reshoot demo | [Refresh or review it](agent-quickstart.md#update-the-demo-when-the-app-changes) with the previous run for comparison |
-| A preference for the CLI, or no app yet | [Install the tools](install.md), then follow the [notes tutorial](step-by-step.md) |
+| Asking Codex or Claude Code to make a demo | [Make a demo with your agent](agent-quickstart.md): one prompt, then reply "accept" |
+| Using the CLI yourself | [The tutorial](step-by-step.md): record the bundled notes app, break it, repair it, compare |
+| Adopting reshoot for a team | [Reshoot on a team](team.md): ownership, CI, alerts and cost |
+| Reviewing a demo refresh pull request | [Review a refresh pull request](team.md#review-a-refresh-pull-request) |
 
-The agent route handles setup and authoring with the
-[create, refresh and review skills](../skills/README.md). The CLI tutorial
-teaches the commands directly, using a bundled notes app. Both routes produce
-a video and a README loop, retain recording attempts and leave acceptance to you.
-Native capture uses a standalone recipe and app-specific interaction rather
-than a browser storyboard.
+Then record your own app: [a web app, from source or a URL](your-app.md), or
+[a macOS window](macos-window.md).
 
-## Build up at your own pace
+## What you can add
 
-| Stage | Get to | Agent route | Direct CLI route |
-|---|---|---|---|
-| 1. First success | One useful task, an MP4 and a GIF | [One prompt](agent-quickstart.md) | [Notes tutorial through the preview](step-by-step.md#2-record-a-preview), or a target route above |
-| 2. Explore | Decide which features are worth adding | [How the videos look](look.md) and [capabilities](features.md) | The same guides, with source and command links |
-| 3. Customize | Change words, timing and export size | [Ask for one visible change](customize.md) | Edit the generated files and record another preview |
-| 4. Build a fuller story | A product demo or tutorial | [Expand a working clip](make-demo.md) | Author sections and edit takes |
-| 5. Maintain and share | Updated media, reviewed before publication | [Refresh and prepare exports](publish.md) | Script the local run, then [add CI](ci.md) |
+Start with one task and a visible result, then add one thing at a time and
+watch whether it helps. [How the videos look](look.md) shows each in pictures.
 
-Stop after the first clip or skip to the stage you need. Reference reading and
-CI setup are not prerequisites for trying reshoot.
+| Goal | Use | Read |
+|---|---|---|
+| Explain a task without sound | Short captions and readable holds on the result | [Change and grow a demo](customize.md) |
+| Draw the eye to a control | The cursor, auto-zoom and caption placement | [How the videos look](look.md) |
+| Explain a longer process | Sections, title cards, a voiceover and subtitles | [Grow it into a fuller demo](customize.md#grow-it-into-a-fuller-demo) |
+| A README loop or a social clip | GIF and MP4 exports, crops and size limits | [edit.toml](projects.md#edittoml) |
+| Show a CLI beside the UI | A VHS terminal take, joined with the browser take | [Manual workflow](manual.md) |
+| Show an installed Mac app | One window, by its ID | [Record a macOS window](macos-window.md) |
+| Keep it current | The accepted run, a new run, a comparison | [Keep a demo current](publish.md) |
+| Refresh it on every change | A GitHub workflow that opens a pull request | [CI](ci.md) |
 
-## Find an answer
+## Look something up
 
-| Task | Guide |
+| For | Read |
 |---|---|
-| A first demo with a coding agent | [Agent quickstart](agent-quickstart.md) |
-| Skill installation, invocation and capabilities | [Skill catalog](../skills/README.md) |
-| Prerequisites, upgrades or a pinned installation | [Installation](install.md) |
-| A first complete project | [Tutorial](step-by-step.md) |
-| The cursor, zoom, captions, cards and shapes, in pictures | [How the videos look](look.md) |
-| Available features and example source | [Feature guide](features.md) |
-| Small changes to captions, timing and GIF size | [Customization](customize.md) |
-| A fuller product demo or app tutorial | [Build a demo](make-demo.md) |
-| Updates, selected exports and publication | [Maintain and publish](publish.md) |
-| App startup, demo data, login or agent prompts | [Record your own app](your-app.md) |
-| TOML actions, expectations, captions, edits and exports | [Project reference](projects.md) |
-| A CLI command | [Command map](commands.md) |
-| A shoot that takes too long | [Faster shoots](speed.md) |
-| Help with a failed recording or pending review | [Troubleshooting](troubleshooting.md) |
-| Python stories, VHS terminal takes or a macOS window | [Manual workflow](manual.md) |
-| Automated recording on releases | [CI](ci.md) |
-| Rendering and recording pitfalls | [Pitfalls](pitfalls.md) |
+| Installing, upgrading or pinning a version | [Install](install.md) |
+| Every field of reshoot.toml, storyboard.toml and edit.toml | [Project reference](projects.md) |
+| Every command | [Commands](commands.md), or `reshoot COMMAND --help` |
+| An error message, or a review that still says pending | [Troubleshooting](troubleshooting.md) |
+| A run that takes too long | [Faster shoots](speed.md) |
+| Python storyboards, VHS tapes and Python edits | [Manual workflow](manual.md) |
+| What went wrong before, and how reshoot fixed it | [Pitfalls](pitfalls.md) |
+| The skills | [Skill catalog](../skills/README.md) |
 
-## The workflow
+## Words
 
-Choose one useful task and a visible result. Let the agent prepare synthetic
-data and write the story, or author the files directly. Inspect a preview before
-making a fresh final recording. Watch each finished export and review the
-supplied images, frames and text findings.
-Then copy selected files locally for sharing. Reshoot does not post automatically.
-
-Versioned browser and terminal projects retain each candidate in `takes/runs/ID/`; a failed update
-does not overwrite the previous recording. Choose the comparison baseline
-explicitly and keep stable beat IDs so the old and new results can be compared.
-Native window captures use separate take directories and manual comparison.
-
-| Term | Meaning |
+| Word | Means |
 |---|---|
-| Project | A brief, app setup, storyboard and edit configured by `reshoot.toml` |
-| Run | One isolated attempt with its report, recordings and evidence |
-| Take | One recording of a browser page, terminal or app window |
-| Beat | A named step with actions, a caption, result checks and a hold |
-| Storyboard | The beats in a TOML file, or a supported Python file |
-| Tape | A [VHS](https://github.com/charmbracelet/vhs) script for a terminal take |
-| Export | A finished MP4, GIF or other selected deliverable |
-| Baseline | A previous run explicitly selected for comparison |
-| Scan sheets | Numbered contact sheets and original frames for human inspection |
+| Project | A `demo/` folder: the brief, `reshoot.toml`, the storyboard and the edit |
+| Storyboard | The script: `storyboard.toml`, a list of beats |
+| Beat | One step, like a shot: actions, a caption, result checks and a hold |
+| Result check | A `[[beat.expect]]` that the result appeared, such as a saved note in the list |
+| Take | One recording of a browser page, a terminal or an app window |
+| Run | One `reshoot run` or `reshoot preview`: its takes, edit, scan and report, in `takes/runs/ID/` |
+| Preview | A run at a smaller size, to look at before recording a final |
+| Final | A full-size run, the one you accept |
+| Export | A finished MP4 or GIF |
+| Scan | The check of every export for private details, shown as numbered sheets |
+| Finding | One thing the scan flagged, such as an email address, in every frame it is in |
+| Accept | Say a final is right to share: `reshoot accept` |
+| Accepted run | The run you last accepted, recorded in `demo/accepted/`. New runs are compared with it |
 
 ## When reshoot fits
 
-Use reshoot for software demos that need updates: README loops, release
-walkthroughs and feature clips. Scripting takes preparation, especially for
-demo data. A one-off recording may be quicker with a single-window recorder.
-Native desktop automation needs an app-specific way to drive the window;
-reshoot's browser story format does not automate arbitrary desktop controls.
+Use reshoot for software demos that need updating: README loops, release
+walkthroughs and feature clips. Writing the first story and its demo data takes
+longer than recording once by hand; every later recording is one command. For
+a one-off video, a screen recorder is quicker. Native Mac apps need their own
+way to drive the window: reshoot records it but cannot click arbitrary desktop
+controls.
 
 ## Platforms
 
@@ -102,19 +84,6 @@ reshoot's browser story format does not automate arbitrary desktop controls.
 The [Linux record](../docs/validation/2026-10-21-podman-linux.md),
 [separate-Mac record](../docs/validation/2026-10-21-separate-mac.md) and
 [Codex/Claude refresh and review record](../docs/validation/2026-10-22-separate-mac-harnesses.md)
-describe the tested environments and their limits. Those are maintainer-operated
-trials. Independent new-user testing is deferred; broader desktop, remote-service
-and platform coverage remain open. These results establish behavior in the tested
-environments, not compatibility with every app.
-
-## Sound, captions and framing
-
-Make the main point readable without sound. Captions, result holds and
-deliberate framing matter more than motion for its own sake. Reshoot supports
-zoom, styled captions, narration, music and subtitles; the
-[project reference](projects.md) describes their settings. A portrait export
-needs an intentional crop or a separately recorded responsive take.
-
-The [manual workflow](manual.md) covers Python narration and custom edits.
-The [promotional recipe](../examples/promo/README.md) demonstrates an authored
-before-and-after video using real recordings of synthetic data.
+describe the tested environments. These were run by the maintainer; testing by
+new users is still to come. They show how reshoot behaves there, not that it
+works with every app.

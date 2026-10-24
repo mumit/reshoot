@@ -176,7 +176,7 @@ Once each step works, put them in a `reshoot.toml` and `reshoot run` does the wh
 then reshoot on each release. See [reshoot in CI](ci.md). The legacy notes
 `reshoot.toml` includes `[keep]`, which copies outputs into `docs/demo/` even on a
 local run. Use a disposable checkout or remove that table in the configuration
-before experimenting; the project tutorial retains candidates instead.
+before experimenting; versioned projects keep each run in its own folder instead.
 
 ## When the app changes
 

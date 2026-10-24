@@ -88,8 +88,8 @@ run `reshoot accept` for you; you can also run the command yourself. The
 [review instructions](step-by-step.md#4-accept-the-recording) cover flagged and
 rejected items. Nothing posts automatically.
 
-You can stop here with your first clip. When ready, [explore the features](features.md),
-[change a caption or timing](customize.md), then [build a fuller demo or tutorial](make-demo.md).
+You can stop here with your first clip. When ready, see [how the videos look](look.md),
+then [change a caption or timing, or grow a fuller demo](customize.md).
 Use [updates and publishing](publish.md) when the recording becomes part of your project.
 
 ## Update the demo when the app changes
@@ -168,7 +168,7 @@ The plugin still needs the CLI and recording dependencies.
 Use the [bundled notes tutorial](step-by-step.md) for a complete CLI example
 with synthetic data. It covers the first recording and an update. For your
 target, use the [source-app walkthrough](your-app.md),
-[running-URL route](running-web-app.md) or [native window route](macos-window.md).
+[running-URL route](your-app.md#with-only-a-url) or [native window route](macos-window.md).
 
 ## Setup and creation workflow for the agent
 
@@ -195,7 +195,7 @@ When receiving the prompt above, follow this workflow:
    read that file directly and continue within the current session.
 4. Choose the appropriate route. For a browser, reuse a project or initialize
    `demo/` with `reshoot init demo --url APP_URL`. Follow the
-   [source-app](your-app.md) or [running-URL](running-web-app.md) guide, replace
+   [own-app guide](your-app.md), replace
    the placeholder with actual actions and checks, and keep the edit's endpoint
    valid. For a native app, follow the [window guide](macos-window.md): save
    capture instructions and an edit, select one window by ID and arrange

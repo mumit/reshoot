@@ -1,8 +1,44 @@
 # Troubleshooting
 
-Keep the failed run folder and read its `run.json` before changing the story.
-Each versioned attempt has its own directory, so a failed update leaves the
-previous recording available.
+A failed run prints its folder, a failure image of the page and the app's
+output. Each run has its own folder, so a failed one never replaces the
+recording before it. Find the message below, or the section that matches.
+
+## Error messages
+
+| The message starts with | It means | Do |
+|---|---|---|
+| `can't find Chrome or Chromium` | No browser where reshoot looks | Install one, or set `RESHOOT_CHROME`; [Chrome](#chrome-is-missing-or-will-not-start) |
+| `Chrome could not start` | Usually an agent's sandbox | Approve running reshoot outside the sandbox; [Chrome](#chrome-is-missing-or-will-not-start) |
+| `net::ERR_UNSAFE_PORT` | Chrome refuses that port | Use another port; [Chrome](#chrome-is-missing-or-will-not-start) |
+| `something is already answering at` | An old server holds the app's port | Stop it, or change the port; [the app](#the-app-will-not-start) |
+| `the app didn't answer at URL within N s` | Startup was slow or failed quietly | Read `app.log`; raise `[app] timeout`; [the app](#the-app-will-not-start) |
+| `the app stopped before it answered` | The `[app] run` command failed | Read `app.log`; [the app](#the-app-will-not-start) |
+| `demo data reset failed` | The `[app] reset` command failed | Run it by hand from the `reshoot.toml` folder |
+| `click target {css = '#q'} matched 0 elements` | The control is gone or renamed | Fix the target; [a beat fails](#an-action-or-result-check-fails) |
+| `... matched 2 elements; it must match exactly one` | The target is ambiguous | Add `name` or `text`, or use a test ID |
+| `beat 'search' failed: Locator expected ...` | A result check did not pass in time | Look at the failure image; [a beat fails](#an-action-or-result-check-fails) |
+| `page error:` | The page threw a JavaScript error | Often a beat ran before the page was ready: add a `wait` action |
+| `run exceeded its timeout` | The whole run took over `timeout` seconds | Raise `timeout` in `reshoot.toml`, or shorten the story |
+| `unknown storyboard option: NAME` | A misspelled or unsupported field | Check the [project reference](projects.md#storyboardtoml) |
+| `unknown option X; type takes ...` | A field that action or result check doesn't take | Use one of the fields it lists |
+| `required text scan unavailable` | No Vision or Tesseract | Install Tesseract; [scanning](#scanning-fails-or-reports-unavailable-detectors) |
+| `edit would cut a narration line` | A cut falls inside a voiceover line | Move the cut to a beat boundary |
+| `speed changes need a label` | A sped-up part has no `label` | Add a visible `label`, such as "Sped up 2x" |
+| `card text does not fit` | A title card's words are too long | Shorten them |
+| `export exceeds its configured max_bytes` | The export is larger than its limit | Shorten it, lower `fps` or `width`, or raise `max_bytes` |
+| `an exported caption is shorter than min_reading` | A caption is too brief in an export | Lengthen its beat's `hold`, or lower `min_reading` |
+| `run ID is a preview` | `accept` refuses previews | Record a final with `reshoot run` |
+| `accepting needs the owner` | `accept` ran without a terminal | Run it yourself, or pass `--yes` only as the owner |
+| `cannot accept a failed run or failed check` | The run or its scan failed | Fix it and record a new run |
+| `not on the current sheets: LABEL` | That label or finding isn't in this run's scan | Use the labels `accept` listed |
+| `items on these sheets were rejected` | Something was marked not to share | Fix the demo data and record a new run |
+| `this is a run record without its media` | `demo/accepted` in a fresh clone has no video | Accept the run folder under `takes/runs/` |
+| `no successful run in` / `no accepted run in` | `latest` or `accepted` has nothing to name | Record or accept a run first |
+| `decision belongs to another run` | Files or scan settings changed since | [Accept again](#accept-or-import-says-the-decision-does-not-match) |
+| `export would overwrite a file` | The destination already has that file | Pass `--replace` to update it on purpose |
+| `existing files would be overwritten` | `init` found a project there | Use that project, or another folder |
+| `will not overwrite existing skill` | The skills are already installed | After an upgrade, pass `--replace` |
 
 ## A command or dependency is missing
 
@@ -14,7 +50,7 @@ previous recording available.
 | ffmpeg or ffprobe is missing | Install ffmpeg using the [platform instructions](install.md) |
 | Playwright is missing | Reinstall the CLI with the quoted `reshoot[browser]` requirement from the installation guide |
 | `init` reports existing files | Continue with that project or choose a new directory; it will not overwrite the story |
-| Skill installation reports an existing skill | Preserve local edits and compare an installation in a separate directory before replacing files |
+| Skill installation reports an existing skill | After an upgrade, commit or copy any changes to them, then pass `--replace` |
 
 `reshoot doctor --config demo/reshoot.toml --json` reports tool paths, versions
 and installed scan capabilities. It does not probe the final capture or scan.
@@ -31,7 +67,7 @@ fonts. Use the distribution's browser package or install the dependencies
 required by the Chrome package. Reshoot uses the installed browser, not a
 Playwright-downloaded binary. If a harness sandbox prevents starting Chrome or
 binding a loopback port, use that harness's permission mechanism to authorize
-the local recording and retain the failed attempt. In Codex's default sandbox,
+the local recording and keep the failed run. In Codex's default sandbox,
 `Chrome could not start` is the usual sign: approve running the reshoot command
 outside the sandbox.
 
@@ -59,9 +95,9 @@ changing the port requires changing it in both `reshoot.toml` and `storyboard.to
 
 Run `reshoot runs demo` to find the failed run's folder, then read the
 failing beat in its `takes/demo.take.json` and look at the failure image
-beside it, such as `takes/demo.failure.png`. Check the selector, page state, login, visibility and expected result.
+beside it, such as `takes/demo.failure.png`. Check the target, page state, login, visibility and the result check.
 A matching selector must identify one usable control. Use a stable test ID or
-accessible name when possible and allow an appropriate expectation timeout for
+accessible name when possible, and give a result check a longer `timeout` for
 real loading.
 
 If the app keeps data between takes, a take that created something leaves it
@@ -69,9 +105,9 @@ behind, and an exact `count` check fails on the next take. Reset the data
 before each take with `[app] reset`, or, when there is no reset, check for the
 item the take created rather than a total that depends on earlier takes.
 
-Earlier passed checks do not verify an interrupted flow. Preserve the expected
-task and repair the app fixture or selector. Do not weaken an assertion to make
-the run pass. After a repaired preview, make a fresh final recording.
+Earlier passed checks do not verify an interrupted flow. Keep the task and
+repair the demo data or the target. Do not weaken a result check to make the
+run pass. After a repaired preview, make a fresh final recording.
 
 ## Scanning fails or reports unavailable detectors
 
@@ -101,23 +137,18 @@ First identify which review is pending:
 | `review/report.json` | The scan checklist for the supplied images, frames and text findings |
 | An already open `review.html` | A static page that may predate the latest verdict |
 
-Watch the final exports and look at the scan items, then run
-`reshoot accept RUN`. It records both the verdict and the scan checklist. If
-it stops and lists what the scan found, inspect each finding and name it with
-`--flagged F1`, or `--reject F1` if it must not be shared. A finding, such as
-an email address on screen for the whole video, covers every frame it appears
-in; a single label such as `1-2` names one frame. Without a
-terminal it refuses unless given `--yes`; only the owner should pass that.
-
-The earlier two-step route still works: `reshoot check --review RUN/review --ok`
-fills only the scan checklist, and `reshoot review RUN --import-decisions FILE`
-records only the recording decisions. Each leaves the other pending.
-Regenerate the page with `reshoot review RUN` and reopen it after a verdict.
-The [tutorial](step-by-step.md#4-accept-the-recording) shows the steps.
+Watch the final exports, look at the scan items, and run `reshoot accept RUN`.
+It records both the recording and the scan checklist. If it stops and lists
+findings, name each with `--flagged F1`, or `--reject F1` if it must not be
+shared; the [tutorial](step-by-step.md#4-accept-the-recording) walks through
+it. `reshoot check --review RUN/review --ok` and
+`reshoot review RUN --import-decisions FILE` each record only one of the two,
+leaving the other pending. After accepting, rebuild the page with
+`reshoot review RUN` and reopen it.
 
 Do not rescan an accepted take just to refresh a page. Rerunning a check can
 replace the sheets and finding labels. New media or changed coverage belong to a
-new candidate or a deliberately separate review directory.
+new run or a deliberately separate review directory.
 
 ## Accept or import says the decision does not match
 

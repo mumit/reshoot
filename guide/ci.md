@@ -2,14 +2,14 @@
 
 Use CI to record a demo again when the app changes. When a renamed button breaks
 the storyboard, the recording job fails and identifies the beat. Review the new
-candidate before replacing the previous video or README GIF.
+run before replacing the previous video or README GIF.
 
 Start with a working local browser/VHS project and its reset procedure. Use the
 [local tutorial](step-by-step.md) if you need an example; it is not required for
 an app that already records correctly. Native windows require an interactive
 macOS capture session and are outside these Ubuntu templates. There are three
 CI examples: a refresh workflow that opens a pull request for versioned projects,
-a candidate-only workflow, and the original pull-request workflow for legacy
+a record-only workflow, and the original pull-request workflow for legacy
 `[keep]` projects. All pin supporting actions to reviewed commits.
 
 ## Versioned projects: open a pull request with the refreshed demo
@@ -57,21 +57,21 @@ opens the pull request. The workflow never repairs a story itself.
 The `!demo/accepted/**` path keeps a merged refresh from starting another run.
 Adapt the other paths to your app's source.
 
-## Versioned projects: retain a candidate only
+## Versioned projects: record a run only
 
 [examples/github/candidate.yml](../examples/github/candidate.yml) records a
-candidate, writes its review page and uploads `demo/takes/` even when recording
+run, writes its review page and uploads `demo/takes/` even when recording
 fails. It does not change the repository or open a pull request. Use it to test
 CI recording before adopting the refresh workflow. After a run, download the
 `reshoot-review` artifact, open `review.html` locally and keep the folder
 structure intact so media and original frames remain linked. Review the exports
 and sheets as in the [tutorial](step-by-step.md#4-accept-the-recording).
-Recording success and an uploaded artifact are not approval.
+A recording that worked and an uploaded artifact are not an acceptance.
 
 ## Choose when to record
 
-The refresh template records on changes to `main` and by hand. The candidate
-template starts by hand only. To add releases, or to record a candidate on
+The refresh template records on changes to `main` and by hand. The record-only
+template starts by hand only. To add releases, or to record a run on
 relevant changes, use an `on:` block like this:
 
 ```yaml
@@ -96,20 +96,20 @@ see its [workflow syntax](https://docs.github.com/en/actions/reference/workflows
 and [trigger guide](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 
 The job replays the checked-in story. It does not run an agent to repair a
-selector, approve exports or publish a post. Repair failures locally and keep
+selector, accept exports or publish a post. Repair failures locally and keep
 the failed artifact for diagnosis. Use an isolated reachable test service for
 URL-only projects; hosted state and rate limits can affect repeatability.
 For private test services, use the app's supported CI secret setup and keep
 credentials outside the storyboard and artifacts.
 
 Return to [maintaining and publishing](publish.md) to promote reviewed media
-locally. The candidate-only workflow requires read access and does not need
+locally. The record-only workflow requires read access and does not need
 the pull-request permissions described in the legacy section below.
 
 ## Legacy projects: open a media pull request
 
 The original [PR workflow](../examples/github/reshoot.yml) uses the legacy
-`[keep]` path. It does not copy candidates from versioned projects without an
+`[keep]` path. It does not copy runs from versioned projects without an
 explicit export step. Choose this route only when retaining that layout.
 
 ### The shoot file
@@ -185,7 +185,7 @@ Data committed to a public repository is public too. Use only data suitable for 
   [GitHub documents this approval behavior](https://docs.github.com/en/actions/concepts/security/github_token).
 - **Legacy local runs change kept files too.** With legacy `[keep]`, `reshoot run`
   copies the new video into `docs/demo/`. Use a disposable checkout for experiments
-  and inspect the diff before keeping those changes. Versioned candidates require
+  and inspect the diff before keeping those changes. Versioned runs require
   a separate local export.
 - **Something already on the port.** `reshoot run` stops if the app's URL answers before it starts the app, so a
   take never shows a different server by mistake.

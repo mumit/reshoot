@@ -73,5 +73,5 @@ cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceove
 `reshoot edit EDIT.toml TAKE...` accepts schema-version-1 edit files with ordered `[[part]]` entries and output profiles. The packaged project provides an example. Cut helpers write `.timeline.json` mappings; trims, speed changes, placement, and concatenation retain source times. Speed changes need a visible label and cannot shorten narration. Explicit local copies use `reshoot export RUN --directory DIR --file PATH`; hashes must match the report, and existing destinations are not overwritten.
 
 Declarative edits can use `trim_waits = true` for beats explicitly marked
-`trim_wait = true` with a passed expectation. Keep `min_reading` long enough to
+`trim_wait = true` with a passed result check. Keep `min_reading` long enough to
 read the result. Reshoot preserves speech and labels shortened waits.

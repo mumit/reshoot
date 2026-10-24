@@ -36,8 +36,9 @@ EXPECT = {'text', 'visible', 'count', 'value', 'url', 'checked'}
 def target(value):
     if not isinstance(value, dict) or sum(k in value for k in ('css', 'test_id', 'role')) != 1:
         raise ValueError('target needs exactly one of css, test_id, or role')
-    if set(value) - {'css', 'test_id', 'role', 'name', 'frame', 'text'}:
-        raise ValueError('unknown target option')
+    if unknown := set(value) - {'css', 'test_id', 'role', 'name', 'frame', 'text'}:
+        raise ValueError('unknown target option ' + ', '.join(sorted(unknown)) + '; use css, test_id or role, '
+                         'with name, text or frame')
     if not all(isinstance(v, str) and v for v in value.values()):
         raise ValueError('target values must be nonempty strings')
 
@@ -46,8 +47,8 @@ def load(path):
     data = tomllib.loads(Path(path).read_text())
     if data.get('schema_version') != 1:
         raise ValueError('storyboard needs schema_version = 1')
-    if set(data) - {'schema_version', 'id', 'url', 'size', 'theme', 'zoom', 'blur', 'beat', 'setup', 'voice', 'voice_engine', 'timeout', 'seed', 'mobile', 'caption', 'cursor'}:
-        raise ValueError('unknown storyboard option')
+    if unknown := set(data) - {'schema_version', 'id', 'url', 'size', 'theme', 'zoom', 'blur', 'beat', 'setup', 'voice', 'voice_engine', 'timeout', 'seed', 'mobile', 'caption', 'cursor'}:
+        raise ValueError('unknown storyboard option: ' + ', '.join(sorted(unknown)) + '; guide/projects.md lists them')
     if not data.get('beat'):
         raise ValueError('storyboard has no beats')
     caption = data.get('caption', {})
@@ -77,8 +78,8 @@ def load(path):
         if not re.fullmatch(r'[a-zA-Z0-9_-]+', name) or name in seen:
             raise ValueError('beat IDs must be unique letters, digits, underscores, or hyphens')
         seen.add(name)
-        if set(beat) - {'id', 'purpose', 'caption', 'sub', 'hold', 'action', 'expect', 'trim_wait', 'min_reading'}:
-            raise ValueError(f'unknown option in beat {name}')
+        if unknown := set(beat) - {'id', 'purpose', 'caption', 'sub', 'hold', 'action', 'expect', 'trim_wait', 'min_reading'}:
+            raise ValueError(f'unknown option in beat {name}: ' + ', '.join(sorted(unknown)))
         hold = beat.get('hold', 1)
         if not isinstance(hold, (int, float)) or not math.isfinite(hold) or hold < 0:
             raise ValueError(f'invalid hold in beat {name}')
@@ -114,8 +115,9 @@ def validate(entry, allowed):
     options = {'click': set(), 'type': {'text', 'clear'}, 'select': {'option'}, 'key': {'key'}, 'scroll': {'dy'},
                'navigate': {'url'}, 'wait': set(), 'upload': {'file'}, 'text': {'contains'},
                'visible': set(), 'count': {'count'}, 'value': {'value'}, 'url': {'contains'}, 'checked': {'checked'}}
-    if set(entry) - ({'type', 'target', 'timeout'} | options[kind]):
-        raise ValueError('unknown operation option')
+    if unknown := set(entry) - ({'type', 'target', 'timeout'} | options[kind]):
+        raise ValueError('unknown option ' + ', '.join(sorted(unknown)) + f'; {kind} takes '
+                         + ', '.join(sorted({'target', 'timeout'} | options[kind])))
     if kind not in {'navigate', 'scroll', 'url'}:
         target(entry.get('target'))
     required = {'type': 'text', 'select': 'option', 'key': 'key', 'navigate': 'url', 'text': 'contains', 'count': 'count', 'value': 'value', 'upload': 'file', 'url': 'contains'}

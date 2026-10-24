@@ -15,7 +15,7 @@ installed macOS app with a demo window. Source code is optional.
 |---|---|---|
 | [reshoot-demo](reshoot-demo/SKILL.md) | Choose the capture route, make a first clip, inspect a test take and prepare final exports | App source, a web URL or a native macOS app; the task to show |
 | [reshoot-refresh](reshoot-refresh/SKILL.md) | Record an existing task again after an app change and compare the result | Configuration and exact previous run, or native recipe and previous media |
-| [reshoot-review](reshoot-review/SKILL.md) | Inspect exports, expected results, readability, scan coverage and comparisons | Current and optional previous run, or standalone media and check reports |
+| [reshoot-review](reshoot-review/SKILL.md) | Inspect exports, result checks, readability, scan coverage and comparisons | Current and optional previous run, or standalone media and check reports |
 
 Invoke the skill with the task in the same message. For example, in Codex:
 
@@ -73,11 +73,11 @@ not install these seven supporting skills.
 The three primary skills cover all three starting points without requiring the
 supporting bundle. Browser stories support captions and explicit result checks.
 Native takes require app-specific automation or manual interaction, standalone
-editing and manual comparison; browser overlays and assertions do not apply.
+editing and manual comparison; browser overlays and result checks do not apply.
 
-After the first clip, [explore features](../guide/features.md),
-[customize the source](../guide/customize.md), [build a fuller tutorial](../guide/make-demo.md)
-or [maintain and publish](../guide/publish.md).
+After the first clip, see [how the videos look](../guide/look.md),
+[change and grow the demo](../guide/customize.md) or
+[keep it current and share it](../guide/publish.md).
 
 ## Keep the review with the recording
 

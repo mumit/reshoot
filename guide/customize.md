@@ -1,7 +1,10 @@
-# Change a demo and see the result
+# Change and grow a demo
 
-Use one small edit to learn how the recording source affects the output. Start
-with the project from your first browser demo, or run the bundled notes example:
+Make one small change at a time and record a preview to see it: a caption, a
+hold, the cursor, an export size. Then, once the short clip works, grow it into
+a fuller product demo or tutorial. [How the videos look](look.md) shows each
+setting in pictures. Start with the project from your first browser demo, or
+the bundled notes example:
 
 ```bash
 reshoot init demo
@@ -61,7 +64,7 @@ hold = 3.0
 
 Record another preview and compare the matching-note result. The browser waits
 for its explicit checks, then holds the successful result for an extra second.
-Use a hold for reading time; use an expectation for the app's readiness.
+Use a hold for reading time and a result check to wait for the app.
 Do not hide a real service delay by speeding it up without a visible label.
 
 ## Change the cursor
@@ -93,20 +96,88 @@ height = 360
 Replace that existing export table; do not append a second export with the same
 name. Record another preview. Compare the GIF at its actual size: smaller text
 may need a tighter task or different framing. Keep the MP4 as the fuller version.
-See [export profiles](projects.md#edit-and-export) for crops, frame rates and
+See [export profiles](projects.md#edittoml) for crops, frame rates and
 size limits. Fitting a wide page into portrait dimensions does not make a
 readable mobile demo.
 
 ## Keep the changes that help
 
-Inspect each change before adding the next. Keep the task and its assertions
-stable when adjusting presentation. If you alter actions, update the expected
-result deliberately and explain the new story in the brief.
+Look at each change before adding the next. Keep the task and its result checks
+the same while adjusting how it looks. If you change the actions, change the
+result checks on purpose and explain the new story in the brief.
 
-After choosing the result, run a fresh `reshoot run demo/reshoot.toml` and
-review the actual final MP4, GIF and scan sheets. A preview is a candidate, not
-an approval. The [CLI tutorial](step-by-step.md) continues with an app change,
-a failed selector, repair and comparison.
+Once you choose, record a fresh `reshoot run demo/reshoot.toml` and look at the
+final MP4, GIF and scan sheets. A preview is for looking at, not for accepting.
 
-Next: [build a fuller demo or tutorial](make-demo.md), or
-[maintain and publish this clip](publish.md).
+## Grow it into a fuller demo
+
+Expand a working clip only when each extra section helps the viewer. Write the
+audience, starting state and visible result in `BRIEF.md`, and decide whether
+the video shows why a feature matters or how to use it. A product demo leads
+with the result and keeps setup short. A tutorial includes the steps a viewer
+must repeat and holds menus and result text long enough to read.
+
+| Section | Show | Result check |
+|---|---|---|
+| Start | A list with several demo notes | The target is hard to spot |
+| Create | Add "Prepare the release notes" | The saved note appears |
+| Find | Search for "release" | Only the matching note remains |
+| Finish | Hold the result and say what to do next | The result stays readable |
+
+Keep each section small enough to record again on its own, with a stable beat
+ID. For native apps, save the starting document and the steps, and check the
+visible result yourself: there are no automatic result checks there.
+
+To have the agent do it:
+
+```text
+Expand the existing demo/ into a short tutorial of creating an item and finding
+it by search. Read its brief and current recording first. Use synthetic data.
+Keep the working task and result checks; add only the context needed to follow
+it. Use clear captions, readable result holds and a short closing instruction.
+Inspect previews, record a fresh final, and show the MP4 and README GIF.
+```
+
+Add the audience, destination and length when you know them. Ask for narration
+only when it explains something; the video should still make sense muted.
+
+### Add a title card
+
+`demo/edit.toml` picks beat ranges from the takes, joins them and adds cards.
+This version opens the notes demo with a title:
+
+```toml
+schema_version = 1
+output = "demo-final.mp4"
+
+[[part]]
+card = "Save a note. Find it again."
+duration = 1.5
+
+[[part]]
+take = 0
+start = 0
+end = "end"
+
+[[export]]
+name = "readme"
+format = "gif"
+width = 800
+height = 450
+```
+
+Replace the notes project's edit with it and record another preview. For your
+own story, use its beat names. Every edit field, music and card styling is in
+the [project reference](projects.md#edittoml). The [manual workflow](manual.md)
+covers Python edits, narration and VHS terminal takes; match terminal and
+browser take sizes when joining them. The [promo recipe](../examples/promo/README.md)
+is a before-and-after video built this way.
+
+### Finish for the viewer
+
+Watch the full MP4 and every shorter GIF or crop. Check that captions name the
+outcome, text fits, typing is legible and the result stays on screen. Say so
+when a response is mocked or a wait was shortened. Check narration against the
+picture, and read the subtitles when there are any.
+
+Next: [keep the demo current and share it](publish.md).

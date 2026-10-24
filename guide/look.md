@@ -109,4 +109,4 @@ past a page's limit. The notes example's loop:
 
 A voiceover is spoken before recording, so each beat waits for its line.
 Music plays under it and ducks while someone speaks, then fades out at the end.
-See [Build the story and edit](make-demo.md).
+See [Grow it into a fuller demo](customize.md#grow-it-into-a-fuller-demo).

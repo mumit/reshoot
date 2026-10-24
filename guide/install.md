@@ -11,7 +11,7 @@ demo's story and edit files in its own project.
 |---|---|
 | Python 3.11 or newer | Runs reshoot; `python3` also starts the tutorial's local app |
 | [uv](https://docs.astral.sh/uv/getting-started/installation/) | Installs the CLI in its own environment |
-| Git | Fetches the installation source from GitHub |
+| Git | Optional: installs unreleased versions from GitHub |
 | ffmpeg and ffprobe | Encode, edit and inspect recordings |
 | Google Chrome or Chromium | Records browser pages |
 | Tesseract on Linux | Reads text during automatic checks |

@@ -20,6 +20,9 @@ change project files or commands.
 - Previews sample frames even when `full = true`, so they stay quick.
 - The tutorial uses `demo/latest` and `demo/accepted` instead of pasted run
   IDs, and exports to `docs/demo/`.
+- The README leads with what reshoot is for, the install line and three
+  commands, shows a storyboard, says how it differs from other tools and what
+  to expect from the agent prompt, and has one table of where to go next.
 
 - `reshoot accept` refuses a preview unless given `--preview`. The CI guide's
   `reshoot accept demo/latest` could commit a preview as the baseline.

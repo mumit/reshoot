@@ -127,6 +127,31 @@ no changes outside `demo/` and `.agents/`, in 5.4 and 8.2 minutes.
 - The Standup agent saw a caption overlap a heading in the preview and moved it
   before the final.
 
+## Round 6: the upgrade notice, on 0.3.5
+
+On 2026-10-24, one fresh Codex session ran Recipe Box with an older reshoot
+installed: 0.3.4 in the session's own tool folder, and the owner's 0.3.3 on
+the login shell's path. `doctor` from 0.3.4 printed "0.3.5 is out". The
+session finished in 5.1 minutes with a preview and a final, 8 checks, no
+flags, and no changes outside `demo/` and `.agents/`.
+
+- **Upgrade: done, before anything was written.** Following the quickstart, it
+  compared `reshoot --version` with PyPI and ran
+  `uv tool install --upgrade 'reshoot[browser]'` as its fifth and sixth
+  commands. The login shell still found 0.3.3 first, so it called the new CLI
+  by its path, as in round 4. Its `doctor` then reported 0.3.5 with no
+  notice. The PyPI check came first, so this shows the quickstart leads to an
+  upgrade; it does not show the `doctor` notice alone would.
+- **Errors that name the field:** its first story used `exact` in a target.
+  The new message, `unknown target option exact; use css, test_id or role,
+  with name, text or frame`, led to a fix in one edit.
+- **Chrome in the sandbox:** the first preview failed with the sandbox hint
+  and was rerun outside it, as in round 5.
+- **Opening exports:** still blocked by the sandbox; it said so and gave the
+  paths.
+- Its closing `reshoot accept` command names `reshoot`, which on the owner's
+  path is still 0.3.3; the owner's own upgrade is theirs to run.
+
 ## Limits
 
 - One model per harness: `claude-opus-5-5` and Codex's configured default.

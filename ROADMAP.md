@@ -20,8 +20,6 @@ are ordered by how early a user meets them.
 
 ## Later
 
-- In a cold Codex session with an older reshoot, check that `doctor`'s upgrade notice leads it to upgrade. The
-  notice itself works: 0.3.3's `doctor` reported 0.3.4 when it came out.
 - Checks suggested by `reshoot rec` from what each action changed on the page. The cold runs showed agents
   write good stories and checks unaided, so this helps people working without an agent.
 - Accept from the review page itself, served locally, instead of a terminal command.
@@ -42,6 +40,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **The upgrade notice in Codex:** a cold Codex session that started on 0.3.4 checked PyPI and upgraded to
+  0.3.5 before writing anything ([round 6](docs/validation/2026-10-23-cold-first-demo.md#round-6-the-upgrade-notice-on-035)).
 - **Review inside the pull request:** a refresh pull request shows the GIF, links the MP4 on its branch and shows
   each scan finding with its frame, so a usual review needs no artifact download.
 - **Fewer, clearer guides:** one start-here per reader, including a [team page](guide/team.md), field tables

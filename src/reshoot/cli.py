@@ -173,7 +173,11 @@ def main(argv=None):
     p.add_argument('--previous', help='an earlier run to compare against, usually the accepted one')
     p.add_argument('--import-decisions', metavar='FILE',
                    help='record per-beat decisions downloaded from the page; `reshoot accept` is the one-step route')
-    p.set_defaults(run=review.main)
+    p.add_argument('--serve', action='store_true', help='serve the page on this computer and accept or reject the run '
+                   'there, as `reshoot accept` does; stops once you decide')
+    p.add_argument('--port', type=int, help='with --serve, the port (default: a free one)')
+    p.add_argument('--no-open', action='store_true', help='with --serve, print the address without opening a browser')
+    p.set_defaults(run=lambda a: review.serve(a) if a.serve else review.main(a))
     p = sub.add_parser('accept', help='accept a run after watching it: exports, beats and scan items in one step',
                        description='Accept a run after watching its exports and looking at its scan sheets. Unflagged '
                        'items are accepted together; each flagged item must be named with --flagged or --reject. The '

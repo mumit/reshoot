@@ -329,6 +329,8 @@ def main(a):
     print('\nNothing is accepted or shared yet. Watch the exports' + (' and look at the scan items, findings first,'
           if page else '') + ' then accept the run:')
     print('  reshoot accept ' + shlex.quote(shown(root)) + (' --flagged ' + ' '.join(groups) if groups else ''))
+    if page:
+        print('or on its review page, with a button for each finding:\n  reshoot review ' + shlex.quote(shown(root)) + ' --serve')
 
 
 def shown(path):

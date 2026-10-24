@@ -20,7 +20,6 @@ are ordered by how early a user meets them.
 
 ## Later
 
-- Accept from the review page itself, served locally, instead of a terminal command.
 - Named export presets with verified limits for X, LinkedIn and README use, and a brand table for fonts, colors,
   a logo and a framed browser look with padding, rounded corners and a shadow.
 - Re-cut a run, changing captions, cards and music, without recording it again.
@@ -38,6 +37,8 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **Accept from the review page:** `reshoot review RUN --serve` serves the page locally with a choice for each
+  finding and an Accept button, recording the same decision as `reshoot accept`.
 - **Checks suggested by `reshoot rec`:** a TOML draft suggests result checks from what each action changed on the
   page, and every suggestion in the notes tour passes when the draft is recorded.
 - **The upgrade notice in Codex:** a cold Codex session that started on 0.3.4 checked PyPI and upgraded to

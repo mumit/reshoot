@@ -155,6 +155,11 @@ Inspect it at full size on the review page, then name the findings you accept:
 reshoot accept demo/latest --flagged F1
 ```
 
+To decide on the page instead, run `reshoot review demo/latest --serve`. It
+opens the review page from a small server on this computer only, with a choice
+for each finding, a box to tick once you have watched everything, and an
+Accept button. It records the same decision as `reshoot accept` and stops.
+
 If an item must not be shared, reject it instead:
 
 ```bash

@@ -386,3 +386,53 @@ def test_a_pull_request_shows_each_finding_with_its_frame_from_the_shared_files(
     assert Image.open(tmp_path / 'demo/accepted/findings/F1.jpg').size == (400, 225)  # just the frame
     # A finding in a file the pull request doesn't carry is named, but its frame stays out of the repository.
     assert '**F2** key sk-•••' in text and not (tmp_path / 'demo/accepted/findings/F2.jpg').exists()
+
+
+@pytest.mark.browser
+def test_the_owner_accepts_a_run_on_its_served_review_page(tmp_path, monkeypatch):
+    import secrets, socket, threading, time, urllib.request
+    from playwright.sync_api import sync_playwright
+    from reshoot import web
+    from reshoot.safety import describe
+    root = project_run(tmp_path)
+    (root / 'run.json').write_text(json.dumps({**json.loads((root / 'run.json').read_text()), 'mode': 'final'}))
+    (root / 'review').mkdir()
+    Image.new('RGB', (2020, 1580), 'white').save(root / 'review/01.jpg')
+    video = describe(str(root / 'takes/demo-final.mp4'))
+    (root / 'review/key.json').write_text(json.dumps({'1-1': [video + '@2.0s', 'a'], '1-2': [video + '@4.0s', 'b']}))
+    (root / 'review/flags.json').write_text(json.dumps({'1-1': [['email', 'sam.•••']], '1-2': [['email', 'sam.•••']]}))
+    monkeypatch.setattr(secrets, 'token_urlsafe', lambda n: 'token')
+    with socket.socket() as s:
+        s.bind(('127.0.0.1', 0))
+        port = s.getsockname()[1]
+    args = SimpleNamespace(run_path=str(root), previous=None, port=port, no_open=True)
+    server = threading.Thread(target=review.serve, args=(args,), daemon=True)
+    server.start()
+    url = f'http://127.0.0.1:{port}/token/'
+    for _ in range(50):
+        try:
+            urllib.request.urlopen(url, timeout=1)
+            break
+        except OSError:
+            time.sleep(0.1)
+    with pytest.raises(urllib.error.HTTPError, match='403'):  # another page can't decide for the owner
+        urllib.request.urlopen(urllib.request.Request(url + 'accept', data=b'{}', method='POST', headers={
+            'Content-Type': 'application/json', 'Origin': 'https://elsewhere.example'}))
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(executable_path=web.find_chrome(), headless=True)
+        page = browser.new_page()
+        page.goto(url)
+        button = page.locator('#accept')
+        assert button.is_disabled()
+        page.check('#watched')
+        assert button.is_disabled()  # the finding still needs a choice
+        page.check('input[name=F1][value=flagged]')
+        assert button.is_enabled() and button.inner_text() == 'Accept the run'
+        button.click()
+        page.wait_for_function("document.getElementById('outcome').textContent.includes('Accepted.')")
+        browser.close()
+    server.join(5)
+    assert not server.is_alive()  # it stops once the owner decides
+    assert review.read(root)[1]['review_status'] == 'completed'
+    assert (tmp_path / 'demo/accepted/run.json').exists()
+    assert '<strong>Accepted.</strong>' in (root / 'review.html').read_text()

@@ -10,6 +10,8 @@ from urllib.parse import quote
 from reshoot.artifacts import digest
 
 
+ACCEPTED = '<div id="to-accept"><p><strong>Accepted.</strong> Publishing is still up to you.</p></div>'
+
 # Run aliases: the last part of a run path picks the newest run that matches.
 ALIASES = {'latest': lambda report: bool(report.get('ok')),
            'accepted': lambda report: report.get('review_status') == 'completed'}
@@ -318,7 +320,7 @@ def accept(a):
     print(f'Accepting run {report["id"]} ({report.get("mode", "final")}):')
     for path in videos:
         print('  export  ' + path)
-    print(f'  {len(beat_names)} beats, expectations {report.get("expectations_status", "unverified")}')
+    print(f'  {len(beat_names)} beats, result checks {report.get("expectations_status", "unverified")}')
     if key:
         from reshoot.run import shown
         print(f'  {len(key)} scan items on the sheets in {shown(sheets)}' +
@@ -344,6 +346,8 @@ def accept(a):
             (sheets / 'report.json').write_text(json.dumps(scan_report, indent=2))
     decide(root, report, {name: 'accepted' for name in decision_names(root)}, 'completed')
     print('Accepted. Publishing is still up to you.')
+    if (page := root / 'review.html').exists():  # so the page says so too, keeping any comparison on it
+        page.write_text(re.sub(r'<div id="to-accept">.*?</div>', lambda m: ACCEPTED, page.read_text(), count=1, flags=re.S))
     if root.parent.name == 'runs' and root.parent.parent.name == 'takes':
         target = record(root, report, root.parent.parent.parent / 'accepted')
         from reshoot.run import shown
@@ -556,9 +560,14 @@ def main(a):
 <h1>Review this recording</h1>'''
     document += '<p><strong>' + html.escape(status(root, report)) + '</strong></p>'
     command = 'reshoot accept ' + shlex.quote(str(root)) + (' --flagged ' + ' '.join(groups) if groups else '')
-    document += ('<p><strong>To accept:</strong> watch every export below and look at the scan items, flagged ones first. '
-                 'Then run <code>' + html.escape(command) + '</code>. Name a finding that must not be shared with '
-                 '<code>--reject</code> instead, such as <code>--reject F1</code>.</p>')
+    if report.get('review_status') == 'completed':
+        document += ACCEPTED
+    else:
+        document += ('<div id="to-accept"><p><strong>To accept:</strong> watch every export below and look at the scan '
+                     'items, flagged ones first. Then run <code>' + html.escape(command) + '</code>, or accept it on '
+                     'this page with <code>reshoot review ' + html.escape(shlex.quote(str(root))) + ' --serve</code>. '
+                     'Name a finding that must not be shared with <code>--reject</code> instead, such as '
+                     '<code>--reject F1</code>.</p></div>')
     document += ('<details><summary>Run data</summary><pre>' + html.escape(json.dumps({'execution': report.get('ok'), 'expectations': report.get('expectations_status', 'unverified'), 'scan': scan_report}, indent=2))
                  + '</pre></details>')
     files = f'<article><details><summary>Other files in the run ({len(other)})</summary><ul>{"".join(other)}</ul></details></article>' if other else ''
@@ -570,4 +579,139 @@ document.getElementById('save').onclick=()=>{const a=document.createElement('a')
     target.write_text(document)
     if not getattr(a, 'quiet', False):
         print(target)
+    return 0
+
+
+def panel(root, report):
+    """The accept panel for a served review page: a choice for each finding, a promise to have watched, a button."""
+    from reshoot.check import findings, load
+    if report.get('review_status') == 'completed':
+        return ACCEPTED
+    if not report.get('ok') or policy(root).get('status') == 'error':
+        return ('<div id="to-accept"><p><strong>This run failed, so it cannot be accepted.</strong> Fix it and record a '
+                'new run.</p></div>')
+    if report.get('mode', 'final') != 'final':
+        return ('<div id="to-accept"><p><strong>This is a preview,</strong> smaller and quicker than a final. Record a '
+                'final with <code>reshoot run</code> and accept that.</p></div>')
+    rows = ''.join(
+        f'<fieldset data-finding="{html.escape(name)}"><legend>{html.escape(name)}: {html.escape(found)}, '
+        f'{len(members)} frame{"s" if len(members) != 1 else ""}</legend>'
+        f'<label><input type="radio" name="{html.escape(name)}" value="flagged"> May be shared</label> '
+        f'<label><input type="radio" name="{html.escape(name)}" value="reject"> Must not be shared</label></fieldset>'
+        for name, (found, members) in findings(load(root / 'review' / 'flags.json', {})).items())
+    ask = ' Then say whether each finding may be shared.' if rows else ''
+    return ('<div id="to-accept" class="flagged"><h2>Accept this run</h2><p>Watch every export below to the end and '
+            'look at the scan items, findings first.' + ask + '</p>' + rows + PANEL + '</div>' + PANEL_SCRIPT)
+
+
+PANEL = '''<p><label><input type="checkbox" id="watched"> I watched every export to the end and looked at every scan
+item</label></p><button id="accept" disabled>Accept the run</button><pre id="outcome"></pre>'''
+
+PANEL_SCRIPT = '''<script>(() => {
+  const box = document.getElementById('to-accept'), button = document.getElementById('accept');
+  const choices = () => [...box.querySelectorAll('fieldset')].map(f => [f.dataset.finding, (f.querySelector('input:checked') || {}).value]);
+  box.addEventListener('change', () => {
+    const c = choices();
+    button.textContent = c.some(([, v]) => v === 'reject') ? 'Reject the run' : 'Accept the run';
+    button.disabled = !document.getElementById('watched').checked || c.some(([, v]) => !v);
+  });
+  button.onclick = async () => {
+    button.disabled = true;
+    const c = choices();
+    const body = {flagged: c.filter(([, v]) => v === 'flagged').map(([n]) => n),
+                  reject: c.filter(([, v]) => v === 'reject').map(([n]) => n)};
+    const r = await fetch('accept', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+    const out = await r.json();
+    document.getElementById('outcome').textContent = out.output;
+    if (out.code === 0 || body.reject.length) box.querySelectorAll('input').forEach(i => i.disabled = true);
+    else button.disabled = false;
+  };
+})();</script>'''
+
+
+def serve(a):
+    """Serve the run's review page on this computer only, with a panel that accepts or rejects the run, as
+    `reshoot accept` does. The address has a random token, and the server takes decisions only from its own page."""
+    import contextlib, http.server, io, mimetypes, secrets, threading, time, webbrowser
+    from types import SimpleNamespace
+    from urllib.parse import unquote
+    main(SimpleNamespace(run_path=a.run_path, previous=a.previous, import_decisions=None, quiet=True))
+    root, _ = read(a.run_path)
+    token = secrets.token_urlsafe(16)
+    done = threading.Event()
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def log_message(self, *args):  # the terminal shows the outcome, not each request
+            pass
+
+        def reply(self, code, body, kind='text/html; charset=utf-8', extra=()):
+            self.send_response(code)
+            self.send_header('Content-Type', kind)
+            self.send_header('Content-Length', str(len(body)))
+            self.send_header('Cache-Control', 'no-store')
+            for k, v in extra:
+                self.send_header(k, v)
+            self.end_headers()
+            if self.command != 'HEAD':
+                self.wfile.write(body)
+
+        def do_GET(self):
+            prefix, path = f'/{token}/', self.path.split('?', 1)[0]
+            if not path.startswith(prefix):
+                return self.reply(404, b'not found', 'text/plain')
+            name = unquote(path[len(prefix):]) or 'review.html'
+            if name == 'review.html':
+                page = re.sub(r'<div id="to-accept">.*?</div>', lambda m: panel(*read(a.run_path)),
+                              (root / 'review.html').read_text(), count=1, flags=re.S)
+                return self.reply(200, page.encode())
+            file = (root / name).resolve()
+            if not file.is_relative_to(root.resolve()) or not file.is_file():
+                return self.reply(404, b'not found', 'text/plain')
+            data = file.read_bytes()
+            kind = mimetypes.guess_type(file.name)[0] or 'application/octet-stream'
+            if m := re.fullmatch(r'bytes=(\d*)-(\d*)', self.headers.get('Range', '')):  # so a video can seek
+                start = int(m[1]) if m[1] else max(0, len(data) - int(m[2] or 0))
+                end = min(int(m[2]), len(data) - 1) if m[1] and m[2] else len(data) - 1
+                return self.reply(206, data[start:end + 1], kind,
+                                  [('Content-Range', f'bytes {start}-{end}/{len(data)}'), ('Accept-Ranges', 'bytes')])
+            self.reply(200, data, kind, [('Accept-Ranges', 'bytes')])
+
+        do_HEAD = do_GET
+
+        def do_POST(self):
+            # Only the page this server sent may decide: the token, this host and port, and a JSON request, which
+            # another site's page cannot send here without the browser asking first.
+            host = f'127.0.0.1:{self.server.server_address[1]}'
+            if (self.path != f'/{token}/accept' or self.headers.get('Host') != host
+                    or self.headers.get('Origin') not in (None, 'http://' + host)
+                    or not self.headers.get('Content-Type', '').startswith('application/json')):
+                return self.reply(403, b'not from this review page', 'text/plain')
+            body = {}
+            try:
+                body = json.loads(self.rfile.read(int(self.headers.get('Content-Length') or 0)) or b'{}')
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    code = accept(SimpleNamespace(run_path=a.run_path, flagged=body.get('flagged') or None,
+                                                  reject=body.get('reject') or None, yes=True, preview=False))
+                text = out.getvalue()
+            except ValueError as e:
+                code, text = 2, str(e)
+            print(text.rstrip(), flush=True)
+            self.reply(200, json.dumps({'code': code, 'output': text}).encode(), 'application/json')
+            if code == 0 or body.get('reject'):
+                done.set()
+
+    server = http.server.ThreadingHTTPServer(('127.0.0.1', a.port or 0), Handler)
+    url = f'http://127.0.0.1:{server.server_address[1]}/{token}/'
+    print(f'The review page is at {url}\nAccept or reject the run there, or press Ctrl-C to stop.', flush=True)
+    if not a.no_open:
+        webbrowser.open(url)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        done.wait()
+        time.sleep(0.5)  # let the page show the outcome
+    except KeyboardInterrupt:
+        print('Stopped; nothing more recorded.')
+    finally:
+        server.shutdown()
     return 0

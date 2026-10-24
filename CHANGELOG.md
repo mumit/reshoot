@@ -13,6 +13,12 @@ change project files or commands.
   shorter, a new address, a label that changed. Each is marked as a
   suggestion to keep or delete. The draft also ends with the `end` beat the
   generated edit needs.
+- `reshoot review RUN --serve` accepts or rejects a run on its review page: a
+  choice for each finding, a box to say you watched everything, and a button.
+  It serves the page on `127.0.0.1` behind a random address, takes the decision
+  only from that page, records it as `reshoot accept` does, and stops.
+- After `accept`, the review page says the run is accepted, instead of still
+  showing how to accept it.
 
 ## 0.3.5 (2026-10-24)
 

@@ -26,7 +26,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
 | `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name flagged items with `--flagged` or `--reject`. Refuses a preview unless given `--preview` |
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
-| `reshoot export RUN --directory DEST --file takes/demo-final.mp4` | Copies explicitly selected artifacts locally; refuses to overwrite unless given `--replace` |
+| `reshoot export RUN --directory DEST` | Copies the run's videos, GIFs and subtitles locally and prints README Markdown for the GIF; `--file` picks single files; refuses to overwrite unless given `--replace` |
 | `reshoot export RUN --record demo/accepted` | Writes the run's small record (report, beat results, evidence frames) for later comparisons |
 | `reshoot skills codex --directory PROJECT` | Installs three project-local Codex skills; `--replace` installs over them after an upgrade |
 | `reshoot skills claude --directory PROJECT` | Installs the same primary skills for Claude Code |

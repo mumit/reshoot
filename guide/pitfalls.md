@@ -105,6 +105,10 @@ Use this reference to diagnose recording, editing and review problems.
   controls and the result share the view.
 - **No `select` action.** TOML storyboards couldn't choose from a `<select>`. Fixed in reshoot: a `select`
   action picks an option by its visible label, and `reshoot rec` writes one.
+- **The accepted record lost its evidence in Git.** A `takes/` line in a `.gitignore` also matches
+  `demo/accepted/takes/`, so the record's beat results and evidence frames were never committed. Ignore
+  `/demo/takes/` from the repository root, or `/takes/` inside `demo/`. Fixed in reshoot: `reshoot init` writes
+  `demo/.gitignore` with `/takes/`.
 - **A preview accepted as the CI baseline.** `demo/latest` is the newest successful run, previews included, so
   `reshoot accept demo/latest` after a preview committed a small, quick preview as the baseline. Fixed in reshoot:
   `accept` refuses a preview unless given `--preview`.

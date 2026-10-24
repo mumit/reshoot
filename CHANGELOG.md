@@ -6,6 +6,17 @@ change project files or commands.
 
 ## Unreleased
 
+### Added
+
+- `reshoot init` writes `demo/.gitignore`, which keeps recordings out of Git
+  and the `demo/accepted/` record in.
+- `reshoot export RUN --directory DIR` copies the run's videos, GIFs and video
+  subtitles without naming each `--file`, and prints the README Markdown for
+  the GIF. `accept` says how.
+- Agents end a first demo with a fixed handoff: the exports, the checks,
+  "reply accept, or ask for changes", and the accept command. The quickstart
+  has a table of follow-up requests.
+
 ### Changed
 
 - A run ends by saying what it made: its result checks, scan items and
@@ -20,6 +31,10 @@ change project files or commands.
 - Previews sample frames even when `full = true`, so they stay quick.
 - The tutorial uses `demo/latest` and `demo/accepted` instead of pasted run
   IDs, and exports to `docs/demo/`.
+- The brief `init` writes gives the commands from the folder that holds
+  `demo/`, and drops its note on review IDs and hashes.
+- With no accepted run, the refresh skill compares against the newest final
+  and says it was never accepted.
 - The README leads with what reshoot is for, the install line and three
   commands, shows a storyboard, says how it differs from other tools and what
   to expect from the agent prompt, and has one table of where to go next.

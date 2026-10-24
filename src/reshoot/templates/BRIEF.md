@@ -12,11 +12,13 @@ Use made-up data only. The bundled notes app resets when the page reloads.
 For another app, document its separate demo account or database, reset command,
 and expected result before changing the storyboard. Log mocked responses explicitly.
 
-Run `reshoot doctor --config reshoot.toml`, then `reshoot preview reshoot.toml`.
-Run `reshoot run reshoot.toml` for the final recording. Each run prints its report path.
-Review the complete final video. A successful command is not publishing approval.
+From the folder that holds `demo/`:
 
-New storyboards use TOML native actions with explicit expected results. The edit file
-selects ranges by beat name and can declare output profiles. Use `reshoot review RUN`
-for the local review page and `reshoot compare OLD_RUN NEW_RUN` for matching beats.
-Review IDs and media hashes must match before importing decisions.
+    reshoot preview demo/reshoot.toml    a quick, smaller recording to check
+    reshoot run demo/reshoot.toml        the final
+    reshoot accept demo/latest           once you've watched it
+    reshoot export demo/accepted --directory docs/demo
+
+Each run ends with the paths of its video, GIF and review page. Nothing is
+published. Commit `demo/`, including `demo/accepted/`; `demo/.gitignore` keeps
+the recordings in `takes/` out.

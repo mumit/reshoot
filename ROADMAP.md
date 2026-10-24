@@ -15,35 +15,30 @@ found that the tool does the hard part well and loses the joy where a user
 meets it first: the README, the end of a run and the agent's handoff. Items
 are ordered by how early a user meets them.
 
-1. **A clear agent handoff.** End with a fixed handoff: the exports, the checks,
-   "reply accept, or ask for changes like these", and follow-up prompts for
-   shorter captions, slower pacing, a portrait cut, a voiceover and CI. After
-   accepting, export to `docs/demo/` as the CI template expects, and have `init`
-   write a `demo/.gitignore` for `takes/`.
-2. **The same cursor on every route.** TOML storyboards get the click ripple,
+1. **The same cursor on every route.** TOML storyboards get the click ripple,
    press and varied typing speed that Python storyboards have, with options
    for cursor size and typing speed.
-3. **Show the craft.** A look gallery made from the notes example: zoom on and
+2. **Show the craft.** A look gallery made from the notes example: zoom on and
    off, the cursor, caption positions, cards, 16:9, 4:5 and 9:16, GIF widths
    with sizes. Name auto-zoom and audio ducking, and turn the camera's fixed
    bugs into a page on how the camera moves.
-4. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at
+3. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at
    the page's CSS size, so `@1.5` and `@2` only scale them up, including the
    `1280x720@1.5` default. Capture at the device resolution, or say plainly
    that the ratio only sets the output size.
-5. **Review that fits the data.** With made-up data, show flagged scan items
+4. **Review that fits the data.** With made-up data, show flagged scan items
    first and say the rest can be skimmed. Make the full scan a flag on `run`
    instead of a config edit.
-6. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
+5. **Fewer, clearer guides.** Merge the overlapping pages, give each audience
    one start-here (agent user, CLI user, team lead, pull-request reviewer),
    add field tables for the three TOML files, a team page (who owns
    `demo/accepted/`, failure alerts, CI cost) and an index of error messages.
    Pick one word each for run, result check, accept and baseline. Give every
    command help text that describes the current format.
-7. **Review inside the pull request.** Link the MP4 on the pull request's
+6. **Review inside the pull request.** Link the MP4 on the pull request's
     branch and show flagged scan items as images, so reviewing a refresh needs
     no artifact download.
-8. **Outside users.** Deferred by the owner. Three people who are not the
+7. **Outside users.** Deferred by the owner. Three people who are not the
     maintainer, each starting from the first-demo prompt.
 
 ## Later
@@ -70,6 +65,9 @@ are ordered by how early a user meets them.
 
 ## Done
 
+- **A clear agent handoff:** agents end with the exports, the checks, "reply accept, or ask for changes" and the
+  accept command, and the quickstart lists follow-up requests. `export` copies the exports without naming files
+  and prints README Markdown, and `init` writes a `demo/.gitignore` that keeps the accepted record in.
 - **A README that sells in ten seconds:** it leads with "Demos that stay current", the install line and three
   commands with their output, then the agent prompt with what to expect, a storyboard, how reshoot differs from
   other tools, and one table of where to go next.

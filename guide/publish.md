@@ -39,10 +39,11 @@ comparison or `reshoot export`.
 After recording and scan-sheet approval, select the versioned run's exports:
 
 ```bash
-reshoot export demo/accepted --directory docs/demo --file takes/demo-final.mp4 --file takes/demo-final-readme.gif --file takes/demo-final.srt
+reshoot export demo/accepted --directory docs/demo
 ```
 
-Use the artifact names from the run's report. Choose an unused
+It copies the run's videos, GIFs and subtitles and prints the README Markdown
+for the GIF. Use `--file` to pick single files from the run's report. Choose an unused
 destination directory. The command copies selected files locally and refuses
 to overwrite; it does not upload them. For standalone native media, copy the
 approved MP4 and GIF into a new sharing folder yourself.

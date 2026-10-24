@@ -12,6 +12,23 @@ def test_init_is_packaged_and_refuses_overwrites(tmp_path):
     assert config.read(tmp_path / 'reshoot.toml')[0]['schema_version'] == 1
     with pytest.raises(ValueError, match='overwritten'):
         project.init(SimpleNamespace(directory=str(tmp_path), url=None))
+    assert (tmp_path / '.gitignore').read_text() == '/takes/\n'  # not demo/accepted/takes/
+    assert f'{tmp_path.as_posix()}/reshoot.toml' in (tmp_path / 'BRIEF.md').read_text()
+
+
+def test_export_without_files_copies_the_exports_and_offers_markdown(tmp_path, capsys, monkeypatch):
+    from test_review import project_run
+    root = project_run(tmp_path)
+    gif = root / 'takes/demo-final-readme.gif'
+    gif.write_bytes(b'GIF89a')
+    report = __import__('reshoot.review', fromlist=['read']).read(root)[1]
+    report['files'].append({'path': 'takes/demo-final-readme.gif', 'sha256': __import__('reshoot.artifacts', fromlist=['digest']).digest(gif)})
+    (root / 'run.json').write_text(__import__('json').dumps(report))
+    monkeypatch.chdir(tmp_path)
+    args = SimpleNamespace(run_path=str(root), directory='docs/demo', file=None, record=None, replace=False)
+    assert project.export(args) == 0
+    assert sorted(p.name for p in (tmp_path / 'docs/demo').iterdir()) == ['demo-final-readme.gif', 'demo-final.mp4']
+    assert '[![Describe what the demo shows](docs/demo/demo-final-readme.gif)](docs/demo/demo-final.mp4)' in capsys.readouterr().out
 
 
 def test_init_moves_the_notes_app_off_a_busy_port(tmp_path):

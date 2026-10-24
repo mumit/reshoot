@@ -63,15 +63,30 @@ recipes use standalone capture and editing, with captions added in post when
 needed. The agent should identify unresolved checks and provide a local review
 page for versioned runs, or the standalone media and check sheets for native takes.
 
-Watch both exports. Check that the intended result is visible and the captions
-are readable. Give a concrete revision if needed: “Hold the search result
-longer,” “Show the empty state first,” or “Use a different example task.”
-The agent can revise the source and record another candidate.
+The agent ends with the same handoff each time: what the demo shows, the MP4,
+the GIF and the review page, the result checks and scan items, anything you
+need to look at, and the command that accepts it.
 
-Then look at the scan items on the run's review page, flagged ones first. When
-both are acceptable, run the `reshoot accept` command the run printed, or tell
-the agent explicitly to accept. The [review instructions](step-by-step.md#4-accept-the-recording)
-cover flagged and rejected items. Nothing posts automatically.
+Watch both exports. Check that the intended result is visible and the captions
+are readable. Then look at the scan items on the review page, flagged ones
+first. Reply in plain words:
+
+| You want | Say |
+|---|---|
+| To keep it | "accept" |
+| Shorter captions | "Make the captions shorter, six words at most." |
+| More time on the result | "Hold each result a second longer." |
+| Larger text in the GIF | "The GIF text is too small; use a narrower viewport." |
+| A different task | "Show creating a project and finding it by search instead." |
+| A portrait cut | "Add a 4:5 export for LinkedIn." |
+| A voiceover | "Add a voiceover that says each caption." |
+| It in your README | "Export the accepted demo to docs/demo and add the GIF to the README." |
+| It kept current | "Set up the GitHub workflow that refreshes the demo when the app changes." |
+
+The agent revises the source and records another run. Saying "accept" lets it
+run `reshoot accept` for you; you can also run the command yourself. The
+[review instructions](step-by-step.md#4-accept-the-recording) cover flagged and
+rejected items. Nothing posts automatically.
 
 You can stop here with your first clip. When ready, [explore the features](features.md),
 [change a caption or timing](customize.md), then [build a fuller demo or tutorial](make-demo.md).
@@ -197,14 +212,25 @@ When receiving the prompt above, follow this workflow:
    read the report and generate the review page. For standalone native takes,
    generate check sheets and compare media manually. Present exact paths,
    coverage and unresolved findings. Open the exports when the environment permits.
-8. Ask the owner to watch the exports and look at the scan items, then give them
-   the exact `reshoot accept RUN` command, with `--flagged` for each flagged item
-   they must inspect. Run it only when the owner explicitly asks you to accept;
-   never pass `--yes` on your own judgment. Keep source files available for
-   the next refresh; commit or publish only when authorized. Keep your changes in
-   `demo/` and the skill folder: don't edit the app's README, `.gitignore` or
-   other files unless the owner asks. Offer the Markdown that would add the GIF
-   to the README instead.
+8. End with this handoff, in this order:
+   - one sentence on the task and its visible result;
+   - the MP4, the GIF and the review page as paths, opened when the
+     environment permits;
+   - the status line the run printed: result checks, scan items, flagged items;
+   - anything the owner must look at: flagged items, reduced checks, mocked
+     data, shortened waits;
+   - "Reply accept, or ask for changes such as:", with two or three changes
+     that fit this recording, from the table in
+     [Review what you get](#review-what-you-get);
+   - the `reshoot accept RUN` command the run printed, for the owner to run.
+
+   Run `reshoot accept RUN --yes` only when the owner replies accept or
+   otherwise explicitly asks; never on your own judgment. After accepting, offer
+   `reshoot export demo/accepted --directory docs/demo` and the README Markdown
+   it prints. Keep source files available for the next refresh; commit or
+   publish only when authorized. Keep your changes in `demo/` and the skill
+   folder: don't edit the app's README or other files unless the owner asks.
+   `reshoot init` writes `demo/.gitignore`, which keeps recordings out.
 
 The initial target is one readable task and a visible result. Add narration,
 terminal segments, branding or portrait framing after that first recording

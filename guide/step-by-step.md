@@ -23,6 +23,7 @@ The first command creates:
 
 ```text
 demo/
+  .gitignore        Keeps the recordings in takes/ out of Git
   BRIEF.md          Who the demo is for and what it proves
   index.html       The made-up notes app
   about.html       A second example page
@@ -259,24 +260,22 @@ Repeat step 4 for the new final, including its fresh scan sheets, and accept
 it with `reshoot accept demo/latest`. The earlier verdict covers the earlier
 run only. `demo/accepted` now stands for the update.
 
-Copy its chosen files to a local directory:
+Copy its video, GIF and subtitles to a local directory:
 
 ```bash
-reshoot export demo/accepted --directory docs/demo \
-  --file takes/demo-final.mp4 \
-  --file takes/demo-final-readme.gif \
-  --file takes/demo-final.srt
+reshoot export demo/accepted --directory docs/demo
 ```
 
-The output directory contains `demo-final.mp4`, `demo-final-readme.gif` and
-`demo-final.srt`. Export verifies source hashes and refuses to overwrite files.
-It copies locally; it does not publish anything.
+It copies `demo-final.mp4`, `demo-final-readme.gif` and `demo-final.srt`, and
+prints the Markdown that shows the GIF in a README, linked to the video. Export
+verifies source hashes and refuses to overwrite files unless given `--replace`.
+It copies locally; it does not publish anything. `--file` picks single files.
 
 If using Git, keep the brief, app fixtures, TOML files and their dependencies
 under version control, with `demo/accepted/`. Accepting a run writes that small
 record of it, so a fresh checkout or [CI](ci.md) can compare later runs with it.
-Ignore `demo/takes/`, local export directories and downloaded review files
-unless deliberately including them in the repository.
+`demo/.gitignore` keeps `demo/takes/` out; leave out downloaded review files
+too.
 
 For another app, continue with [Record your own app](your-app.md). For settings
 and less common actions, see the [project reference](projects.md) and

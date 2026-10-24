@@ -78,8 +78,8 @@ What to expect, from [trials on four new apps](docs/validation/2026-10-23-cold-f
   `.agents/skills/`, and leaves your README and other files alone.
 - **Permissions:** it may ask to install reshoot and ffmpeg, and in Codex to
   run Chrome outside the sandbox.
-- **At the end:** it opens the MP4 and GIF and gives you the command that
-  accepts them. Nothing is published.
+- **At the end:** it opens the MP4 and GIF, and you reply "accept" or ask for
+  changes, such as shorter captions. Nothing is published.
 
 ## The story is a file
 

@@ -93,7 +93,11 @@ def init(a):
             elif name == 'reshoot.toml':
                 text = text[text.index('[[take]]'):]
                 text = 'schema_version = 1\n' + text
+        if name == 'BRIEF.md':
+            text = text.replace('demo/', f'{root.as_posix().rstrip("/")}/')
         (root / name).write_text(text)
+    if not (root / '.gitignore').exists():  # recordings are remade from the source; demo/accepted/ is what to keep
+        (root / '.gitignore').write_text('/takes/\n')
     print(f'Created {root}. Read BRIEF.md, then run reshoot doctor --config {root / "reshoot.toml"}.')
     return 0
 
@@ -113,9 +117,14 @@ def free_port():
 def export(a):
     from reshoot.review import read, record
     root, report = read(a.run_path)
+    from reshoot.review import exports
     selected = a.file or []
+    if not selected and a.directory:  # the run's videos and GIFs, with the videos' subtitles
+        selected = exports(root, report)
+        selected += [srt for f in selected if Path(f).suffix != '.gif' and
+                     (srt := str(Path(f).with_suffix('.srt'))) in {item['path'] for item in report.get('files', [])}]
     if not selected and not getattr(a, 'record', None):
-        raise ValueError('choose at least one --file from run.json files, or --record')
+        raise ValueError('give --directory to copy the run\'s exports, or --record')
     if selected and not a.directory:
         raise ValueError('--file needs --directory')
     if getattr(a, 'record', None):
@@ -134,8 +143,13 @@ def export(a):
     if any(p.suffix not in ('.mp4', '.gif', '.srt', '.mov', '.png') for p in targets):
         raise ValueError('export accepts final media and subtitle files')
     destination.mkdir(parents=True, exist_ok=True)
+    from reshoot.run import shown
     for source, target in zip(selected, targets):
         shutil.copyfile(root / source, target)
-        print(target)
-    print('Copied locally. Review and publishing decisions are unchanged.')
+        print(shown(target))
+    print('Copied locally; nothing is published.')
+    gifs, videos = [shown(t) for t in targets if t.suffix == '.gif'], [shown(t) for t in targets if t.suffix == '.mp4']
+    if gifs:
+        image = f'![Describe what the demo shows]({gifs[0]})'
+        print('To show it in a README at the top of this folder:\n  ' + (f'[{image}]({videos[0]})' if videos else image))
     return 0

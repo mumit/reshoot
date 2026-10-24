@@ -132,10 +132,11 @@ def main(argv=None):
     p.add_argument('--yes', action='store_true', help='skip the confirmation; only for the owner\'s own scripts')
     p.add_argument('--preview', action='store_true', help='accept a preview, which is otherwise refused')
     p.set_defaults(run=review.accept)
-    p = sub.add_parser('export', help='copy explicitly chosen run media to a local directory', description=runs)
+    p = sub.add_parser('export', help='copy a run\'s videos and GIFs to a local directory', description=runs)
     p.add_argument('run_path', help='the run to copy from, such as demo/latest')
-    p.add_argument('--directory', help='where to copy the chosen --file media')
-    p.add_argument('--file', action='append', help='a file listed in run.json, such as takes/demo-final.mp4')
+    p.add_argument('--directory', help='where to copy the media, such as docs/demo')
+    p.add_argument('--file', action='append', help='copy only this file listed in run.json, such as '
+                   'takes/demo-final.mp4; without it, the run\'s videos and GIFs and their subtitles')
     p.add_argument('--replace', action='store_true', help='overwrite media already in --directory, such as the repo\'s demo')
     p.add_argument('--record', metavar='DIR', help='also write the run\'s small record (report, beat results, evidence '
                    'frames) to DIR, such as demo/accepted, for later comparisons')

@@ -79,7 +79,8 @@ wide as the page isn't zoomed, so phone layouts mostly stay as they are.
 - Settings: `scale` (1.8) is the most it enlarges, `lead` (0.7 s) how early it starts, `hold` (1.0 s) how long it
   stays after the last action, `quiet` (4 s) how long a pause ends a zoom, `show` (1 s) how long it stays out to
   show a change, and `watch` (on) whether it looks at the frames for changes.
-- The page is recorded at up to twice its pixel ratio, so zoomed text stays sharp.
+- Zoom enlarges the recorded frames, which Chrome sends at the page's CSS size, so text softens as it zooms. A
+  narrower viewport gives larger text without that loss.
 - Captions are drawn after the zoom, so they stay put. They're plain text there: tags such as `<i>` are dropped.
 - It takes longer: about 2.5 times the length of the take, against about 1.5 without zoom.
 

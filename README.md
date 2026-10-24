@@ -131,8 +131,8 @@ and CI. Install the CLI and recording dependencies as well.
 
 The [agent quickstart](guide/agent-quickstart.md#install-the-skills-yourself)
 covers skill discovery and the differences between these routes. The CLI
-installer preserves existing skill folders; compare updates before replacing
-local changes.
+installer leaves existing skill folders alone; after an upgrade, add
+`--replace` to install the new version over them.
 
 ## Keep the demo with the code
 

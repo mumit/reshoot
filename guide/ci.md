@@ -18,9 +18,11 @@ Copy [examples/github/refresh.yml](../examples/github/refresh.yml) into
 `.github/workflows/reshoot.yml` in your app repository and change the marked
 lines. Before the first run:
 
-1. Accept a run locally with `reshoot accept demo/latest`. It writes
-   `demo/accepted/`, a small record of that run: its report, beat results and
-   evidence frames, without the media. Commit it with the demo source.
+1. Record a final with `reshoot run demo/reshoot.toml`, watch it, and accept
+   it with `reshoot accept demo/latest`. `accept` refuses a preview, which is
+   made smaller and quicker than a final. It writes `demo/accepted/`, a small
+   record of that run: its report, beat results and evidence frames, without
+   the media. Commit it with the demo source.
 2. In the repository's Settings, Actions, General, turn on "Allow GitHub Actions
    to create and approve pull requests". The pull request step fails without it.
 3. Add the steps your app needs before it can start, such as installing packages.

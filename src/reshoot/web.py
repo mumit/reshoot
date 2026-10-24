@@ -305,7 +305,8 @@ def main(a):
         dpr = min(dpr, 720 / max(w, h))
     theme = a.theme or board.get("THEME", "dark")
     z = zoom.settings(a.zoom if a.zoom is not None else board.get("ZOOM"))
-    # Zoomed parts are enlarged, so the page is recorded sharper to begin with (up to 2x, and 4 pixels per CSS pixel).
+    # Zoomed parts are enlarged, so the page is meant to be recorded sharper (up to 2x, and 4 pixels per CSS pixel).
+    # Chrome's screencast still sends CSS-size frames, so for now this only raises the output size.
     cap_dpr = min(dpr * min(z["scale"], 2), 4) if z else dpr
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)

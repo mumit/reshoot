@@ -57,8 +57,9 @@ changing the port requires changing it in both `reshoot.toml` and `storyboard.to
 
 ## An action or result check fails
 
-Read the failing beat in `takes/demo.take.json` and inspect the saved failure
-image. Check the selector, page state, login, visibility and expected result.
+Run `reshoot runs demo` to find the failed run's folder, then read the
+failing beat in its `takes/demo.take.json` and look at the failure image
+beside it, such as `takes/demo.failure.png`. Check the selector, page state, login, visibility and expected result.
 A matching selector must identify one usable control. Use a stable test ID or
 accessible name when possible and allow an appropriate expectation timeout for
 real loading.

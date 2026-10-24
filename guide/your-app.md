@@ -141,9 +141,9 @@ reshoot rec http://127.0.0.1:3000/ demo/draft.toml
 
 This opens a fresh browser profile for manual interaction. Use only demo data
 and close that browser when finished. The draft still needs purposes, captions
-and assertions. Inspect it before replacing the story. Some interactions,
-including select, checkbox, radio and drop changes, are not supported by the
-recorder and fail explicitly. Hand-authored TOML actions are listed in the
+and assertions. Inspect it before replacing the story. A dropdown choice
+becomes a `select` action. Checkbox, radio, multiple-choice list and drop
+changes are not supported by the recorder and fail explicitly. Hand-authored TOML actions are listed in the
 [project reference](projects.md#storyboards).
 
 ## Authentication and fixtures

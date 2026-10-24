@@ -103,8 +103,11 @@ Use this reference to diagnose recording, editing and review problems.
 - **A passed check with the result off screen.** Text checks found the token count in the page, but it was below
   the fold, so the video never showed it. Look at the frames for each result, and add a `scroll` action so the
   controls and the result share the view.
-- **No `select` action.** TOML storyboards can't choose from a `<select>`. When you control the app, use buttons
-  or radio buttons.
+- **No `select` action.** TOML storyboards couldn't choose from a `<select>`. Fixed in reshoot: a `select`
+  action picks an option by its visible label, and `reshoot rec` writes one.
+- **A preview accepted as the CI baseline.** `demo/latest` is the newest successful run, previews included, so
+  `reshoot accept demo/latest` after a preview committed a small, quick preview as the baseline. Fixed in reshoot:
+  `accept` refuses a preview unless given `--preview`.
 - **An agent builds a different page each take.** Put the `data-testid`s the storyboard needs in the agent's
   conventions file, such as `AGENTS.md` in its workspace. The checks then held when the layout changed.
 

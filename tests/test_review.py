@@ -183,7 +183,8 @@ def sheets_fixture(root, flags=None):
 
 
 def accept_args(root, **options):
-    return SimpleNamespace(**{'run_path': str(root), 'flagged': None, 'reject': None, 'yes': True, **options})
+    return SimpleNamespace(**{'run_path': str(root), 'flagged': None, 'reject': None, 'yes': True, 'preview': False,
+                              **options})
 
 
 def test_accept_records_every_decision_and_scan_item_in_one_step(tmp_path):
@@ -233,6 +234,18 @@ def test_accept_needs_the_owner_and_a_passing_run(tmp_path, monkeypatch):
     (root / 'run.json').write_text(json.dumps(report))
     with pytest.raises(ValueError, match='failed run'):
         review.accept(accept_args(root))
+
+
+def test_accept_refuses_a_preview_unless_asked(tmp_path):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root)
+    report = review.read(root)[1]
+    report['mode'] = 'preview'
+    (root / 'run.json').write_text(json.dumps(report))
+    with pytest.raises(ValueError, match='is a preview'):
+        review.accept(accept_args(root))
+    assert not (root / 'decisions.json').exists()
+    assert review.accept(accept_args(root, preview=True)) == 0
 
 
 def test_run_aliases_pick_the_newest_matching_run(tmp_path, capsys):

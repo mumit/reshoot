@@ -94,6 +94,8 @@ def main(argv=None):
     p = sub.add_parser('skills', help='install the primary reshoot skills for a harness')
     p.add_argument('harness', choices=['codex', 'claude'])
     p.add_argument('--directory', default='.', help='project root receiving the skill bundle')
+    p.add_argument('--replace', action='store_true',
+                   help='replace skills already there, such as after an upgrade; changes made to them are lost')
     p.set_defaults(run=skills.install)
     from reshoot import review
     runs = ('A run is its folder, such as demo/takes/runs/ID. End the path with `latest` for the newest successful '
@@ -128,6 +130,7 @@ def main(argv=None):
     p.add_argument('--flagged', nargs='+', metavar='LABEL', help='flagged items you inspected and accept')
     p.add_argument('--reject', nargs='+', metavar='LABEL', help='items that must not be shared; marks the run failed')
     p.add_argument('--yes', action='store_true', help='skip the confirmation; only for the owner\'s own scripts')
+    p.add_argument('--preview', action='store_true', help='accept a preview, which is otherwise refused')
     p.set_defaults(run=review.accept)
     p = sub.add_parser('export', help='copy explicitly chosen run media to a local directory', description=runs)
     p.add_argument('run_path', help='the run to copy from, such as demo/latest')

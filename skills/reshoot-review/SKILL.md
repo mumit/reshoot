@@ -15,11 +15,11 @@ Check exits 0 for accepted supplied items, 1 for human review pending, and 2 for
 
 Inspect sheets and original frames, then watch the final video, with sound when present. Check the stated result, text size, caption wrapping, timing, audio, end card, and any mock or speed labels. Use only made-up data. Fail private names, accounts, files, tokens, or unintended people shown in the recording.
 
-For a versioned run, if this CLI provides `reshoot review`, use its local page to inspect timestamps and comparisons. Otherwise use the sheets and a video player. Report that limitation.
+For a versioned run, use the local page from `reshoot review RUN` to inspect timestamps and comparisons. For a native capture, which has no run, use the sheets and a video player, and say so.
 Previous and current GIFs display as images in the comparison page; inspect their
 animation and loop as well as the MP4 playback.
 
-The owner decides whether a recording is accepted. For a versioned run, if this CLI provides `reshoot accept`, give the owner the exact command: `reshoot accept RUN`, plus `--flagged LABEL` for each flagged item they must inspect, or `--reject LABEL` for one that fails. Do not run `accept`, `check --ok` or an import, pass `--yes`, or promote a baseline merely because your inspection found nothing. Carry out those actions only when the owner explicitly authorizes the decision. Give the owner the files, evidence, and unresolved findings; do not publish without authorization.
+The owner decides whether a recording is accepted. For a versioned run, give the owner the exact command: `reshoot accept RUN`, plus `--flagged LABEL` for each flagged item they must inspect, or `--reject LABEL` for one that fails. Do not run `accept`, `check --ok` or an import, pass `--yes`, or promote a baseline merely because your inspection found nothing. Carry out those actions only when the owner explicitly authorizes the decision. Give the owner the files, evidence, and unresolved findings; do not publish without authorization.
 
 `check --text-file FINAL.srt` scans exact caption text. Runs also check generated
 subtitle and narration sidecars. Inspect text findings at their recorded cue times.

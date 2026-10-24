@@ -4,6 +4,23 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Changed
+
+- `reshoot accept` refuses a preview unless given `--preview`. The CI guide's
+  `reshoot accept demo/latest` could commit a preview as the baseline.
+- `reshoot skills` takes `--replace` to install the new version over skills
+  already there, such as after an upgrade. The agent quickstart had told agents
+  both to install skills after an upgrade and to keep the old ones.
+
+### Fixed
+
+- Docs that had drifted: the "no `select`" claims, the CLI 0.2 requirement in
+  the project reference, the archive-by-ID baseline in the publishing guide,
+  the skills' hedges about commands every supported CLI has, and the claim that
+  zoomed text stays sharp at a higher pixel ratio.
+
 ## 0.3.3 (2026-10-23)
 
 ### Added

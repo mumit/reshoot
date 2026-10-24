@@ -16,11 +16,15 @@ def install(a):
     if not source.is_dir():
         raise ValueError('skill bundle missing from this installation')
     for name in NAMES:
-        if (target / name).exists():
-            raise ValueError(f'will not overwrite existing skill: {name}')
+        if (target / name).exists() and not a.replace:
+            raise ValueError(f'will not overwrite existing skill: {name}; after an upgrade, pass --replace to install '
+                             'this version over it')
         if not source.joinpath(name, 'SKILL.md').is_file():
             raise ValueError(f'incomplete skill bundle: {name}')
     target.mkdir(parents=True, exist_ok=True)
     for name in NAMES:
+        replaced = (target / name).exists()
+        if replaced:
+            shutil.rmtree(target / name)
         shutil.copytree(str(source.joinpath(name)), target / name)
-        print(target / name)
+        print(target / name, *(['(replaced)'] if replaced else []))

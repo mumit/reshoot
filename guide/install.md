@@ -109,9 +109,10 @@ uv respects the original source and version constraints when upgrading; see its
 To change a pinned version or a Git revision, reinstall as described above.
 
 `reshoot skills` installs project-local copies of the three primary skills.
-Upgrading the CLI does not replace those copies. The installer refuses to
-overwrite them; preserve any local changes and compare them with the new
-bundle in a separate directory before replacing them.
+Upgrading the CLI does not replace those copies. After an upgrade, run
+`reshoot skills codex --directory . --replace`, or `claude`, to install the
+new version over them. If you changed the installed skills, commit or copy
+those changes first; `--replace` discards them.
 
 To remove the CLI, run `uv tool uninstall reshoot`. Demo projects and their
 recordings remain in their existing directories.

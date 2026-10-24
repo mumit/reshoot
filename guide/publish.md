@@ -4,13 +4,14 @@ Keep the recording source with the app when you develop it, or in a separate
 demo repository when you only have a URL or installed app. Save a working local
 recording before moving to automation.
 
-## Keep an explicit baseline
+## Keep the accepted run as the baseline
 
 Commit the brief, story, edit, configuration and synthetic reset scripts when
-ready. Keep credentials out of them. Ignore generated `takes/` directories;
-archive the accepted run separately and note its exact ID and app revision.
-Keep that folder and its evidence available for comparison, even if it is not
-in Git. Do not select a baseline just because it is the most recent attempt.
+ready. Keep credentials out of them. Ignore the generated `demo/takes/` folder.
+Accepting a final with `reshoot accept` writes `demo/accepted/`, a small record
+of that run: its report, beat results and evidence frames, without the media.
+Commit it with the source; later runs compare against it. A run does not
+become the baseline because it is the newest.
 
 When the app changes, use the
 [refresh prompt](agent-quickstart.md#update-the-demo-when-the-app-changes) or
@@ -19,11 +20,11 @@ record through the CLI:
 ```bash
 reshoot preview demo/reshoot.toml
 reshoot run demo/reshoot.toml
-reshoot review demo/takes/runs/NEW_ID --previous demo/takes/runs/ACCEPTED_ID
+reshoot review demo/latest --previous demo/accepted
 ```
 
-Replace both IDs with the printed run folders. Inspect the preview before the
-final. Preserve stable beat IDs and the task's expected result. If a changed
+`demo/latest` is the newest successful run and `demo/accepted` the accepted
+record. Inspect the preview before the final. Preserve stable beat IDs and the task's expected result. If a changed
 label breaks a target, repair the selector rather than deleting its check.
 Compare the finished exports and review the new scan evidence. Approval of the
 old recording does not accept the new one.
@@ -38,10 +39,10 @@ comparison or `reshoot export`.
 After recording and scan-sheet approval, select the versioned run's exports:
 
 ```bash
-reshoot export demo/takes/runs/NEW_ID --directory demo/exports-v2 --file takes/demo-final.mp4 --file takes/demo-final-readme.gif --file takes/demo-final.srt
+reshoot export demo/accepted --directory docs/demo --file takes/demo-final.mp4 --file takes/demo-final-readme.gif --file takes/demo-final.srt
 ```
 
-Use the actual run ID and artifact names from its report. Choose an unused
+Use the artifact names from the run's report. Choose an unused
 destination directory. The command copies selected files locally and refuses
 to overwrite; it does not upload them. For standalone native media, copy the
 approved MP4 and GIF into a new sharing folder yourself.

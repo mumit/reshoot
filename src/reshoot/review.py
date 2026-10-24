@@ -183,6 +183,9 @@ def accept(a):
     sheets = root / 'review'
     if not report.get('ok') or policy(root).get('status') == 'error':
         raise ValueError('cannot accept a failed run or failed check')
+    if report.get('mode', 'final') != 'final' and not a.preview:
+        raise ValueError(f'run {report["id"]} is a {report["mode"]}, made smaller and quicker than a final: record '
+                         'one with `reshoot run`, or pass --preview to accept this one anyway')
     key, flags = load(sheets / 'key.json', {}), load(sheets / 'flags.json', {})
     failed = set(load(sheets / 'failed.json', []))
     named = set(a.flagged or []) | set(a.reject or [])

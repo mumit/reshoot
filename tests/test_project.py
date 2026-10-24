@@ -161,10 +161,10 @@ def test_mixed_preview_can_join_web_and_terminal_takes(tmp_path, monkeypatch):
     assert cut.probe(report_path.parent / 'takes/demo-final.mp4')[:2] == (1280, 720)
 
 
-def test_harness_bundle_is_self_contained_and_refuses_replacement(tmp_path):
+def test_harness_bundle_is_self_contained_and_replaces_only_when_asked(tmp_path):
     from reshoot import skills
     for harness in ('codex', 'claude'):
-        args = SimpleNamespace(directory=str(tmp_path), harness=harness)
+        args = SimpleNamespace(directory=str(tmp_path), harness=harness, replace=False)
         skills.install(args)
         folder = tmp_path / ('.agents' if harness == 'codex' else '.claude') / 'skills'
         assert sorted(p.name for p in folder.iterdir()) == sorted(skills.NAMES)
@@ -172,6 +172,10 @@ def test_harness_bundle_is_self_contained_and_refuses_replacement(tmp_path):
             assert '../../examples' not in (folder / name / 'SKILL.md').read_text()
         with pytest.raises(ValueError, match='overwrite'):
             skills.install(args)
+        stale = folder / 'reshoot-demo' / 'SKILL.md'
+        stale.write_text('Requires reshoot CLI 0.2')
+        skills.install(SimpleNamespace(directory=str(tmp_path), harness=harness, replace=True))
+        assert 'Requires reshoot CLI 0.2' not in stale.read_text()
 
 
 def test_export_requires_explicit_files_and_preserves_existing(tmp_path):

@@ -167,7 +167,7 @@ scripted interaction, standalone MP4/GIF export and review.
    ```
 
    The example writes the finished video, a 9:16 version, a GIF and subtitles (`.srt`) next to the web take. If
-   the take has a voiceover, it's added; set `MUSIC` in the edit script for music under it.
+   the take has a voiceover, it's added; set `MUSIC` in the edit script for music under it, which ducks while the voice speaks.
 3. Watch all of it. Read any text on screen, including what an AI agent wrote in a terminal take.
 
 ## All at once

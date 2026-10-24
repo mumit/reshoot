@@ -26,7 +26,7 @@ than a browser storyboard.
 | Stage | Get to | Agent route | Direct CLI route |
 |---|---|---|---|
 | 1. First success | One useful task, an MP4 and a GIF | [One prompt](agent-quickstart.md) | [Notes tutorial through the preview](step-by-step.md#2-record-a-preview), or a target route above |
-| 2. Explore | Decide which features are worth adding | [Capabilities and examples](features.md) | The same feature guide, with source and command links |
+| 2. Explore | Decide which features are worth adding | [How the videos look](look.md) and [capabilities](features.md) | The same guides, with source and command links |
 | 3. Customize | Change words, timing and export size | [Ask for one visible change](customize.md) | Edit the generated files and record another preview |
 | 4. Build a fuller story | A product demo or tutorial | [Expand a working clip](make-demo.md) | Author sections and edit takes |
 | 5. Maintain and share | Updated media, reviewed before publication | [Refresh and prepare exports](publish.md) | Script the local run, then [add CI](ci.md) |
@@ -42,6 +42,7 @@ CI setup are not prerequisites for trying reshoot.
 | Skill installation, invocation and capabilities | [Skill catalog](../skills/README.md) |
 | Prerequisites, upgrades or a pinned installation | [Installation](install.md) |
 | A first complete project | [Tutorial](step-by-step.md) |
+| The cursor, zoom, captions, cards and shapes, in pictures | [How the videos look](look.md) |
 | Available features and example source | [Feature guide](features.md) |
 | Small changes to captions, timing and GIF size | [Customization](customize.md) |
 | A fuller product demo or app tutorial | [Build a demo](make-demo.md) |

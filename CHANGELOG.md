@@ -8,6 +8,9 @@ change project files or commands.
 
 ### Added
 
+- [How the videos look](guide/look.md): the cursor, auto-zoom, captions,
+  title cards, export shapes and GIF sizes, recorded from the notes example by
+  `examples/look/build.py`.
 - TOML storyboards get the cursor Python storyboards have: a glide that takes
   longer for longer trips, a press and a ring on each click, and typing at an
   uneven pace set by `seed`. A `[cursor]` table sets `size`, `typing` speed and

@@ -82,7 +82,10 @@ Update the reference and relevant skill when changing a documented command.
 
 Check relative links and anchors, parse TOML examples, and execute changed
 tutorial steps against a fresh synthetic project. Keep validation runs under
-ignored `takes/`, without replacing accepted media in `docs/demo/`. Documentation
+ignored `takes/`, without replacing accepted media in `docs/demo/`. After a change
+to the cursor, captions, zoom, cards or exports, run
+`uv run python examples/look/build.py` to rebuild `guide/look.md` and its media in
+`docs/look/`, and look at the result. Documentation
 verification is not an owner's visual or scan-sheet approval.
 
 When changing project messaging, keep the README, package description and plugin

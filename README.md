@@ -178,6 +178,7 @@ each skill.
 |---|---|
 | Record your own app | [From source](guide/your-app.md), [a running URL](guide/running-web-app.md) or [a macOS window](guide/macos-window.md) |
 | Change captions, timing or GIF size | [Customize](guide/customize.md) |
+| See the cursor, zoom, captions and shapes | [How the videos look](guide/look.md) |
 | See what else it can do | [Features](guide/features.md) |
 | Keep it current in CI | [GitHub Actions](guide/ci.md) |
 | Look something up | [Project reference](guide/projects.md) · [Commands](guide/commands.md) · [Troubleshooting](guide/troubleshooting.md) |

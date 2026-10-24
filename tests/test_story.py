@@ -41,6 +41,7 @@ def native_page(tmp_path):
 <div id="host"></div><script>document.querySelector('#host').attachShadow({mode:'open'}).innerHTML='<input id="shadow">'</script>
 <input id="upload" type="file" onchange="document.querySelector('#result').textContent=this.files[0].name">
 <a id="next-link" href="next.html">Next</a>
+<select id="label"><option value="b">bug</option><option value="f">feature</option></select>
 </body></html>''')
     handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(tmp_path))
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler)
@@ -104,6 +105,40 @@ timeout = 500''')
         main(['web', str(p), str(tmp_path / 'take.mp4')])
     assert result.value.code == 2
     assert json.loads((tmp_path / 'take.take.json').read_text())['beats'][0]['status'] == 'failed'
+
+
+def test_story_errors_name_the_beat_and_operation(tmp_path):
+    p = board(tmp_path / 'story.toml', 'http://localhost/', '[[beat.action]]\ntype="key"\nkey="Tab"')
+    with pytest.raises(ValueError, match=r"beat 'result', action 1 \(key\): target needs exactly one"):
+        story.load(p)
+    p = board(p, 'http://localhost/', '[[beat.action]]\ntype="select"\ntarget={css="#label"}')
+    with pytest.raises(ValueError, match='select needs option'):
+        story.load(p)
+
+
+@pytest.mark.browser
+def test_select_chooses_a_dropdown_option_by_its_label(tmp_path, native_page):
+    p = board(tmp_path / 'story.toml', native_page, '''[[beat.action]]
+type = "select"
+target = {css = "#label"}
+option = "feature"''', '''[[beat.expect]]
+type = "value"
+target = {css = "#label"}
+value = "f"''')
+    with pytest.raises(SystemExit) as result:
+        main(['web', str(p), str(tmp_path / 'take.mp4')])
+    assert result.value.code == 0
+    assert json.loads((tmp_path / 'take.take.json').read_text())['beats'][0]['status'] == 'passed'
+
+
+def test_rec_toml_writes_dropdown_choices_as_select_actions(tmp_path):
+    from reshoot import rec
+    path = tmp_path / 'recorded.toml'
+    rec.write_toml(path, 'http://localhost/', '640x360@1', [
+        (0, {'kind': 'click', 'where': ['css', '#label']}),
+        (1, {'kind': 'select', 'where': ['css', '#label'], 'option': 'feature'})])
+    actions = [a for beat in story.load(path)['beat'] for a in beat['action']]
+    assert actions == [{'type': 'select', 'target': {'css': '#label'}, 'option': 'feature'}]
 
 
 def test_rec_toml_keeps_target_and_replaces_password(tmp_path):
@@ -250,3 +285,65 @@ def test_native_recording_includes_the_bottom_of_a_tall_viewport(tmp_path, nativ
     im = Image.open(tmp_path/'edges.png').convert('RGB')
     r,g,b = im.getpixel((640,710))
     assert r > 200 and g < 30 and b < 30
+
+
+@pytest.mark.browser
+def test_a_port_chrome_refuses_is_explained(tmp_path):
+    p = board(tmp_path / 'story.toml', 'http://127.0.0.1:5060/')
+    with pytest.raises(SystemExit) as result:
+        main(['web', str(p), str(tmp_path / 'take.mp4')])
+    assert result.value.code == 2
+    error = json.loads((tmp_path / 'take.take.json').read_text())['error']
+    assert error.startswith('opening the storyboard url failed') and '--explicitly-allowed-ports' in error
+
+
+@pytest.mark.browser
+def test_the_video_shows_a_result_through_its_hold(tmp_path):
+    """The beat's evidence used to be a screenshot, which could take the frame showing the result: a still page sends
+    no other, so the video showed the old page for the whole hold. A React app at a pixel ratio of 2 did this on every
+    take; this page doesn't trigger it, so it checks the behavior rather than reproducing the race."""
+    import subprocess
+    from PIL import Image
+    cards = ''.join(f'<div style="display:inline-block;width:90px;height:40px;margin:4px;border-radius:8px;'
+                    f'box-shadow:0 2px 8px rgba(0,0,0,.3);background:#fff">Card {i}</div>' for i in range(300))
+    (tmp_path / 'index.html').write_text('<body style="margin:0;background:#fff"><button id="go" '
+                                         'onclick="document.body.style.background=\'#e00\';this.textContent=\'Done\'">Go</button>'
+                                         + cards + '</body>')
+    handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(tmp_path))
+    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        p = tmp_path / 'story.toml'
+        p.write_text(f'''schema_version = 1
+url = "http://127.0.0.1:{server.server_port}/"
+size = "960x540@2"
+[[beat]]
+id = "go"
+hold = 1.5
+[[beat.action]]
+type = "click"
+target = {{css = "#go"}}
+[[beat.expect]]
+type = "text"
+target = {{css = "#go"}}
+contains = "Done"
+[[beat]]
+id = "end"
+hold = 0.3
+''')
+        with pytest.raises(SystemExit) as result:
+            main(['web', str(p), str(tmp_path / 'take.mp4')])
+        assert result.value.code == 0
+    finally:
+        server.shutdown()
+    beats = json.loads((tmp_path / 'take.beats.json').read_text())
+    at = beats['go'] + 1.2  # well after the click, still inside the hold
+    frame = tmp_path / 'frame.png'
+    subprocess.run(['ffmpeg', '-loglevel', 'error', '-i', str(tmp_path / 'take.mp4'), '-vf', f"select='gte(t,{at})'",
+                    '-frames:v', '1', '-y', str(frame)], check=True)
+    def red(path):  # most of the page's background shows between the cards, whatever the image size
+        data = Image.open(path).convert('RGB').resize((96, 54)).tobytes()
+        pixels = [data[i:i + 3] for i in range(0, len(data), 3)]
+        return sum(r > 180 and g < 80 for r, g, b in pixels) > len(pixels) * .2
+    assert red(frame), 'the video still shows the page before the click'
+    assert red(tmp_path / 'take.evidence/go.png'), 'the evidence frame is not the result'

@@ -14,7 +14,9 @@ Open a local work folder for the demo. Use a test environment or an account
 containing only made-up data. Choose a small task such as creating an item and
 finding it by search. Confirm that it can be repeated and document how to reset
 its data. A saved item on a hosted service persists after recording unless the
-app or your reset removes it.
+app or your reset removes it. Without a reset, the preview and the final each
+add one: write result checks that still pass then, such as the new item being
+shown, and avoid exact totals.
 
 Reshoot does not reuse your normal browser's login. Provide an isolated demo
 login flow that works in a fresh profile. Keep credentials outside committed

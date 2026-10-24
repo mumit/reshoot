@@ -74,7 +74,12 @@
     send({ kind: "key", key: ev.key, where: locate(ev.target) });
   }, true);
   addEventListener("change", ev => {
-    if (ev.isTrusted && ev.target.matches('select,input[type=checkbox],input[type=radio]'))
+    if (!ev.isTrusted) return;
+    const e = ev.target;
+    // A dropdown choice replays as a select action, found by the option's visible label.
+    if (e.matches("select:not([multiple])") && e.selectedOptions.length)
+      send({ kind: "select", where: locate(e), option: e.selectedOptions[0].label });
+    else if (e.matches("select,input[type=checkbox],input[type=radio]"))
       send({kind: "unsupported-change"});
   }, true);
   addEventListener("drop", ev => { if (ev.isTrusted) send({kind: "unsupported-drop"}); }, true);

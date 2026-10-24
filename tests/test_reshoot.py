@@ -526,6 +526,7 @@ def test_rec_picks_stable_selectors(tmp_path):
         for sel in ["[data-testid=save]", "#css-8f3k2z", "input[name=email]", ".toolbar button:nth-of-type(2)", "nav a"]:
             await person.click(page, sel)
         await person.click(page, "#pw"); await person.type(page, "secret1")
+        await person.choose(page, "#label", "f")
 
     calls = []
     try:
@@ -539,6 +540,7 @@ def test_rec_picks_stable_selectors(tmp_path):
     assert found[3] == ["css", "body > div > button:nth-of-type(2)"]  # two buttons say Share: found by place
     assert found[4] == ["text", ["a", "One"]]
     assert [c.get("secret") for _, c in calls if c["kind"] == "type"][-1] is True
+    assert [c for _, c in calls if c["kind"] == "select"] == [{"kind": "select", "where": ["css", "#label"], "option": "feature"}]
 
 
 @pytest.mark.browser

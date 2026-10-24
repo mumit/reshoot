@@ -8,17 +8,28 @@ Each item says what it is and why it matters. When one ships, move it to Done
 with a line on what it does. Trial evidence lives in the
 [validation records](docs/validation/README.md), not here.
 
-## Now: prove the promise
+## Now: prove the front door
 
-1. **Outside users.** Three people who are not the maintainer, each starting
-   from the first-demo prompt. Measure time to an accepted video and where they
-   got stuck. More maintainer trials on more machines add little now.
-2. **Playwright test importer.** Turn an existing end-to-end test into a
-   storyboard with beats and expectations. Teams with tests get a demo almost
-   for free.
+1. **Cold first-demo runs.** The README prompt made postable demos of three
+   new apps unaided in fresh Claude Code sessions; a URL-only run correctly
+   stopped to ask for a data reset. See the
+   [cold-run record](docs/validation/2026-10-23-cold-first-demo.md). Next: run
+   the same four apps again on the release with the fixes they prompted, and run
+   them in Codex.
+2. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at the
+   page's CSS size, so `@1.5` and `@2` only scale them up, including the
+   `1280x720@1.5` default. Capture at the device resolution, or say plainly that
+   the ratio only sets the output size.
+3. **Review inside the pull request.** Link the MP4 on the pull request's
+   branch and show flagged scan items as images, so reviewing a refresh needs
+   no artifact download.
+4. **Outside users.** Deferred by the owner. Three people who are not the
+   maintainer, each starting from the first-demo prompt.
 
 ## Later
 
+- Checks suggested by `reshoot rec` from what each action changed on the page. The cold runs showed agents
+  write good stories and checks unaided, so this helps people working without an agent.
 - Accept from the review page itself, served locally, instead of a terminal command.
 - Named export presets with verified limits for X, LinkedIn and README use.
 - A single first-demo page, with the other guides kept as reference.
@@ -26,6 +37,7 @@ with a line on what it does. Trial evidence lives in the
 
 ## Parked until someone asks
 
+- A Playwright test importer: turn an end-to-end test into a storyboard.
 - iOS Simulator and Android emulator takes.
 - Windows support and device frames.
 - Face and person detection on Linux.

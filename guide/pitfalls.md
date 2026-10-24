@@ -48,6 +48,15 @@ Use this reference to diagnose recording, editing and review problems.
 
 - **Chrome sends no frames while the page is still.** The last frame (the end card) got almost no time in the
   video. Fixed in reshoot: each frame is held until the next, and the last until recording stops.
+
+- **A result showed up a whole hold late, while every check passed.** The evidence screenshot taken after each
+  beat's checks could take the frame that showed the result, and a still page sends no other, so the video kept
+  the old page until the next beat. A React app at `960x540@2` did this on every take. Fixed in reshoot: the
+  evidence frame is the last frame the video shows, saved at the end of the hold, and no screenshot is taken
+  during capture. Watch the video, not only the checks.
+
+- **A higher pixel ratio doesn't sharpen the video.** Chrome sends screencast frames at the page's CSS size, so
+  `@1.5` or `@2` scales them up. A narrower viewport, such as `960x540`, makes text larger in the GIF.
 - **A 5-second take came out 389 seconds long.** The Mac went to sleep during it. The beats and the end of recording
   were timed with the system clock, which keeps counting through sleep; Chrome's frame times don't. Fixed in
   reshoot: it times everything with a clock that stops during sleep too, matched to Chrome's at the first frame.

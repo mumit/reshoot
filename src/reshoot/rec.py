@@ -51,6 +51,11 @@ def steps_from(calls, include_tab=False):
                               secret=ev.get("secret")))
         elif kind == "click":
             steps.append(dict(start=t, verb="click", where=ev["where"]))
+        elif kind == "select":
+            if last and last["verb"] == "click" and last["where"] == ev["where"]:
+                steps.pop()  # the click that opened the dropdown; select replays the whole choice
+                t = last["start"]
+            steps.append(dict(start=t, verb="select", where=ev["where"], option=ev["option"]))
         elif kind == "key" and ev["key"] in (("Enter", "Escape", "Tab") if include_tab else ("Enter", "Escape")):
             steps.append(dict(start=t, verb="key", where=ev["where"], key=ev["key"]))
         elif kind == "scroll":
@@ -153,7 +158,7 @@ def main(a):
 
 
 def write_toml(path, url, size, calls):
-    unsupported = [ev['kind'] for _, ev in calls if ev['kind'] not in ('click', 'type', 'key', 'scroll')]
+    unsupported = [ev['kind'] for _, ev in calls if ev['kind'] not in ('click', 'type', 'select', 'key', 'scroll')]
     if unsupported:
         raise ValueError('recording includes unsupported interactions: ' + ', '.join(sorted(set(unsupported))))
     lines = ['schema_version = 1', 'url = ' + json.dumps(url), 'size = ' + json.dumps(size)]
@@ -173,6 +178,8 @@ def write_toml(path, url, size, calls):
         if step['verb'] == 'type':
             value = 'demo-password' if step.get('secret') else step['value']
             lines += ['text = ' + json.dumps(value), 'clear = true']
+        elif step['verb'] == 'select':
+            lines += ['option = ' + json.dumps(step['option'])]
         elif step['verb'] == 'key':
             lines += ['key = ' + json.dumps(step['key'])]
         elif step['verb'] == 'scroll':

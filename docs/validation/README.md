@@ -23,6 +23,9 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 - **Compatibility.** A five-minute animated recording, a native AppKit window,
   positive face and person detection, and a local service-change simulation
   all passed. Real remote services and other desktop apps remain untested.
+- **First demo from cold.** The README prompt, in fresh Claude Code sessions
+  with no reshoot installed, made postable demos of three new apps unaided in
+  2 to 7 minutes; a URL-only run correctly stopped to ask for a data reset.
 - **CI refresh.** In a private trial repository, app changes on `main` opened
   pull requests with the new media and a comparison with the accepted record;
   a breaking change failed on its beat and opened nothing.
@@ -54,5 +57,6 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 | 2026-10-22 | [Documentation onboarding](2026-10-22-documentation.md): synthetic runs of the guides |
 | 2026-10-22 | [Documentation journey](2026-10-22-documentation-journey.md): the five-stage guide review |
 | 2026-10-23 | [CI refresh](2026-10-23-ci-refresh.md): pull requests from app changes, in a trial repository |
+| 2026-10-23 | [Cold first-demo runs](2026-10-23-cold-first-demo.md): the README prompt in fresh sessions on four new apps |
 
 Generated evidence lives under `takes/`, which Git ignores.

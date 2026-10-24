@@ -53,11 +53,27 @@ async def action(page, entry, events, root):
         if entry.get('clear', True):
             await item.fill('', timeout=timeout)
         await item.press_sequentially(entry['text'], delay=65, timeout=timeout)
+    elif kind == 'select':
+        await page.wait_for_timeout(250)  # let the cursor rest on the control before the choice changes
+        await item.select_option(entry['option'], timeout=timeout)
     elif kind == 'key':
         await item.press(entry['key'], timeout=timeout)
     elif kind == 'upload':
         await item.set_input_files(str((root / entry['file']).resolve()), timeout=timeout)
     events.append((time.monotonic(), {'kind': 'act', 'phase': 'end', 'rect': rect}))
+
+
+async def evidence(page, frames, shot):
+    """Save the beat's evidence: the last frame the video shows, at the end of its hold. A screenshot taken during
+    capture can take the frame that shows a result, and a still page sends no other, so the video would show the old
+    page through the whole hold."""
+    last = frames[-1][1] if len(frames) else None
+    if last is not None:
+        import io
+        from PIL import Image
+        Image.open(io.BytesIO(last)).save(shot)
+    else:
+        await page.screenshot(path=str(shot))
 
 
 async def assertion(page, entry):
@@ -151,11 +167,12 @@ async def capture(board, a, frames, out, metadata, spoken):
                        'mobile': bool(a.mobile or board.get('mobile')), 'screenWidth': w, 'screenHeight': h,
                        'dontSetVisibleSize': False})
         async def frame(event):
-            nonlocal clock
-            timestamp = event['metadata']['timestamp']
-            if clock is None:
-                clock = time.monotonic() - timestamp
-            frames.append((timestamp + clock, base64.b64decode(event['data'])))
+            # Chrome stamps each frame with the wall-clock time it was painted. Map that onto the beats' clock with
+            # an offset measured directly, not from when a frame arrives: large frames arrive late, and an offset
+            # taken from a late first frame would shift the whole video behind the actions.
+            timestamp = event['metadata'].get('timestamp')
+            painted = timestamp + clock if timestamp else time.monotonic()
+            frames.append((painted, base64.b64decode(event['data'])))
             await cdp.send('Page.screencastFrameAck', {'sessionId': event['sessionId']})
         frame_tasks = []
         frame_handler = lambda event: frame_tasks.append(asyncio.create_task(frame(event)))
@@ -173,6 +190,7 @@ async def capture(board, a, frames, out, metadata, spoken):
                     await assertion(page, entry)
             metadata['replayed_before'] = ids[:split]
             events.clear()
+            clock = time.monotonic() - time.time()
             await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': int(w*cap_dpr), 'maxHeight': int(h*cap_dpr)})
             for beat in board['beat'][split:]:
                 current = beat['id']
@@ -196,10 +214,10 @@ async def capture(board, a, frames, out, metadata, spoken):
                 result.update(verified_at=time.monotonic(), trim_wait=bool(beat.get('trim_wait')), min_reading=max(beat.get('min_reading', 0), board.get('caption', {}).get('min_seconds', 0)))
                 shot = out.parent / (out.stem + '.evidence') / (current + '.png')
                 shot.parent.mkdir(exist_ok=True)
-                await page.screenshot(path=str(shot))
                 result.update(status='passed' if beat.get('expect') else 'unverified', screenshot=str(shot.relative_to(out.parent)), start=start)
                 await asyncio.sleep(max(beat.get('hold', 1), beat.get('min_reading', 0), board.get('caption', {}).get('min_seconds', 0) if beat.get('caption') else 0, spoken.get(current, ('', 0))[1] + .3 - (time.monotonic() - start)))
                 result['end'] = time.monotonic()
+                await evidence(page, frames, shot)
             stop = time.monotonic()
             await cdp.send('Page.stopScreencast')
             cdp.remove_listener('Page.screencastFrame', frame_handler)
@@ -221,7 +239,12 @@ async def capture(board, a, frames, out, metadata, spoken):
                 metadata['failure_screenshot'] = str(failure.relative_to(out.parent))
             except Exception:
                 pass
-            raise RuntimeError(f'beat {current!r} failed: {redact(str(e))}') from None
+            where = f'beat {current!r}' if current else 'opening the storyboard url'
+            hint = ''
+            if 'ERR_UNSAFE_PORT' in str(e):
+                hint = ('. Chrome refuses some ports, such as 5060 and 6000: run the app on another port, or set '
+                        'RESHOOT_CHROME_FLAGS=--explicitly-allowed-ports=PORT')
+            raise RuntimeError(f'{where} failed: {redact(str(e))}{hint}') from None
         finally:
             cdp.remove_listener('Page.screencastFrame', frame_handler)
             page.remove_listener('response', resource_handler)

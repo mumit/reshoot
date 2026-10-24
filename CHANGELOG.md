@@ -4,6 +4,27 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## 0.3.2 (2026-10-23)
+
+### Added
+
+- A `select` action chooses a dropdown option by its value or visible label,
+  and `reshoot rec` writes one for each dropdown choice.
+
+### Fixed
+
+- A result could appear a whole hold late in the video while every check passed: the evidence screenshot after
+  each beat could take the frame showing it. The evidence frame is now the last frame the video shows, saved at
+  the end of the hold. Frame times also no longer depend on when the first frame arrives.
+- Storyboard errors name the beat and the action or check, such as
+  `beat 'fill', action 2 (key): target needs exactly one of css, test_id, or role`.
+- The demo skill says to narrow the viewport or zoom when an app's content is
+  too small to read in the README GIF.
+- A port Chrome refuses, such as 5060, is explained with the flag that allows
+  it, and a failure while opening the page no longer reports `beat None`.
+- The demo skill and guides say how to write checks for apps that keep data
+  between takes and have no reset.
+
 ## 0.3.1 (2026-10-23)
 
 ### Added

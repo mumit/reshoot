@@ -33,6 +33,11 @@ Playwright-downloaded binary. If a harness sandbox prevents starting Chrome or
 binding a loopback port, use that harness's permission mechanism to authorize
 the local recording and retain the failed attempt.
 
+`net::ERR_UNSAFE_PORT` means Chrome refuses the app's port; it blocks a few,
+such as 5060, 5061, 6000 and 6665 to 6669. Run the app on another port, or pass Chrome
+a flag with `RESHOOT_CHROME_FLAGS=--explicitly-allowed-ports=5060`.
+`RESHOOT_CHROME_FLAGS` adds any Chrome flags, separated by spaces.
+
 ## The app will not start
 
 If the log says something is already answering at a port, identify the server
@@ -55,6 +60,11 @@ image. Check the selector, page state, login, visibility and expected result.
 A matching selector must identify one usable control. Use a stable test ID or
 accessible name when possible and allow an appropriate expectation timeout for
 real loading.
+
+If the app keeps data between takes, a take that created something leaves it
+behind, and an exact `count` check fails on the next take. Reset the data
+before each take with `[app] reset`, or, when there is no reset, check for the
+item the take created rather than a total that depends on earlier takes.
 
 Earlier passed checks do not verify an interrupted flow. Preserve the expected
 task and repair the app fixture or selector. Do not weaken an assertion to make

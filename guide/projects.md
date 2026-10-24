@@ -77,10 +77,11 @@ A `.toml` storyboard has `schema_version = 1`, an `id`, a `url`, and named `[[be
 entries. Beats have `purpose`, `caption`, `sub`, `hold`, `action`, and `expect` fields.
 `reshoot init` supplies a complete example.
 
-Actions are `click`, `type`, `key`, `scroll`, `navigate`, `wait`, and `upload`. Targets
+Actions are `click`, `type`, `select`, `key`, `scroll`, `navigate`, `wait`, and `upload`. Targets
 use exactly one of `css`, `test_id`, or `role`, with an optional role `name`, text
 filter, or iframe selector `frame`. `type` uses `text` and clears first unless
-`clear = false`; `key` needs a `key`; `navigate` needs `url`; `scroll` uses `dy`;
+`clear = false`; `select` needs an `option`, matched against each option's value
+or visible label, for a single-choice dropdown; `key` needs a `key`; `navigate` needs `url`; `scroll` uses `dy`;
 `upload` uses a fixture `file` relative to the storyboard. Unsupported operations fail.
 
 Expectations are `text` with `contains`, `count` with `count`, `value` with `value`,
@@ -96,7 +97,8 @@ and a relative `font` path. Styled captions are drawn after reframing and fail i
 they cannot fit inside the safe area. A `.take.json` records results, frames, resources, and the actual browser.
 
 `reshoot rec URL story.toml` writes a draft in the new format. Passwords become a
-placeholder. Recognized unsupported select, checkbox, radio, and drop interactions fail; add captions,
+placeholder. Dropdown choices become `select` actions. Recognized unsupported multi-select,
+checkbox, radio, and drop interactions fail; add captions,
 purposes, result checks, and setup before using the draft. Python storyboards keep
 the legacy JavaScript overlay input and are labeled unverified in comparisons.
 

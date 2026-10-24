@@ -12,7 +12,7 @@ A storyboard is a TOML file. `reshoot init` writes a complete one:
     caption = "Find the matching note"
     hold = 2.0                     # seconds to hold after the beat
     [[beat.action]]
-    type = "type"                  # click, type, key, scroll, navigate, wait, upload
+    type = "type"                  # click, type, select, key, scroll, navigate, wait, upload
     target = {css = "#q"}          # or {test_id = "..."} or {role = "textbox", name = "Search"}
     text = "bike"
     [[beat.expect]]
@@ -28,7 +28,7 @@ import re
 import tomllib
 from pathlib import Path
 
-ACTIONS = {'click', 'type', 'key', 'scroll', 'navigate', 'wait', 'upload'}
+ACTIONS = {'click', 'type', 'select', 'key', 'scroll', 'navigate', 'wait', 'upload'}
 EXPECT = {'text', 'visible', 'count', 'value', 'url', 'checked'}
 
 
@@ -76,12 +76,12 @@ def load(path):
             raise ValueError('min_reading must be nonnegative')
         if beat.get('trim_wait') and not beat.get('expect'):
             raise ValueError('trimmable waits need an expected result')
-        for entry in beat.get('action', []):
-            validate(entry, ACTIONS)
-        for entry in beat.get('expect', []):
-            validate(entry, EXPECT)
-    for entry in data.get('setup', []):
-        validate(entry, ACTIONS)
+        for i, entry in enumerate(beat.get('action', []), 1):
+            located(f'beat {name!r}, action {i}', entry, ACTIONS)
+        for i, entry in enumerate(beat.get('expect', []), 1):
+            located(f'beat {name!r}, expect {i}', entry, EXPECT)
+    for i, entry in enumerate(data.get('setup', []), 1):
+        located(f'setup {i}', entry, ACTIONS)
     if set(data.get('voice', {})) - seen:
         raise ValueError('voice names an unknown beat')
     if data.get('timeout', 600) <= 0:
@@ -89,18 +89,25 @@ def load(path):
     return data
 
 
+def located(where, entry, allowed):
+    try:
+        validate(entry, allowed)
+    except ValueError as e:
+        raise ValueError(f'{where} ({entry.get("type", "no type")}): {e}') from None
+
+
 def validate(entry, allowed):
     kind = entry.get('type')
     if kind not in allowed:
         raise ValueError(f'unsupported operation {kind!r}')
-    options = {'click': set(), 'type': {'text', 'clear'}, 'key': {'key'}, 'scroll': {'dy'},
+    options = {'click': set(), 'type': {'text', 'clear'}, 'select': {'option'}, 'key': {'key'}, 'scroll': {'dy'},
                'navigate': {'url'}, 'wait': set(), 'upload': {'file'}, 'text': {'contains'},
                'visible': set(), 'count': {'count'}, 'value': {'value'}, 'url': {'contains'}, 'checked': {'checked'}}
     if set(entry) - ({'type', 'target', 'timeout'} | options[kind]):
         raise ValueError('unknown operation option')
     if kind not in {'navigate', 'scroll', 'url'}:
         target(entry.get('target'))
-    required = {'type': 'text', 'key': 'key', 'navigate': 'url', 'text': 'contains', 'count': 'count', 'value': 'value', 'upload': 'file', 'url': 'contains'}
+    required = {'type': 'text', 'select': 'option', 'key': 'key', 'navigate': 'url', 'text': 'contains', 'count': 'count', 'value': 'value', 'upload': 'file', 'url': 'contains'}
     if kind in required and required[kind] not in entry:
         raise ValueError(f'{kind} needs {required[kind]}')
     timeout = entry.get('timeout', 10000)

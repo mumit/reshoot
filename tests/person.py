@@ -42,6 +42,16 @@ async def backspace(page, times):
     await asyncio.sleep(0.3)
 
 
+async def choose(page, sel, letter):
+    """Pick a dropdown option by typing its first letter, as a person can on a focused, closed dropdown. Clicking opens
+    a popup that headless Chrome draws apart from the page, where these events don't reach."""
+    await page.run(f"document.querySelector({json.dumps(sel)}).focus()")
+    for kind in ("keyDown", "keyUp"):
+        await page.cmd("Input.dispatchKeyEvent", type=kind, key=letter, code="Key" + letter.upper(),
+                       **({"text": letter} if kind == "keyDown" else {}))
+    await asyncio.sleep(0.3)
+
+
 async def click_at(page, x, y):
     await page.cmd("Input.dispatchMouseEvent", type="mouseMoved", x=x, y=y)
     for kind in ("mousePressed", "mouseReleased"):

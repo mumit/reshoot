@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "reshoot",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Agent skills to create, refresh and review software demo videos. Use the reshoot CLI to record the app, export an MP4 and README GIF, and keep the demo source beside the code.",
   "author": { "name": "Mumit Khan", "url": "https://github.com/mumit" },
   "homepage": "https://github.com/mumit/reshoot",

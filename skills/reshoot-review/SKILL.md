@@ -5,7 +5,7 @@ description: Inspect a reshoot recording and its check report for failed actions
 
 # Review a recording
 
-Requires reshoot CLI 0.3.2 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'` before going on. Read the project's brief and, for a versioned project, its current run report. Confirm which attempt produced the files, and distinguish execution, expected results, automatic scanning and human review.
+Requires reshoot CLI 0.3.4 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'` before going on. Read the project's brief and, for a versioned project, its current run report. Confirm which attempt produced the files, and distinguish execution, expected results, automatic scanning and human review.
 
 For standalone native media, read its capture/edit recipe and exact source/export paths instead of requiring or inventing a run report. Compare old and new recordings manually and identify the result visually; do not claim browser assertions or automated beat comparison. Use a video player and check sheets rather than `reshoot review RUN`, which requires a versioned run manifest. Preserve existing reviews; generate any new scan in a separate directory.
 

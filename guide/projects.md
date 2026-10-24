@@ -65,7 +65,7 @@ Use the command for your harness. Each installs the three main skills and
 refuses to overwrite them unless given `--replace`. The Claude plugin also includes the supporting recording skills.
 Codex discovers the installed project skills in `.agents/skills`, and Claude uses
 `.claude/skills`. The main entry points are `reshoot-demo`, `reshoot-refresh`, and
-`reshoot-review`. Installed skills require CLI 0.3.2 or newer and use packaged templates.
+`reshoot-review`. Installed skills require CLI 0.3.4 or newer and use packaged templates.
 After upgrading the CLI, run the same command with `--replace` to install its
 version of the skills; changes made to the installed copies are lost.
 Maintainer-operated [separate-Mac trials](../docs/validation/2026-10-22-separate-mac-harnesses.md)

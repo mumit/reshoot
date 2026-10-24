@@ -15,7 +15,9 @@ from this table; source code is optional:
 | A running web app | An empty demo work folder | The actual app URL, local or hosted |
 | An installed macOS app | An empty demo work folder on the Mac | App name and the window containing demo data |
 
-Use a session that can run shell commands and access the app. Browser recording
+Use a session that can run shell commands and access the app;
+[What your agent needs](#what-your-agent-needs) has the full list, and the
+route without an agent. Browser recording
 works on macOS or Linux. Native capture needs macOS and permission to record
 one window. Paste this prompt and adjust `Target:`; no reshoot skill needs to
 be installed beforehand:
@@ -54,6 +56,72 @@ to a task. Use the local app, IDE or terminal setup from the
 the folder chosen above. Paste the prompt into that session.
 Reshoot supplies the demo workflow and recording tools; use the agent account
 and permissions required by your chosen tool.
+
+## What your agent needs
+
+reshoot never calls a model and needs no API key. The agent does the writing:
+it reads your app, writes the story in `demo/`, runs the reshoot commands,
+looks at the frames, and fixes the story until it records cleanly. The
+recording, editing and scanning are the CLI's, and the same on every agent.
+
+### Which agent
+
+| You have | Use |
+|---|---|
+| Claude Code | The prompt above. Tried with `claude-opus-5-5`: 2 to 3 minutes and under $2 a demo on small apps |
+| Codex | The prompt above. Tried with codex-cli 0.164.0 and its default model: 5 to 9 minutes a demo |
+| Both | Either; you need only one. The demo files are the same, so another agent can refresh it later |
+| Another coding agent | Untested. It may work if it has everything in the next table; paste the same prompt |
+| No agent | The CLI on its own, below |
+
+The trials are in the [cold-run record](../docs/validation/2026-10-23-cold-first-demo.md):
+one model for each agent, on small apps made for the trial. Other models have
+not been tried. A smaller model may write weaker stories and need more of your
+corrections. reshoot's result checks still stop a story that shows the wrong
+result.
+
+### What the session must allow
+
+| It must | Because |
+|---|---|
+| Run shell commands | To install reshoot, start your app and run `reshoot` |
+| Edit files | To write `demo/` |
+| Read web pages, or a local reshoot checkout | To read this guide when no reshoot skill is installed |
+| Show the model images | To look at frames and scan sheets; without that, it can only go by the result checks |
+| Start Chrome and use a local port | To record. Codex's sandbox blocks Chrome, so Codex asks to run that command outside it |
+| Write `.claude/skills/` or `.agents/skills/` | To install the skills. Codex protects `.agents/`, so it asks first |
+| Record one window (macOS only) | Only for a native Mac app, which needs screen-recording permission |
+
+Expect it to ask to install reshoot, ffmpeg and Chrome if it is missing, to start your
+app, and for a demo login if the app has one. It should not commit, push,
+publish or accept the demo for you; accepting waits for your "accept".
+
+### What leaves your computer
+
+reshoot sends nothing to a model. It checks PyPI for a newer release
+(`RESHOOT_OFFLINE=1` stops that) and fetches only the URLs you give it. The
+agent, though, sends what it reads to its own provider, as it does for any
+task: your app's code and the recorded frames. Use demo data, which the prompt
+asks for, and the provider's usual terms apply.
+
+### Without an agent
+
+Everything the agent runs is an ordinary command, so you can make the demo
+yourself:
+
+1. [Install reshoot](install.md), then run `reshoot init demo --url URL` to
+   write a project for your app.
+2. `reshoot rec URL demo/draft.toml` opens Chrome; click through the task and it
+   writes the story, with suggested result checks. Keep the checks that show the
+   result, then use the draft to replace `demo/storyboard.toml`
+   ([Draft it by clicking through](your-app.md#draft-it-by-clicking-through)).
+3. `reshoot preview demo/reshoot.toml`, then `reshoot run demo/reshoot.toml`.
+4. `reshoot studio demo` to change captions, cards, the frame and exports by
+   pointing, and to accept.
+
+The [tutorial](step-by-step.md) does all of this with the bundled notes app.
+Keeping a demo current in CI never needs an agent: the
+[GitHub workflow](ci.md) only runs reshoot.
 
 ## Review what you get
 
@@ -172,7 +240,8 @@ The plugin still needs the CLI and recording dependencies.
 Use the [bundled notes tutorial](step-by-step.md) for a complete CLI example
 with synthetic data. It covers the first recording and an update. For your
 target, use the [source-app walkthrough](your-app.md),
-[running-URL route](your-app.md#with-only-a-url) or [native window route](macos-window.md).
+[running-URL route](your-app.md#with-only-a-url) or [native window route](macos-window.md). [Without an agent](#without-an-agent)
+lists the commands in order.
 
 ## Setup and creation workflow for the agent
 

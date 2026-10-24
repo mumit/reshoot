@@ -80,6 +80,9 @@ What to expect, from [trials on four new apps](docs/validation/2026-10-23-cold-f
   run Chrome outside the sandbox.
 - **At the end:** it opens the MP4 and GIF, and you reply "accept" or ask for
   changes, such as shorter captions. Nothing is published.
+- **Agents:** Claude Code or Codex; either one is enough. reshoot calls no
+  model and needs no API key. [What your agent needs](guide/agent-quickstart.md#what-your-agent-needs)
+  covers the permissions, models tried, other agents, and making a demo with no agent.
 
 ## The story is a file
 

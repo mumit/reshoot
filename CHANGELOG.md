@@ -38,9 +38,12 @@ change project files or commands.
 
 - `reshoot studio [PROJECT]` opens a page on this computer for shaping a demo:
   the latest run's video with its beats on a timeline, each beat's frame,
-  result checks and caption, and what the scan found. Caption words and the
-  caption look are saved to the storyboard as you edit; Re-cut shows them on
-  the same recording in seconds, Record records again, and the run is
+  result checks and caption, what the scan found, and the exports side by side
+  with their platform limits. Captions and their look, title cards, the frame,
+  music and export presets are saved to the storyboard and edit file as you
+  edit, with `[check] sources` following the exports. Re-cut shows them on the
+  same recording in seconds; a beat whose actions changed is marked and can be
+  recorded again from that beat; Record records the run; and the run is
   accepted beside the beats.
 
 ## 0.3.5 (2026-10-24)

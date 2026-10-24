@@ -39,18 +39,27 @@ Click a beat to play just that part.
 - **Change a caption** and leave the field: it is saved to
   `demo/storyboard.toml`, and the beat says it is not in the video yet.
 - **Change the caption look**, its place and colours, the same way.
+- **Change the edit**: add, reword, time or remove an opening or closing title
+  card, turn the browser frame on and set its background, choose a music file
+  from the project folder, and change, add or remove exports by preset. These
+  are saved to `demo/edit.toml`, and `[check] sources` in `reshoot.toml` follows
+  the exports, so each one is still scanned.
 - **Re-cut** draws the captions again on the same recording, edits and scans it,
   in seconds, and loads the new run.
-- **Record a preview** or **Record** starts the app and records again, for a
-  change to actions or holds.
+- **Record from here**, on a beat, starts the app, replays the beats before it
+  off camera and records from that beat on, then shows that take. A beat whose
+  actions, checks or hold changed since the recording is marked in red. When
+  the take looks right, **Record** records the whole run.
+- **Exports** shows each export in its own shape, with its size, length and
+  file size, and the limits of the place its preset is for.
 - **What the scan found** marks each finding on the timeline, and the accept
   panel accepts the run, as `reshoot accept` does.
 
 The files stay the source of truth: edit them by hand or ask an agent while the
-studio is open, and reload the page to see the change. Only caption words and
-the caption look are edited on the page so far; change everything else in the
-files. The studio serves on `127.0.0.1` behind a random address, takes changes
-only from its own page, and runs until you press Ctrl-C.
+studio is open, and reload the page to see the change. Actions, result checks
+and holds are changed in the storyboard itself. The studio serves on
+`127.0.0.1` behind a random address, takes changes only from its own page, and
+runs until you press Ctrl-C.
 
 ## Find the files
 

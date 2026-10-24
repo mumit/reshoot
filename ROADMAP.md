@@ -8,36 +8,31 @@ Each item says what it is and why it matters. When one ships, move it to Done
 with a line on what it does. Trial evidence lives in the
 [validation records](docs/validation/README.md), not here.
 
-## Now: a studio beside the CLI
+## Now: shape a demo by pointing
 
 A [persona review of the docs](docs/validation/2026-10-23-persona-review.md)
 found that the tool does the hard part well and loses the joy where a user
-meets it first. The CLI and the agent skills already cover the hard part. Next
-is a local place to see a story and shape it by pointing, with the files in the
-repository still the source of truth, so agents and CI work as before.
+meets it first. The studio now gives a local place to see a story and shape it
+by pointing, with the files in the repository still the source of truth. Next,
+point while recording and repairing, and get more from each story.
 
-1. **The rest of the studio.** `reshoot studio` shows the latest run beat by beat, edits caption words and the
-    caption look, re-cuts, records and accepts. Still to come: editing cards, the frame, music and the preset
-    on the page; re-recording one changed beat through partial replay; and the export shapes side by side with
-    their limit checks. Why: most changes to a demo are to the edit, and pointing at them beats finding the
-    right line in `edit.toml`.
-2. **A toolbar in the recording window.** While `reshoot rec` runs, a small toolbar in the page offers
+1. **A toolbar in the recording window.** While `reshoot rec` runs, a small toolbar in the page offers
     "Check this" (click an element to make it a result check), "Caption here", "Hide this" (blurred in every
     take), "Pause" and "Retake last step". Why: pointing at what matters is exact where suggested checks
     guess, and it writes most of the story while you show the app.
-3. **Suggested repair when a story breaks.** `reshoot rec` saves fallback ways to find each element: test
+2. **Suggested repair when a story breaks.** `reshoot rec` saves fallback ways to find each element: test
     id, id, name or label, text. When the main selector matches nothing, reshoot tries them, and if exactly
     one matches, the failure prints a ready fix, such as "`Save` is now `#save-btn`", that one command
     applies. When none or several match, the studio shows the failure frame and asks the person to click the
     element. CI shows the fix in the failure summary. The run still fails until someone applies it. Why: a
     renamed button is the most common way a demo goes stale, and finding the new selector is the dull part.
-4. **Screenshots for docs that stay current.** `reshoot export --screenshots DIR` writes each beat's frame,
+3. **Screenshots for docs that stay current.** `reshoot export --screenshots DIR` writes each beat's frame,
     or the beats a story names, as images for the docs, refreshed and reviewed in the same pull request as the
     video. Why: stale screenshots are in nearly every product's docs, and the frames are already there.
-5. **A clickable tour.** Export a self-contained HTML tour from the beats: each step shows its frame with
+4. **A clickable tour.** Export a self-contained HTML tour from the beats: each step shows its frame with
     the clicked element highlighted, and the viewer clicks it to go on. Why: hosted tour tools go stale when
     the UI changes; this one refreshes with the demo.
-6. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
+5. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
 ## Later
@@ -70,9 +65,11 @@ repository still the source of truth, so agents and CI work as before.
 
 ## Done
 
-- **The studio, first part:** `reshoot studio` serves a local page with the latest run's video, its beats on a
-  timeline with their frames, result checks and captions, the scan's findings and the accept panel. Captions
-  and their look are edited in place and written to the storyboard, and Re-cut or Record runs from the page.
+- **The studio:** `reshoot studio` serves a local page with the latest run's video, its beats on a timeline
+  with their frames, result checks and captions, the exports side by side with their platform limits, the scan's
+  findings and the accept panel. Captions and their look, title cards, the frame, music and export presets are
+  edited in place and written to the project's files. A beat whose actions changed is recorded again from that
+  beat, and Re-cut or Record runs from the page.
 - **Captions drawn after recording:** TOML takes are recorded without captions, and the storyboard's are drawn on
   afterwards, so `reshoot recut` can change their words and look.
 - **Re-cut without recording:** `reshoot recut RUN` edits and scans a run's takes again into a new run, for

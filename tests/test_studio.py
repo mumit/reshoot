@@ -62,7 +62,7 @@ def test_studio_refuses_a_change_it_cannot_make_and_keeps_the_file(tmp_path, cha
 def test_studio_leaves_a_multiline_caption_to_the_file(tmp_path):
     board = tmp_path / 'storyboard.toml'
     board.write_text(BOARD.replace('caption = "Find a note"   # short', 'caption = """Find\na note"""'))
-    with pytest.raises(ValueError, match='multi-line'):
+    with pytest.raises(ValueError, match='more than one line'):
         studio.edit(board, {'beat': 'intro', 'caption': 'One line'})
 
 
@@ -72,6 +72,89 @@ def test_studio_needs_a_versioned_project_with_a_toml_storyboard(tmp_path):
     (tmp_path / 'reshoot.toml').write_text('[[take]]\nrun = "true"\n')
     with pytest.raises(ValueError, match='versioned'):
         studio.project(tmp_path)
+
+
+CUT = """schema_version = 1
+output = "demo-final.mp4"
+
+[[part]]
+take = 0
+start = 0
+end = "end"
+
+[[export]]
+preset = "readme"   # an 800x450 GIF
+"""
+
+CONFIG = """schema_version = 1
+
+[[take]]
+web = "storyboard.toml"
+out = "takes/demo.mp4"
+
+[edit]
+file = "edit.toml"
+args = ["takes/demo.mp4"]
+
+[check]
+sources = ["takes/demo-final.mp4", "takes/demo-final-readme.gif"]
+"""
+
+
+def test_studio_edits_cards_frame_music_and_exports_in_the_edit_file(tmp_path):
+    import tomllib
+    cut, config = tmp_path / 'edit.toml', tmp_path / 'reshoot.toml'
+    cut.write_text(CUT)
+    config.write_text(CONFIG)
+    (tmp_path / 'storyboard.toml').write_text(BOARD)
+    (tmp_path / 'music').mkdir()
+    (tmp_path / 'music/calm.mp3').write_bytes(b'')
+    studio.edit_cut(cut, config, {'add_card': 'start', 'text': 'Notes'})
+    studio.edit_cut(cut, config, {'add_card': 'end', 'text': 'Try it'})
+    studio.edit_cut(cut, config, {'card': 0, 'text': 'Notes, found fast', 'duration': 1.5})
+    studio.edit_cut(cut, config, {'frame': True})
+    studio.edit_cut(cut, config, {'background': '#2a3f5f'})
+    studio.edit_cut(cut, config, {'music': 'music/calm.mp3'})
+    studio.edit_cut(cut, config, {'export': 0, 'preset': 'x-square'})
+    studio.edit_cut(cut, config, {'add_export': 'linkedin'})
+    data = tomllib.loads(cut.read_text())
+    assert [p.get('card') for p in data['part']] == ['Notes, found fast', None, 'Try it']
+    assert data['part'][0]['duration'] == 1.5 and data['part'][1]['end'] == 'end'
+    assert data['frame'] == {'padding': 0.06} and data['style'] == {'background': '#2a3f5f'}
+    assert data['music'] == 'music/calm.mp3' and [x['preset'] for x in data['export']] == ['x-square', 'linkedin']
+    # The scan follows the exports: the renamed one and the new one
+    assert tomllib.loads(config.read_text())['check']['sources'] == [
+        'takes/demo-final.mp4', 'takes/demo-final-x-square.mp4', 'takes/demo-final-linkedin.mp4']
+    studio.edit_cut(cut, config, {'card': 2, 'remove': True})
+    studio.edit_cut(cut, config, {'export': 1, 'remove': True})
+    studio.edit_cut(cut, config, {'frame': False})
+    studio.edit_cut(cut, config, {'music': ''})
+    data = tomllib.loads(cut.read_text())
+    assert len(data['part']) == 2 and 'frame' not in data and 'music' not in data and len(data['export']) == 1
+    assert tomllib.loads(config.read_text())['check']['sources'] == ['takes/demo-final.mp4', 'takes/demo-final-x-square.mp4']
+    before = cut.read_text()
+    for change, error in (({'card': 1, 'text': 'x'}, 'a take'), ({'add_export': 'x-square'}, 'same file'),
+                          ({'music': 'gone.mp3'}, 'no music'), ({'export': 0, 'preset': 'tiktok'}, 'unknown preset'),
+                          ({'card': 0, 'duration': 0}, 'seconds'), ({'background': 'navy'}, 'colour')):
+        with pytest.raises(ValueError, match=error):
+            studio.edit_cut(cut, config, change)
+        assert cut.read_text() == before
+
+
+def test_a_beat_counts_as_changed_only_when_more_than_its_caption_changed():
+    import hashlib
+    beat = {'id': 'search', 'caption': 'Old words', 'hold': 2.0}
+    recorded = hashlib.sha256(json.dumps(beat, sort_keys=True).encode()).hexdigest()
+    row = {'recorded': 'Old words', 'recorded_sub': None}
+    assert studio.recorded_as({**beat, 'caption': 'New words', 'sub': 'and more'}, row) == recorded
+    assert studio.recorded_as({**beat, 'hold': 3.0}, row) != recorded
+
+
+def test_fits_says_where_an_export_is_going_and_its_limits():
+    from reshoot import timeline
+    assert studio.fits(timeline.PRESETS['x'][1], 12.4, 300_000) == ('X takes 0.5 to 1200 s and up to 8 GB; this is '
+                                                                    '12.4 s and 0.3 MB')
+    assert studio.fits(None, 1, 1) is None
 
 
 @pytest.mark.browser
@@ -118,13 +201,36 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             page.wait_for_function("!document.getElementById('video').paused")
             start = float(search.get_attribute('data-start'))
             assert page.evaluate("document.getElementById('video').currentTime") >= start - .1
+            assert page.locator('.shape').count() == 2  # the MP4 and the README GIF, with the GIF's limits
+            assert 'GitHub takes up to 10 MB' in page.locator('.shape').nth(1).inner_text()
+            assert page.locator('.redo.changed').count() == 0  # a new caption needs a re-cut, not a recording
+            with page.expect_navigation():
+                page.click('[data-add-card=start]')
+            page.locator('.card input[name=text]').fill('Notes, found fast')
+            page.locator('.card input[name=text]').press('Tab')
+            page.wait_for_selector('#toast.on')
+            page.check('.cut [name=frame]')
+            page.wait_for_function("document.querySelector('.cut .pending').hidden === false")
             with page.expect_navigation(timeout=120000):
                 page.click('[data-job=recut]')
             assert 'a re-cut of' in page.locator('.status').inner_text()
             assert page.locator('.beat[data-beat=search] .pending').is_hidden()
+            assert page.locator('.cut .pending').is_hidden()
             assert page.locator('#to-accept').count() == 1
+            # A beat whose hold changed is recorded again from that beat, and its take shown on the page
+            board.write_text(board.read_text().replace('hold = 2.0', 'hold = 2.5'))
+            page.reload()
+            assert page.locator('.redo.changed').count() == 1
+            page.locator('.beat[data-beat=search] [data-from]').click()
+            page.wait_for_selector('#job-take:not([hidden])', timeout=120000)
+            assert 'Recording from search worked' in page.locator('#job-title').inner_text()
+            assert 'a re-cut of' in page.locator('.status').inner_text()  # still the run, not the partial take
             browser.close()
     finally:
         httpd.shutdown()
     newest = max((tmp_path / 'takes/runs').glob('*/run.json'), key=lambda p: json.loads(p.read_text())['finished_at'])
-    assert 'A caption from the studio' in (newest.parent / 'takes/demo-final.srt').read_text()
+    recut = [p.parent for p in (tmp_path / 'takes/runs').glob('*/run.json') if json.loads(p.read_text()).get('recut_from')]
+    assert 'A caption from the studio' in (recut[0] / 'takes/demo-final.srt').read_text()
+    assert json.loads(newest.read_text())['mode'] == 'partial-preview'
+    import tomllib
+    assert tomllib.loads((tmp_path / 'edit.toml').read_text())['part'][0]['card'] == 'Notes, found fast'

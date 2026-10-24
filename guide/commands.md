@@ -24,7 +24,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
-| `reshoot studio PROJECT` | Opens a page on this computer with the latest run beat by beat, to edit captions, re-cut, record and accept; runs until Ctrl-C |
+| `reshoot studio PROJECT` | Opens a page on this computer with the latest run beat by beat, to edit captions, cards, the frame, music and exports, re-cut, record from a beat and accept; runs until Ctrl-C |
 | `reshoot review RUN --serve` | Serves the review page on this computer only, to accept or reject the run with its buttons; stops once you decide |
 | `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name each finding with `--flagged F1` or `--reject F1`, or a single frame by its label. Refuses a preview unless given `--preview` |
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |

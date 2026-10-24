@@ -192,12 +192,13 @@ def main(argv=None):
     p.set_defaults(run=lambda a: review.serve(a) if a.serve else review.main(a))
 
     from reshoot import studio
-    p = sub.add_parser('studio', help='see the latest run beat by beat, edit its captions, re-cut and accept it, in a browser',
+    p = sub.add_parser('studio', help='see the latest run beat by beat and shape it in a browser: captions, cards, frame, music, exports',
                        description='Open a page on this computer for shaping a demo: the latest run\'s video with its '
                        'beats on a timeline, each beat\'s frame, result checks and caption, and what the scan found. '
-                       'Caption words and the [caption] look are saved to the storyboard as you edit; Re-cut shows them '
-                       'in seconds, Record records again, and the run is accepted on the page. It serves on 127.0.0.1 '
-                       'behind a random address until Ctrl-C.\n\n'
+                       'Captions and their look, title cards, the frame, music and export presets are saved to the '
+                       'storyboard and edit file as you edit; Re-cut shows them in seconds, Record from here records '
+                       'again from a beat whose actions changed, Record records the run, and the run is accepted on '
+                       'the page. It serves on 127.0.0.1 behind a random address until Ctrl-C.\n\n'
                        '    reshoot studio\n'
                        '    reshoot studio app/demo --port 8800 --no-open', formatter_class=Examples)
     p.add_argument('project', nargs='?', default='demo', help='the project folder or its reshoot.toml (default: demo)')

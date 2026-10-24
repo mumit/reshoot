@@ -77,7 +77,8 @@ Codex finished all four, but showed new problems:
   worked out the cause and retried outside the sandbox.
 - **Edits outside `demo/`.** Three of four embedded the GIF in the app's README
   without being asked; one also changed `.gitignore`.
-- **Odd frame sizes,** such as 960 by 880, which shrink text in a 16:9 GIF.
+- **Odd frame sizes,** such as 960 by 880. Round 4 showed these are viewports
+  the agents chose for narrow apps, not a capture fault.
 - Installing skills into `.agents/` needed approval; Codex's sandbox protects it.
 
 The fixes: `reshoot doctor` reports a newer release, the skills require 0.3.2
@@ -85,12 +86,40 @@ and say how to upgrade, the quickstart reuses only a current install, a browser
 that cannot start names the sandbox as the usual cause, and agents are told to
 keep changes in `demo/`.
 
+## Round 4: Codex on the fixes
+
+Four fresh Codex sessions ran the same apps after commit `3315fa2`. They read
+the new quickstart from GitHub but installed 0.3.2 from PyPI, so the new
+`doctor` notice and Chrome error were not yet in the CLI they used. The old
+0.2.0 was still on the login shell's path.
+
+| App | Minutes | Outcome |
+|---|---|---|
+| Recipe Box | 6.8 | Preview and final, 12 checks, `960x720` |
+| Tiny Tracker | 5.9 | Preview and final, 11 checks |
+| Team Standup | 6.5 | Preview and final, 15 checks, `960x840` |
+| Tracker by URL | 4.9 | Preview and final, 11 checks; the final kept the preview's issue, and said so |
+
+- **Stale install: fixed.** All four compared the installed version with PyPI
+  and upgraded before writing anything. None recorded with 0.2.0. Because the
+  upgrade went into each session's own tool folder, the login shell still found
+  0.2.0 first, and each agent then called the new CLI by its path or with
+  `uv tool run`. A normal install upgrades in place.
+- **README: fixed.** No session changed a file outside `demo/` and `.agents/`.
+- **Chrome in the sandbox: still the first failure** in all four, with
+  Playwright's message, since the clearer error is not released yet. Each
+  agent retried outside the sandbox.
+- **Opening exports:** the sandbox also blocks `open`. Two agents served
+  `demo/` over local HTTP and opened it in Chrome, one asked for access.
+- Every scan found nothing to flag.
+
 ## Limits
 
 - One model per harness: `claude-opus-5-5` and Codex's configured default.
 - The apps were small and well labelled, written for this trial.
 - `claude -p` cannot answer a question, so the URL-only run's stop is the
   correct ending here, not a measure of what a person would do next.
-- Rounds 1 and 2 used 0.3.1; their fixes are in 0.3.2, which round 3 used.
+- Rounds 1 and 2 used 0.3.1; their fixes are in 0.3.2, which rounds 3 and 4
+  used. Round 4 read the guides from `main`.
 - Codex loaded the owner's Codex configuration, including its MCP tools, so it
   was less isolated than the Claude Code sessions.

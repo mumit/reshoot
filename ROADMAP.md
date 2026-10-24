@@ -12,10 +12,11 @@ with a line on what it does. Trial evidence lives in the
 
 1. **Cold first-demo runs.** On 0.3.2, Claude Code made postable demos of all
    three source apps unaided in under 3 minutes each, and Codex finished all four
-   in 5 to 9 minutes. See the
-   [cold-run record](docs/validation/2026-10-23-cold-first-demo.md). Next: one
-   more Codex round on the release with its fixes, checking that it upgrades a
-   stale install and leaves the README alone.
+   in 5 to 9 minutes. A further Codex round confirmed that it now upgrades a stale
+   install and leaves the README alone. See the
+   [cold-run record](docs/validation/2026-10-23-cold-first-demo.md). Next, on the
+   next release: check that `doctor`'s upgrade notice and the sandbox message
+   for Chrome reach Codex.
 2. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at the
    page's CSS size, so `@1.5` and `@2` only scale them up, including the
    `1280x720@1.5` default. Capture at the device resolution, or say plainly that

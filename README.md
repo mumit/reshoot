@@ -177,7 +177,7 @@ each skill.
 | To | Read |
 |---|---|
 | Record your own app | [A web app, from source or a URL](guide/your-app.md), or [a macOS window](guide/macos-window.md) |
-| Change captions, timing or GIF size | [Change and grow a demo](guide/customize.md) |
+| Change captions, timing or GIF size | [Change and grow a demo](guide/customize.md), or by pointing in [the studio](guide/customize.md#shape-it-in-the-studio): `reshoot studio demo` |
 | See the cursor, zoom, captions and shapes | [How the videos look](guide/look.md) |
 | Use it on a team | [Ownership, review, alerts and CI cost](guide/team.md) |
 | Keep it current in CI | [GitHub Actions](guide/ci.md) |

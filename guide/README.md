@@ -22,6 +22,7 @@ watch whether it helps. [How the videos look](look.md) shows each in pictures.
 
 | Goal | Use | Read |
 |---|---|---|
+| See and shape it by pointing | The studio: beats on a timeline, captions, cards, the frame, music and exports | [Shape it in the studio](customize.md#shape-it-in-the-studio) |
 | Explain a task without sound | Short captions and readable holds on the result | [Change and grow a demo](customize.md) |
 | Draw the eye to a control | The cursor, auto-zoom and caption placement | [How the videos look](look.md) |
 | Explain a longer process | Sections, title cards, a voiceover and subtitles | [Grow it into a fuller demo](customize.md#grow-it-into-a-fuller-demo) |
@@ -56,6 +57,8 @@ watch whether it helps. [How the videos look](look.md) shows each in pictures.
 | Run | One `reshoot run` or `reshoot preview`: its takes, edit, scan and report, in `takes/runs/ID/` |
 | Preview | A run at a smaller size, to look at before recording a final |
 | Final | A full-size run, the one you accept |
+| Re-cut | Edit and scan a run's takes again, with the captions and edit as they are now, without recording: `reshoot recut` |
+| Studio | A page on your computer for shaping a demo: `reshoot studio` |
 | Export | A finished MP4 or GIF |
 | Scan | The check of every export for private details, shown as numbered sheets |
 | Finding | One thing the scan flagged, such as an email address, in every frame it is in |

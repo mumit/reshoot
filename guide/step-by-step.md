@@ -183,14 +183,22 @@ In `demo/storyboard.toml`, change the intro caption:
 caption = "Find the note you need"
 ```
 
-Leave the beat ID `intro` and the result checks intact, then record a preview:
+Leave the beat ID `intro` and the result checks intact. Captions are drawn
+after recording, so a new caption needs no new recording. Re-cut the final:
 
 ```bash
-reshoot preview demo/reshoot.toml
+reshoot recut demo/latest
 ```
 
-Open this new preview as in step 2. It should show the new words while performing
-the same task. The accepted final remains unchanged.
+It draws the captions again on the same recording, edits and scans it into a
+new run, in seconds. Open that run's `takes/demo-final.mp4`: it shows the new
+words over the same task. The accepted final remains unchanged. A change to an
+action or a hold does need a new recording: `reshoot preview` or `reshoot run`.
+
+To make changes like this by pointing instead, run `reshoot studio demo`. It
+shows the run beat by beat, with each caption ready to edit and a Re-cut
+button; [Shape it in the studio](customize.md#shape-it-in-the-studio) covers
+the rest.
 
 ## 6. Change the app and repair the story
 

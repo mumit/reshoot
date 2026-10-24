@@ -83,6 +83,10 @@ first. Reply in plain words:
 | It in your README | "Export the accepted demo to docs/demo and add the GIF to the README." |
 | It kept current | "Set up the GitHub workflow that refreshes the demo when the app changes." |
 
+To make changes yourself by pointing, run `reshoot studio demo`: it shows the
+run beat by beat and saves your edits to the captions, cards, frame and exports
+to the project's files. See [Shape it in the studio](customize.md#shape-it-in-the-studio).
+
 The agent revises the source and records another run. Saying "accept" lets it
 run `reshoot accept` for you; you can also run the command yourself. The
 [review instructions](step-by-step.md#4-accept-the-recording) cover flagged and

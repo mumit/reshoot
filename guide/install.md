@@ -97,6 +97,8 @@ continue at the preview step instead of running `init` twice.
 
 ## Upgrade and remove
 
+`reshoot doctor` says when a newer release is out. To upgrade:
+
 ```bash
 uv tool upgrade reshoot
 reshoot --version

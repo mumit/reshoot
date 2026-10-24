@@ -347,3 +347,14 @@ hold = 0.3
         return sum(r > 180 and g < 80 for r, g, b in pixels) > len(pixels) * .2
     assert red(frame), 'the video still shows the page before the click'
     assert red(tmp_path / 'take.evidence/go.png'), 'the evidence frame is not the result'
+
+
+@pytest.mark.browser
+def test_a_browser_that_cannot_start_points_at_sandboxes(tmp_path, monkeypatch):
+    monkeypatch.setenv('RESHOOT_CHROME', '/usr/bin/false')
+    p = board(tmp_path / 'story.toml', 'http://127.0.0.1:9/')
+    with pytest.raises(SystemExit) as result:
+        main(['web', str(p), str(tmp_path / 'take.mp4')])
+    assert result.value.code == 2
+    error = json.loads((tmp_path / 'take.take.json').read_text())['error']
+    assert error.startswith('Chrome could not start') and 'sandbox' in error

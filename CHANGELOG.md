@@ -4,6 +4,23 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Added
+
+- `reshoot doctor` says when a newer release is on PyPI. `RESHOOT_OFFLINE=1`
+  skips the check.
+
+### Fixed
+
+- A browser that cannot start says why it usually happens in an agent's
+  sandbox, such as Codex's, instead of only Playwright's error.
+- The skills require 0.3.2 and say how to upgrade, and the agent quickstart
+  reuses an existing install only when it is the latest release. A cold Codex
+  session had recorded a whole demo with a stale 0.2.0.
+- Agents keep their changes in `demo/`: the quickstart and demo skill say not
+  to edit the app's README or other files unless asked.
+
 ## 0.3.2 (2026-10-23)
 
 ### Added

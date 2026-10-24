@@ -39,6 +39,16 @@ def test_busy_app_port_is_named_without_exposing_remote_urls(monkeypatch):
     assert 'https://' in str(remote.value)  # the run reports it through redact(), which hides it
 
 
+def test_doctor_says_when_a_newer_release_is_out(monkeypatch, capsys):
+    monkeypatch.setattr(project, 'latest_release', lambda: '99.0.0')
+    project.doctor(SimpleNamespace(config=None, json=False))
+    assert "99.0.0 is out: uv tool install --upgrade 'reshoot[browser]'" in capsys.readouterr().out
+    monkeypatch.setattr(project, 'latest_release', lambda: None)
+    project.doctor(SimpleNamespace(config=None, json=False))
+    assert 'is out' not in capsys.readouterr().out
+    assert project.release('0.10.0') > project.release('0.9.9') and project.release('weird') == ()
+
+
 def test_external_app_scaffold_is_valid_python(tmp_path):
     project.init(SimpleNamespace(directory=str(tmp_path), url='http://localhost:1234/'))
     __import__('tomllib').loads((tmp_path / 'storyboard.toml').read_text())

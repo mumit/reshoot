@@ -1,5 +1,6 @@
 """Project setup and dependency checks using packaged demo data."""
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -28,6 +29,8 @@ def doctor(a):
     result = {'ok': all(found.values()) and (not required_text or 'text' in detectors),
               'platform': platform.system(), 'ocr_backend': scan.backend(engine), 'scan_probe': 'not run', 'tools': found, 'detectors': detectors,
               'window_capture': platform.system() == 'Darwin', 'versions': {}}
+    from importlib.metadata import version
+    result['reshoot'] = {'version': version('reshoot'), 'latest': latest_release()}
     from reshoot.cut import FONTS
     result['fonts'] = [Path(f).name for f in FONTS if Path(f).exists()]
     for name, path in found.items():
@@ -39,11 +42,34 @@ def doctor(a):
     if a.json:
         print(json.dumps(result, indent=2))
     else:
+        installed, latest = result['reshoot']['version'], result['reshoot']['latest']
+        newer = latest and release(latest) > release(installed)
+        print(f'reshoot: {installed}' + (f"; {latest} is out: uv tool install --upgrade 'reshoot[browser]'" if newer else ''))
         for name, path in found.items():
             print(f'{name}: ' + ('available' if path else 'missing; install reshoot[browser]' if name == 'playwright' else 'missing; install it before recording'))
         print('Text scan: ' + ('installed, not probed' if 'text' in detectors else 'install Tesseract or Vision'))
         print('Face scan: ' + ('installed, not probed' if 'people' in detectors else 'unavailable'))
     return 0 if result['ok'] else 2
+
+
+def latest_release():
+    """The newest reshoot on PyPI, or None when it can't be reached quickly. RESHOOT_OFFLINE=1 skips the check."""
+    if os.environ.get('RESHOOT_OFFLINE'):
+        return None
+    import urllib.request
+    try:
+        with urllib.request.urlopen('https://pypi.org/pypi/reshoot/json', timeout=3) as response:
+            return json.loads(response.read())['info']['version']
+    except Exception:
+        return None
+
+
+def release(text):
+    """A version such as 0.3.2 as a comparable tuple; anything unusual compares as oldest."""
+    try:
+        return tuple(int(part) for part in text.split('.')[:3])
+    except (AttributeError, ValueError):
+        return ()
 
 
 def init(a):

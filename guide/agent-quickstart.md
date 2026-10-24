@@ -164,13 +164,16 @@ When receiving the prompt above, follow this workflow:
    available, or inspect the running page/window. Choose a small task with an observable result. Propose
    a reasonable task when the request leaves it open; ask only when a missing
    decision prevents useful progress.
-2. Read the [installation guide](install.md). Use an existing reshoot installation
-   when available; otherwise install the CLI and missing platform dependencies
-   within the owner's authorization. Obtain required installation permissions
+2. Read the [installation guide](install.md). Check `reshoot --version`: reuse an
+   existing installation only if it is the latest release on
+   [PyPI](https://pypi.org/project/reshoot/), which `reshoot doctor` also reports.
+   Otherwise install or upgrade it with `uv tool install --upgrade 'reshoot[browser]'`,
+   and install missing platform dependencies, within the owner's authorization. Obtain required installation permissions
    through the harness. Do not bypass permission failures.
-3. Install the primary skills with `reshoot skills codex --directory .` or
-   `reshoot skills claude --directory .` for the current harness. Reuse an existing
-   installation or plugin instead of overwriting it. Read the installed
+3. After any upgrade, install the primary skills with `reshoot skills codex --directory .`
+   or `reshoot skills claude --directory .` for the current harness; the CLI copies
+   its own version of them. Reuse an existing installation or plugin instead of
+   overwriting it. Read the installed
    `reshoot-demo/SKILL.md` and follow it. If skill discovery has not refreshed,
    read that file directly and continue within the current session.
 4. Choose the appropriate route. For a browser, reuse a project or initialize
@@ -196,7 +199,10 @@ When receiving the prompt above, follow this workflow:
    the exact `reshoot accept RUN` command, with `--flagged` for each flagged item
    they must inspect. Run it only when the owner explicitly asks you to accept;
    never pass `--yes` on your own judgment. Keep source files available for
-   the next refresh; commit or publish only when authorized.
+   the next refresh; commit or publish only when authorized. Keep your changes in
+   `demo/` and the skill folder: don't edit the app's README, `.gitignore` or
+   other files unless the owner asks. Offer the Markdown that would add the GIF
+   to the README instead.
 
 The initial target is one readable task and a visible result. Add narration,
 terminal segments, branding or portrait framing after that first recording

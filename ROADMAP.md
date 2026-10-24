@@ -10,12 +10,12 @@ with a line on what it does. Trial evidence lives in the
 
 ## Now: prove the front door
 
-1. **Cold first-demo runs.** The README prompt made postable demos of three
-   new apps unaided in fresh Claude Code sessions; a URL-only run correctly
-   stopped to ask for a data reset. See the
-   [cold-run record](docs/validation/2026-10-23-cold-first-demo.md). Next: run
-   the same four apps again on the release with the fixes they prompted, and run
-   them in Codex.
+1. **Cold first-demo runs.** On 0.3.2, Claude Code made postable demos of all
+   three source apps unaided in under 3 minutes each, and Codex finished all four
+   in 5 to 9 minutes. See the
+   [cold-run record](docs/validation/2026-10-23-cold-first-demo.md). Next: one
+   more Codex round on the release with its fixes, checking that it upgrades a
+   stale install and leaves the README alone.
 2. **Sharp video at higher pixel ratios.** Chrome sends screencast frames at the
    page's CSS size, so `@1.5` and `@2` only scale them up, including the
    `1280x720@1.5` default. Capture at the device resolution, or say plainly that

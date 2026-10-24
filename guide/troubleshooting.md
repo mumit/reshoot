@@ -31,7 +31,9 @@ fonts. Use the distribution's browser package or install the dependencies
 required by the Chrome package. Reshoot uses the installed browser, not a
 Playwright-downloaded binary. If a harness sandbox prevents starting Chrome or
 binding a loopback port, use that harness's permission mechanism to authorize
-the local recording and retain the failed attempt.
+the local recording and retain the failed attempt. In Codex's default sandbox,
+`Chrome could not start` is the usual sign: approve running the reshoot command
+outside the sandbox.
 
 `net::ERR_UNSAFE_PORT` means Chrome refuses the app's port; it blocks a few,
 such as 5060, 5061, 6000 and 6665 to 6669. Run the app on another port, or pass Chrome

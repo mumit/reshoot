@@ -124,7 +124,12 @@ async def capture(board, a, frames, out, metadata, spoken):
     clock = None
     root = Path(a.storyboard).resolve().parent
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(executable_path=web.find_chrome(), headless=True, args=web.chrome_flags())
+        try:
+            browser = await pw.chromium.launch(executable_path=web.find_chrome(), headless=True, args=web.chrome_flags())
+        except Exception as e:
+            raise RuntimeError(f'Chrome could not start: {redact(str(e).splitlines()[0])}. If this runs inside an agent\'s '
+                               'sandbox, such as Codex\'s, Chrome is usually what the sandbox blocks: run the reshoot '
+                               'command outside it, with the harness\'s approval') from None
         context = await browser.new_context(viewport={'width': w, 'height': h}, device_scale_factor=cap_dpr,
                                             color_scheme=a.theme or board.get('theme', 'dark'), locale='en-US', timezone_id='UTC',
                                             is_mobile=bool(a.mobile or board.get('mobile')), has_touch=bool(a.mobile or board.get('mobile')))

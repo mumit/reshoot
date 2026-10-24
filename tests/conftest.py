@@ -1,5 +1,7 @@
-"""Select an OCR backend explicitly for integration runs."""
+"""Select an OCR backend explicitly for integration runs, and keep tests off the network."""
 import os
+
+os.environ.setdefault('RESHOOT_OFFLINE', '1')  # doctor would otherwise ask PyPI for the latest release
 
 
 def pytest_addoption(parser):

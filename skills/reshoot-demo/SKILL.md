@@ -5,7 +5,7 @@ description: Create a repeatable software demo with reshoot from an app and demo
 
 # Create a demo
 
-Requires reshoot CLI 0.2 or newer. Run `reshoot --version` and `reshoot doctor --config CONFIG` for an existing project. If the CLI is missing, use the repository's documented installation; do not invent commands for a different version.
+Requires reshoot CLI 0.3.2 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'` before going on. Run `reshoot doctor --config CONFIG` for an existing project. If the CLI is missing, use the repository's documented installation; do not invent commands for a different version.
 
 Resolve missing required tools before recording. If `RESHOOT_CHROME` is set, it must name an executable browser; correct or unset a stale path. A successful doctor check does not probe capture or the final scan.
 
@@ -25,4 +25,4 @@ Keep captions short and explain the result, not the click. Leave time to read. J
 
 Inspect captions after page navigation. The overlay restores the current caption on same-origin page loads; zoomed or styled captions are drawn after recording.
 
-Commit, push, or publish only within the owner's existing authorization. Creating local files is not publishing.
+Commit, push, or publish only within the owner's existing authorization. Creating local files is not publishing. Keep changes in the demo folder: don't edit the app's README, `.gitignore` or other files unless the owner asks; offer the Markdown that would add the GIF instead.

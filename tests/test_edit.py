@@ -124,3 +124,33 @@ def test_a_frame_puts_the_take_in_a_window_on_the_background(tmp_path):
     assert max(r, g, b) < 80 and abs(r - b) < 30
     with pytest.raises(ValueError, match='unknown frame option: shadows'):
         timeline.frame_style({'frame': {'shadows': True}})
+
+
+def test_captions_are_drawn_from_the_storyboard_as_it_is_now(tmp_path):
+    from PIL import Image
+    from reshoot import captions
+    take = tmp_path / 'demo.mp4'
+    cut.ff('-f', 'lavfi', '-i', 'color=c=black:s=320x180:r=60:d=3', '-pix_fmt', 'yuv420p', take.with_suffix('.clean.mp4'))
+    take.with_suffix('.captions.json').write_text(json.dumps({'schema_version': 1, 'css_width': 320, 'captions': [
+        {'beat': 'one', 'start': 0, 'end': 1.5, 'recorded': 'First', 'recorded_sub': None},
+        {'beat': 'gone', 'start': 1.5, 'end': None, 'recorded': 'Kept as recorded', 'recorded_sub': None}]}))
+    board = {'beat': [{'id': 'one', 'caption': 'First, reworded', 'sub': 'and a sub line'}], 'caption': {'position': 'top'}}
+    assert captions.draw(take, board, tmp_path / 'storyboard.toml', quiet=True) == ['one']
+    first, kept = captions.cues(take)
+    assert first == (0, 1.5, 'First, reworded (and a sub line)') and kept[::2] == (1.5, 'Kept as recorded')
+    assert cut.cues(take)[0][2] == 'First, reworded (and a sub line)'
+    still = tmp_path / 'still.png'
+    cut.ff('-ss', 0.8, '-i', take, '-frames:v', 1, still)
+    frame = Image.open(still).convert('L')
+    assert frame.crop((0, 0, 320, 60)).getextrema()[1] > 100  # drawn at the top
+    assert frame.crop((0, 120, 320, 180)).getextrema()[1] < 30
+    board['caption'] = {}
+    assert captions.draw(take, board, tmp_path / 'storyboard.toml', quiet=True) == ['one', 'the [caption] look']
+
+
+def test_caption_timing_needs_one_caption_event_for_each_beat():
+    from reshoot import captions
+    events = [(0.2, {'kind': 'caption'}), (1, {'kind': 'act'}), (2.5, {'kind': 'caption'})]
+    assert captions.timing(events, ['a', 'b']) == [{'beat': 'a', 'start': 0.2, 'end': 2.5}, {'beat': 'b', 'start': 2.5, 'end': None}]
+    with pytest.raises(ValueError):
+        captions.timing(events, ['a'])

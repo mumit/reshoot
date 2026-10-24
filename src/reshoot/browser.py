@@ -5,7 +5,7 @@ import json
 import os
 import time
 from pathlib import Path
-from reshoot import story, web, zoom
+from reshoot import captions, story, web, zoom
 from reshoot.artifacts import Frames, digest
 from reshoot.safety import redact
 
@@ -119,12 +119,8 @@ async def capture(board, a, frames, out, metadata, spoken):
     if os.environ.get('RESHOOT_PREVIEW') == '1':
         dpr = min(dpr, 720 / max(w, h))
     z = zoom.settings(a.zoom if a.zoom is not None else board.get('zoom'))
-    if board.get('caption'):
-        z = z or {**zoom.DEFAULTS, 'scale': 1, 'watch': False}
-        style = dict(board['caption'])
-        if style.get('font'):
-            style['font'] = str(Path(a.storyboard).resolve().parent / style['font'])
-        z['caption_style'] = style
+    if z:
+        z['captions'] = False  # drawn afterwards, from the storyboard (captions.py)
     cap_dpr = min(dpr * min(z['scale'], 2), 4) if z else dpr
     first = getattr(a, 'from_beat', None) or os.environ.get('RESHOOT_FROM_BEAT')
     ids = [b['id'] for b in board['beat']]
@@ -156,7 +152,7 @@ async def capture(board, a, frames, out, metadata, spoken):
         await page.expose_binding('__reshoot', lambda source, payload: events.append((time.monotonic(), json.loads(payload))))
         cursor = board.get('cursor', {})
         hand = {'typing': cursor.get('typing', 13), 'random': __import__('random').Random(board.get('seed', 1)).random}
-        await page.add_init_script('window.__reshootPostCaptions = ' + json.dumps(bool(z)) + '; window.__reshootBlur = ' + json.dumps(board.get('blur', [])) + '; window.__reshootSeed = ' + str(board.get('seed', 1)) + '; window.__reshootCursor = ' + json.dumps({k: cursor[k] for k in ('size', 'ripple') if k in cursor}) + ';')
+        await page.add_init_script('window.__reshootPostCaptions = true; window.__reshootBlur = ' + json.dumps(board.get('blur', [])) + '; window.__reshootSeed = ' + str(board.get('seed', 1)) + '; window.__reshootCursor = ' + json.dumps({k: cursor[k] for k in ('size', 'ripple') if k in cursor}) + ';')
         await page.add_init_script((web.HERE / 'overlay.js').read_text())
         asset_folder = out.with_suffix('.resources')
         asset_folder.mkdir(exist_ok=True)
@@ -299,12 +295,18 @@ async def capture(board, a, frames, out, metadata, spoken):
     if spoken:
         spoken = {name: line for name, line in spoken.items() if name in beats}
         out.with_suffix('.voice.json').write_text(json.dumps([{'beat': name, 't': max(0, beats[name]-t0), 'file': f, 'seconds': seconds, 'text': board['voice'][name]} for name, (f, seconds) in spoken.items()], indent=2))
-    temp = out.with_name(out.stem + '.partial.mp4')
+    # The take is recorded without captions, then the storyboard's are drawn on it, as a re-cut draws them again.
+    by_id = {b['id']: b for b in board['beat']}
+    shown = captions.timing([(e['t'], e) for e in metadata['events']], [b['id'] for b in metadata['beats']])
+    out.with_suffix('.captions.json').write_text(json.dumps({'schema_version': 1, 'css_width': w, 'captions': [
+        {**row, 'recorded': by_id[row['beat']].get('caption') or None, 'recorded_sub': by_id[row['beat']].get('sub') or None}
+        for row in shown]}, indent=2))
+    clean = out.with_suffix('.clean.mp4')
     if z:
-        zoom.render(frames, events, temp, w, h, int(w*dpr)//2*2, int(h*dpr)//2*2, z)
+        zoom.render(frames, events, clean, w, h, int(w*dpr)//2*2, int(h*dpr)//2*2, z, master=True)
     else:
-        web.encode(frames, temp, size=f'{int(w*dpr)//2*2}:{int(h*dpr)//2*2}')
-    temp.replace(out)
+        web.encode(frames, clean, size=f'{int(w*dpr)//2*2}:{int(h*dpr)//2*2}', master=True)
+    captions.draw(out, board, a.storyboard)
     metadata['sha256'] = digest(out)
 
 

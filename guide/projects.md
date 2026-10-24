@@ -186,8 +186,10 @@ image, rather than forcing the click. Beats without result checks are labeled
 | `[cursor] typing` | `13` | Characters a second, 1 to 60 |
 | `[cursor] ripple` | `true` | `false` leaves out the ring that spreads on each click |
 
-Styled and zoomed captions are drawn after recording, and a run fails if one
-cannot fit inside the margins. [How the videos look](look.md) shows each.
+Captions are drawn after recording, from the storyboard, and a run fails if one
+cannot fit inside the margins. They are plain text: tags such as `<i>` are
+dropped. Because they are drawn afterwards, `reshoot recut` can change their
+words and look without recording again. [How the videos look](look.md) shows each.
 Python storyboards, the legacy format, are in the [manual workflow](manual.md).
 
 ## edit.toml
@@ -278,13 +280,16 @@ smaller size with faster encoding and a sampled scan, and `accept` refuses it.
 | `run.json` | What ran, how long each step took, the result checks, the scan and the review status |
 | `review.html` | The exports, findings, scan sheets and each beat's result, for looking at |
 | `app.log` | The app's own output |
+| `takes/NAME.clean.mp4` | The take without captions, which captions are drawn on |
+| `takes/NAME.captions.json` | When each beat's caption showed, and the words drawn |
 | `takes/NAME.take.json` | Each beat's actions, result checks, timings and evidence frames, and the browser used |
 | `takes/NAME.failure.png` | The page when a beat failed |
 | `takes/demo-final*.mp4`, `.gif`, `.srt` | The exports |
 | `review/` | The scan: numbered sheets, original frames, `flags.json` and `report.json` |
 
 `reshoot recut RUN` makes a new run from that run's takes, editing and scanning
-them again with the current `edit.toml` and `[check]`. Its report has
+them again with the current `edit.toml` and `[check]`, and drawing the
+captions again from the current storyboard. Its report has
 `recut_from`, the earlier run's ID, and keeps that run's result checks, story
 hashes and demo data, since the recording is the same.
 

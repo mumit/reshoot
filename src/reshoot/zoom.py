@@ -23,6 +23,13 @@ DEFAULTS = {"scale": 1.8, "lead": 0.7, "hold": 1.0, "quiet": 4.0, "watch": True,
 FPS = 60
 
 
+def quality(master=False):
+    """x264 settings: quick for a preview; for a take that is drawn on again, quick and nearly lossless."""
+    if os.environ.get("RESHOOT_PREVIEW"):
+        return ["-preset", "ultrafast", "-crf", "17"]
+    return ["-preset", "veryfast", "-crf", "10"] if master else ["-preset", "slow", "-crf", "17"]
+
+
 def settings(z):
     """ZOOM from a storyboard (True, a number, or a dict) as a full dict, or None for no zoom."""
     if not z:
@@ -242,7 +249,27 @@ def caption_image(text, sub, out_w, css_w, style=None):
     return im
 
 
-def render(frames, events, out, css_w, css_h, out_w, out_h, z):
+def paste(frame, caps, t, style, css_w):
+    """Draws the captions showing at t on frame: each fades in over 0.35 s, and out over 0.35 s once hidden, rising
+    a little as it comes, as in the page. caps is [(start, end, caption_image)]."""
+    style = style or {}
+    out_w, out_h = frame.size
+    margin = round(out_h*style.get('margin', .065))
+    for a, b, cap in caps:
+        fade = 0.0 if t < a else min(1.0, (t - a) / 0.35, 1.0 if t < b else 1 - (t - b) / 0.35)
+        if fade <= 0:
+            continue
+        if cap.height > out_h-2*margin:
+            raise ValueError('caption exceeds the safe frame area; shorten it or increase the frame size')
+        layer = cap if fade >= 1 else cap.copy()
+        if fade < 1:
+            layer.putalpha(layer.getchannel("A").point(lambda v: round(v * fade)))
+        lift = round((1 - fade) * 12 * out_w / css_w)
+        ycap = margin-lift if style.get('position') == 'top' else out_h-margin-cap.height+lift
+        frame.paste(layer, ((out_w - cap.width) // 2, ycap), layer)
+
+
+def render(frames, events, out, css_w, css_h, out_w, out_h, z, master=False):
     """Writes the video: each output frame is the last frame Chrome painted by then, cropped to the camera, scaled
     to the output size, with the caption drawn on top."""
     from PIL import Image
@@ -256,10 +283,11 @@ def render(frames, events, out, css_w, css_h, out_w, out_h, z):
     events = [(t - t0, ev) for t, ev in events]
     changed = change_finder(((t - t0, jpg) for t, jpg in frames), css_w, css_h) if z.get("watch", True) else None
     path = camera_path(n, events, css_w, css_h, z, changed)
-    caps = [(a, b, caption_image(text, sub, out_w, css_w, z.get('caption_style'))) for a, b, text, sub in captions(events)]
+    caps = [(a, b, caption_image(text, sub, out_w, css_w, z.get('caption_style'))) for a, b, text, sub in captions(events)
+            ] if z.get('captions', True) else []
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s",
                            f"{out_w}x{out_h}", "-r", str(FPS), "-i", "-", "-vf", "format=yuv420p", "-color_range", "tv",
-                           "-c:v", "libx264", "-preset", "ultrafast" if os.environ.get("RESHOOT_PREVIEW") else "slow", "-crf", "17", "-movflags", "+faststart", str(out)],
+                           "-c:v", "libx264", *quality(master), "-movflags", "+faststart", str(out)],
                           stdin=subprocess.PIPE)
     shown, im = None, None
     try:
@@ -272,19 +300,7 @@ def render(frames, events, out, css_w, css_h, out_w, out_h, z):
             x, y, vw, vh = path[k]
             frame = im.resize((out_w, out_h), Image.LANCZOS, box=(max(0, x * sx), max(0, y * sy), min(im.width, (x + vw) * sx), min(im.height, (y + vh) * sy)),
                               reducing_gap=2.0)
-            for a, b, cap in caps:  # fades in over 0.35 s, and out over 0.35 s once hidden, as in the page
-                fade = 0.0 if t < a else min(1.0, (t - a) / 0.35, 1.0 if t < b else 1 - (t - b) / 0.35)
-                if fade > 0:
-                    layer = cap if fade >= 1 else cap.copy()
-                    if fade < 1:
-                        layer.putalpha(layer.getchannel("A").point(lambda v: round(v * fade)))
-                    lift = round((1 - fade) * 12 * out_w / css_w)
-                    style = z.get('caption_style', {})
-                    margin = round(out_h*style.get('margin', .065))
-                    ycap = margin-lift if style.get('position') == 'top' else out_h-margin-cap.height+lift
-                    if cap.height > out_h-2*margin:
-                        raise ValueError('caption exceeds the safe frame area; shorten it or increase the frame size')
-                    frame.paste(layer, ((out_w - cap.width) // 2, ycap), layer)
+            paste(frame, caps, t, z.get('caption_style'), css_w)
             ff.stdin.write(frame.tobytes())
     finally:
         ff.stdin.close()

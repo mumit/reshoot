@@ -202,6 +202,7 @@ def main(a):
                 target = Path(shoot['_run_dir']) / relative.parent / f.name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 (shutil.copytree if f.is_dir() else shutil.copyfile)(f, target)
+            redraw(take)
         shoot.pop('app', None)
         shoot['take'] = []
         if source_report.get('mode', 'final') != 'final':
@@ -299,7 +300,7 @@ def main(a):
         report['files'] = [{'path': str(f.relative_to(report_path.parent)), 'sha256': digest(f)}
                            for f in report_path.parent.rglob('*')
                            if f.is_file() and f.resolve().is_relative_to(report_path.parent.resolve())
-                           and (f.suffix in ('.mp4', '.mov', '.gif', '.srt') or f.name.endswith(('.take.json', '.timeline.json', '.beats.json', '.events.json', '.voice.json', '.assets.json'))
+                           and (f.suffix in ('.mp4', '.mov', '.gif', '.srt') or f.name.endswith(('.take.json', '.timeline.json', '.beats.json', '.events.json', '.voice.json', '.assets.json', '.captions.json'))
                                 or f.parent.name.endswith(('.evidence', '.resources')) or f.name.endswith(('.poster.png', '.failure.png')))]
         checks = []
         metadata_files = list(report_path.parent.rglob('*.take.json'))
@@ -358,10 +359,25 @@ def main(a):
         print('or on its review page, with a button for each finding:\n  reshoot review ' + shlex.quote(shown(root)) + ' --serve')
 
 
+def redraw(take):
+    """Draws a re-cut web take's captions again from its storyboard as it is now, and says which changed. A take
+    recorded before reshoot drew captions afterwards keeps the ones it has."""
+    from reshoot import captions, story
+    if not str(take.get('web', '')).endswith('.toml'):
+        return
+    if not Path(take['out']).with_suffix('.captions.json').is_file():
+        print(f'{Path(take["out"]).name} was recorded with its captions in the page, so they stay as they were; '
+              'record a new run to change them.', flush=True)
+        return
+    changed = captions.draw(take['out'], story.load(take['web']), take['web'], quiet=True)
+    print(f'Captions from the storyboard as it is now: {", ".join(changed)} changed.' if changed else
+          'Captions from the storyboard as it is now; none changed.', flush=True)
+
+
 def recut(a):
     """Edit and scan an earlier run's takes again, into a new run, without starting the app or recording: for a
-    change to edit.toml, such as cards, music, a frame or the exports. The new run keeps that recording's result
-    checks. Captions are drawn while recording, so changing one means recording again."""
+    change to edit.toml, such as cards, music, a frame or the exports, or to a storyboard's caption words and
+    [caption] look. The new run keeps that recording's result checks."""
     from reshoot.review import read
     source_root, source_report = read(a.run_path)
     if source_report.get('record'):
@@ -378,7 +394,8 @@ def recut(a):
     now = {digest(folder / t[k]) for t in shoot.get('take', []) for k in ('web', 'tape') if k in t and (folder / t[k]).is_file()}
     if stories and now != stories:
         print(f'The storyboard changed since run {source_report["id"]} was recorded. This re-cut uses that recording, '
-              'with its actions and captions as they were; record a new run to see the changes.', flush=True)
+              'with its actions, waits and holds as they were, and draws its captions again; record a new run to '
+              'see any other change.', flush=True)
     print(f'Re-cutting the takes of run {source_report["id"]}; nothing is recorded.', flush=True)
     previous = os.environ.get('RESHOOT_PREVIEW')
     try:

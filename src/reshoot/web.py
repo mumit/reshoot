@@ -258,10 +258,11 @@ async def record(beats, url, w, h, dpr, frames, theme="dark", warm=(), mobile=Fa
         stop_chrome(chrome, profile)
 
 
-def encode(frames, out, fps=60, size="1920:1080"):
+def encode(frames, out, fps=60, size="1920:1080", master=False):
     """Shows each frame until the next was painted, then resamples to a steady fps. Chrome sends a frame only when
     something changes, so a still page sends none, and the frame rate goes up and down with the motion."""
     end = frames[-1][0] if frames and frames[-1][1] is None else None
+    from reshoot import zoom
     from reshoot.artifacts import images
     frames = images(frames)
     tmp = Path(tempfile.mkdtemp(prefix="reshoot-frames-"))
@@ -277,7 +278,7 @@ def encode(frames, out, fps=60, size="1920:1080"):
         total = max(end or 0, frames[-1][0] + 1 / fps) - frames[0][0]
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(tmp / "list.txt"), "-t", f"{total:.3f}",
                         "-vf", f"fps={fps},scale={size}:flags=lanczos:out_range=tv,format=yuv420p", "-color_range", "tv",
-                        "-c:v", "libx264", "-preset", "ultrafast" if os.environ.get("RESHOOT_PREVIEW") else "slow", "-crf", "17", "-movflags", "+faststart", str(out)], check=True)
+                        "-c:v", "libx264", *zoom.quality(master), "-movflags", "+faststart", str(out)], check=True)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

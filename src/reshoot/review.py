@@ -252,9 +252,11 @@ def compare(a):
 
 
 def exports(root, report):
-    """The videos a person watches: raw web takes sit beside their .take.json, the rest are exports."""
+    """The videos a person watches: raw web takes sit beside their .take.json, with their captionless .clean.mp4,
+    and the rest are exports."""
     return [f['path'] for f in report.get('files', []) if Path(f['path']).suffix in ('.mp4', '.mov', '.gif')
-            and not (root / f['path']).with_suffix('.take.json').exists()]
+            and not (root / f['path']).with_suffix('.take.json').exists()
+            and not (f['path'].endswith('.clean.mp4') and (root / f['path'][:-10]).with_suffix('.take.json').exists())]
 
 
 def status(root, report):

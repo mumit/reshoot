@@ -92,8 +92,10 @@ reshoot recut demo/latest
 ```
 
 It edits and scans the latest run's takes again, into a new run, in seconds.
-Captions are drawn while the page is recorded, so changing a caption in
-`storyboard.toml` still needs `reshoot preview` or `reshoot run`.
+It also draws the captions again, so a re-cut picks up new caption words and
+a new `[caption]` look in `storyboard.toml`. A caption still shows for as long
+as its beat did in the recording: to give a longer caption more time, raise
+the beat's `hold` and record again.
 
 ## Frame it like a browser window
 

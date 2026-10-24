@@ -93,11 +93,11 @@ def main(argv=None):
                    help="scan every frame of the exports this time, as full = true in [check] does")
     p.set_defaults(run=run.main)
 
-    p = sub.add_parser("recut", help="edit and scan an earlier run's takes again, into a new run, without recording",
+    p = sub.add_parser("recut", help="edit an earlier run's takes again, with the captions as they are now, without recording",
                        description="Edit and scan an earlier run's takes again, into a new run, without starting "
                        "the app or recording: for a change to edit.toml, such as title cards, music, a frame or the "
-                       "exports. The new run keeps that recording's result checks and names the run it came from. "
-                       "Captions are drawn while recording, so changing a caption means recording again.\n\n"
+                       "exports, or to a caption's words or the storyboard's [caption] look, which are drawn again. The "
+                       "new run keeps that recording's result checks and names the run it came from.\n\n"
                        "    reshoot recut demo/latest\n"
                        "    reshoot recut demo/takes/runs/ID --full", formatter_class=Examples)
     p.add_argument("run_path", metavar="RUN", help="the run whose takes to use, such as demo/latest")

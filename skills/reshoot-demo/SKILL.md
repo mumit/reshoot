@@ -23,6 +23,6 @@ For combined web and VHS edits, configure matching take dimensions. Mixed previe
 
 Keep captions short and explain the result, not the click. Leave time to read. Judge text size in the README GIF, which is usually 800 px wide: when the app's content is a narrow column in the 1280x720 frame, set a narrower `size`, such as `"960x540"`, or `zoom = true`, so the result stays readable. A narrower viewport enlarges the text; a higher pixel ratio does not. For a dropdown, use a `select` action with the option's visible label rather than key presses. Identify mocked responses or shortened waits. Do not change the product claim merely to make a recording finish.
 
-Inspect captions after page navigation. The overlay restores the current caption on same-origin page loads; zoomed or styled captions are drawn after recording.
+Inspect captions after page navigation. TOML storyboard captions are drawn after recording, as plain text, so `reshoot recut RUN` can change their words and look; Python storyboard captions are drawn in the page unless zoomed.
 
 Commit, push, or publish only within the owner's existing authorization. Creating local files is not publishing. Keep changes in the demo folder: don't edit the app's README, `.gitignore` or other files unless the owner asks; offer the Markdown that would add the GIF instead.

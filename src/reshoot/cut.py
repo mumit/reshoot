@@ -350,6 +350,9 @@ def cues(take, start=0, end=None, offset=0):
     one; otherwise the captions, which are on screen already but can't be read by a screen reader or searched."""
     if said := lines(take, start, end, offset):
         return [(at, at + s, text) for at, s, text, _ in said]
+    from reshoot import captions
+    if (drawn := captions.cues(take, start, end, offset)) is not None:
+        return drawn
     p = Path(take).with_suffix(".events.json")
     events = json.loads(p.read_text()) if p.exists() else []
     end = math.inf if end is None else end

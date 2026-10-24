@@ -126,8 +126,8 @@ past a page's limit. The notes example's loop:
 
 | Width | File |
 |---|---|
-| 800 wide (the default) | 381 KB |
-| 640 wide | 259 KB |
+| 800 wide (the default) | 356 KB |
+| 640 wide | 245 KB |
 
 ## Sound
 

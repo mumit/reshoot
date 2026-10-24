@@ -164,13 +164,14 @@ def test_a_recut_edits_a_runs_takes_again_without_recording(tmp_path, capsys):
     first = json.loads((tmp_path / 'takes/runs').glob('*/run.json').__next__().read_text())
     edit = tmp_path / 'edit.toml'
     edit.write_text(edit.read_text().replace('[[part]]', '[[part]]\ncard = "Notes"\nduration = 1\n\n[[part]]', 1))
-    board.write_text(board.read_text().replace('Find the matching note', 'A new caption'))
+    board.write_text(board.read_text().replace('Find the matching note', 'A new caption') + '\n[caption]\nposition = "top"\n')
     capsys.readouterr()
     with pytest.raises(SystemExit) as result:
         main(['recut', str(tmp_path / 'latest')])
     assert result.value.code == 0
     said = capsys.readouterr().out
     assert 'The storyboard changed since run' in said and 'nothing is recorded' in said and '== web' not in said
+    assert 'search, the [caption] look changed' in said
     runs = {json.loads(p.read_text())['id']: p.parent for p in (tmp_path / 'takes/runs').glob('*/run.json')}
     new = next(folder for name, folder in runs.items() if name != first['id'])
     report = json.loads((new / 'run.json').read_text())
@@ -179,6 +180,21 @@ def test_a_recut_edits_a_runs_takes_again_without_recording(tmp_path, capsys):
     assert not (new / 'app.log').exists()  # the app was never started
     old = runs[first['id']] / 'takes/demo-final.mp4'
     assert cut.duration(new / 'takes/demo-final.mp4') > cut.duration(old) + .5  # the new card is in it
+    # The caption is drawn again from the storyboard: new words, at the top, on the same recording
+    assert 'Find the matching note' in (old.with_suffix('.srt')).read_text()
+    assert 'A new caption' in (new / 'takes/demo-final.srt').read_text()
+    assert (new / 'takes/demo.clean.mp4').read_bytes() == (runs[first['id']] / 'takes/demo.clean.mp4').read_bytes()
+    from PIL import Image, ImageChops
+    caption = json.loads((new / 'takes/demo.captions.json').read_text())['captions']
+    at = next(row['start'] for row in caption if row['beat'] == 'search') + 1
+    def band(take, top):
+        still = tmp_path / f'{take.parent.parent.name}.png'
+        cut.ff('-ss', at, '-i', take, '-frames:v', 1, still)
+        frame = Image.open(still).convert('L')
+        return frame.crop((0, 0, frame.width, frame.height // 5) if top else (0, frame.height * 4 // 5, frame.width, frame.height))
+    def moved(top):
+        return ImageChops.difference(band(old.with_name('demo.mp4'), top), band(new / 'takes/demo.mp4', top)).getbbox()
+    assert moved(top=True) and moved(top=False)  # it left the bottom and appeared at the top
     with pytest.raises(SystemExit):
         main(['recut', str(tmp_path / 'takes/runs/missing')])
 

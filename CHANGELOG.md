@@ -29,6 +29,12 @@ change project files or commands.
 - `reshoot recut RUN` edits and scans a run's takes again into a new run, after
   a change to `edit.toml`, without starting the app or recording. The new run
   names the run it came from and keeps its result checks.
+- TOML storyboard captions are drawn after recording, from the storyboard, on
+  a take recorded without them (`NAME.clean.mp4`). A re-cut draws them again,
+  so it can change their words and `[caption]` look; each keeps its beat's
+  recorded time. Captions are now plain text on every TOML take, and evidence
+  frames no longer show them, so a comparison with an older accepted run
+  shows each beat's frame as changed once.
 
 ## 0.3.5 (2026-10-24)
 

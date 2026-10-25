@@ -7,9 +7,9 @@ it again when the app changes.
 
 | You want to | Start with |
 |---|---|
+| Make a demo of your app | [Make a demo with your agent](agent-quickstart.md): one prompt to Codex or Claude Code, then reply "accept" |
 | Learn reshoot on a made-up app | [The tutorial](step-by-step.md): `reshoot create`, the studio, a repair and an accepted update |
-| Make a demo of your own web app | [Record your own web app](your-app.md), or [a macOS window](macos-window.md) |
-| Have Codex or Claude Code make it | [Make a demo with your agent](agent-quickstart.md): one prompt, then reply "accept" |
+| Record your app yourself | [A web app](your-app.md), or [a macOS window](macos-window.md) |
 | Adopt reshoot for a team | [Reshoot on a team](team.md): ownership, CI, alerts, cost and reviewing a refresh |
 
 ## What you can add

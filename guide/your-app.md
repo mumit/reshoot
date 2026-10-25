@@ -11,7 +11,13 @@ a complete example to try separately; it is not a prerequisite.
 
 ## Show the task
 
-With your demo server running, use:
+This suits a simple web app. For anything with setup, such as a login, a
+database to reset or images that take a while to load, an
+[agent](agent-quickstart.md) gets further on its own.
+
+Start the app on your computer as you do when developing it, such as with
+`npm run dev`, using a demo account and made-up data. Then give reshoot the
+address it prints:
 
 ```bash
 reshoot create http://127.0.0.1:3000/ --directory demo
@@ -25,7 +31,10 @@ out; restore the app's state before resuming. **Remove last step** removes the
 step from the script, so restore its app state before repeating it.
 
 Choose **Done**. Reshoot writes the project, records a preview and opens the
-studio. Change captions and holds there, then choose **Update preview**.
+studio. The recorder also suggests result checks from what each step changed
+on the page, marked `# suggested` in `demo/storyboard.toml`. If the preview
+stops on one that isn't the result, remove it there and choose **Update
+preview**. Change captions and holds there, then choose **Update preview**.
 Choose **Make final** when ready to inspect the full-size exports and scan
 sheets. Nothing is accepted or published automatically.
 

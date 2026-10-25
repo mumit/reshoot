@@ -20,32 +20,7 @@ Before and after a UI change, from one storyboard.
   from your app, and a GitHub workflow records it again when the app changes and
   opens a pull request with the new video.
 
-## Try it in a minute
-
-```bash
-uv tool install 'reshoot[browser]'
-reshoot create        # make the notes demo and open it in the studio
-```
-
-It makes a made-up notes app and its story, records a preview in about 15
-seconds, and opens [the studio](guide/studio.md): a page on your computer
-where you change captions, timing, the look and the cut by pointing, then
-make the final and accept it.
-
-For your own app, start its demo server and run:
-
-```bash
-reshoot create http://127.0.0.1:3000/ --directory demo
-```
-
-Show one task in the browser that opens. Its toolbar adds a caption, checks a
-result, and finishes with **Done**. Use a demo account and made-up data.
-
-reshoot runs on macOS or Linux; [installation](guide/install.md) covers each.
-[The tutorial](guide/step-by-step.md) goes further: change the demo, break the
-app, watch the story stop on the step that broke, repair it, and compare.
-
-## Or let your agent make it
+## Make a demo of your app
 
 Open **Claude Code or Codex** in your app's repository, or in an empty folder
 if you only have a running app, and paste:
@@ -65,14 +40,48 @@ Ask only for permissions or missing details needed to proceed.
 ```
 
 Change `Target:` to a URL, or to a macOS app and its window, if there's no
-source, and add a task if you have one.
-
-What to expect, from [trials on four new apps](docs/validation/2026-10-23-cold-first-demo.md):
-2 to 3 minutes in Claude Code, 5 to 9 in Codex. The agent writes `demo/` and
-its skills, may ask to install reshoot and ffmpeg, then opens the MP4 and GIF.
-Reply "accept" or ask for changes. Nothing is published. reshoot itself calls
+source, and add a task if you have one. The agent installs reshoot, reads your
+app, writes the story and the checks that prove it worked, and fixes it until
+it records cleanly. In
+[trials on new apps](docs/validation/2026-10-23-cold-first-demo.md) that took
+2 to 5 minutes in Claude Code and 5 to 9 in Codex. It opens the MP4 and GIF;
+reply "accept" or ask for changes. Nothing is published. reshoot itself calls
 no model and needs no API key: see
 [what your agent needs](guide/agent-quickstart.md#what-your-agent-needs).
+
+## Or see it on a made-up app first
+
+```bash
+uv tool install 'reshoot[browser]'
+reshoot create        # make the notes demo and open it in the studio
+```
+
+It makes a made-up notes app and a story for it, records a preview in about
+15 seconds, and opens it in [the studio](guide/studio.md). reshoot runs on
+macOS or Linux; [installation](guide/install.md) covers each.
+
+## Then shape it in the studio
+
+The studio is a page on your computer for a demo that has a recording: change
+captions, timing, the look and the cut by pointing, then make the final and
+accept it. `reshoot studio demo` opens it. [The tutorial](guide/step-by-step.md)
+walks through it on the notes app: change the demo, break the app, watch the
+story stop on the step that broke, repair it, and compare.
+
+## Show the task yourself
+
+For a simple web app, you can record the task by hand instead of asking an
+agent. Start the app on your computer as you do when developing it, such as
+with `npm run dev`, using a demo account and made-up data. Then give reshoot
+the address it prints:
+
+```bash
+reshoot create http://127.0.0.1:3000/ --directory demo
+```
+
+A browser opens there. Show one task, add a caption and check the result with
+its toolbar, and choose **Done**. [Record your own web app](guide/your-app.md)
+has the details.
 
 ## The story is a file
 

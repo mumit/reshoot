@@ -1,9 +1,14 @@
 # The studio
 
-The studio is a page on your computer for shaping a demo. It shows the latest
-recording, lets you change its story and look by pointing, and is where you
-review and accept the final. Your project files stay the source of truth:
-everything you change in the studio is saved to them.
+The studio is a page on your computer for shaping a demo that already has a
+recording. It shows the latest one, lets you change its story and look by
+pointing, and is where you review and accept the final. Your project files stay
+the source of truth: everything you change in the studio is saved to them.
+
+**You need a working recording first.** The studio doesn't write a story or
+choose what to show. To make the first one, ask your
+[agent](agent-quickstart.md), try the made-up notes app with `reshoot create`,
+or [show the task yourself](your-app.md#show-the-task) in a simple web app.
 
 ## Open it
 

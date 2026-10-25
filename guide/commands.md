@@ -14,7 +14,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | Command | What it does |
 |---|---|
 | `reshoot --version` | Prints the installed package version |
-| `reshoot create` | Creates the notes project, checks dependencies, makes a preview and opens the studio |
+| `reshoot create` | Creates the notes project, checks dependencies, makes a preview and opens the studio. Run it again and it opens the existing project, making a preview only when it has no run yet |
 | `reshoot create URL --directory demo` | Records your task in a fresh browser with a toolbar, then makes a preview and opens the studio; `--no-studio` stops after the preview, `--no-open` prints the studio address |
 | `reshoot init demo` | Creates the bundled notes demo; refuses to overwrite files |
 | `reshoot init demo --url URL` | Creates a draft for the supplied app URL |

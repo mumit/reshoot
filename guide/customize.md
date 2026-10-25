@@ -59,8 +59,10 @@ Click a beat to play just that part.
 - **Undo** and **Redo** restore studio edits, including changes to exports and
   their scan sources. History lasts while the studio server runs. A change in
   another tab or editor requires a reload, preserving those edits.
-- **Style and exports** holds caption colours, cards, framing, music and export
+- **Style and exports** holds caption colours, cards, framing and export
   presets. Open it when the story works. Colour fields take hex values.
+- **Audio** holds voice choices and the music balance. **Use for docs** beside
+  a checked step opens its documentation screenshot settings.
 - **Record from here**, on a beat, starts the app, replays the beats before it
   off camera and records from that beat on, then shows that take. A beat whose
   actions, checks or hold changed since the recording is marked in red. When
@@ -111,6 +113,63 @@ studio is open, and reload the page to see the change. Actions and result checks
 are changed in the storyboard itself; holds are also editable in the studio. The studio serves on
 `127.0.0.1` behind a random address, takes changes only from its own page, and
 runs until you press Ctrl-C.
+
+## Keep documentation screenshots current
+
+Choose **Use for docs** beside a story step that has result checks. Describe
+the visible result in **Alt text**, choose a stable file name and optionally a
+maximum width, then **Save screenshot**. **Update preview** makes a PNG from
+that beat's captured result frame and includes it in scanning and review.
+Screenshot settings live in `reshoot.toml`; Save/Reset and Undo/Redo work as
+they do for the video. Saved changes leave the displayed run's PNGs intact
+until the preview updates.
+
+The PNG is the captured page viewport after the result hold. It retains
+privacy masks and can include the recorded cursor. It does not add the video's
+captions, camera zoom or decorative frame, and it does not capture content
+outside the viewport. A maximum width downsizes without enlarging the source.
+Inspect the actual PNG, its crop and its alt text before accepting the run.
+A passing result check does not establish readability or privacy. After saving
+a selection, open its **Crop** controls to drag a rectangle on the captured page
+or enter percentages. **Use whole captured page** resets the crop. Save and
+update the preview to inspect the resulting PNG at image size.
+
+The CLI selects the same images, with take numbers starting at 1:
+
+```bash
+reshoot screenshot set search-result --beat search \
+  --alt 'Search shows the saved bike note' --width 960 --project demo
+reshoot recut demo/latest
+reshoot export demo/latest --directory docs/demo
+```
+
+The export copies configured PNGs with the videos and prints image Markdown.
+To copy just one, add `--file screenshots/search-result.png`. Existing files
+are protected; use `--replace` deliberately to refresh them. The studio's PNG
+gallery also offers local downloads. Nothing is published.
+
+`reshoot screenshot list --project demo` lists selections;
+`reshoot screenshot remove search-result --project demo` stops producing one in
+future runs. Previously copied files and Markdown references remain yours to
+remove. `--native` removes a width limit, and `--full-frame` removes cropping.
+For a crop, give left, top, width and height as fractions of the captured page:
+
+```bash
+reshoot screenshot set search-result --crop 0.1 0.05 0.8 0.7 --project demo
+reshoot recut demo/latest
+```
+
+A re-cut uses the original result frame and retains its original checks, even
+if the selected beat is omitted from the video cut. A new recording refreshes
+both the video and PNGs from the same task. A missing frame, partial take or
+beat without passing result checks fails the run rather than producing an
+apparently verified screenshot. Crop coordinates are relative to the page;
+review them again after a responsive layout changes.
+
+The [refresh workflow](ci.md) stages these PNGs in the same pull request as the
+video. The review page shows them at full image links, and comparison reports
+identify added, removed, changed or unchanged named screenshots. Pixel changes
+can include cursor movement or rendering noise; inspect the images yourself.
 
 ## Audition narration and balance audio
 

@@ -342,7 +342,13 @@ def view(folder, take, config, run=None):
     edit_path = Path(folder) / shoot['edit']['file'] if shoot.get('edit', {}).get('file') else None
     data = {'story': board_path.name, 'look': board.get('caption', {}), 'run': None, 'beats': [], 'findings': [],
             'edit': None, 'failure': failed(folder, take, config), 'recording_size': recording_size}
-    from reshoot import audio, styles
+    from reshoot import audio, screenshots, styles
+    take_index = next(i for i, item in enumerate(shoot['take']) if item.get('web') == take['web'] and item.get('out') == take['out'])
+    data['screenshot_specs'] = shoot.get('screenshot', [])
+    data['screenshot_take'] = take_index
+    data['screenshots'] = []
+    data['screenshot_beats'] = [{'id': beat['id'], 'alt': beat.get('purpose') or beat.get('caption') or 'Result of ' + beat['id']}
+                               for beat in board['beat'] if beat.get('expect')]
     data['voices'] = audio.voices()
     data['voice_engine'] = board.get('voice_engine', '')
     data['styles'], data['styles_error'], data['current_style'] = {}, '', None
@@ -377,6 +383,7 @@ def view(folder, take, config, run=None):
     recorded, drawn, rows, look_drawn, recorded_voice = {}, {}, {}, None, {}
     if run:
         root, report = run
+        data['screenshots'] = screenshots.listing(root, report)
         if data['edit'] and report.get('inputs', {}).get('edit_sha256'):
             data['edit']['pending'] = report['inputs']['edit_sha256'] != digest(edit_path)
         clips = [p for p in review.exports(root, report) if p.endswith('.mp4')]
@@ -414,6 +421,8 @@ def view(folder, take, config, run=None):
         preferred = [master, *[str(Path(master).parent / profile['file']) for profile in (data['edit'] or {}).get('exports', [])]]
         order = {path: i for i, path in enumerate(preferred)}
         for path in sorted(review.exports(root, report), key=lambda path: (order.get(path, len(order)), path)):
+            if path.endswith('.png'):
+                continue
             w, h, seconds = cuts.probe(root / path)
             size = (root / path).stat().st_size
             preset = presets.get(Path(path).name)
@@ -573,7 +582,7 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
-            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'job', 'accept', 'undo', 'redo', 'cancel'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'job', 'accept', 'undo', 'redo', 'cancel'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -627,6 +636,12 @@ def server(a):
                             raise ValueError('Choose an installed voice. Custom speech commands are edited in the storyboard.')
                     before = history.snapshot()
                     audio.apply(config, change, expected=before)
+                    history.remember(before, history.snapshot())
+                    out = {'ok': True}
+                elif action == 'screenshot':
+                    from reshoot import screenshots
+                    before = history.snapshot()
+                    screenshots.apply(config, body.get('operation'), body.get('name'), body.get('settings'), expected=before)
                     history.remember(before, history.snapshot())
                     out = {'ok': True}
                 elif action == 'style':
@@ -774,6 +789,7 @@ def page(data, accept, seen=0):
     seconds = lambda t: f'{t:.1f} s'
     pending = '<p class="pending"{}>Saved. Update preview to see this change.</p>'
     beats = []
+    shot_beats = {beat['id'] for beat in data.get('screenshot_beats', [])}
     for n, beat in enumerate(data['beats']):
         checks = beat.get('checks') or []
         passed = sum(c == 'passed' for c in checks)
@@ -790,6 +806,7 @@ def page(data, accept, seen=0):
     <div class="head"><strong>{n + 1}. {e(beat['id'])}</strong><span class="when">{when}</span></div>
     {f'<p class="purpose">{e(beat["purpose"])}</p>' if beat.get('purpose') else ''}
     <p class="checks">{f'{passed} of {len(checks)} result checks passed' if checks else 'No result checks'}</p>
+    {f'<button type="button" data-shot-beat="{e(beat["id"])}">Use for docs</button>' if beat['id'] in shot_beats else ''}
     <label>Caption <input name="caption" value="{e(beat['caption'])}" placeholder="No caption"></label>
     <label>Second line <input name="sub" value="{e(beat['sub'])}" placeholder="None"></label>
     <label>Hold result (seconds) <input name="hold" type="number" min="0" step="0.5" value="{e(beat['hold'])}"></label>
@@ -804,6 +821,37 @@ def page(data, accept, seen=0):
     <p class="redo{' changed' if changed else ''}">{'Its actions, checks or hold changed since this recording. ' if changed else ''}<button type="button" data-from="{e(beat['id'])}" title="Start the app, replay the beats before this one off camera, and record from here">Record from here</button></p>
   </div>
 </li>''')
+    screenshot_forms = []
+    for spec in data.get('screenshot_specs', []):
+        crop = spec.get('crop', [0, 0, 1, 1])
+        source = next((row['source'] for row in data.get('screenshots', []) if row['name'] == spec['name'] and row['beat'] == spec['beat'] and row['take'] == spec.get('take', 0)), None)
+        if source is None and spec.get('take', 0) == data.get('screenshot_take', 0):
+            source = next((beat.get('frame') for beat in data['beats'] if beat['id'] == spec['beat']), None)
+        crop_fields = ''.join(f'<label>{label} (%) <input name="crop_{key}" type="number" min="0" max="100" step="any" value="{value * 100:g}" required></label>'
+                              for key, label, value in zip(('x', 'y', 'w', 'h'), ('Left', 'Top', 'Width', 'Height'), crop))
+        crop_guide = (f'<div class="shot-crop-guide" aria-label="Drag to choose a crop; use the percentage fields with a keyboard"><img src="run/{e(source)}" alt="Captured page used for this screenshot" draggable="false"><span></span></div>' if source else '')
+        screenshot_forms.append(f'''<form class="screenshot-form" data-operation="set" data-name="{e(spec['name'])}" data-take="{spec.get('take', 0)}" data-beat="{e(spec['beat'])}">
+<strong>{e(spec['name'])}.png</strong><p class="hint">Take {spec.get('take', 0) + 1}, beat {e(spec['beat'])}.</p>
+<label>Alt text <textarea name="alt" rows="2" maxlength="300" required>{e(spec['alt'])}</textarea></label>
+<label>Maximum width (px; blank keeps captured size) <input name="width" type="number" min="160" max="3840" step="1" value="{e(spec.get('width', ''))}"></label>
+<details class="shot-crop"><summary>Crop</summary><p class="hint">Drag a rectangle on the captured page or enter percentages. Save and Update preview to inspect the PNG.</p>{crop_guide}<div class="range-form">{crop_fields}</div><button type="button" data-whole-shot>Use whole captured page</button></details>
+<button type="submit">Save screenshot</button> <button type="reset">Reset</button>
+<button type="button" data-remove-shot="{e(spec['name'])}">Remove screenshot</button></form>''')
+    eligible = data.get('screenshot_beats', [])
+    new_shot = (f'''<form class="screenshot-form" id="add-screenshot" data-operation="add" data-take="{data.get('screenshot_take', 0)}" data-beats="{e(json.dumps(eligible))}">
+<h3>Add a screenshot</h3><label>Checked result <select name="beat">{''.join(f'<option value="{e(beat["id"])}">{e(beat["id"])}</option>' for beat in eligible)}</select></label>
+<label>File name (without .png) <input name="name" required maxlength="80" pattern="[a-zA-Z0-9_-]+" placeholder="search-result"></label>
+<label>Alt text <textarea name="alt" rows="2" maxlength="300" required placeholder="Describe the visible result"></textarea></label>
+<label>Maximum width (px; blank keeps captured size) <input name="width" type="number" min="160" max="3840" step="1"></label>
+<button type="submit">Save screenshot</button> <button type="reset">Reset</button></form>'''
+                if eligible else '<p class="hint">Add a result check to a story step to use its captured frame for documentation.</p>')
+    screenshot_box = f'''<details class="screenshots-controls"><summary>Documentation screenshots</summary>
+<p class="hint">Choose a checked result and describe it. Update preview makes a PNG from its captured page frame, then includes it in scanning and review. The cursor may be visible; video captions, framing and zoom are not added.</p>
+{''.join(screenshot_forms)}{new_shot}</details>'''
+    shot_images = ''.join(f'''<figure><a href="run/{e(row['path'])}"><img src="run/{e(row['path'])}" alt="{e(row['alt'])}" loading="lazy"></a>
+<figcaption><strong>{e(row['name'])}.png</strong> · {row['pixels'][0]} × {row['pixels'][1]}<br>{e(row['alt'])}</figcaption>
+<button type="button" data-inspect="run/{e(row['path'])}" data-view="{row['pixels'][0]}" data-time="" data-alt="{e(row['alt'])}">Inspect PNG at image size</button>
+<a href="run/{e(row['path'])}" download="{e(row['name'])}.png">Download PNG</a></figure>''' for row in data.get('screenshots', []))
     look = data['look']
     marks = ''
     if run:
@@ -1002,11 +1050,13 @@ def page(data, accept, seen=0):
 <section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><audio id="audition-player" controls hidden></audio><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
 <main><section class="watch">{failure_box}{top}
 {f'<div class="shapes"><h2>Exports</h2><p class="hint">Measurements describe this rendered run. Update preview to measure saved changes.</p><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
+{f'<div class="docs-shots"><h2>Documentation screenshots</h2><p class="hint">From this displayed run. Update preview to render saved changes. Inspect each PNG before sharing.</p><div class="grid">{shot_images}</div></div>' if shot_images else ''}
 {f'<div class="found"><h2>What the scan found</h2><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>
 <section class="side"><div class="beats"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
 {audio_box}
+{screenshot_box}
 {sequence_box}
 <details class="styling"><summary>Style and exports</summary>{styles_box}<div class="look"><h2>Caption look</h2>
 <label>Place <select name="position"><option value="bottom"{' selected' if look.get('position', 'bottom') == 'bottom' else ''}>Bottom</option><option value="top"{' selected' if look.get('position') == 'top' else ''}>Top</option></select></label>
@@ -1079,7 +1129,7 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .accept fieldset { border:1px solid var(--line); border-radius:8px; margin:10px 0 } .accept fieldset label { color:var(--ink) }
 .primary { background:var(--accent); color:var(--panel); border-color:var(--accent); font-weight:600 }
 .advanced { position:relative } .advanced[open] { display:flex; gap:6px; align-items:center }
-summary { cursor:pointer; font-weight:600 } .styling, .audio-controls { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
+summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screenshots-controls { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
 .styling > div { margin-top:14px } .error { color:var(--bad); font-weight:600 }
 #save-error { margin:12px 20px; padding:12px; border:1px solid var(--bad); border-radius:8px }
 .scan img { max-width:100%; display:block; margin-top:10px } .watch { min-width:0 }
@@ -1116,13 +1166,18 @@ summary { cursor:pointer; font-weight:600 } .styling, .audio-controls { backgrou
 .inspection-rail { overflow:auto; max-width:calc(100vw - 80px); max-height:calc(100vh - 180px) }
 .inspection-rail img, .inspection-rail video { max-width:none; display:block; border-radius:0 }
 .narration { margin:12px 0 } .narration summary { cursor:pointer; font-weight:600 }
-.narration textarea { width:100%; resize:vertical; min-height:72px; font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; box-sizing:border-box }
+.narration textarea, .screenshot-form textarea { width:100%; resize:vertical; min-height:72px; font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; box-sizing:border-box }
+.screenshot-form { padding:12px 0; border-top:1px solid var(--line); margin-top:12px }
+.shot-crop { margin:10px 0 } .shot-crop-guide { position:relative; overflow:hidden; cursor:crosshair; touch-action:none; border:1px solid var(--line); margin:8px 0 }
+.shot-crop .range-form { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)) }
+.shot-crop-guide img { width:100%; display:block; pointer-events:none } .shot-crop-guide span { position:absolute; border:2px solid #fbbf24; box-shadow:0 0 0 400px #0006; pointer-events:none }
+.docs-shots figure { margin:0 } .docs-shots img { display:block; width:100%; border:1px solid var(--line); border-radius:6px } .docs-shots figcaption { font-size:13px; margin:8px 0 }
 .audio-mix { border:1px solid var(--line); border-radius:8px; padding:12px; margin:12px 0 }
 #audition-player { display:block; width:min(100%, 440px); margin-top:10px } #audition-player[hidden] { display:none }
 '''
 
 SCRIPT = '''(() => {
-  document.querySelectorAll('details.styling, details.advanced, details.narration, details.audio-controls').forEach(box => {
+  document.querySelectorAll('details.styling, details.advanced, details.narration, details.audio-controls, details.screenshots-controls').forEach(box => {
     const key = location.pathname + ':' + box.className + ':' + (box.closest('.beat')?.dataset.beat || '');
     box.open = sessionStorage.getItem(key) === 'open';
     box.addEventListener('toggle', () => sessionStorage.setItem(key, box.open ? 'open' : 'closed'));
@@ -1138,9 +1193,11 @@ SCRIPT = '''(() => {
         : what === 'framing' && body.size != null ? document.querySelector('.recording-view')
         : what === 'framing' ? document.querySelector(`.export-framing[data-export="${body.export}"]`)
         : what === 'audio' && body.change.beat != null ? document.querySelector(`.beat[data-beat="${CSS.escape(body.change.beat)}"] .narration-form`)
-        : what === 'audio' && body.change.mix ? document.querySelector('.audio-mix') : null;
+        : what === 'audio' && body.change.mix ? document.querySelector('.audio-mix')
+        : what === 'screenshot' && body.operation === 'add' ? document.getElementById('add-screenshot')
+        : what === 'screenshot' && body.operation === 'set' ? document.querySelector(`.screenshot-form[data-name="${CSS.escape(body.name)}"]`) : null;
       const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !ownForm || !ownForm.contains(input));
-      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio'].includes(what)) && unsaved) {
+      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio', 'screenshot'].includes(what)) && unsaved) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
       }
@@ -1198,11 +1255,11 @@ SCRIPT = '''(() => {
   document.querySelectorAll('[data-inspect]').forEach(button => button.onclick = () => {
     if (video) video.pause();
     const rail = inspector.querySelector('.inspection-rail'); rail.replaceChildren();
-    const gif = button.dataset.inspect.endsWith('.gif');
+    const png = button.dataset.inspect.endsWith('.png'), gif = png || button.dataset.inspect.endsWith('.gif');
     const media = document.createElement(gif ? 'img' : 'video');
-    const width = Math.max(160, Math.min(1920, +button.dataset.view || 640));
+    const width = Math.max(png ? 1 : 160, Math.min(png ? 3840 : 1920, +button.dataset.view || 640));
     media.style.width = width + 'px'; media.style.height = 'auto';
-    if (gif) media.alt = 'Rendered export at viewing size';
+    if (gif) media.alt = button.dataset.alt || 'Rendered export at viewing size';
     else { media.controls = true; media.preload = 'metadata'; media.playsInline = true; }
     media.src = button.dataset.inspect; rail.append(media);
     document.getElementById('inspector-size').textContent = width + ' px viewing width. Scroll if it does not fit; the image is not scaled down to the panel.';
@@ -1308,6 +1365,60 @@ SCRIPT = '''(() => {
   }));
   // Changes to the edit file. One that adds or removes a card or an export reloads, to show it in the list.
   const cut = document.querySelector('.cut');
+  document.querySelectorAll('.screenshot-form').forEach(form => {
+    const cropKeys = ['x', 'y', 'w', 'h'], guide = form.querySelector('.shot-crop-guide');
+    const drawCrop = () => {
+      if (!guide) return;
+      const values = cropKeys.map(key => +form.elements['crop_' + key].value), box = guide.querySelector('span');
+      ['left', 'top', 'width', 'height'].forEach((key, i) => box.style[key] = values[i] + '%');
+    };
+    const setCrop = values => { values = values.map(value => +value.toFixed(2)); values[2] = Math.min(values[2], 100 - values[0]); values[3] = Math.min(values[3], 100 - values[1]); cropKeys.forEach((key, i) => {
+      const input = form.elements['crop_' + key]; input.value = +values[i].toFixed(2); input.dataset.unsaved = '1';
+    }); drawCrop(); };
+    form.querySelectorAll('[name^=crop_]').forEach(input => input.addEventListener('input', drawCrop));
+    const whole = form.querySelector('[data-whole-shot]'); if (whole) whole.onclick = () => setCrop([0, 0, 100, 100]);
+    if (guide) {
+      let start = null;
+      const point = event => { const rect = guide.getBoundingClientRect(); return [Math.max(0, Math.min(100, (event.clientX - rect.left) / rect.width * 100)), Math.max(0, Math.min(100, (event.clientY - rect.top) / rect.height * 100))]; };
+      guide.onpointerdown = event => {
+        if (event.button !== 0 || form.querySelector('button[type=submit]').disabled) return;
+        start = point(event); guide.setPointerCapture(event.pointerId); event.preventDefault();
+      };
+      guide.onpointermove = event => {
+        if (!start) return;
+        const end = point(event), width = Math.abs(end[0] - start[0]), height = Math.abs(end[1] - start[1]);
+        if (width >= .1 && height >= .1) setCrop([Math.min(start[0], end[0]), Math.min(start[1], end[1]), width, height]);
+      };
+      guide.onpointerup = guide.onpointercancel = () => { start = null; };
+      drawCrop();
+    }
+    form.querySelectorAll('textarea, input, select').forEach(input => input.addEventListener('input', () => input.dataset.unsaved = '1'));
+    form.addEventListener('reset', () => {
+      form.querySelectorAll('[data-unsaved]').forEach(input => delete input.dataset.unsaved);
+      if (!document.querySelector('[data-unsaved]')) error('');
+      setTimeout(drawCrop, 0);
+    });
+    form.onsubmit = event => {
+      event.preventDefault();
+      const adding = form.dataset.operation === 'add';
+      const settings = {alt: form.elements.alt.value, width: form.elements.width.value === '' ? null : +form.elements.width.value};
+      if (form.elements.crop_x) settings.crop = cropKeys.map(key => +form.elements['crop_' + key].value / 100);
+      if (adding) Object.assign(settings, {beat: form.elements.beat.value, take: +form.dataset.take});
+      post('screenshot', {operation: form.dataset.operation, name: adding ? form.elements.name.value : form.dataset.name, settings}).then(out => { if (out.ok) location.reload(); });
+    };
+  });
+  document.querySelectorAll('[data-remove-shot]').forEach(button => button.onclick = () => post('screenshot', {operation: 'remove', name: button.dataset.removeShot}).then(out => { if (out.ok) location.reload(); }));
+  document.querySelectorAll('[data-shot-beat]').forEach(button => button.onclick = () => {
+    const panel = document.querySelector('.screenshots-controls'); panel.open = true;
+    const form = document.getElementById('add-screenshot'); if (!form) return;
+    if (form.querySelector('[data-unsaved]')) { error('Save or reset the screenshot draft before choosing another step.'); return; }
+    const existing = panel.querySelector(`.screenshot-form[data-take="${form.dataset.take}"][data-beat="${CSS.escape(button.dataset.shotBeat)}"]`);
+    if (existing) { existing.scrollIntoView({block: 'center'}); existing.elements.alt.focus(); return; }
+    const choice = JSON.parse(form.dataset.beats).find(beat => beat.id === button.dataset.shotBeat);
+    form.elements.beat.value = choice.id; form.elements.name.value = choice.id + '-result'; form.elements.alt.value = choice.alt;
+    ['beat', 'name', 'alt'].forEach(name => form.elements[name].dataset.unsaved = '1');
+    form.scrollIntoView({block: 'center'}); form.elements.alt.focus();
+  });
   document.querySelectorAll('.narration-form, .audio-mix').forEach(form => {
     form.querySelectorAll('textarea, input').forEach(input => input.addEventListener('input', () => input.dataset.unsaved = '1'));
     form.addEventListener('reset', () => {

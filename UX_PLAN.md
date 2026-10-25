@@ -118,10 +118,26 @@ See [the destination framing trial](docs/validation/2026-10-24-destination-frami
 
 See [the narration and audio trial](docs/validation/2026-10-24-narration-and-audio.md).
 
+## Documentation screenshots
+
+- [x] Select named PNGs from complete TOML browser takes with passing result
+  checks; preserve their captured privacy masks and original source frames.
+- [x] Share guarded CLI/studio selections, alt text, maximum width and crop
+  settings without changing the captured task or result checks.
+- [x] Offer Use for docs, Save/Reset, Undo/Redo, drag/keyboard crops, local
+  downloads and image-size inspection beside the displayed run.
+- [x] Generate screenshots on fresh runs and re-cuts; bind pixels, source frames
+  and take metadata, and add PNGs and alt text to the configured scan/review.
+- [x] Include PNGs in local exports, refresh records, Markdown and screenshot
+  comparisons; extend the refresh template to stage all configured exports.
+- [x] Complete the final crop browser trial, regressions, fresh CLI refresh,
+  gallery/UI inspection and documentation/package verification.
+
+See [the documentation screenshots trial](docs/validation/2026-10-24-documentation-screenshots.md).
+
 ## Following milestones
 
-1. Screenshots for docs that stay current.
-2. Self-contained clickable tours from the verified beats.
+1. Self-contained clickable tours from the verified beats.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

@@ -39,6 +39,7 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 
 | Date | Record |
 |---|---|
+| 2026-10-24 | [Documentation screenshots](2026-10-24-documentation-screenshots.md): checked result PNGs, visual crops, alt text, run-bound provenance and refresh review |
 | 2026-10-24 | [Narration and audio balance](2026-10-24-narration-and-audio.md): saved-line auditions, local voices, reversible mix controls and preserved recording checks |
 | 2026-10-24 | [Destination framing and readability](2026-10-24-destination-framing.md): shared crops, viewing-size inspection, bounded measurements and narrower captures |
 | 2026-10-24 | [Beat trimming and sequencing](2026-10-24-beat-sequencing.md): inclusive ranges, video order, repeats, undo and preserved source checks |

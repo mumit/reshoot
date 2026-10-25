@@ -5,6 +5,18 @@ description: Update an existing reshoot demo after an app or release changes. Us
 
 # Refresh a demo
 
+Keep `[[screenshot]]` selections in `reshoot.toml` beside the video settings.
+Their named PNGs come from checked TOML browser result frames, not a fresh
+unverified capture. `reshoot screenshot set NAME --beat BEAT --alt 'Visible result'
+--project demo` selects one; optional `--width 960` downsizes and `--crop LEFT TOP
+WIDTH HEIGHT` uses fractions inside the captured viewport. Update preview or
+re-cut to render settings; a fresh recording refreshes pixels. Keep every result
+check. `reshoot export RUN --directory docs/demo --replace --record demo/accepted
+--markdown media.md` includes PNGs and alt text by default. An explicit `--file`
+list must include `screenshots/NAME.png`. Inspect image and alt text in the same
+review as the videos. Comparison reports screenshot changes; old copied files
+are not deleted when a selection is removed. Nothing is published by these commands.
+
 For combined web and VHS edits, keep take dimensions matched. Mixed previews retain the configured browser dimensions to match the unchanged VHS output size.
 
 Requires reshoot CLI 0.3.6 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'` before going on. For a versioned browser/VHS project, read its brief, config, storyboard and previous run before changing anything, then run `reshoot doctor --config CONFIG`. Use `reshoot runs PROJECT` to list runs; a run path ending in `accepted` or `latest` resolves to the newest accepted or successful run. Record the exact ID of the run you compare against, since aliases move as new runs finish. When there is no `demo/accepted`, compare against the newest final run in `reshoot runs`, and tell the owner it was never accepted.

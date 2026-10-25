@@ -5,6 +5,20 @@ Every picture here comes from the bundled notes example, recorded by
 single setting, or combines them in a reusable visual style. Run the script again to bring the page up to
 date.
 
+## Documentation screenshots
+
+A selected result frame becomes a PNG beside the videos. This is the captured
+page after the search checks passed, without the video's caption, camera zoom
+or decorative frame. The recorded cursor may remain visible. It is a viewport
+image, not a stitched full-page capture.
+
+![Search shows the saved bike note](../docs/look/docs-search.png)
+
+Choose **Use for docs** beside a checked step in the studio, describe the image,
+save it and update the preview. Its name stays stable across fresh recordings.
+See [documentation screenshots](customize.md#keep-documentation-screenshots-current)
+for cropping, local export and refresh review.
+
 ## Visual styles
 
 Choose a complete look in the studio's **Style and exports**, or apply one
@@ -216,8 +230,8 @@ past a page's limit. The notes example's loop:
 
 | Width | File |
 |---|---|
-| 800 wide (the default) | 337 KB |
-| 640 wide | 236 KB |
+| 800 wide (the default) | 330 KB |
+| 640 wide | 230 KB |
 
 ## Sound
 

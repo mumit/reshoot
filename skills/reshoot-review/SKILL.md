@@ -15,6 +15,14 @@ Check exits 0 for accepted supplied items, 1 for human review pending, and 2 for
 
 Inspect sheets and original frames, then watch the final video, with sound when present. Check the stated result, text size, caption wrapping, timing, audio, end card, and any mock or speed labels. Use only made-up data. Fail private names, accounts, files, tokens, or unintended people shown in the recording.
 
+For runs with `screenshots.json`, inspect every named documentation PNG at image
+size and read its alt text. The manifest binds the image, source result frame and
+take metadata; PNGs join the run's check sources, and alt text is scanned directly
+when detection is enabled. These are page viewport frames, with privacy masks
+and possibly the cursor, without video captions, zoom or framing. A passing beat
+does not certify a crop or description. Compare changed images as well as videos;
+PNG/alt decisions belong to this exact run and do not inherit acceptance.
+
 For runs with `.readability.json`, use `reshoot frame check RUN` and the studio's
 Inspect at viewing size to inspect measured font sizes, crop clipping and
 subtitle reading time at the intended browser width. The review page also

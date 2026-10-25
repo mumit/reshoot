@@ -146,6 +146,11 @@ def shared(root, report, copied, findings_dir, link=None):
         image = f'![The recorded demo]({url(gifs[0], True)})'
         lines += [f'[{image}]({url(videos[0])})' if videos else image, '']
     lines += [f'[Watch {p.name}]({url(p)})' for p in videos]
+    from reshoot.screenshots import listing
+    descriptions = {Path(row['path']).name: row['alt'] for row in listing(root, report)}
+    for image in [p for p in copied if p.name in descriptions]:
+        alt = re.sub(r'([\\\[\]`*_<>])', r'\\\1', descriptions[image.name])
+        lines += ['', f'![{alt}]({url(image, True)})']
     keys, flags = load(root / 'review' / 'key.json', {}), load(root / 'review' / 'flags.json', {})
     if keys:
         groups, names = findings(flags), named(root, report)
@@ -192,7 +197,10 @@ def environment(root):
 def decision_names(root):
     flags = root / 'review' / 'flags.json'
     findings = json.loads(flags.read_text()) if flags.exists() else {}
-    return {'video', *beats(root), *('finding/' + label for label in findings)}
+    from reshoot.screenshots import listing
+    report = json.loads((root / 'run.json').read_text())
+    return {'video', *beats(root), *('finding/' + label for label in findings),
+            *('screenshot/' + row['name'] for row in listing(root, report))}
 
 
 def compare(a):
@@ -222,7 +230,16 @@ def compare(a):
                      'duration_delta': round((current['end']-current['start'])-(previous['end']-previous['start']), 3) if previous and current and all(k in b for b in (previous,current) for k in ('start','end')) else None,
                      'evidence_changed': previous_hash != current_hash if previous_hash and current_hash else None,
                      'results_changed': [{k:v for k,v in x.items() if k != 'at'} for x in previous.get('expectations', [])] != [{k:v for k,v in x.items() if k != 'at'} for x in current.get('expectations', [])] if previous and current else None})
-    result = {'schema_version': 1, 'previous': old['id'], 'current': new['id'], 'beats': rows,
+    from reshoot.screenshots import listing
+    old_shots = {row['name']: row for row in listing(old_root, old)}
+    new_shots = {row['name']: row for row in listing(new_root, new)}
+    shots = []
+    for name in sorted(old_shots.keys() | new_shots.keys()):
+        previous, current = old_shots.get(name), new_shots.get(name)
+        fields = ('sha256', 'alt', 'beat', 'take', 'crop', 'width')
+        change = 'added' if previous is None else 'removed' if current is None else ('unchanged' if all(previous.get(k) == current.get(k) for k in fields) else 'changed')
+        shots.append({'name': name, 'change': change, 'previous': previous, 'current': current})
+    result = {'schema_version': 1, 'previous': old['id'], 'current': new['id'], 'beats': rows, 'screenshots': shots,
               'inputs_changed': old.get('inputs') != new.get('inputs'),
               'previous_environment': environment(old_root), 'current_environment': environment(new_root),
               'note': 'Matched means the ID matched, not that pixels or results are equal.'}
@@ -246,6 +263,8 @@ def compare(a):
                 print(f"  {row['beat']}: {row['change']}" + (', changed ' + ' and '.join(what) if what else ''))
         if not changed:
             print('No beat changed its steps or results.')
+        for row in result.get('screenshots', []):
+            print(f'  screenshot {row["name"]}: {row["change"]}')
         print(f"Result checks {old.get('expectations_status', 'unverified')} before, "
               f"{new.get('expectations_status', 'unverified')} now. Wrote {a.out}.")
     return result
@@ -254,9 +273,10 @@ def compare(a):
 def exports(root, report):
     """The videos a person watches: raw web takes sit beside their .take.json, with their captionless .clean.mp4,
     and the rest are exports."""
+    from reshoot.screenshots import listing
     return [f['path'] for f in report.get('files', []) if Path(f['path']).suffix in ('.mp4', '.mov', '.gif')
             and not (root / f['path']).with_suffix('.take.json').exists()
-            and not (f['path'].endswith('.clean.mp4') and (root / f['path'][:-10]).with_suffix('.take.json').exists())]
+            and not (f['path'].endswith('.clean.mp4') and (root / f['path'][:-10]).with_suffix('.take.json').exists())] + [row['path'] for row in listing(root, report)]
 
 
 def status(root, report):
@@ -368,7 +388,10 @@ def record(root, report, target, shared=()):
         marker = target / 'run.json'
         if not (marker.exists() and json.loads(marker.read_text()).get('record')):
             raise ValueError(f'{target} exists and is not a run record; choose another folder')
-    keep = [f for f in report.get('files', []) if f['path'].endswith('.take.json') or '.evidence/' in f['path']]
+    from reshoot.screenshots import listing
+    screenshots = {row['path'] for row in listing(root, report)}
+    keep = [f for f in report.get('files', []) if f['path'].endswith('.take.json') or '.evidence/' in f['path']
+            or f['path'] == 'screenshots.json' or f['path'] in screenshots]
     staging = target.with_name(target.name + '.partial')
     shutil.rmtree(staging, ignore_errors=True)
     for item in keep:
@@ -420,6 +443,9 @@ def summary(result, report, root):
         delta = row['duration_delta']
         lines.append(f"| `{row['beat']}` | {row['change']} | {yes(row['definition_changed'])} | "
                      f"{'' if delta is None else f'{delta:+.2f} s' if abs(delta) >= .005 else '0'} | {yes(row['evidence_changed'])} | {yes(row['results_changed'])} |")
+    if result.get('screenshots'):
+        lines += ['', '| Documentation screenshot | Change |', '|---|---|']
+        lines += [f'| `{row["name"]}` | {row["change"]} |' for row in result['screenshots']]
     lines += ['', result['note'] + ' Frame pixels change with small things such as the cursor; watch the video.']
     return '\n'.join(lines) + '\n'
 
@@ -446,13 +472,16 @@ def main(a):
     # The page reads top to bottom as the review goes: the exports, what the scan found, the scan sheets, then each
     # beat with its original take, and the run's other files folded away at the end.
     watched = exports(root, report)
+    from reshoot.screenshots import listing
+    shot_alts = {row['path']: row['alt'] for row in listing(root, report)}
     named_files = {item['path'] for item in report.get('files', [])}
     media, sections, scanned, other = [], [], [], []
     for item in report.get('files', []):
         name = item['path']
         src = html.escape(quote(name), quote=True)
-        if Path(name).suffix in ('.mp4', '.mov', '.gif'):
-            content = (f'<img src="{src}" alt="Recorded GIF">' if name.endswith('.gif') else
+        if Path(name).suffix in ('.mp4', '.mov', '.gif') or name in shot_alts:
+            content = (f'<a href="{src}"><img src="{src}" alt="{html.escape(shot_alts[name], quote=True)}"></a><p>Documentation screenshot from a checked result frame.</p>' if name in shot_alts else
+                       f'<img src="{src}" alt="Recorded GIF">' if name.endswith('.gif') else
                        f'<video controls preload="metadata" data-file="{src}" src="{src}"></video>')
             feedback = ''
             sidecar = str(Path(name).with_suffix('.readability.json'))
@@ -532,13 +561,13 @@ def main(a):
         baseline = root / 'baseline'
         baseline.mkdir(exist_ok=True)
         for item in old.get('files', []):
-            if Path(item['path']).suffix in ('.mp4', '.gif'):
+            if Path(item['path']).suffix in ('.mp4', '.gif') or item['path'] in {row['path'] for row in listing(old_root, old)}:
                 target = baseline / item['path']
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(old_root / item['path'], target)
                 src = html.escape(quote(str(target.relative_to(root))), quote=True)
-                if target.suffix == '.gif':
-                    content = f'<img src="{src}" alt="Previous GIF">'
+                if target.suffix in ('.gif', '.png'):
+                    content = f'<img src="{src}" alt="Previous export">'
                 else:
                     content = f'<video controls src="{src}"></video>'
                 previous_panel += f'<h2>Previous: {html.escape(item["path"])}</h2>' + content
@@ -613,10 +642,10 @@ def panel(root, report, *, final_action='reshoot run'):
     ask = ' Then say whether each finding may be shared.' if rows else ''
     return (f'<div id="to-accept" class="flagged" data-run="{html.escape(report["id"])}" '
             f'data-binding="{binding(root, report)}"><h2>Accept this run</h2><p>Watch every export to the end and '
-            'look at the scan items, findings first.' + ask + '</p>' + rows + PANEL + '</div>' + PANEL_SCRIPT)
+            'inspect the documentation screenshots and look at the scan items, findings first.' + ask + '</p>' + rows + PANEL + '</div>' + PANEL_SCRIPT)
 
 
-PANEL = '''<p><label><input type="checkbox" id="watched"> I watched every export to the end and looked at every scan
+PANEL = '''<p><label><input type="checkbox" id="watched"> I watched every video, inspected the screenshots and looked at every scan
 item</label></p><button id="accept" disabled>Accept the run</button><pre id="outcome"></pre>'''
 
 PANEL_SCRIPT = '''<script>(() => {

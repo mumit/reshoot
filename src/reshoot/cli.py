@@ -50,7 +50,7 @@ def main(argv=None):
     p.add_argument("--ok", action="store_true", help="every other image on the sheets passed")
     p.add_argument("--watch-for", action="append", metavar="WORDS",
                    help="words to flag wherever they appear, comma-separated, or @FILE with one per line")
-    p.add_argument("--text-file", action="append", default=[], help="scan exact subtitle (.srt) or narration (.voice.json) text")
+    p.add_argument("--text-file", action="append", default=[], help="scan exact subtitle (.srt), narration (.voice.json), or screenshot alt (screenshots.json) text")
     p.add_argument("--ocr", choices=["auto", "vision", "tesseract"], help="explicit OCR backend; failures never silently fall back")
     p.add_argument("--no-scan", dest="scan", action="store_false", help="don't scan for likely problems")
     p.set_defaults(run=check.main)
@@ -267,6 +267,33 @@ def main(argv=None):
     command = operations.add_parser('check', help='read the measurements bound to a rendered run')
     command.add_argument('run_path')
     command.set_defaults(run=framing.main)
+
+    from reshoot import screenshots
+    p = sub.add_parser('screenshot', help='keep documentation PNGs current with checked beats',
+                       description='Select result frames from TOML browser takes for documentation. Each selected '
+                       'beat must have passing result checks. Update preview renders stable PNGs and includes '
+                       'them in scanning and review; export copies them locally with the videos.\n\n'
+                       '    reshoot screenshot set search-result --beat search --alt "Search shows the saved note" --project demo\n'
+                       '    reshoot screenshot list --project demo', formatter_class=Examples)
+    operations = p.add_subparsers(dest='operation', required=True)
+    for operation in ('set', 'remove', 'list'):
+        command = operations.add_parser(operation, help={'set': 'add or update a named screenshot',
+            'remove': 'stop exporting a named screenshot', 'list': 'list configured documentation screenshots'}[operation])
+        command.add_argument('--project', default='demo')
+        if operation != 'list':
+            command.add_argument('name')
+        if operation == 'set':
+            command.add_argument('--beat')
+            command.add_argument('--alt', help='one-line description, up to 300 characters')
+            command.add_argument('--take', type=int, help='browser take number, starting at 1 (default first)')
+            width = command.add_mutually_exclusive_group()
+            width.add_argument('--width', type=int, help='maximum image width; never enlarges the source')
+            width.add_argument('--native', action='store_true', help='keep the captured pixel dimensions')
+            crop = command.add_mutually_exclusive_group()
+            crop.add_argument('--crop', type=float, nargs=4, metavar=('LEFT', 'TOP', 'WIDTH', 'HEIGHT'),
+                              help='crop fractions from 0 to 1 within the captured viewport')
+            crop.add_argument('--full-frame', action='store_true', help='remove cropping and use the captured viewport')
+        command.set_defaults(run=screenshots.main)
 
     from reshoot import audio
     p = sub.add_parser('audio', help='audition narration and balance voice and music',

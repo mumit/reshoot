@@ -37,6 +37,10 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot frame set EXPORT --fit crop --x 50 --y 50 --view-width 390 --project demo` | Sets Fit/Crop, crop position and viewing width without changing the task; export numbers start at 1, update the preview afterwards |
 | `reshoot frame record --size 640x480@2 --project demo` | Sets the first TOML browser take's viewport; Update preview records again with the existing actions and checks |
 | `reshoot frame check RUN` | Reads measured font-size, clipping and subtitle-reading hints bound to that run's artifacts; this is not an automatic readability verdict |
+| `reshoot screenshot set NAME --beat search --alt 'Search shows the matching note' --project demo` | Selects a checked browser result frame for a stable PNG; Update preview renders it and includes it in scan/review |
+| `reshoot screenshot set NAME --width 960 --crop 0.1 0.05 0.8 0.7 --project demo` | Changes maximum width and crop fractions; `--native` removes the width limit, `--full-frame` removes cropping, `--take 2` selects another browser take |
+| `reshoot screenshot list --project demo` | Lists named documentation screenshot settings |
+| `reshoot screenshot remove NAME --project demo` | Stops exporting a screenshot in future runs; previously copied files remain |
 | `reshoot audio set --beat search --text "Find the matching note." --project demo` | Saves a narration line on the first TOML browser take; empty `--text ''` removes it. Update preview records again so beats wait for their lines |
 | `reshoot audio audition search --project demo` | Speaks one saved line into the recording's voice cache and prints its WAV path and duration; no app capture |
 | `reshoot audio set --voice-volume 1 --music-volume 0.15 --duck --project demo` | Saves linear gains and music ducking in `edit.toml`; `--no-duck` disables ducking, and Update preview re-cuts the current recording |
@@ -49,7 +53,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot review RUN --serve` | Serves the review page on this computer only, to accept or reject the run with its buttons; stops once you decide |
 | `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name each finding with `--flagged F1` or `--reject F1`, or a single frame by its label. Refuses a preview unless given `--preview` |
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
-| `reshoot export RUN --directory DEST` | Copies the run's videos, GIFs and subtitles locally and prints README Markdown for the GIF; `--file` picks single files; refuses to overwrite unless given `--replace` |
+| `reshoot export RUN --directory DEST` | Copies the run's videos, GIFs, subtitles and documentation PNGs locally and prints image Markdown; `--file` picks single files; refuses to overwrite unless given `--replace` |
 | `reshoot export RUN --record demo/accepted` | Writes the run's small record (report, beat results, evidence frames) for later comparisons |
 | `reshoot export RUN --directory DEST --record DIR --markdown FILE --link URL` | Also writes Markdown showing the GIF, the MP4 and each scan finding with its frame, such as for a pull request; finding frames go in `DIR/findings/` |
 | `reshoot skills codex --directory PROJECT` | Installs three project-local Codex skills; `--replace` installs over them after an upgrade |

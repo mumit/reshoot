@@ -110,6 +110,11 @@ review = "review"
 | `[[take]] tape` | | A [VHS](https://github.com/charmbracelet/vhs) tape for a terminal take. Its `Output "..."` line names the video |
 | `[edit] file` | none | The `edit.toml`, or `script` for a Python edit |
 | `[edit] args` | `[]` | The takes the edit numbers 0, 1, ... |
+| `[[screenshot]] name` | required | A unique name of 1 to 80 letters, digits, underscores or hyphens; produces `screenshots/NAME.png` inside the run |
+| `[[screenshot]] take`, `beat` | `0`, required | The zero-based take index and beat ID. Requires a complete TOML browser take and passing result checks on that beat |
+| `[[screenshot]] alt` | required | One-line description of the visible result, at most 300 characters; included in direct text scanning and exported Markdown |
+| `[[screenshot]] width` | captured size | Maximum PNG width, 160 to 3840 pixels; never enlarges the source |
+| `[[screenshot]] crop` | whole viewport | `[left, top, width, height]` fractions inside the captured viewport; positive dimensions. Review the crop after layout changes |
 | `[check] sources` | `[]` | The files to scan, usually the final MP4 and GIF. `takes/demo.assets.json` adds every image the page loaded |
 | `[check] review` | | The folder for scan sheets, inside the run |
 | `[check] scan` | `true` | `false` skips detection; the sheets are still made for your eyes |
@@ -121,6 +126,26 @@ review = "review"
 Each take has exactly one of `web` or `tape`. A run with `[app]` stops the app
 at the end, even when a step fails. `RESHOOT_OCR` sets the scan engine when the
 file doesn't.
+
+Documentation screenshots are selected separately from video parts:
+
+```toml
+[[screenshot]]
+name = "search-result"
+take = 0
+beat = "search"
+alt = "Search shows the saved bike note"
+width = 960
+```
+
+The run uses the beat's existing captured result frame, retaining privacy masks
+and any visible cursor. Video captions, zoom and framing are not added. PNGs are
+automatically appended to the run's check sources when `[check]` is configured;
+alt text is scanned alongside subtitles and narration when scanning is enabled.
+`screenshots.json` binds the PNG, its source frame and take metadata by hash.
+Partial previews produce no documentation screenshots. See
+[screenshots](customize.md#keep-documentation-screenshots-current) for studio,
+crop, refresh and local export steps.
 
 ## storyboard.toml
 

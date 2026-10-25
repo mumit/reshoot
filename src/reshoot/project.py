@@ -163,4 +163,11 @@ def export(a):
     if gifs:
         image = f'![Describe what the demo shows]({gifs[0]})'
         print('To show it in a README at the top of this folder:\n  ' + (f'[{image}]({videos[0]})' if videos else image))
+    from reshoot.screenshots import listing
+    from urllib.parse import quote
+    shots = {Path(row['path']).name: row for row in listing(root, report)}
+    for target in targets:
+        if target.name in shots:
+            alt = re.sub(r'([\\\[\]`*_<>])', r'\\\1', shots[target.name]['alt'])
+            print(f'![{alt}]({quote(shown(target))})')
     return 0

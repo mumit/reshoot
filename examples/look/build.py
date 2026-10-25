@@ -100,7 +100,14 @@ fit = "crop"
 focus = [0.85, 0.5]
 display_width = 390
 '''
-    takes, beats = record('plain', edit=lambda t: t + exports)
+    takes, beats = record('plain', edit=lambda t: t + exports, config=lambda t: t + '''
+[[screenshot]]
+name = "search-result"
+beat = "search"
+alt = "Search shows the saved bike note"
+width = 960
+''')
+    shutil.copyfile(takes.parent / 'screenshots/search-result.png', MEDIA / 'docs-search.png')
     result = beats['search']['end'] - .3
     intro = beats['intro']['start'] + .9
     click = beats['add']['start']
@@ -168,6 +175,20 @@ Every picture here comes from the bundled notes example, recorded by
 [`examples/look/build.py`](../examples/look/build.py). Each one changes a
 single setting, or combines them in a reusable visual style. Run the script again to bring the page up to
 date.
+
+## Documentation screenshots
+
+A selected result frame becomes a PNG beside the videos. This is the captured
+page after the search checks passed, without the video's caption, camera zoom
+or decorative frame. The recorded cursor may remain visible. It is a viewport
+image, not a stitched full-page capture.
+
+![Search shows the saved bike note](../docs/look/docs-search.png)
+
+Choose **Use for docs** beside a checked step in the studio, describe the image,
+save it and update the preview. Its name stays stable across fresh recordings.
+See [documentation screenshots](customize.md#keep-documentation-screenshots-current)
+for cropping, local export and refresh review.
 
 ## Visual styles
 

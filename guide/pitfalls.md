@@ -3,6 +3,13 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **Documentation screenshots drifted away from the demo.** Fixed in reshoot:
+  named screenshots come from checked result frames in the same recording,
+  refresh with it, and join scan/review/export and comparison. Re-cutting retains
+  their original evidence. A partial or unchecked beat cannot supply a PNG.
+- **A safe-looking screenshot had private alt text.** Fixed in reshoot: configured
+  PNG alt text is scanned directly when detection is enabled. Review the PNG and
+  description; a result check does not certify either as safe to share.
 - **A voice choice required recording the whole demo to hear it.** Fixed in
   reshoot: save a beat's narration and audition it in the studio or with
   `reshoot audio audition`. Its cached audio is reused when the task is recorded.

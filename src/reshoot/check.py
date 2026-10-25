@@ -162,8 +162,10 @@ def text_findings(paths, watch, checked, policy):
                 entries.append((lines[1], '\n'.join(lines[2:])))
         elif path.name.endswith('.voice.json'):
             entries = [(str(row['t']) + 's', row['text']) for row in json.loads(text)]
+        elif path.name == 'screenshots.json':
+            entries = [(row['name'], row['alt']) for row in json.loads(text)['screenshots']]
         else:
-            raise ValueError('text inputs must be .srt or .voice.json')
+            raise ValueError('text inputs must be .srt, .voice.json or screenshots.json')
         for location, words in entries:
             found = reasons(words, watch)
             h = hashlib.sha256((str(path.resolve()) + text + location).encode()).hexdigest()[:16]

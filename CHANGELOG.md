@@ -8,6 +8,12 @@ change project files or commands.
 
 ### Added
 
+- Documentation screenshots from checked browser result frames, selected in the
+  studio or with `reshoot screenshot`. Stable PNG names, alt text, optional crop
+  and maximum width remain in `reshoot.toml`. New runs and re-cuts bind each image
+  to its source frame and checks, include PNGs and alt text in scanning, show them
+  in review, and copy them with local exports. Refresh records and comparisons
+  include screenshot changes; studio edits support Save/Reset and Undo/Redo.
 - Per-beat narration editing and saved-line auditions in the studio, using the
   recording's voice cache without launching the app. Audio offers installed
   local voices, voice/music levels and optional music ducking. `reshoot audio`

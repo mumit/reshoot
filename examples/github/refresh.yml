@@ -51,9 +51,9 @@ jobs:
           fi
           # Copies the new media and the run's record, with the first frame of each scan finding, and writes Markdown
           # that shows them from the pull request's branch.
-          # change: the files your README uses
+          # Copies all final exports, including configured documentation screenshots.
+          # To select a subset, add --file for each video, GIF or screenshots/NAME.png.
           reshoot export "$RUN" --directory docs/demo --replace \
-            --file takes/demo-final.mp4 --file takes/demo-final-readme.gif \
             --record demo/accepted \
             --markdown "$RUNNER_TEMP/media.md" --link "https://github.com/${GITHUB_REPOSITORY}/blob/reshoot/refresh/"
           {

@@ -85,6 +85,14 @@ wide as the page isn't zoomed, so phone layouts mostly stay as they are.
 
 ## Voiceover
 
+For documentation PNGs, select a checked TOML beat with
+`reshoot screenshot set search-result --beat search --alt 'Search shows the matching note' --project demo`.
+Update preview to reuse its result frame; record again after the app changes.
+The PNG retains page privacy masks and can retain the recorded cursor. It is
+the captured viewport, without video captions, zoom or framing. It joins scanning,
+review and local export; its alt text is scanned directly when enabled. Never
+replace a missing result check with an unverified standalone screenshot.
+
 For a versioned TOML project, use the studio's per-step **Narration** or
 `reshoot audio set --beat search --text 'Find the matching note.' --project demo`.
 `reshoot audio audition search --project demo` writes one saved line to the

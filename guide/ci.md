@@ -44,6 +44,14 @@ sheets and review page stay in the artifact. [Review a refresh pull request](tea
 lists the steps. **Merging the pull request accepts the recording**: the next
 run compares against it. Close the pull request to keep the current demo.
 
+Configured [documentation screenshots](customize.md#keep-documentation-screenshots-current)
+are copied with the exports, shown with their alt text in the pull request and
+included in the comparison table. Inspect each image and its crop before
+merging. The template copies all final exports; if an older workflow names only
+the MP4 and GIF with `--file`, add each `--file screenshots/NAME.png` or omit the
+file list. Previously copied PNGs are not deleted when a selection is removed;
+remove obsolete files and documentation references in the same pull request.
+
 `reshoot export --markdown` writes the media and findings part of the
 description, and `--link` makes its paths URLs on the pull request's branch.
 Finding frames go into `demo/accepted/findings/`, and only for findings in the

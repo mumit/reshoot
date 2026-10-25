@@ -190,6 +190,7 @@ def main(a):
         shoot.pop('edit', None)
         shoot.pop('check', None)
         shoot.pop('keep', None)
+        shoot.pop('screenshot', None)
     source = getattr(a, 'source', None)  # a re-cut: the takes of that run, edited and scanned again
     if source:
         source_root, source_report = source
@@ -272,6 +273,13 @@ def main(a):
             event('step_end', index=len(report['steps'])-1, exit=code)
             if code:
                 raise RuntimeError(f"{redact(name)} failed (exit {code})")
+        if specs := shoot.get('screenshot'):
+            from reshoot.screenshots import render
+            rows = render(shoot['_run_dir'], specs, raw_config.get('take', []))
+            event('screenshots', count=len(rows))
+            if 'check' in shoot:
+                shoot['check']['sources'] += [str(Path(shoot['_run_dir']) / row['path']) for row in rows
+                                             if str(Path(shoot['_run_dir']) / row['path']) not in shoot['check']['sources']]
         if check := shoot.get('check'):
             print('\n== check', flush=True)
             review = Path(check.get('review', 'takes/review'))
@@ -281,6 +289,8 @@ def main(a):
                           *[a for w in check.get('watch_for', []) for a in ('--watch-for', w)],
                           *([] if check.get('scan', True) else ['--no-scan']))
             text_paths = sorted({str(p) for p in report_path.parent.rglob('*') if p.suffix == '.srt' or p.name.endswith('.voice.json')})
+            if (report_path.parent / 'screenshots.json').is_file():
+                text_paths.append(str(report_path.parent / 'screenshots.json'))
             cmd += [arg for p in text_paths for arg in ('--text-file', p)]
             code = execute(cmd, max(0.01, timeout - (time.monotonic() - t0)), shoot.get('_root'))
             result = json.loads(check_path.read_text()) if check_path.exists() else {}
@@ -308,7 +318,8 @@ def main(a):
                            for f in report_path.parent.rglob('*')
                            if f.is_file() and f.resolve().is_relative_to(report_path.parent.resolve())
                            and (f.suffix in ('.mp4', '.mov', '.gif', '.srt') or f.name.endswith(('.take.json', '.timeline.json', '.beats.json', '.events.json', '.voice.json', '.assets.json', '.captions.json', '.readability.json'))
-                                or f.parent.name.endswith(('.evidence', '.resources')) or f.name.endswith(('.poster.png', '.failure.png')))]
+                                or f.parent.name.endswith(('.evidence', '.resources')) or f.name.endswith(('.poster.png', '.failure.png'))
+                                or f == report_path.parent / 'screenshots.json' or (f.parent == report_path.parent / 'screenshots' and f.suffix == '.png'))]
         checks = []
         metadata_files = list(report_path.parent.rglob('*.take.json'))
         native_takes = sum(str(take.get('web', '')).endswith('.toml') for take in shoot.get('take', []))
@@ -348,7 +359,7 @@ def main(a):
     preview = report.get('mode', 'final') != 'final'
     print(f"\nDone in {report['seconds']:.0f} s: {review.status(root, report)}.")
     for path in review.exports(root, report):
-        print(f"  {'GIF' if path.endswith('.gif') else 'video':6} " + shown(root / path))
+        print(f"  {'PNG' if path.endswith('.png') else 'GIF' if path.endswith('.gif') else 'video':6} " + shown(root / path))
     if report['review_status'] == 'completed':
         return
     try:

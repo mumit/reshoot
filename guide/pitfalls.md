@@ -3,6 +3,13 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **Closing the studio lost Undo and Redo.** Fixed in reshoot: saved history is
+  checkpointed locally and can resume after a restart when tracked files match.
+  Changed files are preserved; download the saved source copy to compare or
+  start with current files. Starting fresh archives the old checkpoint.
+- **Two studios silently replaced each other's history.** Fixed in reshoot:
+  an interprocess lock and checkpoint revision guard reject stale mutations.
+  Reload and resolve the saved session before continuing.
 - **Saved changes looked like part of the displayed video.** Fixed in reshoot:
   a global studio status distinguishes unsaved fields, saved edits, current
   previews and final review. Source snapshots retain captured task/data changes

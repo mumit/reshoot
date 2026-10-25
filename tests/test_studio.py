@@ -243,6 +243,9 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             board.write_text(board.read_text().replace('hold = 2.5', 'hold = 3.0'))
             page.reload()
             assert page.locator('.redo.changed').count() == 1
+            assert page.locator('#session-recovery').is_visible()
+            with page.expect_navigation():
+                page.locator('[data-session=fresh]').click()
             page.locator('.beat[data-beat=search] [data-from]').click()
             page.wait_for_selector('#job-take:not([hidden])', timeout=120000)
             assert 'Recording from search worked' in page.locator('#job-title').inner_text()

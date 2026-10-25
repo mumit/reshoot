@@ -169,10 +169,28 @@ See [the offline tour trial](docs/validation/2026-10-24-offline-tours.md).
 
 See [the creation journey review](docs/validation/2026-10-25-creation-journey.md).
 
+## Studio session recovery
+
+- [x] Persist up to 50 grouped Undo/Redo steps with deduplicated source bytes,
+  atomic checkpoints, file syncing and private local storage.
+- [x] Offer explicit Resume history or Start with current files after a restart;
+  keep changed sources and archive previous checkpoints on a fresh start.
+- [x] Offer a saved source ZIP for comparison without restoring or executing it.
+  Reject stale recovery/download requests and unsafe archive paths.
+- [x] Guard competing studios with an OS lock and checkpoint generation checks;
+  retain source revision guards and block edits/jobs/decisions during recovery.
+- [x] Verify restarts, grouped Undo/Redo, external changes, bad checkpoints,
+  failed checkpoint writes, source-path checks and bounded storage.
+- [x] Exercise the fresh scanned notes capture, recovery, source download and
+  re-cut, desktop/mobile UI and affected browser regressions; update the guide,
+  skills, package checks and validation record.
+
+See [the session recovery trial](docs/validation/2026-10-25-session-recovery.md).
+
 ## Following milestones
 
-1. Recover studio editing sessions across a restart: persistent undo history,
-   explicit recovery choices and protection for source changes made elsewhere.
+1. Reduce cold-start setup friction: show missing capture/scan dependencies in
+   the creation flow with actionable recovery and verifiable dependency checks.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

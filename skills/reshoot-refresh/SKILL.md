@@ -13,6 +13,12 @@ those change. Return from an external editor and reload the project before
 editing in the studio. Its Download section packages the shown recording,
 even when another command has made a newer run.
 
+Studio Undo/Redo checkpoints live under the project's ignored `takes/studio/`.
+After a restart, Resume history requires matching tracked files. If files have
+changed, preserve them, compare the saved source copy if needed, and start with
+current files. This archives the previous checkpoint. Unsaved fields and jobs
+are not recovered; do not infer owner media acceptance from session recovery.
+
 Keep optional `[tour]` and `[[tour.step]]` selections with the demo source.
 `reshoot tour create --title 'Explore the demo' --project demo` starts from checked
 beats; `tour set STEP` edits title, text, alt and optional `--x`/`--y` marker

@@ -544,13 +544,13 @@ def server(a):
     from reshoot import review
     config, folder, take = project(a.project)
     from reshoot.config import read
-    from reshoot.workspace import History
+    from reshoot.session import Session
     shoot, _ = read(config)
     editable = [config, *dict.fromkeys((Path(folder) / t['web']).resolve() for t in shoot.get('take', [])
                                      if str(t.get('web', '')).endswith('.toml')), Path(folder) / 'styles.toml']
     if shoot.get('edit', {}).get('file'):
         editable.append(Path(folder) / shoot['edit']['file'])
-    history = History(editable)
+    history = Session(config, editable)
     token = secrets.token_urlsafe(16)
     job = Job()
     prefix = f'/{token}/'
@@ -563,11 +563,8 @@ def server(a):
                                        if str(item.get('web', '')).endswith('.toml')), current_folder / 'styles.toml']
         if data.get('edit', {}).get('file'):
             paths.append(current_folder / data['edit']['file'])
-        paths = tuple(Path(path).resolve() for path in paths)
-        if paths != history.paths:
-            history.paths = paths
-            history.undo.clear(); history.redo.clear()
-            history.expected = history.snapshot()
+        if not job.running():
+            history.refresh(paths)
         return current_take
 
     def edit_file():
@@ -589,18 +586,38 @@ def server(a):
             if name == '':
                 with history.lock:
                     active_take = refresh_project()
-                    history.check(history.revision())
                     run = current(folder)
                     accept = review.panel(*run, final_action='Make final') if run else ''
                     seen = job.n - job.running()
                     data = view(folder, active_take, config, run)
-                    data.update(revision=history.revision(), undo=bool(history.undo), redo=bool(history.redo))
+                    data.update(revision=history.revision(), undo=bool(history.undo), redo=bool(history.redo),
+                                session=history.info())
                     return review.reply(self, 200, page(data, accept, seen).encode())
             if name == 'job.json':
                 out = job.json()
                 if job.kind == 'from' and job.code == 0 and (partial := current(folder, partial=True)):
                     out['take'] = f'runs/{partial[1]["id"]}/' + take['out']
                 return review.reply(self, 200, json.dumps(out).encode(), 'application/json')
+            if name == 'session.zip':
+                from urllib.parse import parse_qs, urlsplit
+                try:
+                    token = parse_qs(urlsplit(self.path).query).get('token', [''])[0]
+                    with history.lock, history.transaction(recovery=True), history.source_copy(token) as archive:
+                        archive.seek(0, 2); length = archive.tell(); archive.seek(0)
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/zip')
+                        self.send_header('Content-Length', str(length))
+                        self.send_header('Content-Disposition', 'attachment; filename="reshoot-saved-sources.zip"')
+                        self.send_header('Cache-Control', 'no-store')
+                        self.end_headers()
+                        if self.command != 'HEAD':
+                            import shutil
+                            shutil.copyfileobj(archive, self.wfile)
+                    return
+                except (BrokenPipeError, ConnectionResetError):
+                    return
+                except (ValueError, OSError) as error:
+                    return review.reply(self, 409, str(error).encode(), 'text/plain')
             if name == 'state.json':
                 from urllib.parse import parse_qs, urlsplit
                 try:
@@ -611,6 +628,7 @@ def server(a):
                         state = workflow(config, folder, active_take, run)
                         state['external'] = query.get('revision') != history.revision()
                         state['revision'] = history.revision()
+                        state['session_pending'] = history.pending
                     return review.reply(self, 200, json.dumps(state).encode(), 'application/json')
                 except (ValueError, OSError) as error:
                     return review.reply(self, 409, json.dumps({'error': str(error)}).encode(), 'application/json')
@@ -655,13 +673,20 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
-            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'job', 'accept', 'undo', 'redo', 'cancel'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'job', 'accept', 'undo', 'redo', 'cancel', 'session'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
                 return
             with history.lock:
-                self.mutate(action, body)
+                try:
+                    if action == 'cancel':
+                        return self.mutate(action, body)
+                    with history.transaction(recovery=action == 'session'):
+                        self.mutate(action, body)
+                except (ValueError, OSError) as error:
+                    return review.reply(self, 200, json.dumps({'ok': False, 'error': str(error),
+                                                               'code': 2, 'output': str(error)}).encode(), 'application/json')
 
         def mutate(self, action, body):
             try:
@@ -670,9 +695,14 @@ def server(a):
                     return review.reply(self, 200, b'{"ok":true}', 'application/json')
                 if job.running():
                     raise ValueError('An update is running. Wait for it or cancel before changing the project.')
-                take = refresh_project()
+                # GET refreshes tracked paths. Mutations validate that same set
+                # without acquiring the storage lock recursively.
+                _, _, take = project(config)
                 history.check(body.get('revision'))
-                if action == 'edit':
+                if action == 'session':
+                    history.recover(body.get('choice'), body.get('session_token'))
+                    out = {'ok': True}
+                elif action == 'edit':
                     history.change(lambda: edit(Path(folder) / take['web'], body))
                     out = {'ok': True}
                 elif action == 'cut':
@@ -777,7 +807,7 @@ def server(a):
                             raise ValueError('Choose a suggested replacement or select one in the app.')
                         before = history.snapshot()
                         def remember_repair():
-                            with history.lock:
+                            with history.lock, history.transaction():
                                 audit = json.loads((failed_root / 'repair.json').read_text())
                                 after = history.snapshot()
                                 board_path = diagnosis['board_path']
@@ -1157,6 +1187,20 @@ def page(data, accept, seen=0):
                      for i, s in enumerate((run or {}).get('sheets', [])))
     evidence = (f'<details class="scan"><summary>Inspect scan sheets</summary><p>Open a sheet at full size to inspect the frames.</p>{sheets}</details>' if sheets else '')
     state = data.get('journey', {'title': 'Shape your demo', 'detail': '', 'pending': False, 'phase': 'unknown', 'next': 'update', 'changes': [], 'update_detail': ''})
+    session = data.get('session')
+    recovery = ''
+    if session:
+        copy = (f'<a href="session.zip?token={e(session["token"])}" download="reshoot-saved-sources.zip">Download saved source copy</a>'
+                if session['download'] else '')
+        resume = ('<button type="button" data-session="resume" class="primary">Resume history</button>'
+                  if session['resume'] else '')
+        changes = f'<p>Changed files: {e(", ".join(session["changed"]))}</p>' if session['changed'] else ''
+        problem = f'<p class="error">{e(session["problem"])}</p>' if session['problem'] else ''
+        recovery = f'''<section id="session-recovery" class="journey" aria-labelledby="session-title" data-token="{e(session['token'])}">
+<h2 id="session-title">{e(session['title'])}</h2><p>{e(session['detail'])}</p>{changes}{problem}
+<p>Undo: {session['undo']} {'step' if session['undo'] == 1 else 'steps'} · Redo: {session['redo']} {'step' if session['redo'] == 1 else 'steps'}</p>{resume}
+<button type="button" data-session="fresh">Start with current files</button> {copy}
+<p class="hint">Starting fresh keeps a local archive of the previous history. Neither choice replaces the files you have now.</p></section>'''
     nav = [('preview-panel', 'Preview'), ('story-panel', 'Story'), *([('cut-panel', 'Cut')] if data.get('edit') else []),
            ('look-panel', 'Look'), *([('audio-panel', 'Audio')] if data.get('edit') else []),
            ('screenshots-panel', 'Screenshots'), ('tour-panel', 'Tour'), ('review-panel', 'Review'), ('download-panel', 'Download')]
@@ -1175,13 +1219,14 @@ def page(data, accept, seen=0):
     document = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>reshoot studio</title><link rel="icon" href="data:,"><style>{STYLE}</style></head><body data-seen="{seen}" data-journey="{e(json.dumps(state))}" data-studio-pending="{'1' if state['pending'] else ''}">
 <header><h1>reshoot studio</h1><span class="story">{e(data['story'])}</span>
-<div class="actions"><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
+<fieldset class="actions" aria-label="Recording and history"{(' disabled' if session else '')}><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
 <button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
 <button type="button" class="{'primary' if state['next'] == 'update' else ''}" data-job="update">Update preview</button>
 <button type="button" class="{'primary' if state['next'] == 'run' else ''}" data-job="run" title="Record the full-size video for review">Make final</button>
 <details class="advanced"><summary>More</summary><button type="button" data-job="recut"{'' if run else ' disabled'} title="Edit and scan this run's takes again, with the captions and edit as they are now">Re-cut</button>
 <button type="button" data-job="preview" title="Start the app and record a quick preview">Record a preview</button>
-</details></div><nav class="section-nav" aria-label="Studio sections">{navigation}</nav></header>
+</details></fieldset><nav class="section-nav" aria-label="Studio sections">{navigation}</nav></header>
+{recovery}
 <section id="journey" class="journey" role="status" aria-live="polite" data-phase="{e(state['phase'])}"><strong id="journey-title">{e(state['title'])}</strong>
 <p id="journey-detail">{e(state['detail'])}</p><p id="journey-changes" class="hint"{'' if state.get('changes') else ' hidden'}>{e(', '.join(state.get('changes', [])))}</p>
 <p id="journey-plan" class="hint"{'' if state['pending'] else ' hidden'}>{e(state['update_detail'])}</p>
@@ -1199,7 +1244,7 @@ def page(data, accept, seen=0):
 {f'<div class="found"><h3>What the scan found</h3><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>{downloads}</section>
-<section class="side"><div class="beats" id="story-panel" tabindex="-1"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+<fieldset class="side" aria-label="Demo editing"{(' disabled' if session else '')}><div class="beats" id="story-panel" tabindex="-1"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
 {audio_box}
 {screenshot_box}
 {tour_box}
@@ -1210,7 +1255,7 @@ def page(data, accept, seen=0):
 <label>Text <input name="foreground" value="{e(look.get('foreground', ''))}" placeholder="#ffffff"></label>
 {pending.format('' if data['look_pending'] else ' hidden')}</div>
 {edit_box}
-</details></section></main>
+</details></fieldset></main>
 <p id="toast" role="status"></p>
 <dialog id="export-inspector"><form method="dialog"><button>Close</button></form><h2>Inspect the rendered export</h2><p id="inspector-size"></p><div class="inspection-rail"></div></dialog>
 <script>{SCRIPT}</script></body></html>'''
@@ -1230,6 +1275,7 @@ STYLE = '''
 header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:14px 20px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:2 }
 h1 { font-size:17px; margin:0 } h2 { font-size:15px; margin:0 0 8px } h3 { font-size:13px; margin:14px 0 4px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em }
 .story { color:var(--muted) } .actions { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap }
+fieldset.actions, fieldset.side { border:0; padding:0; min-width:0 } fieldset.side { margin:0 }
 .section-nav { width:100%; display:flex; gap:6px; overflow-x:auto; padding:2px 0 5px; white-space:nowrap }
 .section-nav a { color:var(--muted); font-size:13px; text-decoration:none; border:1px solid transparent; border-radius:6px; padding:5px 8px }
 .section-nav a:hover, .section-nav a[aria-current] { color:var(--ink); border-color:var(--accent) }
@@ -1352,7 +1398,7 @@ SCRIPT = '''(() => {
   const textFor = (id, text) => { const element = document.getElementById(id); if (element.textContent !== text) element.textContent = text; };
   const renderJourney = () => {
     const drafts = !!document.querySelector('[data-unsaved]'), external = !!journeyState.external;
-    const pending = journeyState.pending || drafts || external;
+    const pending = journeyState.pending || drafts || external || !!document.getElementById('session-recovery');
     document.body.dataset.studioPending = pending ? '1' : '';
     document.getElementById('journey').dataset.phase = external ? 'external' : drafts ? 'draft' : journeyState.phase;
     textFor('journey-title', external ? 'Project changed in another editor' : drafts ? 'Some edits have not been saved yet' : journeyState.title);
@@ -1400,6 +1446,9 @@ SCRIPT = '''(() => {
       const response = await fetch('state.json?' + query), state = await response.json();
       if (revision !== document.body.dataset.revision) return;
       if (!response.ok) { error(state.error); return; }
+      if (state.session_pending && !document.getElementById('session-recovery')) {
+        state.external = true;
+      }
       applyJourney(state);
     } catch (_) { error('Could not check the saved project. Keep the studio running and reload when ready.'); }
     finally { checkingState = false; }
@@ -1441,6 +1490,10 @@ SCRIPT = '''(() => {
     return queue;
   };
   document.querySelectorAll('[data-history]').forEach(b => { b.dataset.enabled = b.disabled ? '' : '1'; b.onclick = () => post(b.dataset.history, {}).then(out => { if (out.ok) location.reload(); }); });
+  document.querySelectorAll('[data-session]').forEach(button => button.onclick = () => {
+    post('session', {choice:button.dataset.session, session_token:document.getElementById('session-recovery').dataset.token})
+      .then(out => { if (out.ok) location.reload(); });
+  });
   document.querySelectorAll('[data-repair]').forEach(button => button.onclick = () => {
     const failure = button.closest('.failure');
     post('job', {kind: 'repair', method: button.dataset.repair, failure_run_id: failure.dataset.failure,

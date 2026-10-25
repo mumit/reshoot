@@ -31,6 +31,8 @@ reshoot create                  # make the notes preview and open the studio
 With the dependencies installed, the preview takes seconds. In the studio,
 change a caption or result hold, choose **Update preview**, then **Make final**
 when it looks right. Undo keeps experiments easy to reverse.
+Saved Undo/Redo history can resume after a studio restart. If files changed
+elsewhere, recovery keeps those files and offers the saved source copy to compare.
 The status above the preview tells you whether saved edits are in the shown
 recording. Jump between sections, inspect the final, then use **Download** to
 get its videos, screenshots, walkthrough and subtitles together.

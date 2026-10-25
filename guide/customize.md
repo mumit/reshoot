@@ -68,8 +68,9 @@ and offers **Reload project**. Reset local drafts first if both have changed.
   recording; changes to actions, checks, timing, settings or declared demo
   inputs record again. It says which work it chose and loads the new run.
 - **Undo** and **Redo** restore studio edits, including changes to exports and
-  their scan sources. History lasts while the studio server runs. A change in
-  another tab or editor requires a reload, preserving those edits.
+  their scan sources. Saved history survives a studio restart. A change in
+  another tab or editor requires a reload and a recovery choice, preserving
+  those edits.
 - **Style and exports** holds caption colours, cards, framing and export
   presets. Open it when the story works. Colour fields take hex values.
 - **Audio** holds voice choices and the music balance. **Use for docs** beside
@@ -111,6 +112,34 @@ For multiple takes or older recordings without the required metadata, Update
 preview records again. Changes to a remote app or an external database cannot
 be detected from the files: use More > Record a preview after those change,
 even if you also edit captions. Declared `inputs` are checked automatically.
+
+### Resume an editing session
+
+After restarting the studio, choose **Resume history** to keep the saved Undo
+and Redo steps. This choice is available only when the tracked files still
+match the saved session. **Start with current files** begins an empty history
+and archives the previous checkpoint. Neither choice replaces current files.
+Editing, recording and acceptance wait until you resolve recovery; the displayed
+media and its downloads remain available.
+
+If files changed in another editor, the studio lists their names and keeps
+them. **Download saved source copy** gives you the checkpoint's source files
+for comparison, grouped in numbered folders to avoid name collisions. It is
+unreviewed project source. Apply any wanted changes deliberately in your editor,
+reload, then choose Start with current files. Source files that the studio
+tracks, including an optional style library, stay grouped in one Undo step.
+
+History holds up to 50 saved changes in a checkpoint of at most 32 MB under
+`demo/takes/studio/`. Checkpoints and archives remain local and ignored by the
+generated project's Git rules. Corrupt checkpoints can be archived by starting
+fresh. A storage error says when source edits saved but their history could
+not be stored; reload to inspect the current files and recovery choices.
+Two studio servers cannot silently overwrite newer history.
+
+Unsaved fields, running jobs and browser panel state are not part of this
+checkpoint. An interrupted edit may leave saved source newer than its history;
+recovery preserves that source and offers the last saved copy. This is not an
+atomic transaction across several source files.
 
 ### Repair a changed control
 

@@ -217,6 +217,8 @@ def test_studio_narration_audition_capture_and_mix_recut(tmp_path):
             # A failed or cancelled audition never replaces the displayed successful video.
             audio.apply(tmp_path, {'engine': 'false {out}'})
             page.reload()
+            with page.expect_navigation():
+                page.locator('[data-session=fresh]').click()
             search.locator('[data-audition]').click()
             page.wait_for_function("document.getElementById('job-title').textContent.includes('audition failed')", timeout=30000)
             assert page.locator('body').get_attribute('data-run') == mixed.name

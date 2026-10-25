@@ -22,6 +22,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/run.py` | `reshoot run`: a whole shoot from a reshoot.toml |
 | `src/reshoot/create.py` | `reshoot create`: demonstrate a task, make a preview and open the studio |
 | `src/reshoot/workspace.py` | Studio revisions and reversible edits |
+| `src/reshoot/session.py` | Persistent studio history, explicit recovery and saved-source copies |
 | `src/reshoot/styles.py` | Portable visual styles shared by the CLI and studio |
 | `src/reshoot/sequence.py` | Beat ranges and video-part ordering shared by the CLI and studio |
 | `src/reshoot/framing.py`, `readability.py`, `layout.js` | Shared export geometry and measured text/crop feedback |

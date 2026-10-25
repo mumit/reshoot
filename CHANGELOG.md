@@ -8,6 +8,11 @@ change project files or commands.
 
 ### Added
 
+- Studio Undo/Redo checkpoints survive a restart. Resume matching history or
+  start with current files; changed files are preserved, with a saved source
+  ZIP available for comparison. Fresh starts archive the old checkpoint. Atomic
+  checkpoints, source/revision checks and an interprocess lock guard recovery;
+  unreadable or conflicting sessions require an explicit choice before editing.
 - A studio journey status distinguishes unsaved fields, pending source edits,
   current previews and final review, with a highlighted next action. Section
   navigation, Reset unsaved edits and external-change reloads reduce editor

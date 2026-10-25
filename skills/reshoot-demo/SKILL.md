@@ -11,6 +11,12 @@ Reset unsaved edits; reload when another editor changes the project. Download
 all exports produces a ZIP of the shown run, with subtitles, image Markdown
 and a hash/status manifest. It does not accept or publish anything.
 
+Saved Undo/Redo survives a studio restart. Resume history only when tracked
+files match; Start with current files preserves the project and archives the
+old checkpoint. Download saved source copy supports manual comparison after
+external edits. Recovery choices do not restore files or accept media. Unsaved
+fields and running jobs are not checkpointed.
+
 Requires reshoot CLI 0.3.6 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'` before going on. Run `reshoot doctor --config CONFIG` for an existing project. If the CLI is missing, use the repository's documented installation; do not invent commands for a different version.
 
 Resolve missing required tools before recording. If `RESHOOT_CHROME` is set, it must name an executable browser; correct or unset a stale path. A successful doctor check does not probe capture or the final scan.

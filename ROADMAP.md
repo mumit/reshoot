@@ -18,8 +18,8 @@ repair, visual styles, beat cuts, destination framing, audio and documentation
 screenshots and offline tours now share that workflow. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **Session recovery.** Retain studio edit history across a server restart and
-    offer explicit recovery without overwriting changes from another editor.
+1. **First-run setup.** Surface missing capture/scan dependencies in the creation
+    flow and provide actionable recovery before the first recording.
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
@@ -50,6 +50,12 @@ screenshots and offline tours now share that workflow. The
   through the skills.
 
 ## Done
+
+- **Studio session recovery:** private local checkpoints retain grouped Undo
+  and Redo across restarts. Explicit resume requires matching files; conflicting
+  files stay intact, saved sources can be downloaded for comparison, and fresh
+  starts archive previous history. Stale checkpoint guards and an OS lock protect
+  edits from competing studio servers. Unsaved fields/jobs are not recovered.
 
 - **A coherent creation journey:** global saved/rendered/captured source status,
   a visible next action, section navigation, explicit draft reset, external-edit

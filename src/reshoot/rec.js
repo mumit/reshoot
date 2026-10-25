@@ -3,6 +3,9 @@
 (() => {
   if (window.__reshootRecording) return;
   window.__reshootRecording = true;
+  let paused = false, picking = null, toolbarHost = null, toolbarRoot = null;
+  const own = ev => toolbarHost && ev.composedPath().includes(toolbarHost);
+  const ignore = ev => own(ev) || paused || picking;
   const report = ev => { try { window.__reshootRec(JSON.stringify(ev)); } catch {} };
   // Each action first closes what the last one changed, so that report comes before the new action.
   const send = ev => { if (ev.kind !== "changed") watch(ev); report(ev); };
@@ -64,6 +67,7 @@
     const all = document.body ? document.body.querySelectorAll("*") : [];
     if (all.length > 5000) return null;  // too big a page to compare quickly
     for (const e of all) {
+      if (e === toolbarHost) continue;
       const tag = e.tagName.toLowerCase();
       if (["script", "style", "template", "input", "textarea", "select", "option"].includes(tag)) continue;
       const kids = [...e.children];
@@ -129,42 +133,108 @@
   // Recording it too would submit twice on replay, since the Enter is recorded already.
   // A click on the page's background (the body itself) does nothing, so it isn't recorded.
   addEventListener("click", ev => {
+    if (ignore(ev)) return;
     if (!ev.isTrusted || ev.detail === 0) return;
     const e = target(ev.target);
     if (e === document.body || e === document.documentElement || !e.tagName) return;
-    send({ kind: "click", where: locate(e), field: !!field(e) });
+    send({ kind: "click", where: locate(e), field: !!field(e), label: label(e) });
   }, true);
   // What a field held before the typing started, so replaying can tell adding text from clearing or changing it.
   const valueOf = e => (e.isContentEditable ? e.innerText : e.value) || "";
   const before = new WeakMap();
-  addEventListener("focusin", ev => { if (field(ev.target)) before.set(ev.target, valueOf(ev.target)); }, true);
+  addEventListener("focusin", ev => { if (!ignore(ev) && field(ev.target)) before.set(ev.target, valueOf(ev.target)); }, true);
   addEventListener("input", ev => {
-    if (!ev.isTrusted || !field(ev.target)) return;
+    if (ignore(ev) || !ev.isTrusted || !field(ev.target) || ev.target.type === 'file') return;
     const e = ev.target;
-    send({ kind: "type", where: locate(e), value: valueOf(e), before: before.get(e) ?? "", secret: e.type === "password" });
+    send({ kind: "type", where: locate(e), value: valueOf(e), before: before.get(e) ?? "", secret: e.type === "password", label: label(e) });
   }, true);
   addEventListener("keydown", ev => {
-    if (!ev.isTrusted || !["Enter", "Escape", "Tab"].includes(ev.key)) return;
+    if (ignore(ev) || !ev.isTrusted || !["Enter", "Escape", "Tab"].includes(ev.key)) return;
     send({ kind: "key", key: ev.key, where: locate(ev.target) });
   }, true);
   addEventListener("change", ev => {
-    if (!ev.isTrusted) return;
+    if (ignore(ev) || !ev.isTrusted) return;
     const e = ev.target;
     // A dropdown choice replays as a select action, found by the option's visible label.
     if (e.matches("select:not([multiple])") && e.selectedOptions.length)
       send({ kind: "select", where: locate(e), option: e.selectedOptions[0].label });
-    else if (e.matches("select,input[type=checkbox],input[type=radio]"))
-      send({kind: "unsupported-change"});
+    else if (e.matches('input[type=checkbox],input[type=radio]'))
+      send({kind: 'check', where: locate(e), checked: e.checked});
+    else if (e.matches('select,input[type=file]'))
+      send({kind: 'unsupported-change', message: 'Record a manual action for this multiple choice or file selection, then remove recording_issue.'});
   }, true);
-  addEventListener("drop", ev => { if (ev.isTrusted) send({kind: "unsupported-drop"}); }, true);
+  addEventListener("drop", ev => { if (!ignore(ev) && ev.isTrusted) send({kind: "unsupported-drop", message: 'Record a manual action for this drop, then remove recording_issue.'}); }, true);
   let scrolled = 0, settle;
   addEventListener("scroll", () => {
     const y = document.scrollingElement.scrollTop;
+    if (paused || picking) { scrolled = y; return; }
     clearTimeout(settle);
-    settle = setTimeout(() => { if (Math.abs(y - scrolled) > 40) send({ kind: "scroll", dy: Math.round(y - scrolled) }); scrolled = y; }, 300);
+    settle = setTimeout(() => { if (!paused && !picking && Math.abs(y - scrolled) > 40) send({ kind: "scroll", dy: Math.round(y - scrolled) }); scrolled = y; }, 300);
   }, { passive: true });
   addEventListener("DOMContentLoaded", () => {
     scrolled = document.scrollingElement ? document.scrollingElement.scrollTop : 0;
     report({ kind: "page", href: location.href });  // a new page: the action before it may have opened it
+    if (window.__reshootToolbar && window === window.top) mountToolbar();
   });
+
+  function label(e) {
+    if (e.type === 'password') return 'Demo login';
+    return (e.getAttribute('aria-label') || e.getAttribute('placeholder') ||
+      (e.labels && e.labels[0] ? e.labels[0].innerText : '') || e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+  }
+
+  function mountToolbar() {
+    toolbarHost = document.createElement('reshoot-recorder');
+    toolbarHost.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483647';
+    toolbarRoot = toolbarHost.attachShadow({mode: 'open'});
+    toolbarRoot.innerHTML = `<style>
+      :host { color-scheme:light; font:14px/1.4 system-ui,sans-serif; color:#172033 }
+      .bar { background:#fff; border:1px solid #cbd5e1; border-radius:16px; padding:12px; box-shadow:0 8px 32px #0003; max-width:90vw }
+      .buttons { display:flex; flex-wrap:wrap; gap:6px; align-items:center }
+      button,input { font:inherit; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; color:#172033 }
+      button { cursor:pointer } button:focus-visible,input:focus { outline:2px solid #2563eb }
+      [data-do=done] { background:#2563eb; color:white; border-color:#2563eb }
+      p { margin:8px 2px 0; font-size:12px } form { margin-top:8px } [hidden] { display:none !important }
+    </style><div class="bar" role="region" aria-label="Reshoot recording controls">
+      <div class="buttons"><strong>reshoot</strong><button data-do="pause">Pause</button>
+      <button data-do="caption">Caption here</button><button data-do="check">Check result</button>
+      <button data-do="blur">Hide</button><button data-do="undo">Remove last step</button><button data-do="done">Done</button></div>
+      <form hidden><label>Caption <input name="caption" autocomplete="off" maxlength="160"></label><button>Save caption</button></form>
+      <p role="status">Recording your task. Use demo data. These controls will not appear in the video.</p></div>`;
+    document.body.append(toolbarHost);
+    const status = text => { toolbarRoot.querySelector('[role=status]').textContent = text; };
+    toolbarRoot.addEventListener('click', ev => {
+      const button = ev.target.closest('[data-do]');
+      if (!button) return;
+      const kind = button.dataset.do;
+      if (kind === 'pause') { flush(); paused = !paused; button.textContent = paused ? 'Resume' : 'Pause'; status(paused ? 'Paused. Restore the app to the state replay should start from before resuming.' : 'Recording your task.'); }
+      if (kind === 'caption') { const form = toolbarRoot.querySelector('form'); form.hidden = !form.hidden; if (!form.hidden) form.querySelector('input').focus(); }
+      if (kind === 'check' || kind === 'blur') { flush(); picking = kind; status(kind === 'check' ? 'Click the result to check. Press Escape to cancel.' : 'Click what should be blurred in every take. Press Escape to cancel.'); }
+      if (kind === 'undo') { flush(); report({kind: 'undo'}); status('Last recorded step removed. Restore the app state before repeating that step.'); }
+      if (kind === 'done') { flush(); report({kind: 'finish'}); status('Preparing your demo…'); button.disabled = true; }
+    });
+    toolbarRoot.querySelector('form').addEventListener('submit', ev => {
+      ev.preventDefault(); flush(); const form = ev.target, text = form.querySelector('input').value.trim();
+      if (text) report({kind: 'caption', text}); form.hidden = true; status('Caption added to the current step.');
+    });
+    addEventListener('keydown', ev => { if (picking && ev.key === 'Escape') { picking = null; status('Selection cancelled.'); ev.preventDefault(); ev.stopImmediatePropagation(); } }, true);
+    for (const kind of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) {
+      addEventListener(kind, ev => { if (picking && !own(ev)) { ev.preventDefault(); ev.stopImmediatePropagation(); } }, true);
+    }
+    // Select without activating the app's control. The recorder listeners above ignore picking mode.
+    addEventListener('click', ev => {
+      if (!picking || own(ev)) return;
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      const element = ev.target, selector = spot(element);
+      if (picking === 'blur') { report({kind: 'blur', selector}); status('Selected element will be blurred in every take.'); }
+      else {
+        let check = {type: 'visible', target: {css: selector}};
+        const text = (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 200);
+        if (element.matches('input[type=checkbox],input[type=radio]')) check = {type: 'checked', target: {css: selector}, checked: element.checked};
+        else if (text) check = {type: 'text', target: {css: selector}, contains: text};
+        report({kind: 'expect', check}); status('Result check added to the current step.');
+      }
+      picking = null;
+    }, true);
+  }
 })();

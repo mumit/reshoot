@@ -217,6 +217,9 @@ def main(a):
     from importlib.metadata import version
     report['inputs'] = {'config_sha256': digest(path), 'reshoot': version('reshoot'), 'stories': [],
                         'fixtures': [{'source': describe(f), 'sha256': digest(f)} for f in shoot.get('inputs', [])]}
+    raw_config = tomllib.loads(path.read_text())
+    report['inputs']['recording_config_sha256'] = __import__('hashlib').sha256(json.dumps(
+        {k: v for k, v in raw_config.items() if k in ('app', 'take', 'inputs')}, sort_keys=True).encode()).hexdigest()
     for take in shoot.get('take', []):
         story = take.get('web') or take.get('tape')
         if story and Path(story).is_file():
@@ -224,6 +227,7 @@ def main(a):
     if source:  # what was recorded is the earlier run's, so its stories and demo data are too
         report['inputs'].update(stories=source_report.get('inputs', {}).get('stories', []),
                                 fixtures=source_report.get('inputs', {}).get('fixtures', []))
+        report['inputs']['recording_config_sha256'] = source_report.get('inputs', {}).get('recording_config_sha256')
         report['recut_from'] = source_report['id']
     if edit := shoot.get('edit'):
         edit_path = edit.get('file', edit.get('script'))

@@ -33,6 +33,27 @@ Use this reference to diagnose recording, editing and review problems.
 
 ## Web takes
 
+- **The video opened on a blank first frame.** Fixed in reshoot: the page is
+  composed once before recording starts. The studio also shows a recorded
+  evidence frame as its poster while the player waits to start.
+- **A studio tab accepted a different recording after another command ran.**
+  Fixed in reshoot: media and acceptance name the exact displayed run and its
+  artifact binding. A changed scan or artifact requires a new review.
+- **An edit overwrote work from another tab or editor.** Fixed in reshoot:
+  studio edits carry a project revision and stale requests require a reload.
+  Undo and Redo preserve external edits. Editing pauses while an update runs.
+- **An unsupported interaction lost the whole recorder draft.** Fixed in
+  reshoot: the supported steps are saved and the unresolved step has a blocking
+  `recording_issue`. Repair its actions and remove that field before recording.
+  Checkbox and radio choices record their state directly.
+- **A caption edit required choosing a pipeline command.** Fixed in reshoot:
+  Update preview reuses the recording for caption or edit changes and records
+  again for actions, holds, recording settings or declared demo data. With no
+  edits, Update preview records the app again. More keeps the explicit commands.
+- **The colour field suggested `white` but refused it.** Fixed in reshoot:
+  the studio shows a hex example and keeps failed saves visible. Fix the field
+  before updating, undoing or accepting.
+
 - **A caption disappeared when a native click loaded a new page.** Fixed in reshoot:
   the overlay restores its current caption after a full page load on the same origin,
   along with the cursor position. Subtitle events still describe the original beat.

@@ -8,37 +8,32 @@ Each item says what it is and why it matters. When one ships, move it to Done
 with a line on what it does. Trial evidence lives in the
 [validation records](docs/validation/README.md), not here.
 
-## Now: shape a demo by pointing
+## Now: refine the creation and revision loop
 
 A [persona review of the docs](docs/validation/2026-10-23-persona-review.md)
 found that the tool does the hard part well and loses the joy where a user
 meets it first. The studio now gives a local place to see a story and shape it
 by pointing, with the files in the repository still the source of truth. Next,
-point while recording and repairing, and get more from each story.
+point while recording and repairing, and get more from each story. The
+[creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **A toolbar in the recording window.** While `reshoot rec` runs, a small toolbar in the page offers
-    "Check this" (click an element to make it a result check), "Caption here", "Hide this" (blurred in every
-    take), "Pause" and "Retake last step". Why: pointing at what matters is exact where suggested checks
-    guess, and it writes most of the story while you show the app.
-2. **Suggested repair when a story breaks.** `reshoot rec` saves fallback ways to find each element: test
+1. **Suggested repair when a story breaks.** `reshoot rec` saves fallback ways to find each element: test
     id, id, name or label, text. When the main selector matches nothing, reshoot tries them, and if exactly
     one matches, the failure prints a ready fix, such as "`Save` is now `#save-btn`", that one command
     applies. When none or several match, the studio shows the failure frame and asks the person to click the
     element. CI shows the fix in the failure summary. The run still fails until someone applies it. Why: a
     renamed button is the most common way a demo goes stale, and finding the new selector is the dull part.
-3. **Screenshots for docs that stay current.** `reshoot export --screenshots DIR` writes each beat's frame,
-    or the beats a story names, as images for the docs, refreshed and reviewed in the same pull request as the
-    video. Why: stale screenshots are in nearly every product's docs, and the frames are already there.
-4. **A clickable tour.** Export a self-contained HTML tour from the beats: each step shows its frame with
-    the clicked element highlighted, and the viewer clicks it to go on. Why: hosted tour tools go stale when
-    the UI changes; this one refreshes with the demo.
-5. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
+2. **More creative control.** Reusable visual styles, beat trimming and sequencing, destination framing and
+    readability feedback, narration auditioning and audio balance. Why: these shorten the path from a working
+    recording to a deliberately composed demo, using the existing rendering stages.
+3. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
 ## Later
 
-- **From clicking to a finished video in one command.** `reshoot rec URL --run` writes the storyboard with
-  its suggested checks, records the final take and opens it in the studio.
+- **Screenshots for docs that stay current.** Export selected beat frames beside the video and review them in
+  the same refresh pull request.
+- **A clickable tour.** Export a self-contained HTML tour from the beats after the video workflow is established.
 - **Narrate as you click.** `rec` listens to the microphone and turns what is said during each action into
   that beat's caption or voiceover line.
 - **Storyboards in VS Code.** Hovering a beat shows its last frame, the gutter shows whether its checks
@@ -65,6 +60,12 @@ point while recording and repairing, and get more from each story.
 
 ## Done
 
+- **Create and revise in one place:** `reshoot create [URL] --directory demo` checks tools, records a task or
+  tries notes, makes a preview and opens the studio. The recording toolbar adds captions and explicit result
+  checks, hides elements, pauses, removes a step and finishes. Checkbox and radio choices replay their state;
+  unsupported interactions remain as blocking repair notes. The studio puts the story first, edits holds,
+  supports Undo/Redo, chooses the work with Update preview and cancels updates. Revision checks preserve edits
+  from another tab or editor. Media, scan sheets and acceptance stay bound to the displayed run.
 - **The studio:** `reshoot studio` serves a local page with the latest run's video, its beats on a timeline
   with their frames, result checks and captions, the exports side by side with their platform limits, the scan's
   findings and the accept panel. Captions and their look, title cards, the frame, music and export presets are

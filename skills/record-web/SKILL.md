@@ -110,6 +110,9 @@ put it in the next beat.
      beats, with result checks suggested from what each action changed on the page. Keep the suggestions that show
      the result. Ask them to do this when the flow is long or the selectors are hard to find. A `.py` path writes the
      legacy format, without suggestions.
+     For a complete owner-driven project, offer `reshoot create URL --directory demo` instead. The TOML recorder
+     toolbar adds captions and explicit checks, hides an element, pauses and finishes. Checkbox and radio choices
+     replay their state. Unsupported interactions are saved as blocking `recording_issue` steps for repair.
    - **You write it:** read the app's HTML for the selectors. Prefer test ids, ids and names.
 3. Finish the storyboard: add captions, check the holds, and give the beats names the cut can use. Try a beat at a
    time: put the beats so far in the file and record a short take.

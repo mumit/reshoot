@@ -14,6 +14,8 @@ newest successful run or `accepted` for the newest accepted run, such as
 | Command | What it does |
 |---|---|
 | `reshoot --version` | Prints the installed package version |
+| `reshoot create` | Creates the notes project, checks dependencies, makes a preview and opens the studio |
+| `reshoot create URL --directory demo` | Records your task in a fresh browser with a toolbar, then makes a preview and opens the studio; `--no-studio` stops after the preview, `--no-open` prints the studio address |
 | `reshoot init demo` | Creates the bundled notes demo; refuses to overwrite files |
 | `reshoot init demo --url URL` | Creates a draft for the supplied app URL |
 | `reshoot doctor --config CONFIG` | Checks tools and installed detectors without recording |
@@ -24,7 +26,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
-| `reshoot studio PROJECT` | Opens a page on this computer with the latest run beat by beat, to edit captions, cards, the frame, music and exports, re-cut, record from a beat and accept; runs until Ctrl-C |
+| `reshoot studio PROJECT` | Opens the latest recording to edit captions and holds, undo/redo, update the preview, make a final, inspect scan sheets and accept the displayed run; runs until Ctrl-C |
 | `reshoot review RUN --serve` | Serves the review page on this computer only, to accept or reject the run with its buttons; stops once you decide |
 | `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name each finding with `--flagged F1` or `--reject F1`, or a single frame by its label. Refuses a preview unless given `--preview` |
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
@@ -43,7 +45,7 @@ files. `CONFIG` is a `reshoot.toml` path. Versioned runs write under the configu
 
 | Command | What it does |
 |---|---|
-| `reshoot rec URL story.toml` | Opens a fresh browser and drafts a storyboard from recorded actions, with suggested result checks |
+| `reshoot rec URL story.toml` | Opens a fresh browser with recording controls and drafts a storyboard, explicit and suggested result checks; Done finishes, or close the window |
 | `reshoot web story.toml takes/web.mp4` | Records a declarative TOML browser story |
 | `reshoot web story.py takes/web.mp4` | Records a supported Python browser story |
 | `reshoot window --list` | Lists macOS windows available to capture |

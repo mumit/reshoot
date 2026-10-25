@@ -25,11 +25,24 @@ Before and after a UI change, from one storyboard.
 
 ```bash
 uv tool install 'reshoot[browser]'
-reshoot init demo                # a made-up notes app and its storyboard
-reshoot preview demo/reshoot.toml
+reshoot create                  # make the notes preview and open the studio
 ```
 
-Once Chrome is up, the preview takes seconds and ends with what it made:
+With the dependencies installed, the preview takes seconds. In the studio,
+change a caption or result hold, choose **Update preview**, then **Make final**
+when it looks right. Undo keeps experiments easy to reverse.
+
+For your own running demo app:
+
+```bash
+reshoot create http://127.0.0.1:3000/ --directory my-demo
+```
+
+Show one task in the fresh browser. Its toolbar adds captions, checks a result,
+hides an element, pauses, and finishes. Choose **Done** to make the preview and
+open it in the studio. Use a demo account and resettable made-up data.
+
+Each preview prints what it made:
 
 ```text
 Done in 13 s: 3 of 3 result checks passed · scan: 6 items, 0 flagged · not accepted yet.

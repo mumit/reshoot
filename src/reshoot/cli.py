@@ -118,6 +118,20 @@ def main(argv=None):
     p.set_defaults(run=run_script)
 
     from reshoot import project
+    from reshoot import create
+    p = sub.add_parser('create', help='make a demo by showing a task, then shape its preview in the studio',
+                       description='Create a project, check the tools, open a fresh browser to record your task, '
+                       'then make a preview and open the studio. Use the recording toolbar to add captions and '
+                       'result checks, pause, hide an element and finish. Use demo data. Without a URL, try the '
+                       'bundled notes app. Nothing is accepted or published.\n\n'
+                       '    reshoot create\n'
+                       '    reshoot create http://127.0.0.1:3000/ --directory demo', formatter_class=Examples)
+    p.add_argument('url', nargs='?', help='your demo app URL; omit to try the bundled notes app')
+    p.add_argument('--directory', default='demo', help='a new project folder (default: demo; existing projects are kept)')
+    p.add_argument('--size', default='960x540@1.5', help='recording viewport (default: 960x540@1.5)')
+    p.add_argument('--no-open', action='store_true', help='print the studio address instead of opening its page')
+    p.add_argument('--no-studio', action='store_true', help='finish after the preview; open the studio later')
+    p.set_defaults(run=create.main)
     p = sub.add_parser('doctor', help='check that the tools a project needs are installed, without recording',
                        description='Check that ffmpeg, Chrome, Playwright, VHS and the scan detectors a project needs '
                        'are installed, and say whether a newer reshoot is out. It does not record or run a scan, so '
@@ -192,13 +206,15 @@ def main(argv=None):
     p.set_defaults(run=lambda a: review.serve(a) if a.serve else review.main(a))
 
     from reshoot import studio
-    p = sub.add_parser('studio', help='see the latest run beat by beat and shape it in a browser: captions, cards, frame, music, exports',
+    p = sub.add_parser('studio', help='shape a demo in a browser: captions, holds, undo, preview, final and review',
                        description='Open a page on this computer for shaping a demo: the latest run\'s video with its '
                        'beats on a timeline, each beat\'s frame, result checks and caption, and what the scan found. '
-                       'Captions and their look, title cards, the frame, music and export presets are saved to the '
-                       'storyboard and edit file as you edit; Re-cut shows them in seconds, Record from here records '
-                       'again from a beat whose actions changed, Record records the run, and the run is accepted on '
-                       'the page. It serves on 127.0.0.1 behind a random address until Ctrl-C.\n\n'
+                       'Captions and holds save as you leave a field. Undo and Redo restore studio edits; source '
+                       'changes in another editor require a reload. Update preview chooses a re-cut for caption '
+                       'or edit changes and a recording for timing, actions or settings. Make final records the '
+                       'full-size run. Inspect scan sheets and accept the exact run shown. Updates can be cancelled. '
+                       'Style and exports holds the look, cards, frame, music and export presets. '
+                       'It serves on 127.0.0.1 behind a random address until Ctrl-C.\n\n'
                        '    reshoot studio\n'
                        '    reshoot studio app/demo --port 8800 --no-open', formatter_class=Examples)
     p.add_argument('project', nargs='?', default='demo', help='the project folder or its reshoot.toml (default: demo)')

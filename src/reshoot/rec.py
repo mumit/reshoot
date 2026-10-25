@@ -1,5 +1,5 @@
 """Writes a storyboard by watching you use the app: it opens Chrome in a window, you click and type through what the
-video should show, and when you close the window it writes the beats.
+video should show, and Done in the toolbar (or closing the window) writes the beats.
 
     reshoot rec http://127.0.0.1:3000/ demo/draft.toml        # a storyboard.toml draft
     reshoot rec http://localhost:8000/ tools/demo/storyboard.py  # the legacy Python format
@@ -9,8 +9,10 @@ demo account only. Each click and each run of typing becomes a beat, found by th
 out (a test id, an id, a name or label, a button's words, then its place in the page). The holds come from your own
 pauses. A storyboard.toml draft also suggests result checks from what each action changed on the page: the words
 typed showing up in a list, a list getting shorter, a new address, a label that changed. Keep the ones that show the
-result. Captions are left for you to add. Anything typed into a password field is replaced with a placeholder. A dropdown choice becomes a select action; checkboxes, radio buttons, multiple choice and drops are not
-recorded: it says so and writes no storyboard.
+result. The TOML toolbar adds captions and explicit result checks, hides selected elements, pauses and removes the
+last recorded step. Toolbar controls are not app actions. Passwords become placeholders. Dropdowns, checkboxes
+and radio buttons replay their chosen state. Multiple choice, file selection and drops remain as blocking
+recording_issue notes for repair, keeping the other steps.
 """
 import asyncio, json, re
 from datetime import date
@@ -45,6 +47,23 @@ def steps_from(calls, include_tab=False):
     href = None
     for t, ev in calls:
         kind, last = ev["kind"], steps[-1] if steps else None
+        if kind == 'undo':
+            if steps:
+                steps.pop()
+            continue
+        if kind in ('caption', 'expect'):
+            if last is None:
+                last = dict(start=t, verb='note', where=None)
+                steps.append(last)
+            if kind == 'caption':
+                last['caption'] = ev['text']
+            else:
+                last.setdefault('checks', []).append(ev['check'])
+            continue
+        if kind.startswith('unsupported-'):
+            steps.append(dict(start=t, verb='issue', where=None,
+                              issue=ev.get('message', 'This interaction needs a manual storyboard action: ' + kind)))
+            continue
         if kind == "changed":  # what the step before it changed
             if last:
                 last.setdefault("changes", []).extend(ev["changes"])
@@ -62,16 +81,17 @@ def steps_from(calls, include_tab=False):
             if last and last["verb"] == "click" and last["where"] == ev["where"]:
                 steps.pop()
                 t, changes = last["start"], last.get("changes", [])
-            steps.append(dict(start=t, verb="type", where=ev["where"], value=ev["value"], before=ev.get("before", ""),
+            steps.append(dict(start=t, verb="type", where=ev["where"], value=ev["value"], before=ev.get("before", ""), label=ev.get('label'),
                               secret=ev.get("secret"), changes=changes))
         elif kind == "click":
-            steps.append(dict(start=t, verb="click", where=ev["where"]))
-        elif kind == "select":
+            steps.append(dict(start=t, verb="click", where=ev["where"], label=ev.get('label')))
+        elif kind in ("select", "check"):
             changes = []
             if last and last["verb"] == "click" and last["where"] == ev["where"]:
                 steps.pop()  # the click that opened the dropdown; select replays the whole choice
                 t, changes = last["start"], last.get("changes", [])
-            steps.append(dict(start=t, verb="select", where=ev["where"], option=ev["option"], changes=changes))
+            value = {'option': ev['option']} if kind == 'select' else {'checked': ev['checked']}
+            steps.append(dict(start=t, verb=kind, where=ev['where'], changes=changes, **value))
         elif kind == "key" and ev["key"] in (("Enter", "Escape", "Tab") if include_tab else ("Enter", "Escape")):
             steps.append(dict(start=t, verb="key", where=ev["where"], key=ev["key"]))
         elif kind == "scroll":
@@ -125,7 +145,7 @@ def write(path, url, size, beats):
     Path(path).write_text("\n".join(lines))
 
 
-async def session(url, w, h, calls, headless=False, drive=None):
+async def session(url, w, h, calls, headless=False, drive=None, toolbar=False):
     """Opens the page and collects what's done into calls, until the window is closed (or drive(page) returns, for
     tests)."""
     import websockets
@@ -138,7 +158,7 @@ async def session(url, w, h, calls, headless=False, drive=None):
             await page.cmd("Page.enable"); await page.cmd("Runtime.enable")
             await page.cmd("Emulation.setDeviceMetricsOverride", width=w, height=h, deviceScaleFactor=0, mobile=False)
             await page.cmd("Runtime.addBinding", name="__reshootRec")
-            await page.cmd("Page.addScriptToEvaluateOnNewDocument", source=(HERE / "rec.js").read_text())
+            await page.cmd("Page.addScriptToEvaluateOnNewDocument", source='window.__reshootToolbar = ' + json.dumps(toolbar) + ';' + (HERE / "rec.js").read_text())
             await page.cmd("Page.navigate", url=url)
             if drive:
                 await drive(page)
@@ -146,20 +166,24 @@ async def session(url, w, h, calls, headless=False, drive=None):
                 await page.run("window.__reshootFlush && window.__reshootFlush()")  # what the last action changed
                 await asyncio.sleep(0.2)
             else:
-                print("Chrome is open. Click and type through what the video should show, then close the window.",
+                print("Chrome is open. Use demo data. Show the task, then choose Done in the recording toolbar or close the window.",
                       flush=True)
-                await reader  # ends when the window (its tab) is closed
+                while not reader.done() and not any(ev.get('kind') == 'finish' for _, ev in calls):
+                    await asyncio.sleep(.15)
     except (websockets.ConnectionClosed, asyncio.CancelledError):
         pass
     finally:
         web.stop_chrome(chrome, profile)
+        if 'reader' in locals():
+            reader.cancel()
+            await asyncio.gather(reader, return_exceptions=True)
 
 
 def main(a):
     w, h, dpr = web.parse_size(a.size)
     calls = []
     try:
-        asyncio.run(session(a.url, w, h, calls, headless=a.headless))
+        asyncio.run(session(a.url, w, h, calls, headless=a.headless, toolbar=Path(a.out).suffix == '.toml'))
     except KeyboardInterrupt:  # stopped from the terminal: keep what was done so far
         pass
     if Path(a.out).suffix == '.toml':
@@ -204,16 +228,24 @@ def suggest(step, typed):
 
 
 def write_toml(path, url, size, calls):
-    unsupported = [ev['kind'] for _, ev in calls if ev['kind'] not in ('click', 'type', 'select', 'key', 'scroll', 'changed', 'page')]
-    if unsupported:
-        raise ValueError('recording includes unsupported interactions: ' + ', '.join(sorted(set(unsupported))))
     lines = ['schema_version = 1', 'url = ' + json.dumps(url), 'size = ' + json.dumps(size)]
+    hidden = list(dict.fromkeys(ev['selector'] for _, ev in calls if ev['kind'] == 'blur'))
+    if hidden:
+        lines.append('blur = ' + json.dumps(hidden))
     steps = steps_from(calls, include_tab=True)
     if not steps:
         raise ValueError('no supported actions recorded')
     typed, suggested = [], 0
     for i, step in enumerate(steps):
-        lines += ['', '[[beat]]', f'id = "action-{i+1}"', 'hold = 1.0', '[[beat.action]]', 'type = ' + json.dumps(step['verb'])]
+        lines += ['', '[[beat]]', f'id = "action-{i+1}"', 'hold = 1.0']
+        caption = step.get('caption') or step.get('label')
+        if caption:
+            lines.append('caption = ' + json.dumps(caption))
+        if step['verb'] == 'issue':
+            lines.append('recording_issue = ' + json.dumps(step['issue']))
+            continue
+        if step['verb'] != 'note':
+            lines += ['[[beat.action]]', 'type = ' + json.dumps(step['verb'])]
         if step.get('where'):
             kind, value = step['where']
             if kind == 'css':
@@ -231,15 +263,19 @@ def write_toml(path, url, size, calls):
             lines += ['key = ' + json.dumps(step['key'])]
         elif step['verb'] == 'scroll':
             lines += ['dy = ' + str(step['dy'])]
+        elif step['verb'] == 'check':
+            lines += ['checked = ' + json.dumps(step['checked'])]
         if step['verb'] == 'type' and not step.get('secret') and step['value'].strip():
             typed.insert(0, step['value'].strip())
-        for check in suggest(step, sorted(typed, key=len, reverse=True)):
-            suggested += 1
-            lines += ['[[beat.expect]]  # suggested from what this changed on the page: keep it if it is the result',
+        manual = step.get('checks', [])
+        inferred = suggest(step, sorted(typed, key=len, reverse=True)) if not manual else []
+        suggested += len(inferred)
+        for check in manual + inferred:
+            lines += ['[[beat.expect]]' + ('  # suggested from what this changed on the page: keep it if it is the result' if check in inferred else ''),
                       'type = ' + json.dumps(check['type'])]
             if 'target' in check:
-                lines += ['target = {css = ' + json.dumps(check['target']['css']) + '}']
-            lines += [f'{key} = ' + json.dumps(check[key]) for key in ('contains', 'count') if key in check]
+                lines += ['target = {' + ', '.join(k + ' = ' + json.dumps(v) for k, v in check['target'].items()) + '}']
+            lines += [f'{key} = ' + json.dumps(check[key]) for key in ('contains', 'count', 'value', 'checked') if key in check]
     lines += ['', '[[beat]]', 'id = "end"', 'hold = 0.5']  # the generated edit ends where this starts
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text('\n'.join(lines) + '\n')

@@ -2,6 +2,7 @@
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 from importlib.resources import files
@@ -85,11 +86,14 @@ def init(a):
     port = None if a.url else free_port()
     for name in names:
         text = template.joinpath(name).read_text()
+        if name == 'storyboard.toml' and getattr(a, 'size', None):
+            text = re.sub(r'(?m)^size\s*=.*$', lambda m: 'size = ' + json.dumps(a.size), text)
         if port:
             text = text.replace('8765', str(port))
         if a.url:
             if name == 'storyboard.toml':
-                text = 'schema_version = 1\nurl = ' + json.dumps(a.url) + '\n[[beat]]\nid = "intro"\ncaption = "Replace this with one useful task"\nhold = 2\n'
+                text = ('schema_version = 1\nurl = ' + json.dumps(a.url) + '\n[[beat]]\nid = "intro"\n'
+                        'caption = "Replace this with one useful task"\nhold = 2\n\n[[beat]]\nid = "end"\nhold = 0.5\n')
             elif name == 'reshoot.toml':
                 text = text[text.index('[[take]]'):]
                 text = 'schema_version = 1\n' + text
@@ -98,7 +102,8 @@ def init(a):
         (root / name).write_text(text)
     if not (root / '.gitignore').exists():  # recordings are remade from the source; demo/accepted/ is what to keep
         (root / '.gitignore').write_text('/takes/\n')
-    print(f'Created {root}. Read BRIEF.md, then run reshoot doctor --config {root / "reshoot.toml"}.')
+    if not getattr(a, 'quiet', False):
+        print(f'Created {root}. Read BRIEF.md, then run reshoot doctor --config {root / "reshoot.toml"}.')
     return 0
 
 

@@ -184,6 +184,8 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             browser = pw.chromium.launch(executable_path=web.find_chrome(), headless=True)
             page = browser.new_page()
             page.goto(url)
+            assert f'/runs/{page.locator("body").get_attribute("data-run")}/' in page.locator('#video').get_attribute('src')
+            assert page.locator('.scan img').count() >= 1
             assert page.locator('.beat').count() == 4 and page.locator('.seg').count() >= 3
             assert page.locator('.beat[data-beat=search] .checks').inner_text() == '2 of 2 result checks passed'
             search = page.locator('.beat[data-beat=search]')
@@ -193,10 +195,22 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             page.wait_for_selector('#toast.on')
             assert search.locator('.pending').is_visible()
             assert 'caption = "A caption from the studio"' in board.read_text()
+            with page.expect_navigation():
+                page.click('[data-history=undo]')
+            assert 'A caption from the studio' not in board.read_text()
+            with page.expect_navigation():
+                page.click('[data-history=redo]')
+            assert 'A caption from the studio' in board.read_text()
+            page.locator('.styling > summary').click()
             page.locator('.look input[name=background]').fill('blue')
             page.locator('.look input[name=background]').press('Tab')
             page.wait_for_function("document.getElementById('toast').textContent.includes('colour')")
             assert 'blue' not in board.read_text()
+            page.click('[data-job=update]')
+            page.wait_for_function("document.getElementById('save-error').textContent.includes('unsaved')")
+            page.locator('.look input[name=background]').fill('#1d4ed8')
+            page.locator('.look input[name=background]').press('Tab')
+            page.wait_for_function("!document.querySelector('[data-unsaved]')")
             search.locator('.play').click()  # plays the beat, from its place in the video
             page.wait_for_function("!document.getElementById('video').paused")
             start = float(search.get_attribute('data-start'))
@@ -212,25 +226,38 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             page.check('.cut [name=frame]')
             page.wait_for_function("document.querySelector('.cut .pending').hidden === false")
             with page.expect_navigation(timeout=120000):
-                page.click('[data-job=recut]')
+                page.click('[data-job=update]')
             assert 'a re-cut of' in page.locator('.status').inner_text()
             assert page.locator('.beat[data-beat=search] .pending').is_hidden()
             assert page.locator('.cut .pending').is_hidden()
             assert page.locator('#to-accept').count() == 1
+            hold = page.locator('.beat[data-beat=search] input[name=hold]')
+            hold.fill('2.5')
+            hold.press('Tab')
+            page.wait_for_function("!document.querySelector('[data-unsaved]')")
+            with page.expect_navigation(timeout=120000):
+                page.click('[data-job=update]')
+            assert 'a re-cut of' not in page.locator('.status').inner_text()  # timing replays the app
             # A beat whose hold changed is recorded again from that beat, and its take shown on the page
-            board.write_text(board.read_text().replace('hold = 2.0', 'hold = 2.5'))
+            board.write_text(board.read_text().replace('hold = 2.5', 'hold = 3.0'))
             page.reload()
             assert page.locator('.redo.changed').count() == 1
             page.locator('.beat[data-beat=search] [data-from]').click()
             page.wait_for_selector('#job-take:not([hidden])', timeout=120000)
             assert 'Recording from search worked' in page.locator('#job-title').inner_text()
-            assert 'a re-cut of' in page.locator('.status').inner_text()  # still the run, not the partial take
+            assert 'a re-cut of' not in page.locator('.status').inner_text()  # still the run, not the partial take
+            previous = page.locator('.status').inner_text()
+            page.click('[data-job=update]')
+            page.wait_for_selector('#cancel:visible')
+            page.click('#cancel')
+            page.wait_for_function("document.getElementById('job-title').textContent.includes('cancelled')", timeout=30000)
+            assert page.locator('.status').inner_text() == previous
             browser.close()
     finally:
         httpd.shutdown()
-    newest = max((tmp_path / 'takes/runs').glob('*/run.json'), key=lambda p: json.loads(p.read_text())['finished_at'])
+        httpd.server_close()
     recut = [p.parent for p in (tmp_path / 'takes/runs').glob('*/run.json') if json.loads(p.read_text()).get('recut_from')]
     assert 'A caption from the studio' in (recut[0] / 'takes/demo-final.srt').read_text()
-    assert json.loads(newest.read_text())['mode'] == 'partial-preview'
+    assert any(json.loads(p.read_text())['mode'] == 'partial-preview' for p in (tmp_path / 'takes/runs').glob('*/run.json'))
     import tomllib
     assert tomllib.loads((tmp_path / 'edit.toml').read_text())['part'][0]['card'] == 'Notes, found fast'

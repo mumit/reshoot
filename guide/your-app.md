@@ -9,6 +9,33 @@ see [Record a macOS window](macos-window.md).
 [Install reshoot](install.md) first. The [notes tutorial](step-by-step.md) is
 a complete example to try separately; it is not a prerequisite.
 
+## Show the task
+
+With your demo server running, use:
+
+```bash
+reshoot create http://127.0.0.1:3000/ --directory demo
+```
+
+Use made-up data in a separate demo account. The browser starts with a fresh
+profile. Show one task, use **Caption here** to explain its outcome, and
+**Check result** to select the visible result without activating it. **Hide**
+selects an element to blur in every recording. **Pause** leaves interactions
+out; restore the app's state before resuming. **Remove last step** removes the
+step from the script, so restore its app state before repeating it.
+
+Choose **Done**. Reshoot writes the project, records a preview and opens the
+studio. Change captions and holds there, then choose **Update preview**.
+Choose **Make final** when ready to inspect the full-size exports and scan
+sheets. Nothing is accepted or published automatically.
+
+Checkboxes and radio buttons replay their chosen state. Multiple-choice lists,
+file selection and drops are saved as unresolved steps; the rest of the story
+is kept. Add the required actions in `storyboard.toml` and remove that beat's
+`recording_issue` after repairing it. A story with unresolved steps cannot be
+recorded. The manual route below covers startup, reset and login setup when
+your app needs them.
+
 ## Choose one result
 
 Before writing actions, fill in `BRIEF.md`. For example:
@@ -144,8 +171,9 @@ reshoot rec http://127.0.0.1:3000/ demo/draft.toml
 
 This opens a fresh browser for you to do the task with demo data. Close it when
 you finish, and it writes the clicks, typing and dropdown choices as beats.
-Checkboxes, radio buttons, multiple-choice lists and drops are not recorded: it
-says so and writes nothing.
+Checkboxes and radio buttons record their chosen state. Multiple-choice lists,
+file selection and drops leave a blocking `recording_issue` in that step,
+preserving the rest of the draft for repair.
 
 It also suggests result checks from what each action changed on the page:
 the words you typed showing up in a list, a list getting shorter, a new

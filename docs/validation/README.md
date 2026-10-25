@@ -39,6 +39,7 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 
 | Date | Record |
 |---|---|
+| 2026-10-24 | [Creation and revision](2026-10-24-creation-and-revision.md): one-command creation, recording controls, studio updates, undo, cancellation and exact-run review |
 | 2026-10-19 | [Delivery status](2026-10-19-delivery-status.md): original implementation and limits |
 | 2026-10-20 | [Resume validation](2026-10-20-resume-validation.md): host checks, fixes, 18 harness tasks |
 | 2026-10-20 | [External trials](2026-10-20-external-trials.md): five synthetic app variants from four repositories |

@@ -187,8 +187,8 @@ def test_rec_toml_keeps_target_and_replaces_password(tmp_path):
     assert data['beat'][0]['action'][0]['text'] == 'demo-password'
     assert data['beat'][1]['action'][0]['target'] == {'css': '#pw'}
     assert 'secret-pass' not in path.read_text()
-    with pytest.raises(ValueError, match='unsupported'):
-        rec.write_toml(path, 'http://localhost/', '640x360@1', [(0, {'kind': 'unsupported-change'})])
+    rec.write_toml(path, 'http://localhost/', '640x360@1', [(0, {'kind': 'unsupported-change'})])
+    assert 'unsupported-change' in story.load(path)['beat'][0]['recording_issue']
 
 
 @pytest.mark.browser

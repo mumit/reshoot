@@ -584,7 +584,7 @@ document.getElementById('save').onclick=()=>{const a=document.createElement('a')
     return 0
 
 
-def panel(root, report):
+def panel(root, report, *, final_action='reshoot run'):
     """The accept panel for a served review page: a choice for each finding, a promise to have watched, a button."""
     from reshoot.check import findings, load
     if report.get('review_status') == 'completed':
@@ -594,7 +594,7 @@ def panel(root, report):
                 'new run.</p></div>')
     if report.get('mode', 'final') != 'final':
         return ('<div id="to-accept"><p><strong>This is a preview,</strong> smaller and quicker than a final. Record a '
-                'final with <code>reshoot run</code> and accept that.</p></div>')
+                f'final with <strong>{html.escape(final_action)}</strong> and accept that.</p></div>')
     rows = ''.join(
         f'<fieldset data-finding="{html.escape(name)}"><legend>{html.escape(name)}: {html.escape(found)}, '
         f'{len(members)} frame{"s" if len(members) != 1 else ""}</legend>'
@@ -602,7 +602,8 @@ def panel(root, report):
         f'<label><input type="radio" name="{html.escape(name)}" value="reject"> Must not be shared</label></fieldset>'
         for name, (found, members) in findings(load(root / 'review' / 'flags.json', {})).items())
     ask = ' Then say whether each finding may be shared.' if rows else ''
-    return ('<div id="to-accept" class="flagged"><h2>Accept this run</h2><p>Watch every export below to the end and '
+    return (f'<div id="to-accept" class="flagged" data-run="{html.escape(report["id"])}" '
+            f'data-binding="{binding(root, report)}"><h2>Accept this run</h2><p>Watch every export to the end and '
             'look at the scan items, findings first.' + ask + '</p>' + rows + PANEL + '</div>' + PANEL_SCRIPT)
 
 
@@ -618,9 +619,14 @@ PANEL_SCRIPT = '''<script>(() => {
     button.disabled = !document.getElementById('watched').checked || c.some(([, v]) => !v);
   });
   button.onclick = async () => {
+    if (document.querySelector('[data-unsaved]')) {
+      document.getElementById('outcome').textContent = 'Fix the unsaved field before accepting.';
+      return;
+    }
     button.disabled = true;
     const c = choices();
-    const body = {flagged: c.filter(([, v]) => v === 'flagged').map(([n]) => n),
+    const body = {run_id: box.dataset.run, binding: box.dataset.binding, revision: document.body.dataset.revision,
+                  flagged: c.filter(([, v]) => v === 'flagged').map(([n]) => n),
                   reject: c.filter(([, v]) => v === 'reject').map(([n]) => n)};
     const r = await fetch('accept', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
     const out = await r.json();
@@ -687,6 +693,9 @@ def accept_from_page(run_path, body):
     out = io.StringIO()
     try:
         with contextlib.redirect_stdout(out):
+            root, report = read(run_path)
+            if body.get('run_id') != report['id'] or body.get('binding') != binding(root, report):
+                raise ValueError('This recording or its scan changed. Reload and review it before accepting.')
             code = accept(SimpleNamespace(run_path=run_path, flagged=body.get('flagged') or None,
                                           reject=body.get('reject') or None, yes=True, preview=False))
         return code, out.getvalue()
@@ -700,8 +709,8 @@ def serve(a):
     import http.server, secrets, threading, time, webbrowser
     from types import SimpleNamespace
     from urllib.parse import unquote
-    main(SimpleNamespace(run_path=a.run_path, previous=a.previous, import_decisions=None, quiet=True))
     root, _ = read(a.run_path)
+    main(SimpleNamespace(run_path=str(root), previous=a.previous, import_decisions=None, quiet=True))
     token = secrets.token_urlsafe(16)
     done = threading.Event()
 
@@ -715,7 +724,7 @@ def serve(a):
                 return reply(self, 404, b'not found', 'text/plain')
             name = unquote(path[len(prefix):]) or 'review.html'
             if name == 'review.html':
-                page = re.sub(r'<div id="to-accept">.*?</div>', lambda m: panel(*read(a.run_path)),
+                page = re.sub(r'<div id="to-accept">.*?</div>', lambda m: panel(*read(root)),
                               (root / 'review.html').read_text(), count=1, flags=re.S)
                 return reply(self, 200, page.encode())
             send_file(self, root, name)
@@ -726,10 +735,10 @@ def serve(a):
             body = from_page(self, f'/{token}/accept')
             if body is None:
                 return
-            code, text = accept_from_page(a.run_path, body)
+            code, text = accept_from_page(str(root), body)
             print(text.rstrip(), flush=True)
             reply(self, 200, json.dumps({'code': code, 'output': text}).encode(), 'application/json')
-            if code == 0 or body.get('reject'):
+            if code == 0 or (code == 1 and body.get('reject')):
                 done.set()
 
     server = http.server.ThreadingHTTPServer(('127.0.0.1', a.port or 0), Handler)

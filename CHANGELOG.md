@@ -4,6 +4,33 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Added
+
+- `reshoot create [URL] --directory demo` checks dependencies, records a task
+  with a toolbar, makes a preview and opens the studio. Without a URL it tries
+  the notes app. Existing projects are kept.
+- Recording controls for Done, Pause, Caption here, Check result, Hide and
+  Remove last step. Checkbox and radio state replay through a `check` action.
+- Holds, Undo/Redo, automatic Update preview, cancellation and scan sheets in
+  the studio. The story appears before styling, with Make final for full-size
+  recording and explicit pipeline operations under More.
+
+### Fixed
+
+- Studio media and acceptance stay bound to the displayed run, even when
+  another command produces a newer run. Acceptance verifies the artifact and
+  scan binding supplied by the page.
+- Studio edits carry a revision; stale tabs require a reload and undo preserves
+  external changes. Source fields pause during updates. Failed saves remain
+  visible and block updates and acceptance until corrected.
+- Unsupported recorder interactions preserve the draft as blocking
+  `recording_issue` steps instead of discarding it.
+- The studio text-colour placeholder uses the hex format the server accepts.
+- Browser capture composes the page before starting the take, avoiding a blank
+  opening frame. The studio shows a recorded frame before playback starts.
+
 ## 0.3.6 (2026-10-24)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

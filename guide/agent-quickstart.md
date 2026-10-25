@@ -106,20 +106,15 @@ asks for, and the provider's usual terms apply.
 
 ### Without an agent
 
-Everything the agent runs is an ordinary command, so you can make the demo
-yourself:
+After [installing reshoot](install.md), run `reshoot create URL --directory demo`
+with your demo server running. Show a task in the fresh browser. Use its toolbar
+to add a caption, check the visible result, and choose Done. The preview opens
+in the studio, where captions and holds are editable, Undo restores experiments,
+Update preview chooses the work, and Make final records the full-size exports.
+Inspect the video, GIF and scan sheets there before accepting. Run
+`reshoot create` without a URL to try the notes example.
 
-1. [Install reshoot](install.md), then run `reshoot init demo --url URL` to
-   write a project for your app.
-2. `reshoot rec URL demo/draft.toml` opens Chrome; click through the task and it
-   writes the story, with suggested result checks. Keep the checks that show the
-   result, then use the draft to replace `demo/storyboard.toml`
-   ([Draft it by clicking through](your-app.md#draft-it-by-clicking-through)).
-3. `reshoot preview demo/reshoot.toml`, then `reshoot run demo/reshoot.toml`.
-4. `reshoot studio demo` to change captions, cards, the frame and exports by
-   pointing, and to accept.
-
-The [tutorial](step-by-step.md) does all of this with the bundled notes app.
+The [tutorial](step-by-step.md) teaches the individual commands with the notes app.
 Keeping a demo current in CI never needs an agent: the
 [GitHub workflow](ci.md) only runs reshoot.
 

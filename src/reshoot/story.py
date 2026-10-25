@@ -29,8 +29,16 @@ import re
 import tomllib
 from pathlib import Path
 
-ACTIONS = {'click', 'type', 'select', 'key', 'scroll', 'navigate', 'wait', 'upload'}
+ACTIONS = {'click', 'type', 'select', 'check', 'key', 'scroll', 'navigate', 'wait', 'upload'}
 EXPECT = {'text', 'visible', 'count', 'value', 'url', 'checked'}
+
+
+def recording_settings(board):
+    """Settings that affect capture or timing, excluding caption styling that can be drawn again."""
+    settings = {k: v for k, v in board.items() if k not in ('beat', 'caption')}
+    if 'min_seconds' in board.get('caption', {}):
+        settings['caption'] = {'min_seconds': board['caption']['min_seconds']}
+    return settings
 
 
 def target(value):
@@ -78,8 +86,10 @@ def load(path):
         if not re.fullmatch(r'[a-zA-Z0-9_-]+', name) or name in seen:
             raise ValueError('beat IDs must be unique letters, digits, underscores, or hyphens')
         seen.add(name)
-        if unknown := set(beat) - {'id', 'purpose', 'caption', 'sub', 'hold', 'action', 'expect', 'trim_wait', 'min_reading'}:
+        if unknown := set(beat) - {'id', 'purpose', 'caption', 'sub', 'hold', 'action', 'expect', 'trim_wait', 'min_reading', 'recording_issue'}:
             raise ValueError(f'unknown option in beat {name}: ' + ', '.join(sorted(unknown)))
+        if 'recording_issue' in beat and (not isinstance(beat['recording_issue'], str) or not beat['recording_issue'].strip()):
+            raise ValueError(f'recording_issue in beat {name} must explain the unresolved step')
         hold = beat.get('hold', 1)
         if not isinstance(hold, (int, float)) or not math.isfinite(hold) or hold < 0:
             raise ValueError(f'invalid hold in beat {name}')
@@ -112,7 +122,7 @@ def validate(entry, allowed):
     kind = entry.get('type')
     if kind not in allowed:
         raise ValueError(f'unsupported operation {kind!r}')
-    options = {'click': set(), 'type': {'text', 'clear'}, 'select': {'option'}, 'key': {'key'}, 'scroll': {'dy'},
+    options = {'click': set(), 'type': {'text', 'clear'}, 'select': {'option'}, 'check': {'checked'}, 'key': {'key'}, 'scroll': {'dy'},
                'navigate': {'url'}, 'wait': set(), 'upload': {'file'}, 'text': {'contains'},
                'visible': set(), 'count': {'count'}, 'value': {'value'}, 'url': {'contains'}, 'checked': {'checked'}}
     if unknown := set(entry) - ({'type', 'target', 'timeout'} | options[kind]):
@@ -123,6 +133,8 @@ def validate(entry, allowed):
     required = {'type': 'text', 'select': 'option', 'key': 'key', 'navigate': 'url', 'text': 'contains', 'count': 'count', 'value': 'value', 'upload': 'file', 'url': 'contains'}
     if kind in required and required[kind] not in entry:
         raise ValueError(f'{kind} needs {required[kind]}')
+    if kind in ('check', 'checked') and not isinstance(entry.get('checked', True), bool):
+        raise ValueError('checked must be true or false')
     timeout = entry.get('timeout', 10000)
     if not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
         raise ValueError('operation timeout must be positive')

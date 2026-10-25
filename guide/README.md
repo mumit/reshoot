@@ -7,6 +7,7 @@ it again when the app changes.
 
 | You are | Start with |
 |---|---|
+| Showing a task yourself | `reshoot create URL --directory demo`, or `reshoot create` to try notes; [your app](your-app.md#show-the-task) covers the toolbar |
 | Asking Codex or Claude Code to make a demo | [Make a demo with your agent](agent-quickstart.md): one prompt, then reply "accept" |
 | Using the CLI yourself | [The tutorial](step-by-step.md): record the bundled notes app, break it, repair it, compare |
 | Adopting reshoot for a team | [Reshoot on a team](team.md): ownership, CI, alerts and cost |

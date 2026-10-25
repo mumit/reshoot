@@ -50,7 +50,7 @@ async def action(page, entry, events, root, hand=None):
         # While recording, the glide takes longer for longer trips, as the Python route's does.
         await page.evaluate('p => __demo.moveTo(p[0], p[1], p[2])', [box['x'] + box['width']/2,
                             box['y'] + box['height']/2, None if hand else 350])
-    if hand and box and kind in ('click', 'type', 'select'):
+    if hand and box and kind in ('click', 'type', 'select', 'check'):
         await page.evaluate('() => __demo.tap()')
     if kind == 'click':
         await item.click(timeout=timeout)
@@ -68,6 +68,8 @@ async def action(page, entry, events, root, hand=None):
         if not hand:
             await page.wait_for_timeout(250)  # let the cursor rest on the control before the choice changes
         await item.select_option(entry['option'], timeout=timeout)
+    elif kind == 'check':
+        await item.set_checked(entry.get('checked', True), timeout=timeout)
     elif kind == 'key':
         await item.press(entry['key'], timeout=timeout)
     elif kind == 'upload':
@@ -203,16 +205,24 @@ async def capture(board, a, frames, out, metadata, spoken):
             for entry in board.get('setup', []):
                 await action(page, entry, events, root)
             for previous in board['beat'][:split]:
+                if previous.get('recording_issue'):
+                    raise ValueError(f'Unresolved step {previous["id"]}: {previous["recording_issue"]}')
                 for entry in previous.get('action', []):
                     await action(page, entry, events, root)
                 for entry in previous.get('expect', []):
                     await assertion(page, entry)
             metadata['replayed_before'] = ids[:split]
+            # Force the first composition before capture starts. Without this Chrome can begin the take with a
+            # blank frame even though the DOM and fonts are ready. Screenshots remain off camera; during capture
+            # evidence must continue to come from the screencast itself.
+            await page.screenshot()
             events.clear()
             clock = time.monotonic() - time.time()
             await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': int(w*cap_dpr), 'maxHeight': int(h*cap_dpr)})
             for beat in board['beat'][split:]:
                 current = beat['id']
+                if beat.get('recording_issue'):
+                    raise ValueError(f'Unresolved step {current}: {beat["recording_issue"]}. Repair it in the storyboard before recording.')
                 start = beats[current] = time.monotonic()
                 result = {'id': current, 'purpose': beat.get('purpose'), 'caption': beat.get('caption'),
                           'definition_sha256': __import__('hashlib').sha256(json.dumps(beat, sort_keys=True).encode()).hexdigest(),
@@ -315,7 +325,9 @@ def main(a):
     web.parse_size(a.size or board.get('size', '1280x720@1'))
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    metadata = {'schema_version': 1, 'video': out.name, 'status': 'failed', 'story_id': board.get('id', Path(a.storyboard).stem), 'story_sha256': digest(a.storyboard), 'beats': []}
+    metadata = {'schema_version': 1, 'video': out.name, 'status': 'failed', 'story_id': board.get('id', Path(a.storyboard).stem), 'story_sha256': digest(a.storyboard), 'beats': [],
+                'recording_settings_sha256': __import__('hashlib').sha256(json.dumps(
+                    story.recording_settings(board), sort_keys=True).encode()).hexdigest()}
     from reshoot.voice import prepare
     spoken = prepare(board['voice'], os.environ.get('RESHOOT_VOICE_CACHE', out.with_suffix('.voice')), board.get('voice_engine')) if board.get('voice') else {}
     try:

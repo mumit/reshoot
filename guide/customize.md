@@ -36,7 +36,7 @@ a timeline under it, green where the result checks passed. Each beat shows its
 last frame, its result checks, and its caption and second line, ready to edit.
 Click a beat to play just that part.
 
-- **Change a caption** and leave the field: it is saved to
+- **Change a caption or result hold** and leave the field: it is saved to
   `demo/storyboard.toml`, and the beat says it is not in the video yet.
 - **Change the caption look**, its place and colours, the same way.
 - **Change the edit**: add, reword, time or remove an opening or closing title
@@ -44,20 +44,37 @@ Click a beat to play just that part.
   from the project folder, and change, add or remove exports by preset. These
   are saved to `demo/edit.toml`, and `[check] sources` in `reshoot.toml` follows
   the exports, so each one is still scanned.
-- **Re-cut** draws the captions again on the same recording, edits and scans it,
-  in seconds, and loads the new run.
+- **Update preview** chooses the work: caption and edit changes reuse the
+  recording; changes to actions, checks, timing, settings or declared demo
+  inputs record again. It says which work it chose and loads the new run.
+- **Undo** and **Redo** restore studio edits, including changes to exports and
+  their scan sources. History lasts while the studio server runs. A change in
+  another tab or editor requires a reload, preserving those edits.
+- **Style and exports** holds caption colours, cards, framing, music and export
+  presets. Open it when the story works. Colour fields take hex values.
 - **Record from here**, on a beat, starts the app, replays the beats before it
   off camera and records from that beat on, then shows that take. A beat whose
   actions, checks or hold changed since the recording is marked in red. When
-  the take looks right, **Record** records the whole run.
+  the take looks right, **Make final** records the whole run at full size.
 - **Exports** shows each export in its own shape, with its size, length and
   file size, and the limits of the place its preset is for.
-- **What the scan found** marks each finding on the timeline, and the accept
-  panel accepts the run, as `reshoot accept` does.
+- **What the scan found** marks each finding on the timeline. Open **Inspect
+  scan sheets** and each sheet at full size before accepting. Media and the
+  acceptance decision remain bound to the run shown, even if another command
+  creates a newer run.
+- **Cancel update** stops the current job and keeps the previous recording.
+  Editing is paused while a job uses the project. Save errors stay visible so
+  an unsaved change cannot look like a successful update.
+
+**More** retains explicit Re-cut and Record a preview commands for advanced use.
+For multiple takes or older recordings without the required metadata, Update
+preview records again. Changes to a remote app or an external database cannot
+be detected from the files: use More > Record a preview after those change,
+even if you also edit captions. Declared `inputs` are checked automatically.
 
 The files stay the source of truth: edit them by hand or ask an agent while the
-studio is open, and reload the page to see the change. Actions, result checks
-and holds are changed in the storyboard itself. The studio serves on
+studio is open, and reload the page to see the change. Actions and result checks
+are changed in the storyboard itself; holds are also editable in the studio. The studio serves on
 `127.0.0.1` behind a random address, takes changes only from its own page, and
 runs until you press Ctrl-C.
 

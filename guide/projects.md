@@ -128,6 +128,7 @@ be compared beat by beat.
 | `caption` | none | The caption shown from this beat on |
 | `sub` | none | A smaller second line under the caption |
 | `hold` | `1` | Seconds to stay on the result after the actions and result checks |
+| `recording_issue` | none | An unresolved recorded interaction. Recording stops here until the actions are repaired and this field is removed |
 | `min_reading` | `0` | Seconds the beat must stay on screen, even when its wait is shortened |
 | `trim_wait` | `false` | Lets the edit shorten this beat's wait, once its result check passed. Needs `trim_waits = true` in the edit |
 | `[[beat.action]]` | none | Actions, in order |
@@ -140,6 +141,7 @@ be compared beat by beat.
 | `click` | `target` | Glides the cursor there and clicks |
 | `type` | `target`, `text`, `clear` (`true`) | Clicks the field, clears it, and types at a person's pace |
 | `select` | `target`, `option` | Picks a dropdown option by its value or label |
+| `check` | `target`, `checked` (`true`) | Sets a checkbox or radio button to the chosen state, using native input |
 | `key` | `target`, `key` | Presses a key in the target, such as `"Enter"` in a search field |
 | `scroll` | `dy` (`300`) | Scrolls the page down by `dy` pixels |
 | `navigate` | `url` | Opens a page |

@@ -11,7 +11,7 @@ open, and the page shows what is on disk when it loads.
 
 It serves on 127.0.0.1 behind a random address and takes changes only from its own page, like `review --serve`.
 """
-import hashlib, html, json, os, re, subprocess, sys, threading, tomllib
+import hashlib, html, json, math, os, re, signal, subprocess, sys, threading, tomllib
 from pathlib import Path
 
 AUDIO = ('.mp3', '.m4a', '.aac', '.wav', '.ogg', '.flac')
@@ -97,11 +97,12 @@ def save(path, lines, check):
     try:
         check(temp)
     except (ValueError, KeyError, TypeError, tomllib.TOMLDecodeError) as e:
+        temp.unlink(missing_ok=True)
         raise ValueError(f'not saved: {e}') from None
-    finally:
-        text = temp.read_text()
-        temp.unlink()
-    path.write_text(text)
+    except BaseException:
+        temp.unlink(missing_ok=True)
+        raise
+    temp.replace(path)
 
 
 COLOUR = re.compile(r'#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})')
@@ -116,6 +117,11 @@ def edit(board, change):
             return keys.get('id') == change['beat']
         if not block(lines, '[[beat]]', this):
             raise ValueError(f'no beat {change["beat"]!r} in the storyboard')
+        if 'hold' in change:
+            value = change['hold']
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                raise ValueError('Hold must be a nonnegative number of seconds.')
+            put(lines, block(lines, '[[beat]]', this), 'hold', value, after='id')
         for key in ('caption', 'sub'):
             if key in change:
                 value = change[key]
@@ -270,6 +276,7 @@ class Job:
     """A reshoot command started from the page: a re-cut or a recording, one at a time."""
     def __init__(self):
         self.kind, self.lines, self.code, self.lock, self.n, self.beat = None, [], None, threading.Lock(), 0, None
+        self.proc, self.cancelled = None, False
 
     def running(self):
         return self.kind is not None and self.code is None
@@ -279,21 +286,45 @@ class Job:
             if self.running():
                 raise ValueError(f'a {self.kind} is still running')
             self.kind, self.lines, self.code, self.n, self.beat = kind, [], None, self.n + 1, beat
+            self.proc, self.cancelled = None, False
         def go():
             from reshoot.safety import redact
             try:
-                proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                        start_new_session=True)
+                self.proc = proc
+                if self.cancelled:
+                    self.cancel()
                 for line in proc.stdout:
                     self.lines.append(redact(line.rstrip()).replace(str(cwd) + '/', ''))
-                self.code = proc.wait()
+                code = proc.wait()
+                self.code = 130 if self.cancelled else code
             except OSError as e:
                 self.lines.append(str(e))
                 self.code = 1
         threading.Thread(target=go, daemon=True).start()
 
+    def cancel(self):
+        self.cancelled = True
+        proc = self.proc
+        if proc and proc.poll() is None:
+            try:
+                os.killpg(proc.pid, signal.SIGINT)
+            except ProcessLookupError:
+                return
+            def stop():
+                if proc.poll() is None:
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+            timer = threading.Timer(12, stop)
+            timer.daemon = True
+            timer.start()
+
     def json(self):
         return {'n': self.n, 'kind': self.kind, 'beat': self.beat, 'running': self.running(), 'code': self.code,
-                'lines': self.lines[-400:]}
+                'lines': self.lines[-400:], 'cancelled': self.cancelled}
 
 
 def current(folder, partial=False):
@@ -343,7 +374,7 @@ def fits(limits, seconds, size):
     return f'{limits["platform"]} takes {" and ".join(rules)}; this is {seconds:.1f} s and {size / 1e6:.1f} MB'
 
 
-def view(folder, take, config):
+def view(folder, take, config, run=None):
     """What the page shows: the storyboard's beats and the edit, joined to the latest run's where there is one."""
     from reshoot import cut as cuts, review, story, timeline
     from reshoot.artifacts import digest
@@ -372,7 +403,7 @@ def view(folder, take, config):
             'exports': [{'i': i, 'preset': p.get('preset'), 'name': p.get('name', p.get('preset', 'landscape')),
                          'file': Path(o).name} for i, (p, o) in enumerate(zip(cut.get('export', []), outputs(cut, '.')))],
             'pending': False}
-    run = current(folder)
+    run = run or current(folder)
     recorded, drawn, rows, look_drawn = {}, {}, {}, None
     if run:
         root, report = run
@@ -415,14 +446,19 @@ def view(folder, take, config):
             size = (root / path).stat().st_size
             preset = presets.get(Path(path).name)
             exports.append({'path': path, 'bytes': size, 'width': w, 'height': h, 'seconds': seconds,
+                            'poster': str(Path(path).with_suffix('.poster.png')) if (root / Path(path).with_suffix('.poster.png')).exists() else None,
                             'preset': preset, 'fits': fits(timeline.PRESETS[preset][1] if preset else None, seconds, size)})
         data['run'] = {'id': report['id'], 'status': review.status(root, report), 'video': video,
                        'duration': timeline.read(root / video)['duration'], 'mode': report.get('mode', 'final'),
                        'recut_from': report.get('recut_from'), 'accepted': report.get('review_status') == 'completed',
-                       'exports': exports, 'captions_drawn': sidecar is not None}
+                       'exports': exports, 'captions_drawn': sidecar is not None,
+                       'binding': review.binding(root, report),
+                       'poster': next((b['frame'] for b in recorded.values() if b.get('frame')), None),
+                       'sheets': [str(p.relative_to(root)) for p in sorted((root / 'review').glob('[0-9]*.jpg'))]}
     for beat in board['beat']:
         row = {'id': beat['id'], 'purpose': beat.get('purpose'), 'caption': beat.get('caption') or '',
-               'sub': beat.get('sub') or '', **recorded.get(beat['id'], {})}
+               'sub': beat.get('sub') or '', 'hold': beat.get('hold', 1),
+               'issue': beat.get('recording_issue'), **recorded.get(beat['id'], {})}
         if beat['id'] in drawn:
             row['pending'] = drawn[beat['id']] != (beat.get('caption') or None, beat.get('sub') or None)
         if row.get('definition'):
@@ -432,12 +468,62 @@ def view(folder, take, config):
     return data
 
 
+def update_kind(folder, config, take, run):
+    """Caption and edit changes reuse a take; recording changes replay the app. Fail closed when unsure."""
+    from reshoot import story
+    from reshoot.artifacts import digest
+    from reshoot.config import read
+    if not run:
+        return 'preview', 'Recording the first preview.'
+    root, report = run
+    shoot, _ = read(config)
+    capture_config = {k: v for k, v in shoot.items() if k in ('app', 'take', 'inputs')}
+    if report.get('inputs', {}).get('recording_config_sha256') != hashlib.sha256(json.dumps(capture_config, sort_keys=True).encode()).hexdigest():
+        return 'preview', 'Project settings changed; recording a new preview.'
+    recorded = report.get('inputs', {}).get('fixtures', [])
+    if [r['sha256'] for r in recorded] != [digest(Path(folder) / p) for p in shoot.get('inputs', [])]:
+        return 'preview', 'Demo data changed; recording a new preview.'
+    # A multi-take project may have changes outside the first storyboard shown here.
+    if len(shoot.get('take', [])) != 1:
+        return 'preview', 'Recording all takes in this project.'
+    source = root / take['out']
+    meta_path, caps_path = source.with_suffix('.take.json'), source.with_suffix('.captions.json')
+    if not meta_path.exists() or not caps_path.exists():
+        return 'preview', 'Recording a take with editable captions.'
+    board = story.load(Path(folder) / take['web'])
+    meta, caps = json.loads(meta_path.read_text()), json.loads(caps_path.read_text())
+    rows = {r['beat']: r for r in caps['captions']}
+    beats = {b['id']: b for b in meta['beats']}
+    if list(beats) != [b['id'] for b in board['beat']] or any(
+            recorded_as(b, rows.get(b['id'])) != beats[b['id']].get('definition_sha256') for b in board['beat']):
+        return 'preview', 'Actions, checks or timing changed; recording a new preview.'
+    original = meta.get('recording_settings_sha256')
+    settings = story.recording_settings(board)
+    if original != hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest():
+        return 'preview', 'Recording settings changed; recording a new preview.'
+    words_changed = any((b.get('caption') or None, b.get('sub') or None) !=
+                        (rows[b['id']].get('text', rows[b['id']].get('recorded')),
+                         rows[b['id']].get('sub', rows[b['id']].get('recorded_sub'))) for b in board['beat'])
+    edit_changed = shoot.get('edit', {}).get('file') and report.get('inputs', {}).get('edit_sha256') != digest(Path(folder) / shoot['edit']['file'])
+    if not (words_changed or caps.get('style', {}) != board.get('caption', {}) or edit_changed
+            or report.get('inputs', {}).get('config_sha256') != digest(config)):
+        return 'preview', 'Recording the app again for a fresh preview.'
+    return 'recut', 'Updating captions and the edit using the existing recording.'
+
+
 def server(a):
     """The studio's server, not yet serving, its address and the take it shapes."""
     import http.server, secrets
     from urllib.parse import unquote
     from reshoot import review
     config, folder, take = project(a.project)
+    from reshoot.config import read
+    from reshoot.workspace import History
+    shoot, _ = read(config)
+    editable = [config, Path(folder) / take['web']]
+    if shoot.get('edit', {}).get('file'):
+        editable.append(Path(folder) / shoot['edit']['file'])
+    history = History(editable)
     token = secrets.token_urlsafe(16)
     job = Job()
     prefix = f'/{token}/'
@@ -460,17 +546,19 @@ def server(a):
                 return review.reply(self, 404, b'not found', 'text/plain')
             name = unquote(path[len(prefix):])
             if name == '':
-                run = current(folder)
-                accept = review.panel(*run) if run else ''
-                seen = job.n - job.running()  # the last job this page already shows the outcome of
-                return review.reply(self, 200, page(view(folder, take, config), accept, seen).encode())
+                with history.lock:
+                    history.check(history.revision())
+                    run = current(folder)
+                    accept = review.panel(*run, final_action='Make final') if run else ''
+                    seen = job.n - job.running()
+                    data = view(folder, take, config, run)
+                    data.update(revision=history.revision(), undo=bool(history.undo), redo=bool(history.redo))
+                    return review.reply(self, 200, page(data, accept, seen).encode())
             if name == 'job.json':
                 out = job.json()
                 if job.kind == 'from' and job.code == 0 and (partial := current(folder, partial=True)):
                     out['take'] = f'runs/{partial[1]["id"]}/' + take['out']
                 return review.reply(self, 200, json.dumps(out).encode(), 'application/json')
-            if name.startswith('run/') and (run := current(folder)):
-                return review.send_file(self, run[0], name[4:])
             if m := re.fullmatch(r'runs/([0-9a-f]{32})/(.+)', name):
                 return review.send_file(self, review.runs_folder(folder) / m[1], m[2])
             review.reply(self, 404, b'not found', 'text/plain')
@@ -479,21 +567,37 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
-            if action not in ('edit', 'cut', 'job', 'accept'):
+            if action not in ('edit', 'cut', 'job', 'accept', 'undo', 'redo', 'cancel'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
                 return
+            with history.lock:
+                self.mutate(action, body)
+
+        def mutate(self, action, body):
             try:
+                if action == 'cancel':
+                    job.cancel()
+                    return review.reply(self, 200, b'{"ok":true}', 'application/json')
+                if job.running():
+                    raise ValueError('An update is running. Wait for it or cancel before changing the project.')
+                history.check(body.get('revision'))
                 if action == 'edit':
-                    edit(Path(folder) / take['web'], body)
+                    history.change(lambda: edit(Path(folder) / take['web'], body))
                     out = {'ok': True}
                 elif action == 'cut':
-                    edit_cut(edit_file(), config, body)
+                    history.change(lambda: edit_cut(edit_file(), config, body))
+                    out = {'ok': True}
+                elif action in ('undo', 'redo'):
+                    history.move(action)
                     out = {'ok': True}
                 elif action == 'job':
-                    run = current(folder)
+                    run = self.displayed(body) if body.get('run_id') else None
                     kind, beat = body.get('kind'), body.get('beat')
+                    reason = ''
+                    if kind == 'update':
+                        kind, reason = update_kind(folder, config, take, run)
                     commands = {'recut': [*cli, 'recut', str(run[0]) if run else '', '--config', str(config)],
                                 'preview': [*cli, 'preview', str(config)], 'run': [*cli, 'run', str(config)],
                                 'from': [*cli, 'preview', str(config), '--from', str(beat)]}
@@ -506,19 +610,28 @@ def server(a):
                         if beat not in [b['id'] for b in story.load(Path(folder) / take['web'])['beat']]:
                             raise ValueError(f'no beat {beat!r} in the storyboard')
                     job.start(kind, commands[kind], folder, beat)
-                    out = {'ok': True}
+                    out = {'ok': True, 'reason': reason}
                 else:
-                    run = current(folder)
-                    if not run:
-                        raise ValueError('no run to accept')
+                    run = self.displayed(body)
                     code, text = review.accept_from_page(str(run[0]), body)
                     print(text.rstrip(), flush=True)
                     out = {'code': code, 'output': text}
-            except ValueError as e:
+                out.update(revision=history.revision(), undo=bool(history.undo), redo=bool(history.redo))
+            except (ValueError, OSError) as e:
                 out = {'ok': False, 'error': str(e), 'code': 2, 'output': str(e)}
             review.reply(self, 200, json.dumps(out).encode(), 'application/json')
 
+        def displayed(self, body):
+            run_id = body.get('run_id', '')
+            if not re.fullmatch(r'[0-9a-f]{32}', run_id):
+                raise ValueError('Reload to choose a recording.')
+            root, report = review.read(review.runs_folder(folder) / run_id)
+            if body.get('binding') != review.binding(root, report):
+                raise ValueError('This recording or its scan changed. Reload and review it again.')
+            return root, report
+
     httpd = http.server.ThreadingHTTPServer(('127.0.0.1', a.port or 0), Handler)
+    httpd.reshoot_job = job
     return httpd, f'http://127.0.0.1:{httpd.server_address[1]}{prefix}', take
 
 
@@ -534,6 +647,7 @@ def serve(a):
     except KeyboardInterrupt:
         print('Stopped.')
     finally:
+        httpd.reshoot_job.cancel()
         httpd.server_close()
     return 0
 
@@ -543,7 +657,7 @@ def page(data, accept, seen=0):
     e = lambda v: html.escape(str(v if v is not None else ''), quote=True)
     run = data['run']
     seconds = lambda t: f'{t:.1f} s'
-    pending = '<p class="pending"{}>Not in the video yet: re-cut to see it.</p>'
+    pending = '<p class="pending"{}>Saved. Update preview to see this change.</p>'
     beats = []
     for n, beat in enumerate(data['beats']):
         checks = beat.get('checks') or []
@@ -561,6 +675,8 @@ def page(data, accept, seen=0):
     <p class="checks">{f'{passed} of {len(checks)} result checks passed' if checks else 'No result checks'}</p>
     <label>Caption <input name="caption" value="{e(beat['caption'])}" placeholder="No caption"></label>
     <label>Second line <input name="sub" value="{e(beat['sub'])}" placeholder="None"></label>
+    <label>Hold result (seconds) <input name="hold" type="number" min="0" step="0.5" value="{e(beat['hold'])}"></label>
+    {f'<p class="error">{e(beat["issue"])}</p>' if beat.get('issue') else ''}
     {pending.format('' if beat.get('pending') else ' hidden')}
     <p class="redo{' changed' if changed else ''}">{'Its actions, checks or hold changed since this recording. ' if changed else ''}<button type="button" data-from="{e(beat['id'])}" title="Start the app, replay the beats before this one off camera, and record from here">Record from here</button></p>
   </div>
@@ -581,7 +697,7 @@ def page(data, accept, seen=0):
     shapes = []
     for x in (run or {}).get('exports', []):
         media = (f'<img src="run/{e(x["path"])}" alt="{e(Path(x["path"]).name)}" loading="lazy">' if x['path'].endswith('.gif')
-                 else f'<video src="run/{e(x["path"])}" muted controls preload="metadata"></video>')
+                 else f'<video src="run/{e(x["path"])}"' + (f' poster="run/{e(x["poster"])}"' if x.get('poster') else '') + ' muted controls preload="metadata"></video>')
         shapes.append(f'''<figure class="shape"><div class="media" style="aspect-ratio:{x['width']}/{x['height']}">{media}</div>
 <figcaption><a href="run/{e(x['path'])}" target="_blank">{e(Path(x['path']).name)}</a><br>{x['width']}&times;{x['height']}, {x['seconds']:.1f} s, {x['bytes'] / 1e6:.1f} MB
 {f'<br><span class="fits">{e(x["fits"])}</span>' if x.get('fits') else ''}</figcaption></figure>''')
@@ -610,32 +726,48 @@ def page(data, accept, seen=0):
         edit_box = ''
     if run:
         top = (f'<p class="status">Run {e(run["id"][:8])}{" (a re-cut of " + e(run["recut_from"][:8]) + ")" if run["recut_from"] else ""}'
-               f': {e(run["status"])}.</p><video id="video" src="run/{e(run["video"])}" controls preload="auto"></video>'
+               f': {e(run["status"])}.</p><video id="video" src="run/{e(run["video"])}"' +
+               (f' poster="run/{e(run["poster"])}"' if run.get('poster') else '') + ' controls preload="auto"></video>'
                f'<div class="timeline" aria-label="Beats in the video">{marks}<b id="head"></b></div>')
         if not run['captions_drawn']:
             top += '<p class="note">This run was recorded with its captions in the page, so a re-cut keeps them: record again to change them.</p>'
     else:
         top = '<p class="status">No run has worked yet. Record a preview to see the demo here.</p>'
-    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    sheets = ''.join(f'<a href="run/{e(s)}" target="_blank"><img loading="lazy" src="run/{e(s)}" alt="Scan sheet {i + 1}"></a>'
+                     for i, s in enumerate((run or {}).get('sheets', [])))
+    evidence = (f'<details class="scan"><summary>Inspect scan sheets</summary><p>Open a sheet at full size to inspect the frames.</p>{sheets}</details>' if sheets else '')
+    document = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>reshoot studio</title><link rel="icon" href="data:,"><style>{STYLE}</style></head><body data-seen="{seen}">
 <header><h1>reshoot studio</h1><span class="story">{e(data['story'])}</span>
-<div class="actions"><button type="button" data-job="recut"{'' if run else ' disabled'} title="Edit and scan this run's takes again, with the captions and edit as they are now">Re-cut</button>
+<div class="actions"><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
+<button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
+<button type="button" class="primary" data-job="update">Update preview</button>
+<button type="button" data-job="run" title="Record the full-size video for review">Make final</button>
+<details class="advanced"><summary>More</summary><button type="button" data-job="recut"{'' if run else ' disabled'} title="Edit and scan this run's takes again, with the captions and edit as they are now">Re-cut</button>
 <button type="button" data-job="preview" title="Start the app and record a quick preview">Record a preview</button>
-<button type="button" data-job="run" title="Start the app and record a final">Record</button></div></header>
-<section id="job" hidden><p id="job-title"></p><video id="job-take" controls hidden></video><pre id="job-log"></pre></section>
+</details></div></header>
+<p id="save-error" class="error" role="alert" hidden></p>
+<section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
 <main><section class="watch">{top}
 {f'<div class="shapes"><h2>Exports</h2><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="found"><h2>What the scan found</h2><ul>{findings}</ul></div>' if findings else ''}
+{evidence}
 <div class="accept">{accept}</div></section>
-<section class="side"><div class="look"><h2>Caption look</h2>
+<section class="side"><div class="beats"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+<details class="styling"><summary>Style and exports</summary><div class="look"><h2>Caption look</h2>
 <label>Place <select name="position"><option value="bottom"{' selected' if look.get('position', 'bottom') == 'bottom' else ''}>Bottom</option><option value="top"{' selected' if look.get('position') == 'top' else ''}>Top</option></select></label>
 <label>Background <input name="background" value="{e(look.get('background', ''))}" placeholder="#0e0d0cc8"></label>
-<label>Text <input name="foreground" value="{e(look.get('foreground', ''))}" placeholder="white"></label>
+<label>Text <input name="foreground" value="{e(look.get('foreground', ''))}" placeholder="#ffffff"></label>
 {pending.format('' if data['look_pending'] else ' hidden')}</div>
 {edit_box}
-<div class="beats"><h2>Beats</h2><p class="hint">Edits are saved to {e(data['story'])} as you leave a field.</p><ol>{''.join(beats)}</ol></div></section></main>
+</details></section></main>
 <p id="toast" role="status"></p>
 <script>{SCRIPT}</script></body></html>'''
+    if run:
+        document = document.replace('run/', f'runs/{run["id"]}/')
+    return document.replace('data-seen="', f'data-revision="{e(data.get("revision", ""))}" '
+                            f'data-run="{e((run or {}).get("id", ""))}" '
+                            f'data-binding="{e((run or {}).get("binding", ""))}" data-seen="', 1)
 
 
 STYLE = '''
@@ -687,12 +819,45 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:8px 14px; border-radius:8px; opacity:0; transition:opacity .2s; pointer-events:none; max-width:calc(100% - 32px) }
 #toast.on { opacity:1 }
 .accept fieldset { border:1px solid var(--line); border-radius:8px; margin:10px 0 } .accept fieldset label { color:var(--ink) }
+.primary { background:var(--accent); color:var(--panel); border-color:var(--accent); font-weight:600 }
+.advanced { position:relative } .advanced[open] { display:flex; gap:6px; align-items:center }
+summary { cursor:pointer; font-weight:600 } .styling { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
+.styling > div { margin-top:14px } .error { color:var(--bad); font-weight:600 }
+#save-error { margin:12px 20px; padding:12px; border:1px solid var(--bad); border-radius:8px }
+.scan img { max-width:100%; display:block; margin-top:10px } .watch { min-width:0 }
+[data-unsaved] { outline:2px solid var(--bad) }
 '''
 
 SCRIPT = '''(() => {
+  document.querySelectorAll('details.styling, details.advanced').forEach(box => {
+    const key = location.pathname + ':' + box.className;
+    box.open = sessionStorage.getItem(key) === 'open';
+    box.addEventListener('toggle', () => sessionStorage.setItem(key, box.open ? 'open' : 'closed'));
+  });
   const video = document.getElementById('video'), head = document.getElementById('head');
   const toast = text => { const t = document.getElementById('toast'); t.textContent = text; t.classList.add('on'); clearTimeout(t.timer); t.timer = setTimeout(() => t.classList.remove('on'), 2600); };
-  const post = (what, body) => fetch(what, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}).then(r => r.json());
+  const error = text => { const box = document.getElementById('save-error'); box.textContent = text; box.hidden = !text; };
+  let queue = Promise.resolve();
+  const post = (what, body, requireSaved = false) => {
+    const request = () => {
+      if ((requireSaved || ['job', 'undo', 'redo'].includes(what)) && document.querySelector('[data-unsaved]')) {
+        const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
+        error(message); return {ok: false, error: message};
+      }
+      return fetch(what, {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({run_id: document.body.dataset.run, binding: document.body.dataset.binding,
+        revision: document.body.dataset.revision, ...body})}).then(r => r.json()).then(out => {
+          if (out.revision) document.body.dataset.revision = out.revision;
+          if (out.ok === false) error(out.error);
+          else { if (!document.querySelector('[data-unsaved]')) error(''); document.querySelectorAll('[data-history]').forEach(b => { b.disabled = !out[b.dataset.history]; b.dataset.enabled = out[b.dataset.history] ? '1' : ''; }); }
+          return out;
+        }).catch(() => { const message = 'Could not save. Check that the studio is running, then try again.';
+          error(message); return {ok: false, error: message}; });
+    };
+    queue = queue.then(request);
+    return queue;
+  };
+  document.querySelectorAll('[data-history]').forEach(b => { b.dataset.enabled = b.disabled ? '' : '1'; b.onclick = () => post(b.dataset.history, {}).then(out => { if (out.ok) location.reload(); }); });
   let stopAt = null;
   const play = (from, to) => { if (!video) return; stopAt = to; video.currentTime = from; video.play(); };
   if (video) video.addEventListener('timeupdate', () => {
@@ -704,25 +869,31 @@ SCRIPT = '''(() => {
   document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); play(+li.dataset.start, +li.dataset.end); });
   document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); play(+li.dataset.start, +li.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   document.querySelectorAll('.seek').forEach(s => s.onclick = () => { if (video) { stopAt = null; video.currentTime = +s.dataset.t; video.pause(); } });
-  const saved = (out, where) => { if (!out.ok) return toast(out.error); toast('Saved'); const p = where.querySelector('.pending'); if (p) p.hidden = false; };
+  const saved = (out, where, input) => { if (!out.ok) return toast(out.error); if (input) delete input.dataset.unsaved;
+    if (!document.querySelector('[data-unsaved]')) error(''); toast('Saved'); const p = where.querySelector('.pending'); if (p) p.hidden = false; };
   document.querySelectorAll('.beat input').forEach(input => input.addEventListener('change', () => {
     const li = input.closest('.beat');
-    post('edit', {beat: li.dataset.beat, [input.name]: input.value}).then(out => saved(out, li));
+    input.dataset.unsaved = '1';
+    post('edit', {beat: li.dataset.beat, [input.name]: input.name === 'hold' ? +input.value : input.value}).then(out => saved(out, li, input));
   }));
   document.querySelectorAll('.look input, .look select').forEach(input => input.addEventListener('change', () => {
-    post('edit', {look: {[input.name]: input.value}}).then(out => saved(out, input.closest('.look')));
+    input.dataset.unsaved = '1';
+    post('edit', {look: {[input.name]: input.value}}).then(out => saved(out, input.closest('.look'), input));
   }));
   // Changes to the edit file. One that adds or removes a card or an export reloads, to show it in the list.
   const cut = document.querySelector('.cut');
-  const change = (body, reload) => post('cut', body).then(out => { saved(out, cut); if (out.ok && reload) setTimeout(() => location.reload(), 400); });
+  const change = (body, reload, input) => {
+    if (input) input.dataset.unsaved = '1';
+    return post('cut', body, reload).then(out => { saved(out, cut, input); if (out.ok && reload) setTimeout(() => location.reload(), 400); });
+  };
   if (cut) {
     cut.querySelectorAll('.card input').forEach(input => input.addEventListener('change', () =>
-      change({card: +input.closest('.card').dataset.part, [input.name]: input.name === 'duration' ? +input.value : input.value})));
+      change({card: +input.closest('.card').dataset.part, [input.name]: input.name === 'duration' ? +input.value : input.value}, false, input)));
     cut.querySelectorAll('.card .remove').forEach(b => b.onclick = () => change({card: +b.closest('.card').dataset.part, remove: true}, true));
     cut.querySelectorAll('[data-add-card]').forEach(b => b.onclick = () => change({add_card: b.dataset.addCard}, true));
-    cut.querySelector('[name=frame]').addEventListener('change', e => change({frame: e.target.checked}));
-    cut.querySelector('[name=background]').addEventListener('change', e => change({background: e.target.value}));
-    cut.querySelector('[name=music]').addEventListener('change', e => change({music: e.target.value}));
+    cut.querySelector('[name=frame]').addEventListener('change', e => change({frame: e.target.checked}, false, e.target));
+    cut.querySelector('[name=background]').addEventListener('change', e => change({background: e.target.value}, false, e.target));
+    cut.querySelector('[name=music]').addEventListener('change', e => change({music: e.target.value}, false, e.target));
     cut.querySelectorAll('.export select').forEach(s => s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true)));
     cut.querySelectorAll('.export .remove').forEach(b => b.onclick = () => change({export: +b.closest('.export').dataset.export, remove: true}, true));
     cut.querySelector('[name=add_export]').addEventListener('change', e => e.target.value && change({add_export: e.target.value}, true));
@@ -733,6 +904,8 @@ SCRIPT = '''(() => {
     if (!job.kind) return;
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
     document.querySelectorAll('[data-job], [data-from]').forEach(b => b.disabled = job.running);
+    document.getElementById('cancel').hidden = !job.running;
+    document.querySelectorAll('.side input, .side select, .side button, [data-history]').forEach(b => b.disabled = job.running || (b.dataset.history && !b.dataset.enabled));
     const what = job.kind === 'from' ? `Recording from ${job.beat}` : names[job.kind];
     if (job.running) { title.textContent = what + '...'; take.hidden = true; return setTimeout(watch, 700); }
     if (job.kind === 'from') {
@@ -740,10 +913,11 @@ SCRIPT = '''(() => {
       if (job.take && take.getAttribute('src') !== job.take) { take.src = job.take; take.hidden = false; }
       return;
     }
-    title.textContent = job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed; the page still shows the last run that worked.';
+    title.textContent = job.cancelled ? 'Update cancelled. Your previous recording is kept.' : job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed; the page still shows the last run that worked.';
     if (job.code === 0 && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
   });
-  document.querySelectorAll('[data-job]').forEach(b => b.onclick = () => post('job', {kind: b.dataset.job}).then(out => out.ok ? watch() : toast(out.error)));
+  document.getElementById('cancel').onclick = () => post('cancel', {}).then(watch);
+  document.querySelectorAll('[data-job]').forEach(b => b.onclick = () => post('job', {kind: b.dataset.job}).then(out => { if (out.ok) { if (out.reason) toast(out.reason); watch(); } }));
   document.querySelectorAll('[data-from]').forEach(b => b.onclick = () => post('job', {kind: 'from', beat: b.dataset.from}).then(out => {
     if (!out.ok) return toast(out.error); box.scrollIntoView({behavior: 'smooth'}); watch(); }));
   watch();

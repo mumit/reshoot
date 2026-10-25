@@ -285,6 +285,9 @@ preset = "readme"
 | `schema_version` | required | `1` |
 | `output` | `"demo-final.mp4"` | The final video, beside the first take |
 | `music` | none | A music file, relative to this file. It ducks under the voiceover and fades out. Use music you may share |
+| `[audio] voice_volume` | `1` | Linear narration gain, 0 to 2. A gain of 0 mutes the voice but keeps its beat timing and subtitles |
+| `[audio] music_volume` | `0.25` | Linear music gain, 0 to 1, before ducking and the ending fade |
+| `[audio] duck` | `true` | Lower music while the voice speaks. Turn off to retain only the chosen gain and ending fade. The final mix limits peaks before encoding; this is not loudness normalization |
 | `trim_waits` | `false` | Shorten the waits of beats marked `trim_wait`, keeping at least 0.8 s or their `min_reading`, and label them "Wait shortened" |
 | `[style] background`, `foreground` | dark, white | Title card colors. `background` can be `[top, bottom]` for a frame's gradient; cards use the top one |
 | `[style] font`, `logo` | none | Files for title cards, relative to this file |

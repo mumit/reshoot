@@ -30,7 +30,7 @@ cut.Card(1920, 1080, bg).text(None, 400, "Title", 112, 700).badge(None, 600, "8x
 
 said = cut.lines(take, start, end, offset)             # a take's voiceover lines in [start, end), moved to offset
 cut.voice_track(said, wav, total)                      # those lines laid out on a track `total` seconds long
-cut.add_audio(video, out, voice=wav, music=None, music_volume=0.25)   # music loops, fades, ducks under the voice
+cut.add_audio(video, out, voice=wav, music=None, music_volume=0.25, voice_volume=1, duck=True)  # loops, fades, limits mix peaks
 cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceover, or else the captions
 ```
 
@@ -66,6 +66,13 @@ cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceove
   `.srt` carries them too. With a voiceover, it carries what's said instead. Upload it with the video where the site
   allows.
 - **Music you can use.** Only use music you have the right to post. Keep it quiet (`music_volume` 0.15 to 0.3).
+  For a TOML project, `[audio]` sets `voice_volume` (0 to 2), `music_volume`
+  (0 to 1) and `duck` (true/false). The studio's Audio panel and
+  `reshoot audio set --voice-volume 1 --music-volume 0.15 --duck --project demo`
+  save the same mix. Update preview re-cuts a current recording; listen to the
+  rendered MP4. Muted narration keeps its timing and subtitles. The peak limiter
+  is not loudness normalization. Narration words and voice changes record again;
+  audition a saved line first with `reshoot audio audition BEAT --project demo`.
 - **Limits for posting.** Sites limit size and length, and change them. Check before uploading.
 
 ## Declarative edits

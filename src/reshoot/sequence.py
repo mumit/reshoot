@@ -39,6 +39,8 @@ def check_cut(path):
         resolve(profile)
     if 'frame' in data:
         timeline.frame_style(data)
+    from reshoot.audio import settings
+    settings(data.get('audio'))
     if data.get('music') and not (Path(path).parent / data['music']).is_file():
         raise ValueError(f'no music file {data["music"]}')
     return data

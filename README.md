@@ -39,6 +39,8 @@ the existing recording when the story is still current.
 recording still runs the full task and its checks.
 Framing controls and a viewing-size inspector help spot small or clipped text
 in each export before sharing.
+Add a spoken line under a step's **Narration** and audition it before recording.
+**Audio** chooses the voice and balances narration against music.
 
 For your own running demo app:
 

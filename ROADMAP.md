@@ -14,18 +14,16 @@ A [persona review of the docs](docs/validation/2026-10-23-persona-review.md)
 found that the tool does the hard part well and loses the joy where a user
 meets it first. The studio now gives a local place to see a story and shape it
 by pointing, with the files in the repository still the source of truth. Recording,
-repair, visual styles, beat cuts and destination framing now share that workflow; next, add audio controls. The
+repair, visual styles, beat cuts, destination framing and audio now share that workflow. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **More creative control.** Narration auditioning and audio balance. Why: these shorten the path from a working
-    recording to a deliberately composed demo, using the existing rendering stages.
+1. **Screenshots for docs that stay current.** Export selected verified beat frames
+    beside the video and review them in the same refresh pull request.
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
 ## Later
 
-- **Screenshots for docs that stay current.** Export selected beat frames beside the video and review them in
-  the same refresh pull request.
 - **A clickable tour.** Export a self-contained HTML tour from the beats after the video workflow is established.
 - **Narrate as you click.** `rec` listens to the microphone and turns what is said during each action into
   that beat's caption or voiceover line.
@@ -52,6 +50,11 @@ repair, visual styles, beat cuts and destination framing now share that workflow
   through the skills.
 
 ## Done
+
+- **Narration auditioning and audio balance:** per-step saved lines, local voice
+  choices and cancellable auditions use the recording's cache. Shared CLI/studio
+  edits retain checks and undo, and choose a fresh capture after narration changes
+  or a re-cut after gain/ducking changes. Mix peaks are limited before encoding.
 
 - **Destination framing and readability:** per-export Fit/Crop, crop guides,
   focus and viewing widths, with shared CLI/studio edits and undo. MP4 and GIF

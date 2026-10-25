@@ -8,6 +8,11 @@ change project files or commands.
 
 ### Added
 
+- Per-beat narration editing and saved-line auditions in the studio, using the
+  recording's voice cache without launching the app. Audio offers installed
+  local voices, voice/music levels and optional music ducking. `reshoot audio`
+  shares validated, reversible project edits. Narration changes record again;
+  balance changes re-cut. Final mixes limit peaks before encoding.
 - Destination Fit/Crop, crop focus guides, viewing widths and an inspector that
   retains the requested display size. `reshoot frame` shares export edits and
   measured feedback with the studio. MP4 and GIF use the same crop geometry.

@@ -3,6 +3,14 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **A voice choice required recording the whole demo to hear it.** Fixed in
+  reshoot: save a beat's narration and audition it in the studio or with
+  `reshoot audio audition`. Its cached audio is reused when the task is recorded.
+- **Music overwhelmed a narration line.** Fixed in reshoot: Audio exposes voice
+  and music levels and optional ducking, with undo. Balance changes re-cut the
+  current recording. Muting narration retains its timing and subtitles; remove
+  its words and record again to remove the narration hold as well.
+
 - **A portrait crop removed a result or caption.** Fixed in reshoot: export
   controls aim a shared MP4/GIF crop, and measured feedback identifies caption
   boxes and checked-result bounds outside it. Use Fit to retain the whole video,

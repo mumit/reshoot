@@ -204,6 +204,8 @@ def edit(a):
     import tomllib
     from reshoot import cut
     board = tomllib.loads(Path(a.script).read_text())
+    from reshoot.audio import settings
+    mix = settings(board.get('audio'))
     if board.get('schema_version') != 1 or not board.get('part'):
         raise ValueError('edit file needs schema_version=1 and parts')
     sources = [Path(arg).resolve() for arg in a.args]
@@ -279,9 +281,9 @@ def edit(a):
         music = str((Path(a.script).resolve().parent / board['music']).resolve()) if board.get('music') else None
         if lines:
             voice = cut.voice_track(lines, Path(temp) / 'voice.wav', cut.duration(silent))
-            cut.add_audio(silent, output, voice=voice, music=music)
+            cut.add_audio(silent, output, voice=voice, music=music, **mix)
         elif music:
-            cut.add_audio(silent, output, music=music)
+            cut.add_audio(silent, output, music=music, **mix)
         else:
             import shutil
             shutil.copyfile(silent, output)

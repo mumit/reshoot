@@ -268,6 +268,32 @@ def main(argv=None):
     command.add_argument('run_path')
     command.set_defaults(run=framing.main)
 
+    from reshoot import audio
+    p = sub.add_parser('audio', help='audition narration and balance voice and music',
+                       description='Save narration for a beat, audition its saved voice before recording, or change '
+                       'the final mix. Narration changes record a fresh preview; mix changes reuse the recording. '
+                       'Volume values are linear gains, with 1 as the original level.\n\n'
+                       '    reshoot audio set --beat search --text "Find the matching note." --project demo\n'
+                       '    reshoot audio audition search --project demo\n'
+                       '    reshoot audio set --music-volume 0.15 --voice-volume 1 --duck --project demo',
+                       formatter_class=Examples)
+    operations = p.add_subparsers(dest='operation', required=True)
+    command = operations.add_parser('set', help='save a narration line, voice or mix settings')
+    command.add_argument('--project', default='demo')
+    command.add_argument('--beat', help='beat ID for --text')
+    command.add_argument('--text', help='spoken words; empty text removes the line')
+    command.add_argument('--engine', help='speech command, such as say -v Samantha; empty uses the system default')
+    command.add_argument('--voice-volume', type=float, help='voice gain from 0 to 2 (default 1)')
+    command.add_argument('--music-volume', type=float, help='music gain from 0 to 1 (default 0.25)')
+    command.add_argument('--duck', action=argparse.BooleanOptionalAction, default=None,
+                         help='lower music while narration speaks (default on)')
+    command.set_defaults(run=audio.main)
+    command = operations.add_parser('audition', help='speak and cache one saved line without recording the app')
+    command.add_argument('beat')
+    command.add_argument('--project', default='demo')
+    command.add_argument('--expected-key', help=argparse.SUPPRESS)
+    command.set_defaults(run=audio.main)
+
     from reshoot import sequence
     p = sub.add_parser('sequence', help='trim and arrange the video by recorded beats',
                        description='Choose inclusive beat ranges, move, duplicate, add or remove video parts. '

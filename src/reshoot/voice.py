@@ -34,7 +34,7 @@ def engine_command(engine=None):
     raise SystemExit("no text-to-speech here: install espeak-ng, or set VOICE_ENGINE to a command")
 
 
-def speak(text, out, engine=None):
+def speak(text, out, engine=None, cwd=None):
     """Writes text, spoken, to out (a .wav at 48 kHz, mono); returns its length in seconds."""
     from reshoot.cut import duration, ff
     out = Path(out)
@@ -42,7 +42,7 @@ def speak(text, out, engine=None):
     with tempfile.TemporaryDirectory(prefix='reshoot-voice-', dir=out.parent) as temp:
         raw = Path(temp) / ('raw.aiff' if engine_command(engine).startswith('say') else 'raw.wav')
         cmd = engine_command(engine).replace('{out}', shlex.quote(str(raw)))
-        r = subprocess.run(cmd, shell=True, input=text.encode(), capture_output=True, timeout=120)
+        r = subprocess.run(cmd, shell=True, input=text.encode(), capture_output=True, timeout=120, cwd=cwd)
         if r.returncode or not raw.exists():
             raise ValueError(f'voice command failed (exit {r.returncode})')
         finished = Path(temp) / 'line.wav'
@@ -51,20 +51,23 @@ def speak(text, out, engine=None):
     return duration(out)
 
 
-def prepare(lines, folder, engine=None):
+def cache_key(text, engine=None):
+    return hashlib.sha256((engine_command(engine) + '\0' + text).encode()).hexdigest()
+
+
+def prepare(lines, folder, engine=None, cwd=None):
     """Speaks each beat's line into folder; returns {beat: (file, seconds)}. A line already spoken with the same
     words and engine isn't spoken again."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     from reshoot.cut import duration
     out = {}
-    command = engine_command(engine)
     for beat, text in lines.items():
-        key = hashlib.sha256((command + '\0' + text).encode()).hexdigest()
+        key = cache_key(text, engine)
         f = folder / (key + '.wav')
         if f.exists():
             out[beat] = (str(f), duration(f))
         else:
             print(f'  speaking {beat!r}', flush=True)
-            out[beat] = (str(f), speak(text, f, engine))
+            out[beat] = (str(f), speak(text, f, engine, cwd=cwd))
     return out

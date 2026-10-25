@@ -401,9 +401,12 @@ def voice_track(said, out, total):
     return out
 
 
-def add_audio(video, out, voice=None, music=None, music_volume=0.25):
+def add_audio(video, out, voice=None, music=None, music_volume=0.25, voice_volume=1.0, duck=True):
     """The video with sound: a voice track, music, or both. Music loops to the video's length, fades out over its
-    last 2 seconds, and gets quieter while the voice speaks."""
+    last 2 seconds, and optionally gets quieter while the voice speaks. Gains are linear; a final peak limiter
+    leaves headroom before encoding. Muting a track does not change the video timing."""
+    from reshoot.audio import settings
+    settings({'music_volume': music_volume, 'voice_volume': voice_volume, 'duck': duck})
     d = duration(video)
     args, n = ["-i", video], 1
     if voice:
@@ -413,16 +416,21 @@ def add_audio(video, out, voice=None, music=None, music_volume=0.25):
     parts = []
     if music:
         parts.append(f"[{mi}:a]aresample=48000,volume={music_volume},afade=t=out:st={max(0, d - 2)}:d=2[m]")
-    if voice and music:  # the music ducks under the voice
-        parts += [f"[{vi}:a]aresample=48000,asplit[v1][v2]", "[m][v1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[md]",
-                  "[md][v2]amix=inputs=2:normalize=0[a]"]
+    if voice and music:
+        parts += [f"[{vi}:a]aresample=48000,volume={voice_volume}[v]"]
+        if duck:
+            parts += ['[v]asplit[v1][v2]', '[m][v1]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=400[md]',
+                      '[md][v2]amix=inputs=2:normalize=0[a]']
+        else:
+            parts += ['[m][v]amix=inputs=2:normalize=0[a]']
     elif voice:
-        parts.append(f"[{vi}:a]aresample=48000[a]")
+        parts.append(f"[{vi}:a]aresample=48000,volume={voice_volume}[a]")
     elif music:
         parts.append("[m]anull[a]")
     else:
         raise ValueError("give a voice track, music, or both")
-    ff(*args, "-filter_complex", ";".join(parts), "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
+    parts.append('[a]alimiter=limit=0.95:level=0:latency=1[limited]')
+    ff(*args, "-filter_complex", ";".join(parts), "-map", "0:v", "-map", "[limited]", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
        "-t", d, "-movflags", "+faststart", out)
     from reshoot import timeline
     timeline.copy(video, out)

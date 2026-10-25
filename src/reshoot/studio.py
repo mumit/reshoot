@@ -192,16 +192,18 @@ class Job:
     def __init__(self):
         self.kind, self.lines, self.code, self.lock, self.n, self.beat = None, [], None, threading.Lock(), 0, None
         self.proc, self.cancelled = None, False
+        self.result = None
 
     def running(self):
         return self.kind is not None and self.code is None
 
-    def start(self, kind, cmd, cwd, beat=None, on_done=None):
+    def start(self, kind, cmd, cwd, beat=None, on_done=None, result=None):
         with self.lock:
             if self.running():
                 raise ValueError(f'a {self.kind} is still running')
             self.kind, self.lines, self.code, self.n, self.beat = kind, [], None, self.n + 1, beat
             self.proc, self.cancelled = None, False
+            self.result = result
         def go():
             from reshoot.safety import redact
             try:
@@ -241,7 +243,8 @@ class Job:
 
     def json(self):
         return {'n': self.n, 'kind': self.kind, 'beat': self.beat, 'running': self.running(), 'code': self.code,
-                'lines': self.lines[-400:], 'cancelled': self.cancelled}
+                'lines': self.lines[-400:], 'cancelled': self.cancelled,
+                **(self.result if self.code == 0 and not self.cancelled and self.result else {})}
 
 
 def current(folder, partial=False):
@@ -339,7 +342,9 @@ def view(folder, take, config, run=None):
     edit_path = Path(folder) / shoot['edit']['file'] if shoot.get('edit', {}).get('file') else None
     data = {'story': board_path.name, 'look': board.get('caption', {}), 'run': None, 'beats': [], 'findings': [],
             'edit': None, 'failure': failed(folder, take, config), 'recording_size': recording_size}
-    from reshoot import styles
+    from reshoot import audio, styles
+    data['voices'] = audio.voices()
+    data['voice_engine'] = board.get('voice_engine', '')
     data['styles'], data['styles_error'], data['current_style'] = {}, '', None
     try:
         data['styles'] = styles.choices(folder)
@@ -363,12 +368,13 @@ def view(folder, take, config, run=None):
             'foreground': cut.get('style', {}).get('foreground', ''),
             'frame_background': timeline.frame_style(cut)['background'] if 'frame' in cut else '#1d2433',
             'music': cut.get('music', ''), 'music_choices': music,
+            'audio': audio.settings(cut.get('audio')),
             'exports': [{'i': i, 'preset': p.get('preset'), 'name': p.get('name', p.get('preset', 'landscape')),
                          'framing': framing.describe(p),
                          'file': Path(o).name} for i, (p, o) in enumerate(zip(cut.get('export', []), outputs(cut, '.')))],
             'pending': False}
     run = run or current(folder)
-    recorded, drawn, rows, look_drawn = {}, {}, {}, None
+    recorded, drawn, rows, look_drawn, recorded_voice = {}, {}, {}, None, {}
     if run:
         root, report = run
         if data['edit'] and report.get('inputs', {}).get('edit_sha256'):
@@ -378,6 +384,7 @@ def view(folder, take, config, run=None):
         video = master if master in clips else clips[0] if clips else take['out']
         segments = timeline.read(root / video)['segments']
         source = (root / take['out']).resolve()
+        recorded_voice = {row['beat']: row for row in load(source.with_suffix('.voice.json'), [])}
         meta = load(source.with_suffix('.take.json'), {})
         sidecar = load(source.with_suffix('.captions.json'), None)
         if sidecar:
@@ -427,8 +434,18 @@ def view(folder, take, config, run=None):
                        'poster': poster,
                        'sheets': [str(p.relative_to(root)) for p in sorted((root / 'review').glob('[0-9]*.jpg'))]}
     for beat in board['beat']:
+        spoken = board.get('voice', {}).get(beat['id'], '')
+        previous_voice = recorded_voice.get(beat['id'], {})
+        narration_pending = bool(run) and spoken != previous_voice.get('text', '')
+        if run and spoken and not narration_pending:
+            from reshoot.voice import cache_key
+            try:
+                narration_pending = Path(previous_voice.get('file', '')).stem != cache_key(spoken, board.get('voice_engine'))
+            except SystemExit:
+                narration_pending = True
         row = {'id': beat['id'], 'purpose': beat.get('purpose'), 'caption': beat.get('caption') or '',
                'sub': beat.get('sub') or '', 'hold': beat.get('hold', 1),
+               'narration': spoken, 'narration_pending': narration_pending,
                'issue': beat.get('recording_issue'), **recorded.get(beat['id'], {})}
         if beat['id'] in drawn:
             row['pending'] = drawn[beat['id']] != (beat.get('caption') or None, beat.get('sub') or None)
@@ -546,6 +563,8 @@ def server(a):
                     return review.reply(self, 200, text.encode(), 'application/toml')
                 except (ValueError, OSError) as error:
                     return review.reply(self, 400, str(error).encode(), 'text/plain')
+            if re.fullmatch(r'auditions/[0-9a-f]{64}\.wav', name):
+                return review.send_file(self, Path(folder) / 'takes' / 'voice-cache', name.split('/')[1])
             if m := re.fullmatch(r'runs/([0-9a-f]{32})/(.+)', name):
                 return review.send_file(self, review.runs_folder(folder) / m[1], m[2])
             review.reply(self, 404, b'not found', 'text/plain')
@@ -554,7 +573,7 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
-            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'job', 'accept', 'undo', 'redo', 'cancel'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'job', 'accept', 'undo', 'redo', 'cancel'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -594,6 +613,22 @@ def server(a):
                         framing.apply(config, body.get('export'), body.get('settings'), expected=before)
                     history.remember(before, history.snapshot())
                     out = {'ok': True}
+                elif action == 'audio':
+                    from reshoot import audio
+                    change = body.get('change')
+                    if not isinstance(change, dict):
+                        raise ValueError('Choose a narration or mix change.')
+                    if 'engine' in change:
+                        from reshoot import story
+                        if change['engine'] is not None and not isinstance(change['engine'], str):
+                            raise ValueError('Choose an installed voice.')
+                        current_engine = story.load(Path(folder) / take['web']).get('voice_engine')
+                        if (change['engine'] or '') not in audio.voices() and change['engine'] != current_engine:
+                            raise ValueError('Choose an installed voice. Custom speech commands are edited in the storyboard.')
+                    before = history.snapshot()
+                    audio.apply(config, change, expected=before)
+                    history.remember(before, history.snapshot())
+                    out = {'ok': True}
                 elif action == 'style':
                     from reshoot import styles
                     before = history.snapshot()
@@ -627,7 +662,12 @@ def server(a):
                     commands = {'recut': [*cli, 'recut', str(run[0]) if run else '', '--config', str(config)],
                                 'preview': [*cli, 'preview', str(config)], 'run': [*cli, 'run', str(config)],
                                 'from': [*cli, 'preview', str(config), '--from', str(beat)]}
-                    on_done = None
+                    on_done, result = None, None
+                    if kind == 'audition':
+                        from reshoot import audio
+                        spec = audio.audition_spec(config, beat)
+                        commands['audition'] = [*cli, 'audio', 'audition', beat, '--project', str(config), '--expected-key', spec['key']]
+                        result = {'audio': 'auditions/' + spec['key'] + '.wav'}
                     if kind == 'repair':
                         from reshoot import repair
                         failure_id = body.get('failure_run_id', '')
@@ -661,7 +701,7 @@ def server(a):
                         from reshoot import story
                         if beat not in [b['id'] for b in story.load(Path(folder) / take['web'])['beat']]:
                             raise ValueError(f'no beat {beat!r} in the storyboard')
-                    job.start(kind, commands[kind], folder, beat, on_done=on_done)
+                    job.start(kind, commands[kind], folder, beat, on_done=on_done, result=result)
                     out = {'ok': True, 'reason': reason}
                 else:
                     run = self.displayed(body)
@@ -753,6 +793,12 @@ def page(data, accept, seen=0):
     <label>Caption <input name="caption" value="{e(beat['caption'])}" placeholder="No caption"></label>
     <label>Second line <input name="sub" value="{e(beat['sub'])}" placeholder="None"></label>
     <label>Hold result (seconds) <input name="hold" type="number" min="0" step="0.5" value="{e(beat['hold'])}"></label>
+    <details class="narration"><summary>Narration{': update needed' if beat.get('narration_pending') else ': added' if beat.get('narration') else ''}</summary>
+    <form class="narration-form"><label>Spoken words <textarea name="text" maxlength="4000" rows="3" placeholder="Optional voiceover for this step">{e(beat.get('narration', ''))}</textarea></label>
+    <p class="hint">The beat waits for this line. Save, then audition it before recording. Empty words remove the line.</p>
+    {('<p class="narration-pending">Narration changed. Update preview records the task again to use these words and this voice.</p>') if beat.get('narration_pending') else ''}
+    <button type="submit">Save narration</button> <button type="reset">Reset</button>
+    <button type="button" data-audition="{e(beat['id'])}"{'' if beat.get('narration') else ' disabled'}>Audition saved line</button></form></details>
     {f'<p class="error">{e(beat["issue"])}</p>' if beat.get('issue') else ''}
     {pending.format('' if beat.get('pending') else ' hidden')}
     <p class="redo{' changed' if changed else ''}">{'Its actions, checks or hold changed since this recording. ' if changed else ''}<button type="button" data-from="{e(beat['id'])}" title="Start the app, replay the beats before this one off camera, and record from here">Record from here</button></p>
@@ -903,6 +949,17 @@ def page(data, accept, seen=0):
 <label>First browser take <select name="size">{''.join(f'<option value="{e(value)}"{" selected" if value == data["recording_size"] else ""}>{e(label)}</option>' for value, label in sizes.items())}</select></label>
 <p class="hint">A narrower view can enlarge app text. Saving this view makes Update preview record the whole task again; its actions and checks stay intact.</p>
 <button type="submit">Save recording view</button> <button type="reset">Reset</button></form>'''
+        audio_box = f'''<details class="audio-controls"><summary>Audio</summary>
+<label>Voice <select data-voice>{''.join(f'<option value="{e(command)}"{" selected" if command == data.get("voice_engine", "") else ""}>{e(label)}</option>' for command, label in data.get('voices', {'': 'System default'}).items())}{f'<option value="{e(data["voice_engine"])}" selected>Project voice (configured in storyboard)</option>' if data.get('voice_engine') and data['voice_engine'] not in data.get('voices', {}) else ''}</select></label>
+<p class="hint">Add spoken words under each step's Narration. Changing words or voice makes Update preview record the task again, keeping every result check.</p>
+<label>Music track <select name="music"><option value="">None</option>{music}</select></label>
+{'' if cut['music_choices'] else '<p class="hint">Put a sound file in the project folder to choose it here.</p>'}
+<form class="audio-mix"><label>Narration level (%) <input name="voice_volume" type="number" min="0" max="200" step="any" required value="{e(cut['audio']['voice_volume'] * 100)}"></label>
+<label>Music level (%) <input name="music_volume" type="number" min="0" max="100" step="any" required value="{e(cut['audio']['music_volume'] * 100)}"></label>
+<label class="check"><input type="checkbox" name="duck"{' checked' if cut['audio']['duck'] else ''}> Lower music while narration speaks</label>
+<p class="hint">100% keeps the source level; 0% mutes it. Muted narration still keeps its timing and subtitles. Save the balance, then Update preview to listen. Peaks are limited before encoding.</p>
+<button type="submit">Save balance</button> <button type="reset">Reset</button></form>
+{pending.format('' if cut['pending'] else ' hidden')}</details>'''
         edit_box = f'''<div class="cut"><h2>The edit</h2><p class="hint">Saved to {e(cut['file'])} as you change it.</p>
 {recording_box}
 <h3>Title cards</h3><ul class="cards">{cards or '<li class="hint">No cards.</li>'}</ul>
@@ -912,13 +969,11 @@ def page(data, accept, seen=0):
 <h3>Frame</h3><label class="check"><input type="checkbox" name="frame"{' checked' if cut['frame'] else ''}> A browser window round the page, on a background</label>
 <label>Frame background <input name="frame_background" value="{e(frame_top)}" placeholder="#1d2433"></label>
 <label>Gradient end (optional) <input name="frame_background_end" value="{e(frame_end)}" placeholder="Leave empty for one colour"></label>
-<h3>Music</h3><label>Track <select name="music"><option value="">None</option>{music}</select></label>
-{'' if cut['music_choices'] else '<p class="hint">Put a sound file in the project folder to choose it here.</p>'}
 <h3>Exports</h3><ul class="exports-edit">{exports}</ul>
 <label>Add an export <select name="add_export"><option value="">Choose a preset</option>{options(None)}</select></label>
 {pending.format('' if cut['pending'] else ' hidden')}</div>'''
     else:
-        edit_box = ''
+        edit_box = audio_box = ''
     if run:
         top = (f'<p class="status">Run {e(run["id"][:8])}{" (a re-cut of " + e(run["recut_from"][:8]) + ")" if run["recut_from"] else ""}'
                f': {e(run["status"])}.</p><video id="video" src="run/{e(run["video"])}"' +
@@ -944,13 +999,14 @@ def page(data, accept, seen=0):
 <button type="button" data-job="preview" title="Start the app and record a quick preview">Record a preview</button>
 </details></div></header>
 <p id="save-error" class="error" role="alert" hidden></p>
-<section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
+<section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><audio id="audition-player" controls hidden></audio><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
 <main><section class="watch">{failure_box}{top}
 {f'<div class="shapes"><h2>Exports</h2><p class="hint">Measurements describe this rendered run. Update preview to measure saved changes.</p><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="found"><h2>What the scan found</h2><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>
 <section class="side"><div class="beats"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+{audio_box}
 {sequence_box}
 <details class="styling"><summary>Style and exports</summary>{styles_box}<div class="look"><h2>Caption look</h2>
 <label>Place <select name="position"><option value="bottom"{' selected' if look.get('position', 'bottom') == 'bottom' else ''}>Bottom</option><option value="top"{' selected' if look.get('position') == 'top' else ''}>Top</option></select></label>
@@ -1023,7 +1079,7 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .accept fieldset { border:1px solid var(--line); border-radius:8px; margin:10px 0 } .accept fieldset label { color:var(--ink) }
 .primary { background:var(--accent); color:var(--panel); border-color:var(--accent); font-weight:600 }
 .advanced { position:relative } .advanced[open] { display:flex; gap:6px; align-items:center }
-summary { cursor:pointer; font-weight:600 } .styling { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
+summary { cursor:pointer; font-weight:600 } .styling, .audio-controls { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
 .styling > div { margin-top:14px } .error { color:var(--bad); font-weight:600 }
 #save-error { margin:12px 20px; padding:12px; border:1px solid var(--bad); border-radius:8px }
 .scan img { max-width:100%; display:block; margin-top:10px } .watch { min-width:0 }
@@ -1059,11 +1115,15 @@ summary { cursor:pointer; font-weight:600 } .styling { background:var(--panel); 
 #export-inspector::backdrop { background:#0009 } #export-inspector form { display:flex; justify-content:end; margin-bottom:12px }
 .inspection-rail { overflow:auto; max-width:calc(100vw - 80px); max-height:calc(100vh - 180px) }
 .inspection-rail img, .inspection-rail video { max-width:none; display:block; border-radius:0 }
+.narration { margin:12px 0 } .narration summary { cursor:pointer; font-weight:600 }
+.narration textarea { width:100%; resize:vertical; min-height:72px; font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; box-sizing:border-box }
+.audio-mix { border:1px solid var(--line); border-radius:8px; padding:12px; margin:12px 0 }
+#audition-player { display:block; width:min(100%, 440px); margin-top:10px } #audition-player[hidden] { display:none }
 '''
 
 SCRIPT = '''(() => {
-  document.querySelectorAll('details.styling, details.advanced').forEach(box => {
-    const key = location.pathname + ':' + box.className;
+  document.querySelectorAll('details.styling, details.advanced, details.narration, details.audio-controls').forEach(box => {
+    const key = location.pathname + ':' + box.className + ':' + (box.closest('.beat')?.dataset.beat || '');
     box.open = sessionStorage.getItem(key) === 'open';
     box.addEventListener('toggle', () => sessionStorage.setItem(key, box.open ? 'open' : 'closed'));
   });
@@ -1076,9 +1136,11 @@ SCRIPT = '''(() => {
       const ownForm = what === 'sequence' && body.operation === 'range' ? document.querySelector(`.sequence-part[data-part="${body.part}"] .range-form`)
         : what === 'sequence' && body.operation === 'add' ? document.getElementById('add-clip')
         : what === 'framing' && body.size != null ? document.querySelector('.recording-view')
-        : what === 'framing' ? document.querySelector(`.export-framing[data-export="${body.export}"]`) : null;
+        : what === 'framing' ? document.querySelector(`.export-framing[data-export="${body.export}"]`)
+        : what === 'audio' && body.change.beat != null ? document.querySelector(`.beat[data-beat="${CSS.escape(body.change.beat)}"] .narration-form`)
+        : what === 'audio' && body.change.mix ? document.querySelector('.audio-mix') : null;
       const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !ownForm || !ownForm.contains(input));
-      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing'].includes(what)) && unsaved) {
+      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio'].includes(what)) && unsaved) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
       }
@@ -1246,6 +1308,26 @@ SCRIPT = '''(() => {
   }));
   // Changes to the edit file. One that adds or removes a card or an export reloads, to show it in the list.
   const cut = document.querySelector('.cut');
+  document.querySelectorAll('.narration-form, .audio-mix').forEach(form => {
+    form.querySelectorAll('textarea, input').forEach(input => input.addEventListener('input', () => input.dataset.unsaved = '1'));
+    form.addEventListener('reset', () => {
+      form.querySelectorAll('[data-unsaved]').forEach(input => delete input.dataset.unsaved);
+      if (!document.querySelector('[data-unsaved]')) error('');
+    });
+    form.onsubmit = event => {
+      event.preventDefault();
+      const change = form.matches('.narration-form') ? {beat: form.closest('.beat').dataset.beat, text: form.elements.text.value}
+        : {mix: {voice_volume: +form.elements.voice_volume.value / 100, music_volume: +form.elements.music_volume.value / 100, duck: form.elements.duck.checked}};
+      post('audio', {change}).then(out => { if (out.ok) location.reload(); });
+    };
+  });
+  const voiceChoice = document.querySelector('[data-voice]');
+  const savedVoice = voiceChoice ? voiceChoice.value : '';
+  if (voiceChoice) voiceChoice.onchange = () => {
+    post('audio', {change: {engine: voiceChoice.value || null}}).then(out => {
+      if (out.ok) location.reload(); else voiceChoice.value = savedVoice;
+    });
+  };
   const change = (body, reload, input) => {
     if (input) input.dataset.unsaved = '1';
     return post('cut', body, reload).then(out => { saved(out, cut, input); if (out.ok) pendingSequence(); if (out.ok && reload) setTimeout(() => location.reload(), 400); return out; });
@@ -1264,18 +1346,21 @@ SCRIPT = '''(() => {
         if (out.ok) { delete cut.querySelector('[name=frame_background]').dataset.unsaved; delete cut.querySelector('[name=frame_background_end]').dataset.unsaved; customStyle(); }
       });
     }));
-    cut.querySelector('[name=music]').addEventListener('change', e => change({music: e.target.value}, false, e.target));
+    document.querySelector('.audio-controls [name=music]').addEventListener('change', e => change({music: e.target.value}, false, e.target));
     cut.querySelectorAll('.export select[name=preset]').forEach(s => s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true)));
     cut.querySelectorAll('.export .remove').forEach(b => b.onclick = () => change({export: +b.closest('.export').dataset.export, remove: true}, true));
     cut.querySelector('[name=add_export]').addEventListener('change', e => e.target.value && change({add_export: e.target.value}, true));
   }
   const box = document.getElementById('job'), log = document.getElementById('job-log'), title = document.getElementById('job-title'), take = document.getElementById('job-take');
-  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat', repair: 'Repairing control'};
+  const auditionPlayer = document.getElementById('audition-player');
+  auditionPlayer.addEventListener('play', () => { if (video) video.pause(); });
+  if (video) video.addEventListener('play', () => auditionPlayer.pause());
+  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat', repair: 'Repairing control', audition: 'Preparing narration'};
   const watch = () => fetch('job.json').then(r => r.json()).then(job => {
     if (!job.kind) return;
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
     document.getElementById('cancel').hidden = !job.running;
-    document.querySelectorAll('[data-job], [data-from], [data-repair], .side input, .side select, .side button, [data-history]').forEach(button => {
+    document.querySelectorAll('[data-job], [data-from], [data-repair], .side input, .side textarea, .side select, .side button, [data-history]').forEach(button => {
       if (job.running) {
         if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = button.disabled ? '1' : '';
         button.disabled = true;
@@ -1284,7 +1369,17 @@ SCRIPT = '''(() => {
       }
     });
     const what = job.kind === 'from' ? `Recording from ${job.beat}` : names[job.kind];
-    if (job.running) { title.textContent = what + '...'; take.hidden = true; return setTimeout(watch, 700); }
+    if (job.running) { title.textContent = what + '...'; take.hidden = true; auditionPlayer.pause(); auditionPlayer.hidden = true; return setTimeout(watch, 700); }
+    if (job.kind === 'audition') {
+      title.textContent = job.cancelled ? 'Narration audition cancelled.' : job.code === 0 ? `Narration for ${job.beat}. Listen before updating the preview.` : 'Narration audition failed. Your saved story and previous recording are kept; see progress details.';
+      if (job.audio) {
+        const fresh = auditionPlayer.getAttribute('src') !== job.audio;
+        if (fresh) auditionPlayer.src = job.audio;
+        auditionPlayer.hidden = false;
+        if (fresh && job.n > +document.body.dataset.seen) { if (video) video.pause(); auditionPlayer.play().catch(() => {}); }
+      }
+      return;
+    }
     if (job.kind === 'from') {
       title.textContent = job.code === 0 ? `${what} worked. Here is the take, from ${job.beat} on; when it looks right, record the run.` : what + ' failed.';
       if (job.take && take.getAttribute('src') !== job.take) { take.src = job.take; take.hidden = false; }
@@ -1294,6 +1389,9 @@ SCRIPT = '''(() => {
     if (job.code === 0 && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
   });
   document.getElementById('cancel').onclick = () => post('cancel', {}).then(watch);
+  document.querySelectorAll('[data-audition]').forEach(button => button.onclick = () => post('job', {kind: 'audition', beat: button.dataset.audition}).then(out => {
+    if (out.ok) { box.scrollIntoView({behavior: 'smooth'}); watch(); }
+  }));
   document.querySelectorAll('[data-job]').forEach(b => b.onclick = () => post('job', {kind: b.dataset.job}).then(out => { if (out.ok) { if (out.reason) toast(out.reason); watch(); } }));
   document.querySelectorAll('[data-from]').forEach(b => b.onclick = () => post('job', {kind: 'from', beat: b.dataset.from}).then(out => {
     if (!out.ok) return toast(out.error); box.scrollIntoView({behavior: 'smooth'}); watch(); }));

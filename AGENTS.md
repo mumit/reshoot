@@ -31,6 +31,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/captions.py` | TOML storyboard captions, drawn on a take after recording and again on a re-cut |
 | `src/reshoot/studio.py` | `reshoot studio`: a local page for the latest run: its beats, captions, edit, exports and acceptance |
 | `src/reshoot/voice.py` | The voiceover: each line spoken before recording, so beats can wait for it |
+| `src/reshoot/audio.py` | Narration auditions and validated voice/music balance shared by the CLI and studio |
 | `action.yml` | The GitHub Action: installs everything and runs `reshoot run` |
 | `skills/` | The Claude Code skills |
 | `guide/` | The guide for people |

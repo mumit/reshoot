@@ -104,8 +104,13 @@ def load(path):
             located(f'beat {name!r}, expect {i}', entry, EXPECT)
     for i, entry in enumerate(data.get('setup', []), 1):
         located(f'setup {i}', entry, ACTIONS)
-    if set(data.get('voice', {})) - seen:
+    voice = data.get('voice', {})
+    if not isinstance(voice, dict) or any(not isinstance(v, str) or not v.strip() or len(v) > 4000 for v in voice.values()):
+        raise ValueError('voice must map beat IDs to nonempty text of at most 4000 characters')
+    if set(voice) - seen:
         raise ValueError('voice names an unknown beat')
+    if 'voice_engine' in data and (not isinstance(data['voice_engine'], str) or not data['voice_engine'].strip()):
+        raise ValueError('voice_engine must be a nonempty command')
     if data.get('timeout', 600) <= 0:
         raise ValueError('story timeout must be positive')
     return data

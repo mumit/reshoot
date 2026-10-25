@@ -112,6 +112,58 @@ are changed in the storyboard itself; holds are also editable in the studio. The
 `127.0.0.1` behind a random address, takes changes only from its own page, and
 runs until you press Ctrl-C.
 
+## Audition narration and balance audio
+
+Under a story step, open **Narration**, enter **Spoken words**, and choose
+**Save narration**. Choose **Audition saved line** to hear it without starting
+the app. Its player shows the line's duration. The recording reuses the same
+cached audio. Keep each line short enough to fit the point of the step.
+Clear its words and save to remove it. Reset discards unsaved words; Undo and
+Redo reverse saved narration, voice and balance changes.
+
+Open **Audio** to choose a local voice and a music track already in the project.
+The initial voice is the system default: macOS `say`, or `espeak-ng`/`espeak`
+elsewhere. Installed voices appear when the tool can list them. A custom
+project voice remains available; edit its command in the storyboard or CLI.
+Custom commands run with the project's permissions and handle their own service
+credentials. Only choose a command you intend to run.
+
+Set **Narration level** and **Music level**, then **Save balance**. A level of
+100% keeps the source level, 50% halves its amplitude, and 0% mutes it.
+**Lower music while narration speaks** keeps the voice prominent; turn it off
+for a constant music level before the ending fade. A muted narration still
+keeps its timing and subtitles. Mix peaks are limited before encoding, which
+does not replace listening or normalize perceived loudness.
+
+Choose **Update preview** and listen to the video. Changing spoken words or the
+voice records the task again so every beat can wait for its line. Balance or
+music changes re-cut the existing recording when the story is current. The
+task, expected results, scan sources and acceptance process stay the same.
+GIFs have no audio. Auditions are listening samples, outside the run's media
+review; review the rendered MP4 and subtitle text before accepting a final.
+
+The same edits work from the CLI:
+
+```bash
+reshoot audio set --beat search --text 'Find the matching note.' --project demo
+reshoot audio audition search --project demo
+reshoot audio set --music-volume 0.15 --voice-volume 1 --duck --project demo
+reshoot preview demo/reshoot.toml
+```
+
+Mix settings are ordinary `edit.toml` fields:
+
+```toml
+[audio]
+voice_volume = 1
+music_volume = 0.15
+duck = true
+```
+
+`reshoot audio` and the studio edit the first TOML browser take. For other takes,
+edit their storyboard's `voice` and `voice_engine` fields directly. The mix
+applies to the whole video, including repeated narration lines after sequencing.
+
 ## Reuse a visual style
 
 In the studio, choose **Style and exports**, pick a starting look, then refine

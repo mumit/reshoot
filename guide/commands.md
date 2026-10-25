@@ -37,6 +37,10 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot frame set EXPORT --fit crop --x 50 --y 50 --view-width 390 --project demo` | Sets Fit/Crop, crop position and viewing width without changing the task; export numbers start at 1, update the preview afterwards |
 | `reshoot frame record --size 640x480@2 --project demo` | Sets the first TOML browser take's viewport; Update preview records again with the existing actions and checks |
 | `reshoot frame check RUN` | Reads measured font-size, clipping and subtitle-reading hints bound to that run's artifacts; this is not an automatic readability verdict |
+| `reshoot audio set --beat search --text "Find the matching note." --project demo` | Saves a narration line on the first TOML browser take; empty `--text ''` removes it. Update preview records again so beats wait for their lines |
+| `reshoot audio audition search --project demo` | Speaks one saved line into the recording's voice cache and prints its WAV path and duration; no app capture |
+| `reshoot audio set --voice-volume 1 --music-volume 0.15 --duck --project demo` | Saves linear gains and music ducking in `edit.toml`; `--no-duck` disables ducking, and Update preview re-cuts the current recording |
+| `reshoot audio set --engine 'say -v Samantha' --project demo` | Changes the narration command; `--engine ''` returns to the system default. Custom commands need `{out}` and read text on stdin |
 | `reshoot run CONFIG` | Starts the configured app, records, edits and scans a new run |
 | `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |

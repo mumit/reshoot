@@ -85,6 +85,16 @@ wide as the page isn't zoomed, so phone layouts mostly stay as they are.
 
 ## Voiceover
 
+For a versioned TOML project, use the studio's per-step **Narration** or
+`reshoot audio set --beat search --text 'Find the matching note.' --project demo`.
+`reshoot audio audition search --project demo` writes one saved line to the
+recording's voice cache and prints its WAV path and duration, without launching
+the app. In the studio, **Audition saved line** plays it. Audio lists local voices;
+`--engine 'say -v Samantha'` sets a command from the CLI and `--engine ''` restores
+the default. Custom commands execute with project permissions. Changing words
+or voice requires a fresh preview so beats wait for their lines. Empty text
+removes a line. Keep every action, expected result and scan source intact.
+
 `VOICE = {beat name: words}` adds a voiceover. Each line is spoken before recording, so reshoot knows how long it
 takes, and its beat waits until the line is done: a voiceover never runs into the next beat. The clips go in
 `OUT.voice/`, and `OUT.voice.json` says when each starts in the take. The cut adds them (cut-video).

@@ -101,10 +101,27 @@ See [the beat sequencing trial](docs/validation/2026-10-24-beat-sequencing.md).
 
 See [the destination framing trial](docs/validation/2026-10-24-destination-framing.md).
 
+## Narration auditioning and audio balance
+
+- [x] Share guarded per-beat narration and voice edits between CLI and studio;
+  preserve actions, result checks, scan sources, comments and undo history.
+- [x] Audition a saved line without launching the app, using the same voice
+  cache and project-relative speech command as the recording.
+- [x] Offer local voice choices, explicit Save/Reset, pending-field protection,
+  cancellable auditions and playback without replacing the displayed run.
+- [x] Share validated voice/music gains and optional music ducking; keep muted
+  narration's timing/subtitles and limit mix peaks before encoding.
+- [x] Verify fresh capture after narration changes, re-cut after balance edits,
+  encoded timing/gain/ducking/mute/limiting and retention of all task checks.
+- [x] Complete the fresh local-speech trial, broader regressions, visual
+  inspection, gallery rebuild and documentation/package verification.
+
+See [the narration and audio trial](docs/validation/2026-10-24-narration-and-audio.md).
+
 ## Following milestones
 
-1. Narration auditioning and audio balance.
-2. Screenshots and tours after the creation and revision loop is established.
+1. Screenshots for docs that stay current.
+2. Self-contained clickable tours from the verified beats.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

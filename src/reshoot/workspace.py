@@ -131,14 +131,14 @@ def save_many(changes, before, guard=None):
             if guard:
                 guard()
             if any(content(source) != original for source, original in expected.items()):
-                raise ValueError('The project changed while applying the style. External edits were kept; reload and try again.')
+                raise ValueError('The project changed while saving. External edits were kept; reload and try again.')
             pending[path].replace(path)
             written.append(path)
             expected[path] = changes[path][0].encode()
         if guard:
             guard()
         if any(content(source) != original for source, original in expected.items()):
-            raise ValueError('The project changed while applying the style. External edits were kept; reload and try again.')
+            raise ValueError('The project changed while saving. External edits were kept; reload and try again.')
     except BaseException:
         for path in reversed(written):
             if content(path) == changes[path][0].encode():

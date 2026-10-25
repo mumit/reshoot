@@ -1335,9 +1335,15 @@ def page(data, accept, seen=0):
         problems = [item for item in tools['checks'] if item['status'] in ('missing', 'failed')]
         checks = tool_rows(problems)
         all_checks = tool_rows(tools['checks'])
-        continuation = (f'<button type="button" data-job="create"{(" disabled" if not tools["ok"] else " class=\"primary\"")}>Continue creation</button>'
-                        f'<p>Or restart from a terminal: <code>{e(data["resume_command"])}</code></p>' if data.get('creation_pending') else '')
-        tools_box = f'''<section id="setup-panel" class="journey" data-phase="{'ready' if tools['ok'] else 'pending'}" tabindex="-1"><h2>Recording tools</h2>
+        go_on = (f'<button type="button" data-job="create"{(" disabled" if not tools["ok"] else " class=\"primary\"")}>Continue creation</button>'
+                 if data.get('creation_pending') else '')
+        continuation = go_on + (f'<p>Or restart from a terminal: <code>{e(data["resume_command"])}</code></p>' if go_on else '')
+        if tools['ok'] and not data.get('create_error'):  # nothing to fix: one line, and the way to go on
+            tools_box = f'''<section id="setup-panel" class="journey tools-ready" data-phase="ready" tabindex="-1"><p><strong>Recording tools are ready.</strong>
+<button type="button" data-job="setup">Check again</button> {go_on}</p>
+<details><summary>All tool checks ({len(tools['checks'])})</summary><ul>{all_checks}</ul></details></section>'''
+        else:
+            tools_box = f'''<section id="setup-panel" class="journey" data-phase="{'ready' if tools['ok'] else 'pending'}" tabindex="-1"><h2>Recording tools</h2>
 <p>{('Synthetic tool checks passed. Continue when you are ready.' if tools.get('probed') else 'Tools are installed. Check again tests them; continuing creation also tests them before using your app.') if tools['ok'] else 'Your project is saved. Fix the items below, then check again.'}</p>
 {f'<p class="error">{e(data["create_error"])}</p>' if data.get('create_error') else ''}
 <ul>{checks}</ul><p class="hint">Run installation fixes in a terminal. If PATH, browser settings or the Python environment change, restart reshoot. Nothing is installed by these buttons.</p>

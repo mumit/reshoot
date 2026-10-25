@@ -70,6 +70,21 @@ cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceove
 
 ## Declarative edits
 
+For destination framing, use the export's Fit/Crop controls and crop guide in
+the studio, or `reshoot frame set 1 --fit crop --x 50 --y 50 --view-width 390 --project demo`.
+The number is the export's 1-based position. Save framing, update a current
+recording with a re-cut, and inspect the MP4 and GIF at viewing size. A profile
+can set `focus = [0.5, 0.5]` and `display_width = 390`; Fit ignores focus. MP4
+and GIF share geometry. `reshoot frame check RUN` reads measured font-size,
+caption/result clipping and subtitle-reading hints bound to the rendered run.
+They are heuristics, not a readability or accessibility pass; retain visual
+inspection, especially for zoomed app text, canvas/iframe text and custom placement.
+Never treat the absence of a measurement as a pass. To enlarge an app's text,
+the studio's Recording view can change the first browser take's viewport, or
+use `reshoot frame record --size 640x480@2 --project demo`. That requires a fresh
+preview with the same task and checks. Existing captures do not gain app-font
+samples from a re-cut; new caption measurements can be drawn again.
+
 For beat trimming and ordering in a versioned project, use Your cut in the
 studio or `reshoot sequence list --project demo`. Part and take numbers in
 the CLI start at 1. `reshoot sequence range 1 --from add --through search --project demo`

@@ -305,6 +305,8 @@ preset = "readme"
 | `[[export]] format` | `"mp4"` | `"mp4"` or `"gif"` |
 | `[[export]] width`, `height` | `1280`, `720` | Even numbers |
 | `[[export]] fit` | `"contain"` | `"contain"` fits the whole frame in; `"crop"` fills the shape from the middle |
+| `[[export]] focus` | `[0.5, 0.5]` | Horizontal and vertical crop positions from 0 (left/top) to 1 (right/bottom), across the overflow; ignored by Fit |
+| `[[export]] display_width` | up to 640, at least 160 | Intended browser viewing width, 160 to 1920 px. Changes inspection and measurements, not encoded dimensions |
 | `[[export]] fps` | 60, or 15 for a GIF | Frames a second, 1 to 120 |
 | `[[export]] max_bytes` | none | Fail the export if the file comes out larger |
 | `[[export]] min_reading` | `0` | Fail the export if any caption is on screen for less than this |
@@ -315,6 +317,21 @@ page shrinks its text: crop on purpose, or record a narrower take. Every cut
 writes a `.timeline.json`, which keeps the review page's links from the final
 video back to the source beats. `reshoot edit edit.py TAKE...` runs a Python
 edit instead; see the [manual workflow](manual.md#cut).
+
+MP4 and GIF use the same even-pixel framing geometry and crop positions.
+Each finished edit and export also writes `.readability.json`, containing its
+viewing width, sampled text-size estimates, clipping hints, reading rate and
+coverage notes. App font samples use the 10th percentile of visible included
+samples; captions include their smaller second lines. The current hint
+thresholds are 12 px for app samples, 14 px for captions/cards and 18 subtitle
+characters per second. They do not change run success or acceptance.
+
+The `.take.json` captures bounded main-page font-size and rectangle samples
+at result holds, plus checked-result rectangles, without storing sampled page
+text or field values. The `.captions.json` retains caption boxes and font sizes.
+Spatial mappings in `.timeline.json` account for browser framing, cuts and
+export transforms. Missing or unsupported measurements are stated explicitly;
+they never imply a readability pass. See [destination framing](customize.md#frame-and-inspect-a-destination).
 
 ### Export presets
 
@@ -353,6 +370,7 @@ smaller size with faster encoding and a sampled scan, and `accept` refuses it.
 | `takes/NAME.clean.mp4` | The take without captions, which captions are drawn on |
 | `takes/NAME.captions.json` | When each beat's caption showed, and the words drawn |
 | `takes/NAME.timeline.json` | Source intervals mapped to output time; finished edits also retain ordered part intervals, including cards, for cut-part playback |
+| `takes/NAME.readability.json` | Measured viewing size, text and clipping hints, and their limits, hashed alongside the media |
 | `takes/NAME.take.json` | Each beat's actions, result checks, timings and evidence frames, and the browser used |
 | `takes/NAME.failure.png` | The page when a beat failed |
 | `takes/demo-final*.mp4`, `.gif`, `.srt` | The exports |

@@ -82,10 +82,28 @@ See [the visual styles trial](docs/validation/2026-10-24-visual-styles.md).
 
 See [the beat sequencing trial](docs/validation/2026-10-24-beat-sequencing.md).
 
+## Destination framing and readability
+
+- [x] Share validated per-export Fit/Crop, focus and viewing-width settings
+  between the CLI and studio, with one-step undo and pending-field protection.
+- [x] Use one geometry calculation for MP4 and GIF and retain spatial transforms
+  through browser frames, cuts and exports.
+- [x] Capture bounded geometry-only app-font samples and checked-result bounds;
+  measure caption boxes, title text and subtitle reading time.
+- [x] State coverage limits for missing data, camera zoom, transformed app text,
+  custom placement, iframe/canvas text and unsampled frames; keep hints advisory.
+- [x] Show rendered exports at viewing size with scrollable inspection and a
+  crop guide. Include hashed measurements in CLI output and the review page.
+- [x] Offer a recording-view control that makes a fresh first-browser capture
+  with the same task and checks, preserving source files and undo.
+- [x] Verify encoded crop colours, MP4/GIF parity, stale edits, source clipping,
+  undo and new captures; inspect notes exports and rebuild the gallery.
+
+See [the destination framing trial](docs/validation/2026-10-24-destination-framing.md).
+
 ## Following milestones
 
-1. Destination framing and readability feedback,
-   and narration auditioning and audio balance.
+1. Narration auditioning and audio balance.
 2. Screenshots and tours after the creation and revision loop is established.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer

@@ -244,6 +244,30 @@ def main(argv=None):
             command.add_argument('--replace', action='store_true', help='replace an existing saved style or export file')
         command.set_defaults(run=styles.main)
 
+    from reshoot import framing
+    p = sub.add_parser('frame', help='set destination framing or inspect measured readability',
+                       description='Set Fit or Crop, a crop position and a viewing width for an export. '
+                       'Update preview to render the choice and measure text sizes and clipping. Feedback is '
+                       'an editing hint, not an automatic readability verdict.\n\n'
+                       '    reshoot frame set 1 --fit crop --x 50 --y 50 --view-width 390 --project demo\n'
+                       '    reshoot frame check demo/latest', formatter_class=Examples)
+    operations = p.add_subparsers(dest='operation', required=True)
+    command = operations.add_parser('set', help='change an export, numbered from 1')
+    command.add_argument('export', type=int)
+    command.add_argument('--project', default='demo')
+    command.add_argument('--fit', choices=['contain', 'crop'])
+    command.add_argument('--x', type=float, help='horizontal crop position: 0 left, 50 centre, 100 right')
+    command.add_argument('--y', type=float, help='vertical crop position: 0 top, 50 centre, 100 bottom')
+    command.add_argument('--view-width', dest='display_width', type=int, help='intended viewing width in pixels, 160 to 1920')
+    command.set_defaults(run=framing.main)
+    command = operations.add_parser('record', help='set the first browser take\'s view and record again on Update preview')
+    command.add_argument('--project', default='demo')
+    command.add_argument('--size', required=True, help='CSS width x height @ pixel ratio, such as 640x480@2')
+    command.set_defaults(run=framing.main)
+    command = operations.add_parser('check', help='read the measurements bound to a rendered run')
+    command.add_argument('run_path')
+    command.set_defaults(run=framing.main)
+
     from reshoot import sequence
     p = sub.add_parser('sequence', help='trim and arrange the video by recorded beats',
                        description='Choose inclusive beat ranges, move, duplicate, add or remove video parts. '

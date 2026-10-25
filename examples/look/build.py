@@ -90,6 +90,15 @@ format = "mp4"
 width = 1080
 height = 1350
 fit = "crop"
+
+[[export]]
+name = "crop-right"
+format = "mp4"
+width = 1080
+height = 1350
+fit = "crop"
+focus = [0.85, 0.5]
+display_width = 390
 '''
     takes, beats = record('plain', edit=lambda t: t + exports)
     result = beats['search']['end'] - .3
@@ -105,6 +114,8 @@ fit = "crop"
         ff('-ss', result, '-i', takes / file, '-frames:v', 1, '-vf', 'scale=-2:540', '-q:v', 3, MEDIA / out)
         shapes[name] = out
     gifs = {'800 wide (the default)': takes / 'demo-final-readme.gif', '640 wide': takes / 'demo-final-gif640.gif'}
+    still(takes / 'demo-final-crop-right.mp4', result, 'shape-right.jpg')
+    quality = {name: json.loads((takes / f'demo-final-{name}.readability.json').read_text()) for name in ('contain', 'crop', 'crop-right')}
 
     takes, beats = record('zoom', story=lambda t: t.replace('seed = 1', 'seed = 1\nzoom = true'))
     zoomed = takes / 'demo-final.mp4'
@@ -139,14 +150,18 @@ fit = "crop"
     from reshoot.cut import duration
     clip(video, 0, duration(video), 'sequence.gif', width=480, fps=12)
 
-    write_page(shapes, gifs, styled, framed)
+    write_page(shapes, gifs, styled, framed, quality)
     print(PAGE.relative_to(ROOT), 'and', MEDIA.relative_to(ROOT))
 
 
-def write_page(shapes, gifs, styled, framed):
+def write_page(shapes, gifs, styled, framed, quality):
     rows = '\n'.join(f'| {name} | {size(path)} |' for name, path in gifs.items())
     aspect = '| ' + ' | '.join(shapes) + ' |\n|' + '---|' * len(shapes) + '\n| ' + ' | '.join(
         f'![{name} export](../docs/look/{out})' for name, out in shapes.items()) + ' |'
+    measurements = '\n'.join('| ' + name + ' | ' + str(q['display_width']) + ' px | ' +
+        (str(q['metrics']['app_font_p10_px']) + ' px' if q['metrics']['app_font_p10_px'] is not None else 'not measured') + ' | ' +
+        (str(q['metrics']['caption_min_px']) + ' px' if q['metrics']['caption_min_px'] is not None else 'not measured') + ' |'
+        for name, q in quality.items())
     PAGE.write_text(f'''# How the videos look
 
 Every picture here comes from the bundled notes example, recorded by
@@ -308,6 +323,43 @@ fit = "crop"
 
 The `x`, `linkedin` and `readme` [presets](projects.md#export-presets) make
 these shapes for a platform and check its limits.
+
+## Destination framing and readability
+
+Each export can Fit the whole video or Crop to fill its shape, with horizontal
+and vertical crop positions. The studio's crop guide helps aim it; Update
+preview renders the choice. A crop can cut off a caption or checked result.
+These are the centre and right-biased versions of the same held notes result:
+
+| Centre crop | Right-biased crop |
+|---|---|
+| ![Centre crop of the notes result](../docs/look/shape-crop.jpg) | ![Right-biased crop cutting off part of the result and caption](../docs/look/shape-right.jpg) |
+
+```toml
+[[export]]
+name = "crop-right"
+width = 1080
+height = 1350
+fit = "crop"
+focus = [0.85, 0.5]
+display_width = 390
+```
+
+The same geometry frames MP4 and GIF. `focus` uses fractions from 0 (left or
+top) to 1 (right or bottom). Viewing width changes inspection and text-size
+estimates, not encoded dimensions. The gallery's measured values are:
+
+| Export | Viewing width | Small app-text samples | Smallest caption text |
+|---|---|---|---|
+{measurements}
+
+These are editing hints from sampled main-page text and rendered caption
+geometry. They do not establish readability or accessibility. Camera zoom,
+custom placement, iframe or canvas text need visual inspection. The studio's
+**Inspect at viewing size** keeps the requested width, with scrolling when
+needed. See [destination framing](customize.md#frame-and-inspect-a-destination)
+for the controls and CLI. `reshoot frame check demo/latest` reads the measured
+feedback bound to that run.
 
 ## GIF size
 

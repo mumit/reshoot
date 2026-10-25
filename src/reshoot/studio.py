@@ -152,7 +152,9 @@ def edit_cut(path, config, change):
         else:
             if change.get('preset') not in timeline.PRESETS:
                 raise ValueError(f'unknown preset {change.get("preset")!r}')
-            lines[start:end] = [f'preset = {quote(change["preset"])}\n', '\n']
+            previous = tomllib.loads(''.join(lines[start:end]))
+            kept = {k: v for k, v in previous.items() if k in ('name', 'fit', 'focus', 'display_width', 'max_bytes', 'min_reading', 'poster_at')}
+            lines[start:end] = [f'preset = {quote(change["preset"])}\n', *[f'{k} = {quote(v)}\n' for k, v in kept.items()], '\n']
     if change.get('add_export'):
         if change['add_export'] not in timeline.PRESETS:
             raise ValueError(f'unknown preset {change["add_export"]!r}')
@@ -332,9 +334,11 @@ def view(folder, take, config, run=None):
     board_path = Path(folder) / take['web']
     board = story.load(board_path)
     shoot, _ = read(config)
+    take = next((item for item in shoot.get('take', []) if item.get('web') == take['web'] and item.get('out') == take['out']), take)
+    recording_size = take.get('size', board.get('size', '1280x720@1'))
     edit_path = Path(folder) / shoot['edit']['file'] if shoot.get('edit', {}).get('file') else None
     data = {'story': board_path.name, 'look': board.get('caption', {}), 'run': None, 'beats': [], 'findings': [],
-            'edit': None, 'failure': failed(folder, take, config)}
+            'edit': None, 'failure': failed(folder, take, config), 'recording_size': recording_size}
     from reshoot import styles
     data['styles'], data['styles_error'], data['current_style'] = {}, '', None
     try:
@@ -343,6 +347,7 @@ def view(folder, take, config, run=None):
     except (ValueError, OSError) as error:
         data['styles_error'] = str(error)
     if edit_path and edit_path.is_file():
+        from reshoot import framing
         cut = tomllib.loads(edit_path.read_text())
         parts = cut.get('part', [])
         music = []
@@ -359,6 +364,7 @@ def view(folder, take, config, run=None):
             'frame_background': timeline.frame_style(cut)['background'] if 'frame' in cut else '#1d2433',
             'music': cut.get('music', ''), 'music_choices': music,
             'exports': [{'i': i, 'preset': p.get('preset'), 'name': p.get('name', p.get('preset', 'landscape')),
+                         'framing': framing.describe(p),
                          'file': Path(o).name} for i, (p, o) in enumerate(zip(cut.get('export', []), outputs(cut, '.')))],
             'pending': False}
     run = run or current(folder)
@@ -368,7 +374,8 @@ def view(folder, take, config, run=None):
         if data['edit'] and report.get('inputs', {}).get('edit_sha256'):
             data['edit']['pending'] = report['inputs']['edit_sha256'] != digest(edit_path)
         clips = [p for p in review.exports(root, report) if p.endswith('.mp4')]
-        video = clips[0] if clips else take['out']
+        master = str(Path(shoot.get('edit', {}).get('args', [take['out']])[0]).parent / cut.get('output', 'demo-final.mp4')) if data['edit'] else take['out']
+        video = master if master in clips else clips[0] if clips else take['out']
         segments = timeline.read(root / video)['segments']
         source = (root / take['out']).resolve()
         meta = load(source.with_suffix('.take.json'), {})
@@ -397,11 +404,16 @@ def view(folder, take, config, run=None):
             data['findings'].append({'name': name, 'found': found, 'frames': len(labels), 'times': times})
         presets = {e['file']: e['preset'] for e in (data['edit'] or {}).get('exports', [])}
         exports = []
-        for path in review.exports(root, report):
+        preferred = [master, *[str(Path(master).parent / profile['file']) for profile in (data['edit'] or {}).get('exports', [])]]
+        order = {path: i for i, path in enumerate(preferred)}
+        for path in sorted(review.exports(root, report), key=lambda path: (order.get(path, len(order)), path)):
             w, h, seconds = cuts.probe(root / path)
             size = (root / path).stat().st_size
             preset = presets.get(Path(path).name)
+            quality_path = Path(path).with_suffix('.readability.json')
+            quality = load(root / quality_path, None) if str(quality_path) in {f['path'] for f in report.get('files', [])} else None
             exports.append({'path': path, 'bytes': size, 'width': w, 'height': h, 'seconds': seconds,
+                            'readability': quality,
                             'poster': str(Path(path).with_suffix('.poster.png')) if (root / Path(path).with_suffix('.poster.png')).exists() else None,
                             'preset': preset, 'fits': fits(timeline.PRESETS[preset][1] if preset else None, seconds, size)})
         poster = str(Path(video).with_suffix('.poster.png'))
@@ -542,7 +554,7 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
-            if action not in ('edit', 'cut', 'style', 'sequence', 'job', 'accept', 'undo', 'redo', 'cancel'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'job', 'accept', 'undo', 'redo', 'cancel'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -571,6 +583,15 @@ def server(a):
                     data = sequence.load(config, run[0])
                     data['before'].update(before)
                     sequence.apply(data, body)
+                    history.remember(before, history.snapshot())
+                    out = {'ok': True}
+                elif action == 'framing':
+                    from reshoot import framing
+                    before = history.snapshot()
+                    if 'size' in body:
+                        framing.recording(config, body['size'], expected=before)
+                    else:
+                        framing.apply(config, body.get('export'), body.get('settings'), expected=before)
                     history.remember(before, history.snapshot())
                     out = {'ok': True}
                 elif action == 'style':
@@ -754,9 +775,24 @@ def page(data, accept, seen=0):
     for x in (run or {}).get('exports', []):
         media = (f'<img src="run/{e(x["path"])}" alt="{e(Path(x["path"]).name)}" loading="lazy">' if x['path'].endswith('.gif')
                  else f'<video src="run/{e(x["path"])}"' + (f' poster="run/{e(x["poster"])}"' if x.get('poster') else '') + ' muted controls preload="metadata"></video>')
+        quality = x.get('readability')
+        viewing = quality['display_width'] if quality else max(160, min(x['width'], 640))
+        def inspect_button(label, at=None):
+            return f'<button type="button" data-inspect="run/{e(x["path"])}" data-view="{viewing}" data-time="{e(at)}">{e(label)}</button>'
+        feedback = ''
+        if quality:
+            metrics = quality['metrics']
+            sizes = [f'{label}: about {metrics[key]:g} px' for key, label in [('app_font_p10_px', 'Small app-text samples'),
+                     ('caption_min_px', 'Smallest caption text'), ('card_min_px', 'Smallest title text')] if metrics.get(key) is not None]
+            issues = ''.join(f'<li>{e(item["message"])}' + (f' {inspect_button(str(item["at"]) + " s", item["at"])}' if item.get('at') is not None and x['path'].endswith('.mp4') else '') + '</li>' for item in quality['issues'])
+            feedback = f'''<div class="readability"><p>Measured at {viewing} px viewing width.</p><p>{e('; '.join(sizes))}</p>
+{'<ul>' + issues + '</ul>' if issues else '<p>No measured hints here. Inspect the export to judge it.</p>'}
+<details><summary>What was measured</summary>{''.join(f'<p>{e(note)}</p>' for note in quality['notes'])}</details></div>'''
+        else:
+            feedback = '<p class="hint">This older run has no readability measurements. Update preview to measure captions; record again for app-text samples.</p>'
         shapes.append(f'''<figure class="shape"><div class="media" style="aspect-ratio:{x['width']}/{x['height']}">{media}</div>
 <figcaption><a href="run/{e(x['path'])}" target="_blank">{e(Path(x['path']).name)}</a><br>{x['width']}&times;{x['height']}, {x['seconds']:.1f} s, {x['bytes'] / 1e6:.1f} MB
-{f'<br><span class="fits">{e(x["fits"])}</span>' if x.get('fits') else ''}</figcaption></figure>''')
+{f'<br><span class="fits">{e(x["fits"])}</span>' if x.get('fits') else ''}<p>{inspect_button('Inspect at viewing size')}</p>{feedback}</figcaption></figure>''')
     cut = data['edit']
     sequence_box = ''
     if data.get('sequence'):
@@ -838,9 +874,37 @@ def page(data, accept, seen=0):
         music = ''.join(f'<option value="{e(m)}"{" selected" if m == cut["music"] else ""}>{e(m)}</option>' for m in cut['music_choices'])
         if cut['music'] and cut['music'] not in cut['music_choices']:
             music += f'<option value="{e(cut["music"])}" selected>{e(cut["music"])}</option>'
-        exports = ''.join(f'''<li class="export" data-export="{x['i']}"><label>{e(x['file'])} <select name="preset">{'' if x['preset'] else '<option selected>custom</option>'}{options(x['preset'])}</select></label>
-<button type="button" class="remove" title="Stop making this export">Remove</button></li>''' for x in cut['exports'])
+        export_rows = []
+        for x in cut['exports']:
+            framing = x['framing']
+            if framing.get('error'):
+                form = f'<p class="error">{e(framing["error"])} Fix these export fields in {e(cut["file"])}.</p>'
+            else:
+                crop = framing['fit'] == 'crop'
+                guide = ''
+                if run and run.get('poster'):
+                    guide = f'''<button type="button" class="crop-guide" aria-label="Choose crop focus; keyboard users can use the position fields"{'' if crop else ' disabled'}>
+<img src="run/{e(run['poster'])}" alt="Crop guide from the rendered video"><span class="crop-window"></span></button>
+<p class="hint">Crop guide from this run. Click to aim; Update preview renders your choice.</p>'''
+                form = f'''<form class="export-framing" data-export="{x['i']}" data-width="{framing['width']}" data-height="{framing['height']}">
+<label>Framing <select name="fit"><option value="contain"{'' if crop else ' selected'}>Fit: keep the whole video</option><option value="crop"{' selected' if crop else ''}>Crop: fill the shape</option></select></label>
+{guide}<div class="range-form"><label>Horizontal position (%) <input name="focus_x" type="number" min="0" max="100" step="any" value="{framing['focus'][0] * 100:g}"{'' if crop else ' disabled'} required></label>
+<label>Vertical position (%) <input name="focus_y" type="number" min="0" max="100" step="any" value="{framing['focus'][1] * 100:g}"{'' if crop else ' disabled'} required></label></div>
+<label>Viewing width (px) <input name="display_width" type="number" min="160" max="1920" step="1" value="{framing['display_width']}" required></label>
+<p class="hint">0 is left or top; 100 is right or bottom. Viewing width changes inspection and measurements, not the encoded size.</p>
+<button type="submit">Save framing</button> <button type="reset">Reset</button></form>'''
+            export_rows.append(f'''<li class="export" data-export="{x['i']}"><label>{e(x['file'])} <select name="preset">{'' if x['preset'] else '<option selected>custom</option>'}{options(x['preset'])}</select></label>
+<button type="button" class="remove" title="Stop making this export">Remove</button>{form}</li>''')
+        exports = ''.join(export_rows)
+        sizes = {data['recording_size']: 'Current: ' + data['recording_size'],
+                 '960x540@1.5': 'Wide view: 960 x 540', '640x480@2': 'Compact view: 640 x 480',
+                 '390x844@2': 'Portrait view: 390 x 844'}
+        recording_box = f'''<form class="recording-view"><h3>Recording view</h3>
+<label>First browser take <select name="size">{''.join(f'<option value="{e(value)}"{" selected" if value == data["recording_size"] else ""}>{e(label)}</option>' for value, label in sizes.items())}</select></label>
+<p class="hint">A narrower view can enlarge app text. Saving this view makes Update preview record the whole task again; its actions and checks stay intact.</p>
+<button type="submit">Save recording view</button> <button type="reset">Reset</button></form>'''
         edit_box = f'''<div class="cut"><h2>The edit</h2><p class="hint">Saved to {e(cut['file'])} as you change it.</p>
+{recording_box}
 <h3>Title cards</h3><ul class="cards">{cards or '<li class="hint">No cards.</li>'}</ul>
 <p><button type="button" data-add-card="start">Add an opening card</button> <button type="button" data-add-card="end">Add a closing card</button></p>
 <label>Card background <input name="background" value="{e(background)}" placeholder="#0e0d0c"{' disabled title="A gradient: change it in the file"' if not isinstance(cut['background'], str) else ''}></label>
@@ -882,7 +946,7 @@ def page(data, accept, seen=0):
 <p id="save-error" class="error" role="alert" hidden></p>
 <section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
 <main><section class="watch">{failure_box}{top}
-{f'<div class="shapes"><h2>Exports</h2><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
+{f'<div class="shapes"><h2>Exports</h2><p class="hint">Measurements describe this rendered run. Update preview to measure saved changes.</p><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="found"><h2>What the scan found</h2><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>
@@ -896,6 +960,7 @@ def page(data, accept, seen=0):
 {edit_box}
 </details></section></main>
 <p id="toast" role="status"></p>
+<dialog id="export-inspector"><form method="dialog"><button>Close</button></form><h2>Inspect the rendered export</h2><p id="inspector-size"></p><div class="inspection-rail"></div></dialog>
 <script>{SCRIPT}</script></body></html>'''
     if run:
         document = document.replace('run/', f'runs/{run["id"]}/')
@@ -985,6 +1050,15 @@ summary { cursor:pointer; font-weight:600 } .styling { background:var(--panel); 
 .range-form { display:flex; flex-wrap:wrap; gap:8px; align-items:end; margin:8px 0 }
 .range-form label { flex:1 1 120px; min-width:0 } .range-form button { font-size:13px; margin-bottom:1px }
 #add-clip { border-top:1px solid var(--line); padding-top:8px }
+.export-framing { flex:1 0 100%; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:10px }
+.crop-guide { display:block; padding:0; position:relative; overflow:hidden; width:100%; margin-top:10px; cursor:crosshair; border-radius:6px }
+.crop-guide img { display:block; width:100%; pointer-events:none } .crop-window { position:absolute; border:2px solid #fbbf24; box-shadow:0 0 0 400px #0006; pointer-events:none }
+.crop-guide:disabled .crop-window { display:none }
+.readability { font-size:12px; line-height:1.5 } .readability li { margin:6px 0 } .readability button { font-size:11px; padding:2px 5px }
+#export-inspector { color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:12px; max-width:calc(100vw - 32px); max-height:calc(100vh - 32px); padding:16px }
+#export-inspector::backdrop { background:#0009 } #export-inspector form { display:flex; justify-content:end; margin-bottom:12px }
+.inspection-rail { overflow:auto; max-width:calc(100vw - 80px); max-height:calc(100vh - 180px) }
+.inspection-rail img, .inspection-rail video { max-width:none; display:block; border-radius:0 }
 '''
 
 SCRIPT = '''(() => {
@@ -999,10 +1073,12 @@ SCRIPT = '''(() => {
   let queue = Promise.resolve();
   const post = (what, body, requireSaved = false) => {
     const request = () => {
-      const ownRange = what === 'sequence' && body.operation === 'range' ? document.querySelector(`.sequence-part[data-part="${body.part}"] .range-form`)
-        : what === 'sequence' && body.operation === 'add' ? document.getElementById('add-clip') : null;
-      const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !ownRange || !ownRange.contains(input));
-      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence'].includes(what)) && unsaved) {
+      const ownForm = what === 'sequence' && body.operation === 'range' ? document.querySelector(`.sequence-part[data-part="${body.part}"] .range-form`)
+        : what === 'sequence' && body.operation === 'add' ? document.getElementById('add-clip')
+        : what === 'framing' && body.size != null ? document.querySelector('.recording-view')
+        : what === 'framing' ? document.querySelector(`.export-framing[data-export="${body.export}"]`) : null;
+      const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !ownForm || !ownForm.contains(input));
+      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing'].includes(what)) && unsaved) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
       }
@@ -1056,6 +1132,67 @@ SCRIPT = '''(() => {
   document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); play(+li.dataset.start, +li.dataset.end); });
   document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   document.querySelectorAll('[data-part-play]').forEach(button => button.onclick = () => play(+button.dataset.start, +button.dataset.end));
+  const inspector = document.getElementById('export-inspector');
+  document.querySelectorAll('[data-inspect]').forEach(button => button.onclick = () => {
+    if (video) video.pause();
+    const rail = inspector.querySelector('.inspection-rail'); rail.replaceChildren();
+    const gif = button.dataset.inspect.endsWith('.gif');
+    const media = document.createElement(gif ? 'img' : 'video');
+    const width = Math.max(160, Math.min(1920, +button.dataset.view || 640));
+    media.style.width = width + 'px'; media.style.height = 'auto';
+    if (gif) media.alt = 'Rendered export at viewing size';
+    else { media.controls = true; media.preload = 'metadata'; media.playsInline = true; }
+    media.src = button.dataset.inspect; rail.append(media);
+    document.getElementById('inspector-size').textContent = width + ' px viewing width. Scroll if it does not fit; the image is not scaled down to the panel.';
+    inspector.showModal();
+    if (!gif && button.dataset.time !== '') media.addEventListener('loadedmetadata', () => {
+      media.currentTime = +button.dataset.time; media.play().catch(() => {});
+    }, {once: true});
+  });
+  inspector.addEventListener('close', () => { const media = inspector.querySelector('video'); if (media) media.pause(); });
+  const recordingView = document.querySelector('.recording-view');
+  if (recordingView) {
+    recordingView.elements.size.onchange = () => recordingView.elements.size.dataset.unsaved = '1';
+    recordingView.onreset = () => { delete recordingView.elements.size.dataset.unsaved; if (!document.querySelector('[data-unsaved]')) error(''); };
+    recordingView.onsubmit = event => { event.preventDefault(); post('framing', {size: recordingView.elements.size.value}, true)
+      .then(out => { if (out.ok) location.reload(); }); };
+  }
+  document.querySelectorAll('.export-framing').forEach(form => {
+    const guide = form.querySelector('.crop-guide'), image = guide && guide.querySelector('img');
+    const focusX = form.elements.focus_x, focusY = form.elements.focus_y;
+    const updateGuide = () => {
+      const crop = form.elements.fit.value === 'crop';
+      focusX.disabled = !crop; focusY.disabled = !crop; if (guide) guide.disabled = !crop;
+      if (!image || !image.naturalWidth) return;
+      const sw = image.naturalWidth, sh = image.naturalHeight, width = +form.dataset.width, height = +form.dataset.height;
+      const scale = Math.max(width / sw, height / sh), rw = Math.ceil(sw * scale / 2) * 2, rh = Math.ceil(sh * scale / 2) * 2;
+      const box = guide.querySelector('.crop-window');
+      box.style.left = ((rw - width) * (+focusX.value / 100) / rw * 100) + '%';
+      box.style.top = ((rh - height) * (+focusY.value / 100) / rh * 100) + '%';
+      box.style.width = width / rw * 100 + '%'; box.style.height = height / rh * 100 + '%';
+    };
+    form.querySelectorAll('input, select').forEach(input => input.addEventListener('change', () => { input.dataset.unsaved = '1'; updateGuide(); }));
+    form.addEventListener('reset', () => {
+      form.querySelectorAll('[data-unsaved]').forEach(input => delete input.dataset.unsaved);
+      if (!document.querySelector('[data-unsaved]')) error(''); setTimeout(updateGuide, 0);
+    });
+    if (image) { image.addEventListener('load', updateGuide); updateGuide(); }
+    if (guide) guide.onclick = event => {
+      if (!event.detail || !image.naturalWidth) return;
+      const box = image.getBoundingClientRect(), width = +form.dataset.width, height = +form.dataset.height;
+      const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+      const rw = Math.ceil(image.naturalWidth * scale / 2) * 2, rh = Math.ceil(image.naturalHeight * scale / 2) * 2;
+      const aim = (point, total, kept) => total === kept ? 50 : Math.round(Math.max(0, Math.min(1, (point * total - kept / 2) / (total - kept))) * 100);
+      focusX.value = aim((event.clientX - box.left) / box.width, rw, width);
+      focusY.value = aim((event.clientY - box.top) / box.height, rh, height);
+      focusX.dataset.unsaved = '1'; focusY.dataset.unsaved = '1'; updateGuide();
+    };
+    form.onsubmit = event => { event.preventDefault();
+      post('framing', {export: +form.dataset.export, settings: {fit: form.elements.fit.value,
+        focus: [+focusX.value / 100, +focusY.value / 100], display_width: +form.elements.display_width.value}}, true)
+        .then(out => { if (out.ok) location.reload(); });
+    };
+  });
   const sequence = document.querySelector('.sequence');
   document.querySelectorAll('.sequence form').forEach(form => {
     form.querySelectorAll('select').forEach(input => input.onchange = () => input.dataset.unsaved = '1');
@@ -1128,7 +1265,7 @@ SCRIPT = '''(() => {
       });
     }));
     cut.querySelector('[name=music]').addEventListener('change', e => change({music: e.target.value}, false, e.target));
-    cut.querySelectorAll('.export select').forEach(s => s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true)));
+    cut.querySelectorAll('.export select[name=preset]').forEach(s => s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true)));
     cut.querySelectorAll('.export .remove').forEach(b => b.onclick = () => change({export: +b.closest('.export').dataset.export, remove: true}, true));
     cut.querySelector('[name=add_export]').addEventListener('change', e => e.target.value && change({add_export: e.target.value}, true));
   }

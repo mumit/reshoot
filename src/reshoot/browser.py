@@ -115,6 +115,40 @@ async def assertion(page, entry):
     return True
 
 
+async def layout(page, beat):
+    """Optional, bounded geometry-only feedback. A measurement failure never changes a result check."""
+    async def collect():
+        data = await page.evaluate((web.HERE / 'layout.js').read_text())
+        data['checked'] = []
+        for check in beat.get('expect', [])[:12]:
+            if check.get('target'):
+                items = locator(page, check['target'])
+                for i in range(min(await items.count(), 12)):
+                    box = await items.nth(i).bounding_box(timeout=100)
+                    if box:
+                        text_box = None
+                        if check['type'] == 'text' and not check['target'].get('frame'):
+                            text_box = await items.nth(i).evaluate('''(el, expected) => {
+                              const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+                              let node, visited = 0;
+                              while ((node = walker.nextNode()) && visited++ < 2000) {
+                                const at = node.textContent.indexOf(expected);
+                                if (at < 0 || !expected.length) continue;
+                                const range = document.createRange(); range.setStart(node, at); range.setEnd(node, at + expected.length);
+                                const box = range.getBoundingClientRect();
+                                if (box.width && box.height && box.right > 0 && box.bottom > 0 && box.left < innerWidth && box.top < innerHeight)
+                                  return [box.x, box.y, box.width, box.height];
+                              }
+                              return null;
+                            }''', check['contains'])
+                        data['checked'].append(text_box or [box[k] for k in ('x', 'y', 'width', 'height')])
+        return data
+    try:
+        return await asyncio.wait_for(collect(), timeout=1)
+    except Exception:
+        return {'schema_version': 1, 'unavailable': True}
+
+
 async def capture(board, a, frames, out, metadata, spoken):
     from playwright.async_api import async_playwright
     w, h, dpr = web.parse_size(a.size or board.get('size', '1280x720@1'))
@@ -254,6 +288,7 @@ async def capture(board, a, frames, out, metadata, spoken):
                 shot.parent.mkdir(exist_ok=True)
                 result.update(status='passed' if beat.get('expect') else 'unverified', screenshot=str(shot.relative_to(out.parent)), start=start)
                 await asyncio.sleep(max(beat.get('hold', 1), beat.get('min_reading', 0), board.get('caption', {}).get('min_seconds', 0) if beat.get('caption') else 0, spoken.get(current, ('', 0))[1] + .3 - (time.monotonic() - start)))
+                result['layout'] = await layout(page, beat)
                 result['end'] = time.monotonic()
                 await evidence(page, frames, shot)
             stop = time.monotonic()
@@ -303,7 +338,7 @@ async def capture(board, a, frames, out, metadata, spoken):
         for check in result['expectations']:
             check['at'] = max(0, check['at'] - t0)
     times = [t for t, _ in frames]
-    metadata['capture'] = {'css_width': w, 'css_height': h, 'pixel_ratio': cap_dpr,
+    metadata['capture'] = {'css_width': w, 'css_height': h, 'pixel_ratio': cap_dpr, 'zoom': bool(z),
                            'frames': len(frames)-1, 'max_gap_seconds': max((b-a for a,b in zip(times,times[1:])), default=0), 'seed': board.get('seed', 1), 'locale': 'en-US', 'timezone': 'UTC',
                            'theme': a.theme or board.get('theme', 'dark'), 'mobile': bool(a.mobile or board.get('mobile'))}
     metadata['events'] = [{'t': max(0, t-t0), **event} for t, event in events]

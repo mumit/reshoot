@@ -14,11 +14,10 @@ A [persona review of the docs](docs/validation/2026-10-23-persona-review.md)
 found that the tool does the hard part well and loses the joy where a user
 meets it first. The studio now gives a local place to see a story and shape it
 by pointing, with the files in the repository still the source of truth. Recording,
-repair, visual styles and beat cuts now share that workflow; next, add readability feedback and audio controls. The
+repair, visual styles, beat cuts and destination framing now share that workflow; next, add audio controls. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **More creative control.** Destination framing and
-    readability feedback, narration auditioning and audio balance. Why: these shorten the path from a working
+1. **More creative control.** Narration auditioning and audio balance. Why: these shorten the path from a working
     recording to a deliberately composed demo, using the existing rendering stages.
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
@@ -54,6 +53,14 @@ repair, visual styles and beat cuts now share that workflow; next, add readabili
 
 ## Done
 
+- **Destination framing and readability:** per-export Fit/Crop, crop guides,
+  focus and viewing widths, with shared CLI/studio edits and undo. MP4 and GIF
+  share geometry; the inspector retains the selected viewing width. Hashed
+  measurements identify small text, subtitle reading pace and bounds outside
+  a crop, with explicit coverage limits rather than a readability verdict.
+  Recording view can capture the first browser take at a narrower viewport,
+  keeping its task and checks. Feedback is available in the studio, CLI and
+  review page. Browser frames and edits retain spatial mappings.
 - **Beat trimming and sequencing:** Your cut and `reshoot sequence` select
   inclusive named beat ranges, move, duplicate, add and remove video parts.
   The full task and checks still run. Comments, narration boundaries, source

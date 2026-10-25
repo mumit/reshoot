@@ -446,6 +446,7 @@ def main(a):
     # The page reads top to bottom as the review goes: the exports, what the scan found, the scan sheets, then each
     # beat with its original take, and the run's other files folded away at the end.
     watched = exports(root, report)
+    named_files = {item['path'] for item in report.get('files', [])}
     media, sections, scanned, other = [], [], [], []
     for item in report.get('files', []):
         name = item['path']
@@ -453,8 +454,16 @@ def main(a):
         if Path(name).suffix in ('.mp4', '.mov', '.gif'):
             content = (f'<img src="{src}" alt="Recorded GIF">' if name.endswith('.gif') else
                        f'<video controls preload="metadata" data-file="{src}" src="{src}"></video>')
+            feedback = ''
+            sidecar = str(Path(name).with_suffix('.readability.json'))
+            if name in watched and sidecar in named_files:
+                quality = json.loads((root / sidecar).read_text())
+                feedback = '<details><summary>Framing and readability at ' + str(int(quality['display_width'])) + ' px viewing width</summary>'
+                feedback += '<p>Editing hints, not a readability verdict. Inspect the actual export at its intended size.</p><ul>'
+                feedback += ''.join('<li>' + html.escape(item['message']) + '</li>' for item in quality['issues'])
+                feedback += '</ul>' + ''.join('<p>' + html.escape(note) + '</p>' for note in quality['notes']) + '</details>'
             (media if name in watched else sections).append(
-                '<article><h2>' + ('' if name in watched else 'Original take: ') + html.escape(name) + '</h2>' + content + '</article>')
+                '<article><h2>' + ('' if name in watched else 'Original take: ') + html.escape(name) + '</h2>' + content + feedback + '</article>')
         else:
             other.append(f'<li><a href="{src}">{html.escape(name)}</a></li>')
     for take_path in root.rglob('*.take.json'):

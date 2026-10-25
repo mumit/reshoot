@@ -35,6 +35,8 @@ def check_cut(path):
     for profile in data.get('export', []):
         if 'preset' in profile and profile['preset'] not in timeline.PRESETS:
             raise ValueError(f'unknown preset {profile["preset"]!r}')
+        from reshoot.framing import resolve
+        resolve(profile)
     if 'frame' in data:
         timeline.frame_style(data)
     if data.get('music') and not (Path(path).parent / data['music']).is_file():

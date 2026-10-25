@@ -47,6 +47,17 @@ def draw(take, board, storyboard, quiet=False):
     caps = [(row['start'], math.inf if row['end'] is None else row['end'],
              zoom.caption_image(zoom.plain(row['text']), zoom.plain(row['sub']), width, css_w, look))
             for row in rows if row['text']]
+    by_start = {start: image for start, _, image in caps}
+    for row in rows:
+        if row['text']:
+            cap = by_start[row['start']]
+            size = max(1, round(min(max(18, css_w * .023), 30) * width / css_w))
+            margin = round(height * look.get('margin', .065))
+            row['layout'] = {'box': [(width - cap.width) // 2, margin if look.get('position') == 'top' else height - margin - cap.height,
+                                      cap.width, cap.height], 'font_px': size,
+                             'smallest_font_px': max(1, round(size * .6)) if row['sub'] else size}
+        else:
+            row.pop('layout', None)
     temp = take.with_name(take.stem + '.partial.mp4')
     if not caps:
         shutil.copyfile(clean, temp)

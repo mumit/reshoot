@@ -39,6 +39,7 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 
 | Date | Record |
 |---|---|
+| 2026-10-24 | [Destination framing and readability](2026-10-24-destination-framing.md): shared crops, viewing-size inspection, bounded measurements and narrower captures |
 | 2026-10-24 | [Beat trimming and sequencing](2026-10-24-beat-sequencing.md): inclusive ranges, video order, repeats, undo and preserved source checks |
 | 2026-10-24 | [Reusable visual styles](2026-10-24-visual-styles.md): starting looks, saved and portable styles, grouped undo, preserved tasks and rendered previews |
 | 2026-10-24 | [Explicit locator repair](2026-10-24-locator-repair.md): suggested and visual replacements, preserved checks, stale-edit protection and studio undo |

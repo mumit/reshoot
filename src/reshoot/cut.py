@@ -116,6 +116,8 @@ def frame(src, out, background="#1d2433", padding=0.06, radius=12, shadow=True, 
            f"[0:v][cut]overlay={x}:{y + top}:shortest=1,fps={FPS},format=yuv420p", "-an", *ENC, out)
     from reshoot import timeline
     timeline.copy(src, out)
+    from reshoot.framing import map_video
+    map_video(out, {'sx': cw / w, 'sy': ch / h, 'x': x, 'y': y + top})
     return out
 
 
@@ -135,6 +137,10 @@ def place(bg_png, src, x, y, out, width=None):
        f"[1:v]{scale}fps={FPS}[v];[0:v][v]overlay={x}:{y}:shortest=1,format=yuv420p", *ENC, out)
     from reshoot import timeline
     timeline.copy(src, out)
+    data = timeline.read(out)
+    for row in data['segments']:
+        row['spatial_unknown'] = True
+    timeline.write(out, data['segments'], data['duration'], data.get('parts'))
     return out
 
 
@@ -167,14 +173,12 @@ def concat(parts, out):
     return out
 
 
-def gif(src, start, end, out, fps=15, width=800, height=None, fit="contain"):
+def gif(src, start, end, out, fps=15, width=800, height=None, fit="contain", focus=(.5, .5)):
     """A GIF of src from start to end, with a palette made for these frames (much better than the default)."""
     vf = f"scale={width}:-1:flags=lanczos"
     if height is not None:
-        if fit not in ('contain', 'crop'):
-            raise ValueError('GIF fit must be contain or crop')
-        vf = f"scale={width}:{height}:flags=lanczos:force_original_aspect_ratio=" + ('increase' if fit == 'crop' else 'decrease')
-        vf += f",crop={width}:{height}" if fit == 'crop' else f",pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"
+        from reshoot import framing
+        vf = framing.filter_for(framing.geometry(probe(src)[:2], width, height, fit, focus))
     # A card/browser join can change SAR or color metadata. Normalize into one
     # lossless RGB stream before buffering frames for the palette; a filtergraph
     # reset otherwise drops earlier sections.
@@ -295,6 +299,7 @@ class Card:
         self.w, self.im = w, Image.new("RGBA" if bg is None else "RGB", (w, h), (0, 0, 0, 0) if bg is None else bg)
         self.d = ImageDraw.Draw(self.im)
         self.font_path = font_path
+        self.text_layout = []
 
     def text(self, x, y, s, size, weight=600, fill=(255, 255, 255)):
         """s at (x, y); x=None centres it."""
@@ -304,7 +309,10 @@ class Card:
         if y + len(lines)*size*1.25 > self.im.height:
             raise ValueError('card text does not fit; shorten it or reduce the size')
         for index, line in enumerate(lines):
-            self.d.text(((self.w-self.d.textlength(line, font=f))/2 if x is None else x, y+index*size*1.25), line, font=f, fill=fill)
+            position = ((self.w-self.d.textlength(line, font=f))/2 if x is None else x, y+index*size*1.25)
+            box = self.d.textbbox(position, line, font=f)
+            self.text_layout.append({'box': [box[0], box[1], box[2]-box[0], box[3]-box[1]], 'font_px': size})
+            self.d.text(position, line, font=f, fill=fill)
         return self
 
     def badge(self, x, y, s, size=30, fill=(245, 180, 60), ink=(20, 20, 20)):

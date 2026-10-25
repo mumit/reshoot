@@ -3,6 +3,16 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **A portrait crop removed a result or caption.** Fixed in reshoot: export
+  controls aim a shared MP4/GIF crop, and measured feedback identifies caption
+  boxes and checked-result bounds outside it. Use Fit to retain the whole video,
+  or change the crop and inspect the rendered export. Source clipping is reported
+  separately because fitting cannot restore content outside the recorded page.
+- **A small player concealed unreadable export text.** Fixed in reshoot: Inspect
+  at viewing size keeps the selected browser width. Font-size and reading-time
+  hints state their limits. Recording view can make a fresh narrower capture
+  with the same actions and checks. Missing measurements are never a pass.
+
 - **A cut lost the last result hold.** Fixed in reshoot: `through = "search"`
   includes that beat's recorded end; `end = "search"` still stops at its start.
   Studio ranges use inclusive Through controls and keep named boundaries when

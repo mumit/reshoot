@@ -8,6 +8,15 @@ change project files or commands.
 
 ### Added
 
+- Destination Fit/Crop, crop focus guides, viewing widths and an inspector that
+  retains the requested display size. `reshoot frame` shares export edits and
+  measured feedback with the studio. MP4 and GIF use the same crop geometry.
+- Readability reports bound to rendered artifacts: sampled app font sizes,
+  caption/card text sizes, crop clipping and subtitle reading time, with coverage
+  limits. These hints do not change run success or acceptance. The studio and
+  review page show them; the run prints a command to inspect them.
+- A Recording view control, with undo, to capture the first browser take at a
+  narrower or portrait viewport while preserving the task and result checks.
 - Your cut in the studio and `reshoot sequence` share inclusive beat-range
   trimming, moving, duplication, removal and adding clips. Capturing still runs
   the full task and its checks. Named `through` boundaries retain the last beat's

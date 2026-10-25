@@ -67,6 +67,10 @@ Click a beat to play just that part.
   the take looks right, **Make final** records the whole run at full size.
 - **Exports** shows each export in its own shape, with its size, length and
   file size, and the limits of the place its preset is for.
+- **Frame a destination** under Style and exports: Fit keeps the whole video;
+  Crop fills the shape. Aim the crop with its guide or position fields, set a
+  viewing width, then Save framing and Update preview. Inspect at viewing size
+  shows the rendered export at that width, with measured text and clipping hints.
 - **What the scan found** marks each finding on the timeline. Open **Inspect
   scan sheets** and each sheet at full size before accepting. Media and the
   acceptance decision remain bound to the run shown, even if another command
@@ -199,6 +203,63 @@ Nested custom part tables also stay in the file. Cuts cannot split a narration
 line. Repeated clips retain captions, subtitles and complete narration at
 their new times. Watch the [gallery example](look.md#beat-cuts-and-sequence)
 and both exports before keeping the edit.
+
+## Frame and inspect a destination
+
+Under **Style and exports > Exports**, choose a destination preset, then its
+framing. **Fit** keeps the whole video and adds space when the shapes differ.
+**Crop** fills the destination and can remove content. Click the crop guide to
+aim it, or set horizontal and vertical position: 0 is left or top, 50 is centre,
+and 100 is right or bottom. The guide comes from the currently rendered video;
+**Update preview** renders the saved choice across the whole cut.
+
+Set **Viewing width (px)** to the width at which people will watch. This changes
+inspection and text-size estimates, not the encoded dimensions. Save framing
+before updating; Reset discards unsaved choices. The operation supports Undo
+and Redo and preserves the story, checks, timing, audio, exports and scan
+coverage. Changing a destination preset keeps framing and viewing preferences,
+export names and configured size/reading budgets.
+
+In the rendered **Exports**, choose **Inspect at viewing size**. The player or
+GIF keeps that width even if the panel needs scrolling. Its feedback describes
+the rendered run; update the preview after changing settings. The review page
+also includes the run's measured hints.
+
+Measurements include sampled app font sizes at result holds, caption and title
+text sizes, subtitle reading rate, and whether a crop crosses a caption box,
+title text or checked-result bounds. Text sizes account for the browser frame
+and export scaling. A result already outside the recorded page is identified
+separately: Fit cannot restore something the recording did not show.
+
+The hints use 12 px for small app-text samples, 14 px for caption/title text,
+and 18 characters per second for subtitle reading time. These are editing
+heuristics, not a readability or accessibility pass. App samples cover main-page
+text at result holds, without storing its content. Iframe, canvas, scaled or
+rotated text, custom placement and app text under camera zoom need visual
+inspection. Caption geometry is still measured after camera zoom. At most 30
+individual hints are listed. Colour contrast and every animation frame are
+not measured.
+
+If app text is small, **Recording view** offers wide, compact and portrait
+layouts for the first browser take. Save the view and choose Update preview;
+this records the full task again with its existing checks. A changed responsive
+layout may need a locator repair. The choices set viewport dimensions, not a
+device identity. Old recordings need a fresh preview for app-font samples;
+re-cutting can refresh caption measurements.
+
+The CLI uses export numbers starting at 1:
+
+```bash
+reshoot frame set 1 --fit crop --x 50 --y 50 --view-width 390 --project demo
+reshoot recut demo/latest
+reshoot frame check demo/latest
+reshoot frame record --size 640x480@2 --project demo
+reshoot preview demo/reshoot.toml
+```
+
+Use `recut` only for a still-current recording. A change to recording size,
+timing or the task needs a new capture. The [gallery](look.md#destination-framing-and-readability)
+shows how a crop can cut off content and how the measured sizes change.
 
 ## Find the files
 

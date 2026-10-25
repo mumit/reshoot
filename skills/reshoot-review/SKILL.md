@@ -15,6 +15,15 @@ Check exits 0 for accepted supplied items, 1 for human review pending, and 2 for
 
 Inspect sheets and original frames, then watch the final video, with sound when present. Check the stated result, text size, caption wrapping, timing, audio, end card, and any mock or speed labels. Use only made-up data. Fail private names, accounts, files, tokens, or unintended people shown in the recording.
 
+For runs with `.readability.json`, use `reshoot frame check RUN` and the studio's
+Inspect at viewing size to inspect measured font sizes, crop clipping and
+subtitle reading time at the intended browser width. The review page also
+shows these hints. They are bound to the rendered run, not unsaved settings,
+and never replace human review or establish accessibility. Missing app samples,
+camera zoom, canvas/iframe text and custom placement need visual inspection.
+Recommend a narrower recording view only when it helps the intended export;
+that requires a fresh capture with the existing task and result checks.
+
 For a versioned run, use the local page from `reshoot review RUN` to inspect timestamps and comparisons. For a native capture, which has no run, use the sheets and a video player, and say so.
 Previous and current GIFs display as images in the comparison page; inspect their
 animation and loop as well as the MP4 playback.

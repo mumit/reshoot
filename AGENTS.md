@@ -24,6 +24,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/workspace.py` | Studio revisions and reversible edits |
 | `src/reshoot/styles.py` | Portable visual styles shared by the CLI and studio |
 | `src/reshoot/sequence.py` | Beat ranges and video-part ordering shared by the CLI and studio |
+| `src/reshoot/framing.py`, `readability.py`, `layout.js` | Shared export geometry and measured text/crop feedback |
 | `src/reshoot/repair.py`, `repair.js`, `targets.js` | Explicit locator repair and shared control discovery |
 | `src/reshoot/rec.py`, `rec.js` | `reshoot rec`: a storyboard written by watching someone use the app |
 | `src/reshoot/zoom.py` | Zoom on clicks, and captions drawn after the zoom |

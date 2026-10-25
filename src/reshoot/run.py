@@ -307,7 +307,7 @@ def main(a):
         report['files'] = [{'path': str(f.relative_to(report_path.parent)), 'sha256': digest(f)}
                            for f in report_path.parent.rglob('*')
                            if f.is_file() and f.resolve().is_relative_to(report_path.parent.resolve())
-                           and (f.suffix in ('.mp4', '.mov', '.gif', '.srt') or f.name.endswith(('.take.json', '.timeline.json', '.beats.json', '.events.json', '.voice.json', '.assets.json', '.captions.json'))
+                           and (f.suffix in ('.mp4', '.mov', '.gif', '.srt') or f.name.endswith(('.take.json', '.timeline.json', '.beats.json', '.events.json', '.voice.json', '.assets.json', '.captions.json', '.readability.json'))
                                 or f.parent.name.endswith(('.evidence', '.resources')) or f.name.endswith(('.poster.png', '.failure.png')))]
         checks = []
         metadata_files = list(report_path.parent.rglob('*.take.json'))
@@ -359,6 +359,8 @@ def main(a):
     else:
         page = root / 'review.html'
         print('  review ' + shown(page))
+    if any(file['path'].endswith('.readability.json') for file in report['files']):
+        print('  framing/readability: reshoot frame check ' + shlex.quote(shown(root)))
     if preview:
         print(f'\nThis is a preview, smaller and quicker than a final. When it looks right, record the final:\n'
               f'  reshoot run {shlex.quote(str(a.config))}')

@@ -34,6 +34,9 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot sequence duplicate PART --project demo` | Repeats a video part immediately after itself |
 | `reshoot sequence remove PART --project demo` | Removes a video part, keeping at least one |
 | `reshoot sequence add --take TAKE --from BEAT --through BEAT --project demo` | Appends a clip; take numbers start at 1. `--run RUN` on any sequence command selects an older complete run from the project |
+| `reshoot frame set EXPORT --fit crop --x 50 --y 50 --view-width 390 --project demo` | Sets Fit/Crop, crop position and viewing width without changing the task; export numbers start at 1, update the preview afterwards |
+| `reshoot frame record --size 640x480@2 --project demo` | Sets the first TOML browser take's viewport; Update preview records again with the existing actions and checks |
+| `reshoot frame check RUN` | Reads measured font-size, clipping and subtitle-reading hints bound to that run's artifacts; this is not an automatic readability verdict |
 | `reshoot run CONFIG` | Starts the configured app, records, edits and scans a new run |
 | `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |

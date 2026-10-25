@@ -37,6 +37,8 @@ you can reuse in another project. Update preview shows the chosen look using
 the existing recording when the story is still current.
 **Your cut** trims clips by beat and rearranges or repeats them, while the
 recording still runs the full task and its checks.
+Framing controls and a viewing-size inspector help spot small or clipped text
+in each export before sharing.
 
 For your own running demo app:
 

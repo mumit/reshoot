@@ -29,7 +29,7 @@ def trim(source, start, end, out, factor=1):
         if b <= a:
             continue
         scale = (row['source_end']-row['source_start']) / (row['end']-row['start'])
-        rows.append({'source': row['source'], 'source_start': row['source_start'] + (a-row['start'])*scale,
+        rows.append({**row, 'source': row['source'], 'source_start': row['source_start'] + (a-row['start'])*scale,
                      'source_end': row['source_start'] + (b-row['start'])*scale,
                      'start': (a-start)/factor, 'end': (b-start)/factor})
     write(out, rows, (end-start)/factor)
@@ -235,7 +235,8 @@ def edit(a):
                 clip = Path(temp) / f'{i}.mp4'
                 cut.still(card.save(Path(temp) / f'{i}.png'), seconds, clip)
                 clips.append(clip)
-                part_rows.append({'index': i, 'start': offset, 'end': offset + read(clip)['duration'], 'kind': 'card'})
+                part_rows.append({'index': i, 'start': offset, 'end': offset + read(clip)['duration'], 'kind': 'card',
+                                  'text_layout': card.text_layout})
                 offset = part_rows[-1]['end']
                 continue
             index = part.get('take', 0)
@@ -289,6 +290,9 @@ def edit(a):
     write(output, mapping['segments'], mapping['duration'], part_rows)
     cut.write_srt(cues(output), output.with_suffix('.srt'))
     cut.ff('-ss', cut.duration(output) * .75, '-i', output, '-frames:v', 1, output.with_suffix('.poster.png'))
+    from reshoot import framing, readability
+    width, height, _ = cut.probe(output)
+    readability.write(output, {}, framing.geometry((width, height), width, height))
     for profile in board.get('export', []):
         export(output, profile)
     print(output)
@@ -342,44 +346,23 @@ def within(output, profile, limits):
 
 
 def export(video, profile):
-    from reshoot import cut
-    limits = None
-    if 'preset' in profile:
-        if profile['preset'] not in PRESETS:
-            raise ValueError(f'unknown export preset {profile["preset"]!r}; use ' + ', '.join(PRESETS))
-        defaults, limits = PRESETS[profile['preset']]
-        profile = {'name': profile['preset'], **defaults, **{k: v for k, v in profile.items() if k != 'preset'}}
-    width, height = profile.get('width', 1280), profile.get('height', 720)
-    name = profile.get('name', 'landscape')
-    import re
-    if not re.fullmatch(r'[a-zA-Z0-9_-]+', name) or not all(isinstance(x, int) and x > 0 and x % 2 == 0 for x in (width, height)):
-        raise ValueError('profile needs a safe name and positive even dimensions')
-    kind = profile.get('format', 'mp4')
-    if kind not in ('mp4', 'gif'):
-        raise ValueError('profile format must be mp4 or gif')
-    fps = profile.get('fps', 15 if kind == 'gif' else 60)
-    if not isinstance(fps, int) or not 1 <= fps <= 120:
-        raise ValueError('profile fps must be between 1 and 120')
-    budget = profile.get('max_bytes')
-    if budget is not None and (not isinstance(budget, int) or budget <= 0):
-        raise ValueError('max_bytes must be a positive integer')
-    minimum = profile.get('min_reading', 0)
-    if not isinstance(minimum, (int,float)) or not math.isfinite(minimum) or minimum < 0:
-        raise ValueError('profile min_reading must be nonnegative')
+    from reshoot import cut, framing, readability
+    profile, limits = framing.resolve(profile)
+    width, height, name, kind, fps = (profile[k] for k in ('width', 'height', 'name', 'format', 'fps'))
+    minimum = profile['min_reading']
     if any(end-start+.001 < minimum for start, end, text in cues(video) if text):
         raise ValueError('an exported caption is shorter than min_reading')
     output = Path(video).with_name(Path(video).stem + '-' + name + '.' + kind)
+    plan = framing.geometry(cut.probe(video)[:2], width, height, profile['fit'], profile['focus'])
     if kind == 'gif':
-        cut.gif(video, 0, cut.duration(video), output, fps=fps, width=width, height=height, fit=profile.get('fit', 'contain'))
+        cut.gif(video, 0, cut.duration(video), output, fps=fps, width=width, height=height,
+                fit=profile['fit'], focus=profile['focus'])
         copy(video, output)
     else:
-        fit = profile.get('fit', 'contain')
-        if fit not in ('contain', 'crop'):
-            raise ValueError('profile fit must be contain or crop')
-        vf = f'scale={width}:{height}:force_original_aspect_ratio=' + ('increase' if fit == 'crop' else 'decrease')
-        vf += f',crop={width}:{height}' if fit == 'crop' else f',pad={width}:{height}:(ow-iw)/2:(oh-ih)/2'
+        vf = framing.filter_for(plan)
         cut.ff('-i', video, '-vf', vf, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', fps, '-c:a', 'aac', '-movflags', '+faststart', output)
         copy(video, output)
+    framing.map_video(output, plan)
     cut.write_srt(cues(output), output.with_suffix('.srt'))
     at = profile.get('poster_at', min(max(0, cut.duration(output)-.05), cut.duration(output)*.75))
     if not isinstance(at, (int, float)) or not math.isfinite(at) or not 0 <= at < cut.duration(output):
@@ -389,4 +372,5 @@ def export(video, profile):
         raise ValueError('export exceeds its configured max_bytes')
     if limits:
         within(output, {**profile, 'name': name, 'width': width, 'height': height, 'fps': fps}, limits)
+    readability.write(output, profile, plan)
     return output

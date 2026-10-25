@@ -169,6 +169,45 @@ fit = "crop"
 The `x`, `linkedin` and `readme` [presets](projects.md#export-presets) make
 these shapes for a platform and check its limits.
 
+## Destination framing and readability
+
+Each export can Fit the whole video or Crop to fill its shape, with horizontal
+and vertical crop positions. The studio's crop guide helps aim it; Update
+preview renders the choice. A crop can cut off a caption or checked result.
+These are the centre and right-biased versions of the same held notes result:
+
+| Centre crop | Right-biased crop |
+|---|---|
+| ![Centre crop of the notes result](../docs/look/shape-crop.jpg) | ![Right-biased crop cutting off part of the result and caption](../docs/look/shape-right.jpg) |
+
+```toml
+[[export]]
+name = "crop-right"
+width = 1080
+height = 1350
+fit = "crop"
+focus = [0.85, 0.5]
+display_width = 390
+```
+
+The same geometry frames MP4 and GIF. `focus` uses fractions from 0 (left or
+top) to 1 (right or bottom). Viewing width changes inspection and text-size
+estimates, not encoded dimensions. The gallery's measured values are:
+
+| Export | Viewing width | Small app-text samples | Smallest caption text |
+|---|---|---|---|
+| contain | 640 px | 7.0 px | 14.5 px |
+| crop | 640 px | 15.6 px | 32.2 px |
+| crop-right | 390 px | 10.8 px | 19.6 px |
+
+These are editing hints from sampled main-page text and rendered caption
+geometry. They do not establish readability or accessibility. Camera zoom,
+custom placement, iframe or canvas text need visual inspection. The studio's
+**Inspect at viewing size** keeps the requested width, with scrolling when
+needed. See [destination framing](customize.md#frame-and-inspect-a-destination)
+for the controls and CLI. `reshoot frame check demo/latest` reads the measured
+feedback bound to that run.
+
 ## GIF size
 
 A README GIF is made with its own palette. `max_bytes` in an export profile
@@ -177,8 +216,8 @@ past a page's limit. The notes example's loop:
 
 | Width | File |
 |---|---|
-| 800 wide (the default) | 343 KB |
-| 640 wide | 240 KB |
+| 800 wide (the default) | 327 KB |
+| 640 wide | 231 KB |
 
 ## Sound
 

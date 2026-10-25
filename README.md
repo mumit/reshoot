@@ -194,7 +194,9 @@ lists what runs where.
 | The app changed | [reshoot-refresh](skills/reshoot-refresh/SKILL.md) | "Record that task again with the updated UI." |
 | Before sharing | [reshoot-review](skills/reshoot-review/SKILL.md) | "Check the final video and GIF against the accepted run." |
 
-The first-demo prompt installs them. To install them yourself, run
+Skills are instructions for a coding agent, so they need one and its model; the
+CLI on its own needs neither. The first-demo prompt installs them. To install
+them yourself, run
 `reshoot skills claude --directory .` or `reshoot skills codex --directory .`
 in the project, and add `--replace` after an upgrade. In Claude Code, the
 plugin installs all ten: these three, plus seven supporting skills for

@@ -382,7 +382,7 @@ stays readable.
 
 `reshoot style apply STYLE --project demo` accepts a starting look, a saved
 key from `style list`, or a portable style file. The studio also imports and
-downloads portable styles. Applying a style materializes values in each TOML
+downloads portable styles. Applying a style writes its values into each TOML
 browser storyboard's `[caption]`, and the edit's `[style]` and `[frame]`.
 There is no run-time reference to the style file. Story, timing, fonts, logos,
 audio, exports and scan coverage remain in their project files.

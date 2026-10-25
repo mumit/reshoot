@@ -50,7 +50,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot sequence add --take TAKE --from BEAT --through BEAT --project demo` | Appends a clip; take numbers start at 1. `--run RUN` on any sequence command selects an older complete run from the project |
 | `reshoot frame set EXPORT --fit crop --x 50 --y 50 --view-width 390 --project demo` | Sets Fit/Crop, crop position and viewing width without changing the task; export numbers start at 1, update the preview afterwards |
 | `reshoot frame record --size 640x480@2 --project demo` | Sets the first TOML browser take's viewport; Update preview records again with the existing actions and checks |
-| `reshoot frame check RUN` | Reads measured font-size, clipping and subtitle-reading hints bound to that run's artifacts; this is not an automatic readability verdict |
+| `reshoot frame check RUN` | Reads the text-size, clipping and subtitle-pace hints measured on that run; they are hints, not a readability verdict |
 | `reshoot tour create --title 'Save and find a note' --project demo` | Creates one offline tour from the first browser take's checked beats; update the preview to build it |
 | `reshoot tour set STEP --text 'The note was saved.' --x 50 --y 44 --project demo` | Edits step words and marker position in percentages; `--no-marker` removes the marker. `--title`, `--alt`, `--take`, `--beat`, `--width` and `--crop` also edit a step |
 | `reshoot tour move STEP --to POSITION --project demo` | Reorders a tour step; numbers start at 1 |
@@ -83,7 +83,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
 | `reshoot review RUN --serve` | Serves the review page on this computer only, to accept or reject the run with its buttons; stops once you decide |
 | `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name each finding with `--flagged F1` or `--reject F1`, or a single frame by its label. Refuses a preview unless given `--preview` |
-| `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
+| `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions for that run and its scan policy |
 
 ### Share
 

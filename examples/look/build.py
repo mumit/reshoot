@@ -422,8 +422,8 @@ geometry. They do not establish readability or accessibility. Camera zoom,
 custom placement, iframe or canvas text need visual inspection. The studio's
 **Inspect at viewing size** keeps the requested width, with scrolling when
 needed. See [destination framing](studio.md#fit-an-export-to-where-its-shown)
-for the controls and CLI. `reshoot frame check demo/latest` reads the measured
-feedback bound to that run.
+for the controls and CLI. `reshoot frame check demo/latest` reads the feedback
+measured on that run.
 
 ## GIF size
 

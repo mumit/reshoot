@@ -69,14 +69,14 @@ and installed scan capabilities. It does not probe the final capture or scan.
 
 Install Google Chrome or Chromium, then check whether `RESHOOT_CHROME` points
 to a browser that still exists. Correct it to an executable path, or remove
-the stale override with `unset RESHOOT_CHROME` and let reshoot discover Chrome.
+the old override with `unset RESHOOT_CHROME` and let reshoot discover Chrome.
 Paths containing spaces need shell quotes.
 
 On a minimal Linux machine, the browser also needs its system libraries and
 fonts. Use the distribution's browser package or install the dependencies
 required by the Chrome package. Reshoot uses the installed browser, not a
 Playwright-downloaded binary. If a harness sandbox prevents starting Chrome or
-binding a loopback port, use that harness's permission mechanism to authorize
+listening on a local port, use that harness's permission mechanism to authorize
 the local recording and keep the failed run. In Codex's default sandbox,
 `Chrome could not start` is the usual sign: approve running the reshoot command
 outside the sandbox.
@@ -172,10 +172,10 @@ new run or a deliberately separate review directory.
 `reshoot accept` and the importer both check the run ID, media hashes and scan
 policy. A file changed after recording, or the scan ran again, so record a new
 run or accept the current one again. For an import, check that the selected run
-matches the downloaded file from its current page. A browser may rename a download to `decisions (1).json`. The import binds
+matches the downloaded file from its current page. A browser may rename a download to `decisions (1).json`. The import checks
 the run ID, media hashes and scan policy; decisions from the preview or another
 final do not apply. If the media or policy changed, inspect the new artifacts
-and generate new decisions rather than editing the binding by hand.
+and make new decisions rather than editing the file by hand.
 
 ## Standalone check exits with code 1
 

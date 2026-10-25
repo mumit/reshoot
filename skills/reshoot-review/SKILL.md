@@ -5,28 +5,20 @@ description: Inspect a reshoot recording and its check report for failed actions
 
 # Review a recording
 
-When the owner is using the studio, Compare revisions shows checked result
-frames from the displayed run and an earlier local run. It prefers an accepted
-baseline among up to 30 earlier complete runs. Match story/beat IDs, inspect
-added/removed steps and open both review-evidence links. Those links and frames
-retain explicit run bindings. A changed artifact or scan requires reload.
-These captured PNGs retain privacy masks but exclude later captions, zoom,
-framing, cards and cuts; inspect actual exports too. A matching hash is not
-owner acceptance. Legacy or unbound evidence cannot supply checked frames.
-
-The studio's Review and Download sections refer to the displayed run. Pending
-source edits must be rendered before accepting there. Earlier recordings can
-remain reviewable without a complete source comparison; the status says so.
-Download all exports packages rendered media and subtitles with image Markdown
-and a hash/status manifest, excluding sources, logs and review evidence. Keep
-the review page and scan sheets available separately. A ZIP is not acceptance.
+When the owner uses the studio, its Compare section shows the checked result
+frames of the run on the page beside an earlier run, step by step, and its
+Review and Download sections refer to that run too. The frames are the
+recorded pages, without captions, zoom, framing, cards or cuts: inspect the
+actual exports as well. A matching file hash, a comparison or a downloaded ZIP
+is not the owner's acceptance. The studio accepts only once every saved change
+is in the run.
 
 For `tours.json`, open the actual `tours/NAME.html` and inspect every step,
 explanation, alt description and click marker. Next/Back, step numbers and
 arrow/Home/End keys navigate captured screens; they do not perform live app
 actions. The HTML embeds its images and works offline. Check the source-image
 scan and direct title/explanation/alt scan when enabled, and compare the prior
-walkthrough. The run binds HTML, image assets and original checked evidence.
+walkthrough.
 Inspect marker placement and crops after layout changes. GitHub shows HTML
 source, so download and open it locally for interactive review. No tour is
 accepted or hosted by exporting it.
@@ -52,7 +44,7 @@ PNG/alt decisions belong to this exact run and do not inherit acceptance.
 For runs with `.readability.json`, use `reshoot frame check RUN` and the studio's
 Inspect at viewing size to inspect measured font sizes, crop clipping and
 subtitle reading time at the intended browser width. The review page also
-shows these hints. They are bound to the rendered run, not unsaved settings,
+shows these hints. They describe the rendered run, not unsaved settings,
 and never replace human review or establish accessibility. Missing app samples,
 camera zoom, canvas/iframe text and custom placement need visual inspection.
 Recommend a narrower recording view only when it helps the intended export;

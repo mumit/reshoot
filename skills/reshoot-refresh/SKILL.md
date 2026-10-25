@@ -5,27 +5,13 @@ description: Update an existing reshoot demo after an app or release changes. Us
 
 # Refresh a demo
 
-The studio's Compare section puts earlier and current checked browser result
-frames together without changing either run. Match stable story/beat IDs and
-inspect added/removed steps, frame-file changes and result details. Open each
-side's review evidence and actual exports, since captured frames exclude later
-captions, framing and cuts. Run IDs and bindings remain fixed if another command
-creates a newer run; stale or unbound evidence requires a reload. Comparison
-does not accept a recording or replace its baseline.
-
-The studio compares saved/rendered sources and retains captured task/data
-fingerprints across re-cuts. Holds, narration, actions, declared inputs and
-uploaded files still need a fresh capture after changing. The status cannot
-verify a live app or undeclared dependencies; explicitly record again after
-those change. Return from an external editor and reload the project before
-editing in the studio. Its Download section packages the shown recording,
-even when another command has made a newer run.
-
-Studio Undo/Redo checkpoints live under the project's ignored `takes/studio/`.
-After a restart, Resume history requires matching tracked files. If files have
-changed, preserve them, compare the saved source copy if needed, and start with
-current files. This archives the previous checkpoint. Unsaved fields and jobs
-are not recovered; do not infer owner media acceptance from session recovery.
+The owner may shape the demo in the studio, which saves to the project files:
+read them again before editing. Its comparison and downloads show the run on
+its page, which may not be the newest. Its undo history lives in the ignored
+`takes/studio/`. Do not start the studio or click its buttons, and never take a
+studio session, comparison or download as the owner accepting a run. The
+studio can't see a remote app or an undeclared dependency: after those change,
+record a fresh preview.
 
 Keep optional `[tour]` and `[[tour.step]]` selections with the demo source.
 `reshoot tour create --title 'Explore the demo' --project demo` starts from checked

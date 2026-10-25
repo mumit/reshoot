@@ -8,101 +8,53 @@ change project files or commands.
 
 ### Added
 
-- Compare revisions in the studio: choose an earlier local recording and inspect
-  checked result frames beside the displayed run, including added/removed steps,
-  frame/task/result changes and full-size image links. Each side links its own
-  exports and scan evidence. Requests retain both run bindings, reject stale or
-  unbound evidence and never change source or acceptance. Frames stack on mobile.
-- First-run Recording tools shows dependency fixes, synthetic rechecks and
-  Continue creation. `create --resume` preserves the project, target and viewport,
-  retries saved stories after preview failures and avoids re-recording completed
-  creation. Concurrent draft edits retain both source files.
-- `doctor --probe` tests tiny synthetic H.264 encoding/inspection, TOML browser
-  capture and configured OCR. Structured checks/fixes join existing JSON fields;
-  no tools are installed, scan settings changed or media accepted by a probe.
-- Studio Undo/Redo checkpoints survive a restart. Resume matching history or
-  start with current files; changed files are preserved, with a saved source
-  ZIP available for comparison. Fresh starts archive the old checkpoint. Atomic
-  checkpoints, source/revision checks and an interprocess lock guard recovery;
-  unreadable or conflicting sessions require an explicit choice before editing.
-- A studio journey status distinguishes unsaved fields, pending source edits,
-  current previews and final review, with a highlighted next action. Section
-  navigation, Reset unsaved edits and external-change reloads reduce editor
-  friction. Render and capture snapshots retain task/data changes across re-cuts;
-  the studio rejects acceptance while saved changes are pending.
-- Download all exports bundles the shown run's media, tour and video subtitles
-  with image Markdown, file hashes and review status. Downloads retain the exact
-  run binding and exclude source files, logs and review evidence.
-- Offline clickable tours from checked browser result frames. The studio and
-  `reshoot tour` create and reorder steps, edit explanations/alt text and place
-  optional click markers. One HTML file embeds the images and navigation, with
-  keyboard controls, responsive layout and escaped plain text. Tour images and
-  words join scanning, run-bound review, local export and refresh comparison.
-- Documentation screenshots from checked browser result frames, selected in the
-  studio or with `reshoot screenshot`. Stable PNG names, alt text, optional crop
-  and maximum width remain in `reshoot.toml`. New runs and re-cuts bind each image
-  to its source frame and checks, include PNGs and alt text in scanning, show them
-  in review, and copy them with local exports. Refresh records and comparisons
-  include screenshot changes; studio edits support Save/Reset and Undo/Redo.
-- Per-beat narration editing and saved-line auditions in the studio, using the
-  recording's voice cache without launching the app. Audio offers installed
-  local voices, voice/music levels and optional music ducking. `reshoot audio`
-  shares validated, reversible project edits. Narration changes record again;
-  balance changes re-cut. Final mixes limit peaks before encoding.
-- Destination Fit/Crop, crop focus guides, viewing widths and an inspector that
-  retains the requested display size. `reshoot frame` shares export edits and
-  measured feedback with the studio. MP4 and GIF use the same crop geometry.
-- Readability reports bound to rendered artifacts: sampled app font sizes,
-  caption/card text sizes, crop clipping and subtitle reading time, with coverage
-  limits. These hints do not change run success or acceptance. The studio and
-  review page show them; the run prints a command to inspect them.
-- A Recording view control, with undo, to capture the first browser take at a
-  narrower or portrait viewport while preserving the task and result checks.
-- Your cut in the studio and `reshoot sequence` share inclusive beat-range
-  trimming, moving, duplication, removal and adding clips. Capturing still runs
-  the full task and its checks. Named `through` boundaries retain the last beat's
-  hold across refreshes, and cuts preserve complete narration lines. Studio
-  edits support undo, stale-evidence checks and pending-range protection.
-- Cut-part playback and repeated-beat timeline markers, with omitted beats
-  clearly identified. Finished edit maps retain ordered part intervals and
-  repeated subtitles. Source controls retain their disabled state after jobs.
-- Reusable Focus, Midnight and Paper looks in the studio, with saved project
-  styles, portable TOML import/download and one-step undo. `reshoot style`
-  lists, applies and saves the same styles from the CLI. Styles keep the task,
-  timing, fonts, audio, exports and scan coverage; Update preview re-cuts a
-  current recording. Frame and title-card backgrounds are independently editable.
-- `reshoot create [URL] --directory demo` checks dependencies, records a task
-  with a toolbar, makes a preview and opens the studio. Without a URL it tries
-  the notes app. Run it again and it opens the existing project in the studio
-  without recording over its story.
-- Recording controls for Done, Pause, Caption here, Check result, Hide and
-  Remove last step. Checkbox and radio state replay through a `check` action.
-- Holds, Undo/Redo, automatic Update preview, cancellation and scan sheets in
-  the studio. The story appears before styling, with Make final for full-size
-  recording and explicit pipeline operations under More.
-- Explicit locator repair: recorded `fallbacks` suggest a replacement only
-  when they agree on one compatible control. `reshoot repair RUN --apply`
-  revalidates the suggestion; `--pick` lets you select and confirm a replacement
-  without activating it. The studio shows the failure frame and repair actions,
-  with Undo/Redo and a fresh preview to verify the original expected results.
+- `reshoot create [URL] --directory demo` makes a project, checks the tools,
+  records a task you show with a toolbar, makes a preview and opens the studio.
+  `--resume` continues after a setup fix; running it again opens the project.
+- The recording toolbar: Done, Pause, Caption here, Check result, Hide and
+  Remove last step. Checkbox and radio choices replay with a `check` action.
+- `reshoot doctor --probe` tries encoding, a browser capture and the text scan
+  on temporary made-up data.
+- The studio, reworked: the story first, with holds; Update preview, which
+  re-cuts or records as needed; Make final; Undo and Redo that survive a
+  restart; a status line with the next step; and links to each section.
+- Repair a step whose control changed: `reshoot repair RUN`, `--apply` for a
+  checked suggestion, or `--pick` to choose the control in the app. The studio
+  offers both.
+- Styles: Focus, Midnight and Paper looks, saved and portable styles, with
+  `reshoot style`.
+- Your cut and `reshoot sequence`: trim, reorder, repeat or remove parts of the
+  video by beat, while the recording still runs the whole task.
+- Framing: Fit or Crop for each export, a viewing width, and hints about small
+  or cut-off text, with `reshoot frame`. Recording view records a narrower take.
+- Narration for each step, heard before recording, plus voice and music levels
+  and music that drops under the voice, with `reshoot audio`.
+- Screenshots for docs, made from checked steps on every run, with
+  `reshoot screenshot`.
+- Clickable tours: one offline HTML walkthrough of the checked steps, with
+  `reshoot tour`.
+- Compare in the studio shows an earlier run's result frames beside the current
+  ones, step by step.
+- Download all exports: a ZIP of the shown run's videos, screenshots, tour and
+  subtitles.
+- A studio page in the guide, and a tutorial that starts with `reshoot create`.
 
 ### Fixed
 
-- On a Mac whose Vision accurate text reader fails
-  (`TextRecognition.CRImageReaderError 1`), the scan reads text with Vision's
-  fast reader instead of failing, says so, and records it in the scan report.
-  `reshoot doctor` now tries Vision and names the reader it will use.
-- Studio media and acceptance stay bound to the displayed run, even when
-  another command produces a newer run. Acceptance verifies the artifact and
-  scan binding supplied by the page.
-- Studio edits carry a revision; stale tabs require a reload and undo preserves
-  external changes. Source fields pause during updates. Failed saves remain
-  visible and block updates and acceptance until corrected.
-- Unsupported recorder interactions preserve the draft as blocking
-  `recording_issue` steps instead of discarding it.
-- The studio text-colour placeholder uses the hex format the server accepts.
-- Browser capture composes the page before starting the take, avoiding a blank
-  opening frame. The studio shows a recorded frame before playback starts.
+- On Macs whose Vision accurate text reader fails
+  (`TextRecognition.CRImageReaderError 1`), the scan uses the fast reader and
+  says so, and `reshoot doctor` tries Vision first.
+- The studio's video, downloads and acceptance always refer to the run shown,
+  even after another command makes a newer one.
+- A studio edit no longer overwrites a change made in another tab or editor,
+  and a field that fails to save stays visible until it's fixed.
+- The recorder keeps its draft when it meets a step it can't replay, marking
+  that step `recording_issue`.
+- A cut can include a beat's result hold with `through`, and repeated beats
+  play at the right place.
+- Changing a frame background no longer changes the title cards.
+- The studio's colour fields take the hex values they suggest.
+- Videos no longer open on a blank frame.
 
 ## 0.3.6 (2026-10-24)
 

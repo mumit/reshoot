@@ -120,19 +120,10 @@ asks for, and the provider's usual terms apply.
 
 ### Without an agent
 
-After [installing reshoot](install.md), run `reshoot create URL --directory demo`
-with your demo server running. Show a task in the fresh browser. Use its toolbar
-to add a caption, check the visible result, and choose Done. The preview opens
-in the studio, where captions and holds are editable, Undo restores experiments,
-Update preview chooses the work, and Make final records the full-size exports.
-Inspect the video, GIF and scan sheets there before accepting. Run
-`reshoot create` without a URL to try the notes example.
-
-If tools need attention, the studio shows fixes and **Check again**. Choose
-**Continue creation**, or run `reshoot create --resume --directory demo` after
-fixing setup. A failed preview retains the demonstrated task for that retry.
-
-The [tutorial](step-by-step.md) teaches the individual commands with the notes app.
+Run `reshoot create` to try the notes example, or
+`reshoot create URL --directory demo` with your demo server running, and show
+the task yourself. [The tutorial](step-by-step.md) walks through it, and
+[the studio](studio.md) covers shaping and accepting the result.
 
 ## Review what you get
 

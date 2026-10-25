@@ -27,8 +27,14 @@ def doctor(a):
     if any(str(t.get('web', '')).endswith('.toml') for t in shoot.get('take', [])):
         import importlib.util
         found['playwright'] = 'installed' if importlib.util.find_spec('playwright') else None
+    probe = 'not run'
+    if 'text' in detectors and scan.backend(engine) == 'vision':
+        try:
+            probe = scan.vision_level()
+        except RuntimeError as e:
+            probe, detectors = f'failed: {e}', [d for d in detectors if d != 'text']
     result = {'ok': all(found.values()) and (not required_text or 'text' in detectors),
-              'platform': platform.system(), 'ocr_backend': scan.backend(engine), 'scan_probe': 'not run', 'tools': found, 'detectors': detectors,
+              'platform': platform.system(), 'ocr_backend': scan.backend(engine), 'scan_probe': probe, 'tools': found, 'detectors': detectors,
               'window_capture': platform.system() == 'Darwin', 'versions': {}}
     from importlib.metadata import version
     result['reshoot'] = {'version': version('reshoot'), 'latest': latest_release()}
@@ -48,7 +54,11 @@ def doctor(a):
         print(f'reshoot: {installed}' + (f"; {latest} is out: uv tool install --upgrade 'reshoot[browser]'" if newer else ''))
         for name, path in found.items():
             print(f'{name}: ' + ('available' if path else 'missing; install reshoot[browser]' if name == 'playwright' else 'missing; install it before recording'))
-        print('Text scan: ' + ('installed, not probed' if 'text' in detectors else 'install Tesseract or Vision'))
+        print('Text scan: ' + ('Vision, works' if probe == 'accurate' else
+                               "Vision's fast reader; its accurate one fails on this Mac" if probe == 'fast' else
+                               'installed, not probed' if 'text' in detectors else
+                               f'Vision {probe}; install Tesseract and set RESHOOT_OCR=tesseract' if probe != 'not run' else
+                               'install Tesseract or Vision'))
         print('Face scan: ' + ('installed, not probed' if 'people' in detectors else 'unavailable'))
     return 0 if result['ok'] else 2
 

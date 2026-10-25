@@ -118,6 +118,13 @@ On Linux, install Tesseract (`tesseract-ocr` on Debian) before running a project
 with scanning enabled. On macOS, Vision normally supplies text, face and person
 detection. A Vision integration failure is an error, not an empty findings list.
 
+On some Macs, Vision's accurate text reader fails with
+`TextRecognition.CRImageReaderError 1` while its fast one works. reshoot then
+reads text with the fast reader, says so when it scans, and records
+`text_reader = "fast"` in the scan report. `reshoot doctor` tries Vision and
+names the reader it will use. The fast reader can miss very small text: look
+closely at it on the sheets, or use Tesseract as below.
+
 To select Tesseract explicitly, add this inside the existing `[check]`
 table, or pass `--ocr tesseract` to a standalone check:
 

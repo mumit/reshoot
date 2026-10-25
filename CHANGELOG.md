@@ -76,6 +76,10 @@ change project files or commands.
 
 ### Fixed
 
+- On a Mac whose Vision accurate text reader fails
+  (`TextRecognition.CRImageReaderError 1`), the scan reads text with Vision's
+  fast reader instead of failing, says so, and records it in the scan report.
+  `reshoot doctor` now tries Vision and names the reader it will use.
 - Studio media and acceptance stay bound to the displayed run, even when
   another command produces a newer run. Acceptance verifies the artifact and
   scan binding supplied by the page.

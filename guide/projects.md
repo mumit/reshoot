@@ -147,6 +147,51 @@ Partial previews produce no documentation screenshots. See
 [screenshots](customize.md#keep-documentation-screenshots-current) for studio,
 crop, refresh and local export steps.
 
+## Offline tour
+
+One optional `[tour]` in `reshoot.toml` exports `tours/NAME.html`. Each of 1 to
+30 steps names a complete TOML browser take and a beat with passing result
+checks. The tour uses their captured result frames independently of the video
+cut. Partial previews produce no tour.
+
+```toml
+[tour]
+name = "notes-tour"
+title = "Save and find a note"
+
+[[tour.step]]
+take = 0
+beat = "add"
+title = "Save a note"
+text = "The new note appears in the list."
+alt = "The saved bike note appears in the list"
+hotspot = [0.5, 0.44]
+
+[[tour.step]]
+beat = "search"
+title = "Find it by a word"
+alt = "Search shows the matching note"
+```
+
+`name` uses 1 to 80 letters, digits, underscores or hyphens. Tour and step
+titles allow up to 120 plain-text characters, explanations up to 1000, and alt
+text up to 300. `take` defaults to 0; a step requires `beat`, `title` and `alt`.
+`text` defaults to empty. Optional `hotspot = [x, y]` uses fractions from 0 to 1
+across the step image; it advances to the following step or restarts from the
+last one. Width defaults to a 1280 px maximum without upscaling. Step `width`
+and `crop` follow the documentation screenshot rules.
+
+The HTML embeds images, CSS and navigation, with no external requests. Tour
+titles, explanations and alt text are escaped, not rendered as HTML. Navigation
+uses Next/Back, step numbers, optional markers and arrow/Home/End keys. A
+no-JavaScript view retains all steps. `tours.json` binds the HTML, its images,
+source frames and take metadata by hash. Tour images join configured check
+sources, and enabled detection scans their words directly. The manifest and
+PNG assets remain in the run for review; local export needs only the HTML.
+
+See [offline tours](customize.md#make-an-offline-clickable-tour) for studio,
+CLI and refresh steps.
+
 ## storyboard.toml
 
 ```toml

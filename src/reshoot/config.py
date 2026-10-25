@@ -13,7 +13,7 @@ def read(path):
     version = data.get('schema_version', 0)
     if version not in (0, 1):
         raise ValueError('unsupported project schema_version')
-    if version == 1 and (unknown := set(data) - {'schema_version', 'app', 'take', 'edit', 'check', 'keep', 'timeout', 'report', 'inputs', 'screenshot'}):
+    if version == 1 and (unknown := set(data) - {'schema_version', 'app', 'take', 'edit', 'check', 'keep', 'timeout', 'report', 'inputs', 'screenshot', 'tour'}):
         raise ValueError('unknown reshoot.toml option: ' + ', '.join(sorted(unknown)) + '; guide/projects.md lists them')
     for i, take in enumerate(data.get('take', []), 1):
         if sum(k in take for k in ('web', 'tape', 'run')) != 1:
@@ -27,6 +27,11 @@ def read(path):
         if version != 1:
             raise ValueError('Documentation screenshots need schema_version = 1.')
         validate(data['screenshot'], len(data.get('take', [])))
+    if 'tour' in data:
+        from reshoot.tours import validate
+        if version != 1:
+            raise ValueError('Tours need schema_version = 1.')
+        validate(data['tour'], len(data.get('take', [])))
     return data, path.parent
 
 

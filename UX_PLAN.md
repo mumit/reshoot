@@ -135,9 +135,26 @@ See [the narration and audio trial](docs/validation/2026-10-24-narration-and-aud
 
 See [the documentation screenshots trial](docs/validation/2026-10-24-documentation-screenshots.md).
 
+## Offline clickable tours
+
+- [x] Build one offline HTML walkthrough from complete browser result frames
+  with passing checks; retain privacy masks and source evidence.
+- [x] Share guarded CLI/studio creation, words, step ordering and marker edits,
+  with Save/Reset, pending-field protection and Undo/Redo.
+- [x] Embed images, styles and navigation; support step numbers, markers,
+  Next/Back, arrow/Home/End keys, heading focus and a readable no-JavaScript view.
+- [x] Bind HTML, image assets and original evidence; include tour images and
+  words in configured scanning, review, export, records and comparison.
+- [x] Verify offline mobile viewing, escaped text and no external requests,
+  plus studio revision flow and re-cutting without changing task checks.
+- [x] Finish the fresh scanned CLI refresh, visual/gallery inspection and
+  documentation/package verification.
+
+See [the offline tour trial](docs/validation/2026-10-24-offline-tours.md).
+
 ## Following milestones
 
-1. Self-contained clickable tours from the verified beats.
+1. Review the complete creation-to-review journey and reduce remaining friction.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

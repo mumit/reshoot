@@ -132,9 +132,9 @@ def export(a):
         raise ValueError('give --directory to copy the run\'s exports, or --record')
     if selected and not a.directory:
         raise ValueError('--file needs --directory')
-    if getattr(a, 'record', None):
-        print(record(root, report, a.record, shared=selected if a.directory else ()))
     if not selected:
+        if getattr(a, 'record', None):
+            print(record(root, report, a.record))
         return 0
     known = {item['path'] for item in report.get('files', [])}
     if not set(selected) <= known:
@@ -145,8 +145,14 @@ def export(a):
         raise ValueError('export would collide with another selected name')
     if not getattr(a, 'replace', False) and any(p.exists() for p in targets):
         raise ValueError('export would overwrite a file; pass --replace to update media already there')
-    if any(p.suffix not in ('.mp4', '.gif', '.srt', '.mov', '.png') for p in targets):
+    from reshoot.tours import listing as tour_listing
+    tours = {row['path'] for row in tour_listing(root, report)}
+    if any(Path(name).suffix == '.html' and name not in tours for name in selected):
+        raise ValueError('Only a bound tour HTML file can be exported.')
+    if any(p.suffix not in ('.mp4', '.gif', '.srt', '.mov', '.png', '.html') for p in targets):
         raise ValueError('export accepts final media and subtitle files')
+    if getattr(a, 'record', None):
+        print(record(root, report, a.record, shared=selected))
     destination.mkdir(parents=True, exist_ok=True)
     from reshoot.run import shown
     for source, target in zip(selected, targets):
@@ -170,4 +176,6 @@ def export(a):
         if target.name in shots:
             alt = re.sub(r'([\\\[\]`*_<>])', r'\\\1', shots[target.name]['alt'])
             print(f'![{alt}]({quote(shown(target))})')
+        if target.suffix == '.html':
+            print(f'[Explore the walkthrough]({quote(shown(target))})')
     return 0

@@ -85,6 +85,14 @@ wide as the page isn't zoomed, so phone layouts mostly stay as they are.
 
 ## Voiceover
 
+An optional offline tour uses the same checked result frames:
+`reshoot tour create --title 'Explore the demo' --project demo`, then edit step
+words and markers in the studio's Clickable tour panel or with `reshoot tour set`.
+Update preview to render it, and record again after an app change. Every selected
+step must retain passing result checks. The single HTML embeds its images,
+styles and navigation; no live app or external assets are used. Review all steps,
+captured privacy masks, descriptions and markers with the video's exact run.
+
 For documentation PNGs, select a checked TOML beat with
 `reshoot screenshot set search-result --beat search --alt 'Search shows the matching note' --project demo`.
 Update preview to reuse its result frame; record again after the app changes.

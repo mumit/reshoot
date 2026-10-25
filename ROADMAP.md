@@ -15,11 +15,11 @@ found that the tool does the hard part well and loses the joy where a user
 meets it first. The studio now gives a local place to see a story and shape it
 by pointing, with the files in the repository still the source of truth. Recording,
 repair, visual styles, beat cuts, destination framing, audio and documentation
-screenshots now share that workflow. The
+screenshots and offline tours now share that workflow. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **A clickable tour.** Export a self-contained HTML tour from verified beats,
-    reviewed and refreshed beside the video and screenshots.
+1. **A coherent creation journey.** Review the complete workflow with newcomer,
+    repeat-author and careful-reviewer personas; simplify the remaining friction.
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
@@ -50,6 +50,11 @@ screenshots now share that workflow. The
   through the skills.
 
 ## Done
+
+- **Offline clickable tours:** one HTML file of checked result screens, with
+  editable explanations/alt text, optional click markers, ordered steps and
+  keyboard navigation. Source provenance, scanning, review, local export and
+  refresh comparisons stay bound to the same run as the videos and screenshots.
 
 - **Documentation screenshots that stay current:** named PNGs from checked result
   frames, with alt text, optional crop/downsize, drag and keyboard controls,

@@ -67,6 +67,19 @@ def size(path):
     return f'{n / 1e6:.1f} MB' if n >= 1e6 else f'{n / 1e3:.0f} KB'
 
 
+def tour_preview(run):
+    from playwright.sync_api import sync_playwright
+    from reshoot import tours, web
+    row = json.loads((run / 'tours.json').read_text())['tours'][0]
+    (MEDIA / 'notes-tour.html').write_text(tours.document(row['title'], row['steps'], run))
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(executable_path=web.find_chrome(), headless=True, args=web.chrome_flags())
+        page = browser.new_page(viewport={'width': 1040, 'height': 1000})
+        page.goto((MEDIA / 'notes-tour.html').as_uri())
+        page.screenshot(path=str(MEDIA / 'tour.jpg'), full_page=True, quality=88)
+        browser.close()
+
+
 def main():
     shutil.rmtree(MEDIA, ignore_errors=True)
     MEDIA.mkdir(parents=True)
@@ -106,8 +119,26 @@ name = "search-result"
 beat = "search"
 alt = "Search shows the saved bike note"
 width = 960
+
+[tour]
+name = "notes-tour"
+title = "Save and find a note"
+
+[[tour.step]]
+beat = "add"
+title = "Save a note"
+text = "The new note appears in the list."
+alt = "The saved bike note appears above the earlier notes"
+hotspot = [0.5, 0.44]
+
+[[tour.step]]
+beat = "search"
+title = "Find it by a word"
+text = "Search narrows the list to the matching note."
+alt = "Search shows the saved bike note"
 ''')
     shutil.copyfile(takes.parent / 'screenshots/search-result.png', MEDIA / 'docs-search.png')
+    tour_preview(takes.parent)
     result = beats['search']['end'] - .3
     intro = beats['intro']['start'] + .9
     click = beats['add']['start']
@@ -175,6 +206,18 @@ Every picture here comes from the bundled notes example, recorded by
 [`examples/look/build.py`](../examples/look/build.py). Each one changes a
 single setting, or combines them in a reusable visual style. Run the script again to bring the page up to
 date.
+
+## Clickable tour
+
+The same checked notes task becomes a single HTML walkthrough. Next, the
+numbered marker and keyboard arrows move between captured result screens.
+The embedded images, words and navigation work offline.
+
+![The notes walkthrough with a numbered marker on the saved result](../docs/look/tour.jpg)
+
+[Download the offline notes walkthrough](../docs/look/notes-tour.html), then open
+the HTML file in a browser. Create and edit one in the studio's **Clickable tour**
+panel; see [offline tours](customize.md#make-an-offline-clickable-tour).
 
 ## Documentation screenshots
 

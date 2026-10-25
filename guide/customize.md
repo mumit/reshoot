@@ -114,6 +114,62 @@ are changed in the storyboard itself; holds are also editable in the studio. The
 `127.0.0.1` behind a random address, takes changes only from its own page, and
 runs until you press Ctrl-C.
 
+## Make an offline clickable tour
+
+Open **Clickable tour** in the studio, give it a title and file name, then
+choose **Create from checked steps**. The initial tour uses the first browser
+take's steps that have result checks. Each step shows the captured result,
+with a title, explanation and image alt text. Save changes and choose
+**Update preview** to build it.
+
+Use **Earlier**, **Later**, **Remove step** and **Add step** to shape the tour.
+Save/Reset protects drafts; Undo/Redo reverses saved changes. In **Click marker**,
+click the image to position a numbered marker, or use the horizontal and
+vertical percentage fields. **Show a click marker** turns it on or off. A
+marker advances to the next step, or restarts the tour at the last step.
+Next, Back and keyboard navigation remain available without markers.
+
+The preview offers **Open walkthrough** and **Download HTML**. The file embeds
+its images, styles and navigation and works offline when moved to another
+folder. It has no app connection or external assets: interactions move between
+captured screens. Titles and explanations are plain text. The viewer supports
+arrow keys, Home/End, focus movement to the new heading and a step counter.
+Without JavaScript, all steps remain readable by scrolling.
+
+The CLI offers the same edits; step and take numbers start at 1:
+
+```bash
+reshoot tour create --title 'Save and find a note' --project demo
+reshoot tour set 1 --text 'The saved note appears in the list.' \
+  --x 50 --y 44 --project demo
+reshoot tour move 2 --to 1 --project demo
+reshoot recut demo/latest
+reshoot export demo/latest --directory docs/demo
+```
+
+`reshoot tour title --title 'Find your saved notes' --project demo` changes
+the title; `set 1 --no-marker` removes a marker. `tour add --take 1 --beat search`
+adds another checked step, and `tour remove 2` removes one while retaining at
+least one. These commands also take `--project demo`. `tour disable` stops
+producing the tour in future runs; previously copied HTML files remain yours
+to remove.
+
+A re-cut builds the tour from the existing recording's checked result frames.
+Record again after the app changes to refresh its images. The source images
+retain page privacy masks and possibly the cursor; video captions, zoom and
+framing are not added. Advanced step `width` and `crop` settings use the same
+downsize and fractional crop rules as documentation screenshots. Markers are
+relative to the displayed step image, so inspect them after a crop changes.
+
+The run includes tour images in configured scanning and scans titles,
+explanations and alt text directly when detection is enabled. Review every
+step and marker in the actual HTML, then inspect the scan evidence. A checked
+result does not certify the description, privacy or usability of a tour.
+`export` copies the HTML with other final exports; an explicit `--file` list
+must include `tours/NAME.html`. Its images need no separate copied folder.
+Refresh records, Markdown and comparisons include the walkthrough, and the
+review page can show the previous one alongside it. Nothing is published.
+
 ## Keep documentation screenshots current
 
 Choose **Use for docs** beside a story step that has result checks. Describe

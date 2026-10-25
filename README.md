@@ -43,6 +43,8 @@ Add a spoken line under a step's **Narration** and audition it before recording.
 **Audio** chooses the voice and balances narration against music.
 **Use for docs** turns a checked result into a named PNG that refreshes with
 the video, with alt text and review included.
+**Clickable tour** turns checked steps into an offline HTML walkthrough, with
+explanations, optional click markers and keyboard navigation.
 
 For your own running demo app:
 

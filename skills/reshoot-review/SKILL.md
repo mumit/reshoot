@@ -5,6 +5,16 @@ description: Inspect a reshoot recording and its check report for failed actions
 
 # Review a recording
 
+For `tours.json`, open the actual `tours/NAME.html` and inspect every step,
+explanation, alt description and click marker. Next/Back, step numbers and
+arrow/Home/End keys navigate captured screens; they do not perform live app
+actions. The HTML embeds its images and works offline. Check the source-image
+scan and direct title/explanation/alt scan when enabled, and compare the prior
+walkthrough. The run binds HTML, image assets and original checked evidence.
+Inspect marker placement and crops after layout changes. GitHub shows HTML
+source, so download and open it locally for interactive review. No tour is
+accepted or hosted by exporting it.
+
 Requires reshoot CLI 0.3.6 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'` before going on. Read the project's brief and, for a versioned project, its current run report. Confirm which run produced the files, and distinguish execution, result checks, automatic scanning and human review.
 
 For standalone native media, read its capture/edit recipe and exact source/export paths instead of requiring or inventing a run report. Compare old and new recordings manually and identify the result visually; do not claim browser result checks or automated beat comparison. Use a video player and check sheets rather than `reshoot review RUN`, which requires a versioned run manifest. Preserve existing reviews; generate any new scan in a separate directory.

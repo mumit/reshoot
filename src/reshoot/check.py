@@ -164,8 +164,14 @@ def text_findings(paths, watch, checked, policy):
             entries = [(str(row['t']) + 's', row['text']) for row in json.loads(text)]
         elif path.name == 'screenshots.json':
             entries = [(row['name'], row['alt']) for row in json.loads(text)['screenshots']]
+        elif path.name == 'tours.json':
+            entries = []
+            for tour in json.loads(text)['tours']:
+                entries.append((tour['name'], tour['title']))
+                entries += [(f'{tour["name"]} step {i + 1}', '\n'.join([step['title'], step.get('text', ''), step['alt']]))
+                            for i, step in enumerate(tour['steps'])]
         else:
-            raise ValueError('text inputs must be .srt, .voice.json or screenshots.json')
+            raise ValueError('text inputs must be .srt, .voice.json, screenshots.json or tours.json')
         for location, words in entries:
             found = reasons(words, watch)
             h = hashlib.sha256((str(path.resolve()) + text + location).encode()).hexdigest()[:16]

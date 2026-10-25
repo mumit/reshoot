@@ -59,8 +59,23 @@ def checked(root, take, beat_id):
     return shot, metadata, len(checks)
 
 
-def render(root, specs, takes):
+def image(shot, spec):
     from PIL import Image
+    with Image.open(shot) as original:
+        result = original.convert('RGB')
+    sw, sh = result.size
+    x, y, width, height = spec.get('crop', [0, 0, 1, 1])
+    box = [round(x * sw), round(y * sh), round((x + width) * sw), round((y + height) * sh)]
+    if box[2] <= box[0] or box[3] <= box[1]:
+        raise ValueError('Screenshot crop is smaller than a pixel. Choose a larger region.')
+    result = result.crop(box)
+    if spec.get('width', result.width) < result.width:
+        target = spec['width']
+        result = result.resize((target, max(1, round(result.height * target / result.width))), Image.Resampling.LANCZOS)
+    return result, [sw, sh]
+
+
+def render(root, specs, takes):
     from reshoot.artifacts import digest
     root = Path(root).resolve()
     validate(specs, len(takes))
@@ -70,26 +85,16 @@ def render(root, specs, takes):
         if 'web' not in take or not str(take['web']).endswith('.toml'):
             raise ValueError('Documentation screenshots need TOML browser takes.')
         shot, metadata, checks = checked(root, take['out'], spec['beat'])
-        with Image.open(shot) as original:
-            image = original.convert('RGB')
-        sw, sh = image.size
-        x, y, width, height = spec.get('crop', [0, 0, 1, 1])
-        box = [round(x * sw), round(y * sh), round((x + width) * sw), round((y + height) * sh)]
-        if box[2] <= box[0] or box[3] <= box[1]:
-            raise ValueError('Screenshot crop is smaller than a pixel. Choose a larger region.')
-        image = image.crop(box)
-        if spec.get('width', image.width) < image.width:
-            target = spec['width']
-            image = image.resize((target, max(1, round(image.height * target / image.width))), Image.Resampling.LANCZOS)
+        picture, source_pixels = image(shot, spec)
         output = root / 'screenshots' / (spec['name'] + '.png')
         if not output.resolve().is_relative_to(root):
             raise ValueError('Screenshot output must stay inside its run.')
         output.parent.mkdir(exist_ok=True)
-        image.save(output)
+        picture.save(output)
         rows.append({**spec, 'take': spec.get('take', 0), 'path': str(output.relative_to(root)),
                      'sha256': digest(output), 'source': str(shot.relative_to(root)), 'source_sha256': digest(shot),
                      'metadata': str(metadata.relative_to(root)), 'metadata_sha256': digest(metadata),
-                     'result_checks': checks, 'pixels': list(image.size), 'source_pixels': [sw, sh]})
+                     'result_checks': checks, 'pixels': list(picture.size), 'source_pixels': source_pixels})
     if specs:
         if not (root / 'screenshots.json').resolve().is_relative_to(root):
             raise ValueError('Screenshot manifest must stay inside its run.')

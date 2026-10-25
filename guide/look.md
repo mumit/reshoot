@@ -5,6 +5,18 @@ Every picture here comes from the bundled notes example, recorded by
 single setting, or combines them in a reusable visual style. Run the script again to bring the page up to
 date.
 
+## Clickable tour
+
+The same checked notes task becomes a single HTML walkthrough. Next, the
+numbered marker and keyboard arrows move between captured result screens.
+The embedded images, words and navigation work offline.
+
+![The notes walkthrough with a numbered marker on the saved result](../docs/look/tour.jpg)
+
+[Download the offline notes walkthrough](../docs/look/notes-tour.html), then open
+the HTML file in a browser. Create and edit one in the studio's **Clickable tour**
+panel; see [offline tours](customize.md#make-an-offline-clickable-tour).
+
 ## Documentation screenshots
 
 A selected result frame becomes a PNG beside the videos. This is the captured
@@ -230,8 +242,8 @@ past a page's limit. The notes example's loop:
 
 | Width | File |
 |---|---|
-| 800 wide (the default) | 330 KB |
-| 640 wide | 230 KB |
+| 800 wide (the default) | 333 KB |
+| 640 wide | 236 KB |
 
 ## Sound
 

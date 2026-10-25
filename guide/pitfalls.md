@@ -3,6 +3,13 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **An exported walkthrough lost its images offline.** Fixed in reshoot: tours
+  embed checked result images, styles and navigation in one HTML file. Local
+  export includes that file; no assets folder or live app is needed.
+- **Tour words escaped scanning or broke the viewer.** Fixed in reshoot: titles,
+  explanations and alt text are scanned directly when detection is enabled,
+  rendered as escaped plain text, and retained in the run's hashed manifest.
+  Keyboard navigation preserves heading focus; long titles wrap on narrow screens.
 - **Documentation screenshots drifted away from the demo.** Fixed in reshoot:
   named screenshots come from checked result frames in the same recording,
   refresh with it, and join scan/review/export and comparison. Re-cutting retains

@@ -342,7 +342,8 @@ def view(folder, take, config, run=None):
     edit_path = Path(folder) / shoot['edit']['file'] if shoot.get('edit', {}).get('file') else None
     data = {'story': board_path.name, 'look': board.get('caption', {}), 'run': None, 'beats': [], 'findings': [],
             'edit': None, 'failure': failed(folder, take, config), 'recording_size': recording_size}
-    from reshoot import audio, screenshots, styles
+    from reshoot import audio, screenshots, styles, tours
+    data['tour_spec'], data['tours'] = shoot.get('tour'), []
     take_index = next(i for i, item in enumerate(shoot['take']) if item.get('web') == take['web'] and item.get('out') == take['out'])
     data['screenshot_specs'] = shoot.get('screenshot', [])
     data['screenshot_take'] = take_index
@@ -384,6 +385,7 @@ def view(folder, take, config, run=None):
     if run:
         root, report = run
         data['screenshots'] = screenshots.listing(root, report)
+        data['tours'] = tours.listing(root, report)
         if data['edit'] and report.get('inputs', {}).get('edit_sha256'):
             data['edit']['pending'] = report['inputs']['edit_sha256'] != digest(edit_path)
         clips = [p for p in review.exports(root, report) if p.endswith('.mp4')]
@@ -421,7 +423,7 @@ def view(folder, take, config, run=None):
         preferred = [master, *[str(Path(master).parent / profile['file']) for profile in (data['edit'] or {}).get('exports', [])]]
         order = {path: i for i, path in enumerate(preferred)}
         for path in sorted(review.exports(root, report), key=lambda path: (order.get(path, len(order)), path)):
-            if path.endswith('.png'):
+            if path.endswith(('.png', '.html')):
                 continue
             w, h, seconds = cuts.probe(root / path)
             size = (root / path).stat().st_size
@@ -582,7 +584,7 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
-            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'job', 'accept', 'undo', 'redo', 'cancel'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'job', 'accept', 'undo', 'redo', 'cancel'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -642,6 +644,12 @@ def server(a):
                     from reshoot import screenshots
                     before = history.snapshot()
                     screenshots.apply(config, body.get('operation'), body.get('name'), body.get('settings'), expected=before)
+                    history.remember(before, history.snapshot())
+                    out = {'ok': True}
+                elif action == 'tour':
+                    from reshoot import tours
+                    before = history.snapshot()
+                    tours.apply(config, body.get('change'), expected=before)
                     history.remember(before, history.snapshot())
                     out = {'ok': True}
                 elif action == 'style':
@@ -852,6 +860,41 @@ def page(data, accept, seen=0):
 <figcaption><strong>{e(row['name'])}.png</strong> · {row['pixels'][0]} × {row['pixels'][1]}<br>{e(row['alt'])}</figcaption>
 <button type="button" data-inspect="run/{e(row['path'])}" data-view="{row['pixels'][0]}" data-time="" data-alt="{e(row['alt'])}">Inspect PNG at image size</button>
 <a href="run/{e(row['path'])}" download="{e(row['name'])}.png">Download PNG</a></figure>''' for row in data.get('screenshots', []))
+    spec = data.get('tour_spec')
+    tour_forms = []
+    if spec:
+        for i, step in enumerate(spec['step']):
+            marker = step.get('hotspot', [.5, .5])
+            rendered = next((row for tour in data.get('tours', []) for row in tour['steps']
+                             if row['take'] == step.get('take', 0) and row['beat'] == step['beat'] and row.get('crop') == step.get('crop')), None)
+            image = rendered['image'] if rendered else next((beat.get('frame') for beat in data['beats']
+                    if step.get('take', 0) == data.get('screenshot_take') and beat['id'] == step['beat'] and not step.get('crop')), None)
+            guide = (f'<button type="button" class="tour-point" aria-label="Choose click marker position; keyboard users can use the percentage fields"><img src="run/{e(image)}" alt="Captured screen for this tour step"><span>{i + 1}</span></button>' if image else '<p class="hint">Update preview to see this step image and choose a marker on it.</p>')
+            tour_forms.append(f'''<li class="tour-step" data-step="{i}"><strong>{i + 1}. Take {step.get('take', 0) + 1}, beat {e(step['beat'])}</strong>
+<form class="tour-form" data-operation="set" data-step="{i}"><label>Step title <input name="title" maxlength="120" required value="{e(step['title'])}"></label>
+<label>Explanation <textarea name="text" rows="3" maxlength="1000">{e(step.get('text', ''))}</textarea></label>
+<label>Image alt text <textarea name="alt" rows="2" maxlength="300" required>{e(step['alt'])}</textarea></label>
+<details class="tour-marker"><summary>Click marker</summary><p class="hint">Optional: click the image to position a marker that moves to the next captured step. Next and keyboard navigation always work.</p>
+{guide}<label class="check"><input name="marker" type="checkbox"{' checked' if 'hotspot' in step else ''}> Show a click marker</label>
+<div class="range-form"><label>Horizontal (%) <input name="x" type="number" min="0" max="100" step="any" required value="{marker[0] * 100:g}"></label>
+<label>Vertical (%) <input name="y" type="number" min="0" max="100" step="any" required value="{marker[1] * 100:g}"></label></div></details>
+<button type="submit">Save step</button> <button type="reset">Reset</button></form>
+<div class="part-actions"><button type="button" data-tour-op="move" data-to="{i - 1}"{' disabled' if i == 0 else ''}>Earlier</button>
+<button type="button" data-tour-op="move" data-to="{i + 1}"{' disabled' if i + 1 == len(spec['step']) else ''}>Later</button>
+<button type="button" data-tour-op="remove"{' disabled' if len(spec['step']) == 1 else ''}>Remove step</button></div></li>''')
+        tour_box = f'''<details class="tour-controls"><summary>Clickable tour</summary><p class="hint">A single offline HTML file of checked screens. These interactions explore the recording. Save changes, then Update preview to build it.</p>
+<form class="tour-form" id="tour-title" data-operation="title"><label>Tour title <input name="title" maxlength="120" required value="{e(spec['title'])}"></label><button type="submit">Save title</button> <button type="reset">Reset</button></form>
+<ol class="tour-steps">{''.join(tour_forms)}</ol>
+<form class="tour-form" id="tour-add" data-operation="add" data-take="{data.get('screenshot_take', 0)}"><label>Add a checked step <select name="beat">{''.join(f'<option value="{e(beat["id"])}">{e(beat["id"])}</option>' for beat in eligible)}</select></label>
+<button type="submit"{'' if eligible else ' disabled'}>Add step</button></form><p><button type="button" data-disable-tour>Stop exporting this tour</button></p></details>'''
+    else:
+        tour_box = f'''<details class="tour-controls"><summary>Clickable tour</summary><p class="hint">Make one offline HTML walkthrough from the checked steps. Viewers explore captured screens with Next, arrow keys or optional click markers.</p>
+<form class="tour-form" id="tour-create" data-operation="create"><label>Tour title <input name="title" maxlength="120" required value="Explore the demo"></label>
+<label>File name (without .html) <input name="name" maxlength="80" pattern="[a-zA-Z0-9_-]+" required value="demo-tour"></label>
+<button type="submit"{'' if eligible else ' disabled'}>Create from checked steps</button><button type="reset">Reset</button></form></details>'''
+    tour_previews = ''.join(f'''<article><h3>{e(tour['title'])}</h3><p>{len(tour['steps'])} captured steps · works offline</p>
+<p><a href="run/{e(tour['path'])}" target="_blank" rel="noopener">Open walkthrough</a> · <a href="run/{e(tour['path'])}" download="{e(tour['name'])}.html">Download HTML</a></p>
+<iframe src="run/{e(tour['path'])}" title="{e(tour['title'])}" sandbox="allow-scripts" loading="lazy"></iframe></article>''' for tour in data.get('tours', []))
     look = data['look']
     marks = ''
     if run:
@@ -1051,12 +1094,14 @@ def page(data, accept, seen=0):
 <main><section class="watch">{failure_box}{top}
 {f'<div class="shapes"><h2>Exports</h2><p class="hint">Measurements describe this rendered run. Update preview to measure saved changes.</p><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="docs-shots"><h2>Documentation screenshots</h2><p class="hint">From this displayed run. Update preview to render saved changes. Inspect each PNG before sharing.</p><div class="grid">{shot_images}</div></div>' if shot_images else ''}
+{f'<div class="tour-previews"><h2>Clickable tour</h2><p class="hint">From this displayed run. Inspect every step, explanation and click marker before sharing.</p>{tour_previews}</div>' if tour_previews else ''}
 {f'<div class="found"><h2>What the scan found</h2><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>
 <section class="side"><div class="beats"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
 {audio_box}
 {screenshot_box}
+{tour_box}
 {sequence_box}
 <details class="styling"><summary>Style and exports</summary>{styles_box}<div class="look"><h2>Caption look</h2>
 <label>Place <select name="position"><option value="bottom"{' selected' if look.get('position', 'bottom') == 'bottom' else ''}>Bottom</option><option value="top"{' selected' if look.get('position') == 'top' else ''}>Top</option></select></label>
@@ -1129,7 +1174,7 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .accept fieldset { border:1px solid var(--line); border-radius:8px; margin:10px 0 } .accept fieldset label { color:var(--ink) }
 .primary { background:var(--accent); color:var(--panel); border-color:var(--accent); font-weight:600 }
 .advanced { position:relative } .advanced[open] { display:flex; gap:6px; align-items:center }
-summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screenshots-controls { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
+summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screenshots-controls, .tour-controls { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
 .styling > div { margin-top:14px } .error { color:var(--bad); font-weight:600 }
 #save-error { margin:12px 20px; padding:12px; border:1px solid var(--bad); border-radius:8px }
 .scan img { max-width:100%; display:block; margin-top:10px } .watch { min-width:0 }
@@ -1166,7 +1211,12 @@ summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screensh
 .inspection-rail { overflow:auto; max-width:calc(100vw - 80px); max-height:calc(100vh - 180px) }
 .inspection-rail img, .inspection-rail video { max-width:none; display:block; border-radius:0 }
 .narration { margin:12px 0 } .narration summary { cursor:pointer; font-weight:600 }
-.narration textarea, .screenshot-form textarea { width:100%; resize:vertical; min-height:72px; font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; box-sizing:border-box }
+.narration textarea, .screenshot-form textarea, .tour-form textarea { width:100%; resize:vertical; min-height:72px; font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px; box-sizing:border-box }
+.tour-steps { padding:0; list-style:none; display:grid; gap:12px } .tour-step { padding:12px; border:1px solid var(--line); border-radius:8px }
+.tour-form { margin:12px 0 } .tour-marker { margin:10px 0 }
+.tour-point { padding:0; width:100%; display:block; position:relative; cursor:crosshair; margin:8px 0 } .tour-point img { display:block; width:100%; pointer-events:none }
+.tour-point span { position:absolute; transform:translate(-50%,-50%); border:2px solid white; background:#2349c5; color:white; min-width:28px; min-height:28px; border-radius:50%; pointer-events:none; display:grid; place-items:center }
+.tour-previews iframe { width:100%; height:640px; border:1px solid var(--line); border-radius:8px }
 .screenshot-form { padding:12px 0; border-top:1px solid var(--line); margin-top:12px }
 .shot-crop { margin:10px 0 } .shot-crop-guide { position:relative; overflow:hidden; cursor:crosshair; touch-action:none; border:1px solid var(--line); margin:8px 0 }
 .shot-crop .range-form { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)) }
@@ -1177,7 +1227,7 @@ summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screensh
 '''
 
 SCRIPT = '''(() => {
-  document.querySelectorAll('details.styling, details.advanced, details.narration, details.audio-controls, details.screenshots-controls').forEach(box => {
+  document.querySelectorAll('details.styling, details.advanced, details.narration, details.audio-controls, details.screenshots-controls, details.tour-controls').forEach(box => {
     const key = location.pathname + ':' + box.className + ':' + (box.closest('.beat')?.dataset.beat || '');
     box.open = sessionStorage.getItem(key) === 'open';
     box.addEventListener('toggle', () => sessionStorage.setItem(key, box.open ? 'open' : 'closed'));
@@ -1195,9 +1245,11 @@ SCRIPT = '''(() => {
         : what === 'audio' && body.change.beat != null ? document.querySelector(`.beat[data-beat="${CSS.escape(body.change.beat)}"] .narration-form`)
         : what === 'audio' && body.change.mix ? document.querySelector('.audio-mix')
         : what === 'screenshot' && body.operation === 'add' ? document.getElementById('add-screenshot')
-        : what === 'screenshot' && body.operation === 'set' ? document.querySelector(`.screenshot-form[data-name="${CSS.escape(body.name)}"]`) : null;
+        : what === 'screenshot' && body.operation === 'set' ? document.querySelector(`.screenshot-form[data-name="${CSS.escape(body.name)}"]`)
+        : what === 'tour' && body.change.operation === 'set' ? document.querySelector(`.tour-form[data-step="${body.change.step}"]`)
+        : what === 'tour' ? document.querySelector(`.tour-form[data-operation="${CSS.escape(body.change.operation)}"]`) : null;
       const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !ownForm || !ownForm.contains(input));
-      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio', 'screenshot'].includes(what)) && unsaved) {
+      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour'].includes(what)) && unsaved) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
       }
@@ -1365,6 +1417,44 @@ SCRIPT = '''(() => {
   }));
   // Changes to the edit file. One that adds or removes a card or an export reloads, to show it in the list.
   const cut = document.querySelector('.cut');
+  const tourChange = change => post('tour', {change}).then(out => { if (out.ok) location.reload(); });
+  document.querySelectorAll('.tour-form').forEach(form => {
+    const guide = form.querySelector('.tour-point');
+    const draw = () => {
+      if (!guide) return;
+      const marker = guide.querySelector('span'); marker.hidden = !form.elements.marker.checked;
+      marker.style.display = form.elements.marker.checked ? 'grid' : 'none';
+      marker.style.left = form.elements.x.value + '%'; marker.style.top = form.elements.y.value + '%';
+    };
+    form.querySelectorAll('input, textarea, select').forEach(input => input.addEventListener('input', () => { input.dataset.unsaved = '1'; draw(); }));
+    if (guide) guide.onclick = event => {
+      if (form.querySelector('[type=submit]').disabled) return;
+      const box = guide.getBoundingClientRect();
+      form.elements.x.value = Math.max(0, Math.min(100, (event.clientX - box.left) / box.width * 100)).toFixed(2);
+      form.elements.y.value = Math.max(0, Math.min(100, (event.clientY - box.top) / box.height * 100)).toFixed(2);
+      form.elements.marker.checked = true;
+      ['x', 'y', 'marker'].forEach(key => form.elements[key].dataset.unsaved = '1'); draw();
+    };
+    form.addEventListener('reset', () => {
+      form.querySelectorAll('[data-unsaved]').forEach(input => delete input.dataset.unsaved);
+      if (!document.querySelector('[data-unsaved]')) error(''); setTimeout(draw, 0);
+    });
+    draw();
+    form.onsubmit = event => {
+      event.preventDefault(); const operation = form.dataset.operation;
+      const change = {operation};
+      if (operation === 'create') Object.assign(change, {name: form.elements.name.value, title: form.elements.title.value});
+      if (operation === 'title') change.title = form.elements.title.value;
+      if (operation === 'add') Object.assign(change, {take: +form.dataset.take, beat: form.elements.beat.value});
+      if (operation === 'set') Object.assign(change, {step: +form.dataset.step, settings: {
+        title: form.elements.title.value, text: form.elements.text.value, alt: form.elements.alt.value,
+        hotspot: form.elements.marker.checked ? [+form.elements.x.value / 100, +form.elements.y.value / 100] : null}});
+      tourChange(change);
+    };
+  });
+  document.querySelectorAll('[data-tour-op]').forEach(button => button.onclick = () => tourChange({operation: button.dataset.tourOp,
+    step: +button.closest('.tour-step').dataset.step, ...(button.dataset.to == null ? {} : {to: +button.dataset.to})}));
+  const disableTour = document.querySelector('[data-disable-tour]'); if (disableTour) disableTour.onclick = () => tourChange({operation: 'disable'});
   document.querySelectorAll('.screenshot-form').forEach(form => {
     const cropKeys = ['x', 'y', 'w', 'h'], guide = form.querySelector('.shot-crop-guide');
     const drawCrop = () => {

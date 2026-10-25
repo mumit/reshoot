@@ -37,6 +37,13 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot frame set EXPORT --fit crop --x 50 --y 50 --view-width 390 --project demo` | Sets Fit/Crop, crop position and viewing width without changing the task; export numbers start at 1, update the preview afterwards |
 | `reshoot frame record --size 640x480@2 --project demo` | Sets the first TOML browser take's viewport; Update preview records again with the existing actions and checks |
 | `reshoot frame check RUN` | Reads measured font-size, clipping and subtitle-reading hints bound to that run's artifacts; this is not an automatic readability verdict |
+| `reshoot tour create --title 'Save and find a note' --project demo` | Creates one offline tour from the first browser take's checked beats; update the preview to build it |
+| `reshoot tour set STEP --text 'The note was saved.' --x 50 --y 44 --project demo` | Edits step words and marker position in percentages; `--no-marker` removes the marker. `--title`, `--alt`, `--take`, `--beat`, `--width` and `--crop` also edit a step |
+| `reshoot tour move STEP --to POSITION --project demo` | Reorders a tour step; numbers start at 1 |
+| `reshoot tour add --beat search --take 1 --project demo` | Appends a checked step; words can be given or edited afterwards |
+| `reshoot tour remove STEP --project demo` | Removes a step, keeping at least one |
+| `reshoot tour title --title 'Find a note' --project demo` | Changes the tour title; `--name` changes the HTML file name |
+| `reshoot tour disable --project demo` | Stops exporting the tour in future runs; previous local files remain |
 | `reshoot screenshot set NAME --beat search --alt 'Search shows the matching note' --project demo` | Selects a checked browser result frame for a stable PNG; Update preview renders it and includes it in scan/review |
 | `reshoot screenshot set NAME --width 960 --crop 0.1 0.05 0.8 0.7 --project demo` | Changes maximum width and crop fractions; `--native` removes the width limit, `--full-frame` removes cropping, `--take 2` selects another browser take |
 | `reshoot screenshot list --project demo` | Lists named documentation screenshot settings |
@@ -53,7 +60,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot review RUN --serve` | Serves the review page on this computer only, to accept or reject the run with its buttons; stops once you decide |
 | `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name each finding with `--flagged F1` or `--reject F1`, or a single frame by its label. Refuses a preview unless given `--preview` |
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
-| `reshoot export RUN --directory DEST` | Copies the run's videos, GIFs, subtitles and documentation PNGs locally and prints image Markdown; `--file` picks single files; refuses to overwrite unless given `--replace` |
+| `reshoot export RUN --directory DEST` | Copies videos, GIFs, subtitles, documentation PNGs and offline tour HTML locally, and prints Markdown; `--file` picks single files; refuses to overwrite unless given `--replace` |
 | `reshoot export RUN --record demo/accepted` | Writes the run's small record (report, beat results, evidence frames) for later comparisons |
 | `reshoot export RUN --directory DEST --record DIR --markdown FILE --link URL` | Also writes Markdown showing the GIF, the MP4 and each scan finding with its frame, such as for a pull request; finding frames go in `DIR/findings/` |
 | `reshoot skills codex --directory PROJECT` | Installs three project-local Codex skills; `--replace` installs over them after an upgrade |

@@ -5,6 +5,16 @@ description: Update an existing reshoot demo after an app or release changes. Us
 
 # Refresh a demo
 
+Keep optional `[tour]` and `[[tour.step]]` selections with the demo source.
+`reshoot tour create --title 'Explore the demo' --project demo` starts from checked
+beats; `tour set STEP` edits title, text, alt and optional `--x`/`--y` marker
+percentages. `tour move STEP --to POSITION`, `add --take 1 --beat BEAT`, `remove
+STEP` and `disable` share studio edits. Numbers start at 1; each takes `--project`.
+Update preview/re-cut reuses checked frames; a fresh recording refreshes them.
+Local export includes the self-contained `tours/NAME.html` by default. Add that
+path to an explicit `--file` list. Review every step and marker offline, the
+scanned words/images and the comparison; a successful run never accepts it.
+
 Keep `[[screenshot]]` selections in `reshoot.toml` beside the video settings.
 Their named PNGs come from checked TOML browser result frames, not a fresh
 unverified capture. `reshoot screenshot set NAME --beat BEAT --alt 'Visible result'

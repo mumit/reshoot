@@ -50,7 +50,7 @@ def main(argv=None):
     p.add_argument("--ok", action="store_true", help="every other image on the sheets passed")
     p.add_argument("--watch-for", action="append", metavar="WORDS",
                    help="words to flag wherever they appear, comma-separated, or @FILE with one per line")
-    p.add_argument("--text-file", action="append", default=[], help="scan exact subtitle (.srt), narration (.voice.json), or screenshot alt (screenshots.json) text")
+    p.add_argument("--text-file", action="append", default=[], help="scan exact .srt, .voice.json, screenshots.json or tours.json text")
     p.add_argument("--ocr", choices=["auto", "vision", "tesseract"], help="explicit OCR backend; failures never silently fall back")
     p.add_argument("--no-scan", dest="scan", action="store_false", help="don't scan for likely problems")
     p.set_defaults(run=check.main)
@@ -268,6 +268,38 @@ def main(argv=None):
     command.add_argument('run_path')
     command.set_defaults(run=framing.main)
 
+    from reshoot import tours
+    p = sub.add_parser('tour', help='build an offline clickable walkthrough from checked beats',
+                       description='A tour is one HTML file with its checked result images embedded. It works offline '
+                       'and moves between captured screens. Create from checked beats, edit step words and optional '
+                       'click markers, then Update preview or re-cut.\n\n'
+                       '    reshoot tour create --title "Save and find a note" --project demo\n'
+                       '    reshoot tour set 1 --text "The saved note appears in the list." --x 50 --y 40 --project demo\n'
+                       '    reshoot recut demo/latest', formatter_class=Examples)
+    operations = p.add_subparsers(dest='operation', required=True)
+    for operation in ('create', 'title', 'set', 'add', 'move', 'remove', 'disable'):
+        command = operations.add_parser(operation)
+        command.add_argument('--project', default='demo')
+        if operation in ('create', 'title'):
+            command.add_argument('--name', help='safe output name; default demo-tour on creation')
+            command.add_argument('--title')
+        if operation in ('set', 'move', 'remove'):
+            command.add_argument('step', type=int, help='step number starting at 1')
+        if operation == 'move':
+            command.add_argument('--to', type=int, required=True)
+        if operation in ('set', 'add'):
+            command.add_argument('--take', type=int, help='take number starting at 1')
+            command.add_argument('--beat', required=operation == 'add')
+            command.add_argument('--title')
+            command.add_argument('--text')
+            command.add_argument('--alt')
+            command.add_argument('--width', type=int)
+            command.add_argument('--crop', type=float, nargs=4, metavar=('LEFT', 'TOP', 'WIDTH', 'HEIGHT'))
+            command.add_argument('--x', type=float, help='marker horizontal position, 0 to 100 percent')
+            command.add_argument('--y', type=float, help='marker vertical position, 0 to 100 percent')
+            command.add_argument('--no-marker', action='store_true')
+        command.set_defaults(run=tours.main)
+
     from reshoot import screenshots
     p = sub.add_parser('screenshot', help='keep documentation PNGs current with checked beats',
                        description='Select result frames from TOML browser takes for documentation. Each selected '
@@ -380,7 +412,7 @@ def main(argv=None):
     p.add_argument('run_path', help='the run to copy from, such as demo/latest')
     p.add_argument('--directory', help='where to copy the media, such as docs/demo')
     p.add_argument('--file', action='append', help='copy only this file listed in run.json, such as '
-                   'takes/demo-final.mp4; without it, the run\'s videos and GIFs and their subtitles')
+                   'takes/demo-final.mp4; without it, the run\'s videos, GIFs, subtitles, documentation PNGs and offline tour HTML')
     p.add_argument('--replace', action='store_true', help='overwrite media already in --directory, such as the repo\'s demo')
     p.add_argument('--record', metavar='DIR', help='also write the run\'s small record (report, beat results, evidence '
                    'frames) to DIR, such as demo/accepted, for later comparisons')

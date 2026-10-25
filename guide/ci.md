@@ -52,6 +52,13 @@ the MP4 and GIF with `--file`, add each `--file screenshots/NAME.png` or omit th
 file list. Previously copied PNGs are not deleted when a selection is removed;
 remove obsolete files and documentation references in the same pull request.
 
+An optional [clickable tour](customize.md#make-an-offline-clickable-tour) is
+staged with the other exports. With an explicit file list, include
+`--file tours/NAME.html`. The Markdown links to the HTML; GitHub displays HTML
+source rather than executing the tour, so download it and open it locally to
+inspect navigation and every step. Its images are embedded. Comparison records
+tour additions, removals and changes; no external tour hosting is required.
+
 `reshoot export --markdown` writes the media and findings part of the
 description, and `--link` makes its paths URLs on the pull request's branch.
 Finding frames go into `demo/accepted/findings/`, and only for findings in the

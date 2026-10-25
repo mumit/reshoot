@@ -8,6 +8,11 @@ change project files or commands.
 
 ### Added
 
+- Offline clickable tours from checked browser result frames. The studio and
+  `reshoot tour` create and reorder steps, edit explanations/alt text and place
+  optional click markers. One HTML file embeds the images and navigation, with
+  keyboard controls, responsive layout and escaped plain text. Tour images and
+  words join scanning, run-bound review, local export and refresh comparison.
 - Documentation screenshots from checked browser result frames, selected in the
   studio or with `reshoot screenshot`. Stable PNG names, alt text, optional crop
   and maximum width remain in `reshoot.toml`. New runs and re-cuts bind each image

@@ -59,6 +59,8 @@ def edit(board, change):
                     raise ValueError(f'{key} must be text')
                 put(lines, block(lines, '[[beat]]', this), key, (' '.join(value.split()) or None) if value else None,
                     after='id' if key == 'caption' else 'caption')
+    if 'remove_expect' in change:
+        lines = without_check(lines, change.get('beat'), change['remove_expect'], change.get('expect'))
     if 'look' in change:
         for key, value in change['look'].items():
             if key not in ('position', 'background', 'foreground'):
@@ -74,6 +76,53 @@ def edit(board, change):
             if span:
                 put(lines, span, key, value or None)
     save(board, lines, story.load)
+
+
+def without_check(lines, beat, index, expected):
+    """The storyboard lines without one beat's result check, the index-th [[beat.expect]] under it. The check must still
+    be the one the page showed, so a check edited since is never removed by mistake."""
+    heads = [head for head, _, _ in tables(lines, '[[beat]]')]
+    found = next((n for n, head in enumerate(heads) if tomllib.loads(''.join(lines[head + 1:tables(lines, '[[beat]]')[n][2]])).get('id') == beat), None)
+    if found is None:
+        raise ValueError(f'no beat {beat!r} in the storyboard')
+    end = heads[found + 1] if found + 1 < len(heads) else len(lines)
+    checks = [(head, stop) for head, _, stop in tables(lines, '[[beat.expect]]') if heads[found] < head < end]
+    if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < len(checks):
+        raise ValueError('That result check is no longer in the storyboard. Reload the project.')
+    head, stop = checks[index]
+    if tomllib.loads(''.join(lines[head + 1:stop])) != expected:
+        raise ValueError('That result check changed since the page loaded. Reload the project.')
+    while stop > head + 1 and not lines[stop - 1].strip():
+        stop -= 1  # keep the blank line that ends the beat
+    return lines[:head] + lines[stop:]
+
+
+def explain(n, beat, entry, error):
+    """A failed result check in plain words, such as: Step 5 (action-5) expected no elements matching #hero > div,
+    but the page had 4."""
+    target = entry.get('target') or {}
+    where = (f'`{target["css"]}`' if 'css' in target else f'test id "{target["test_id"]}"' if 'test_id' in target
+             else f'the {target.get("role")} "{target.get("name", "")}"' if 'role' in target else 'the page')
+    actual = re.search(r'Actual value: (.+)', error or '')
+    actual = actual[1].strip().strip('"') if actual else None
+    step = f'Step {n} ({beat})'
+    kind = entry.get('type')
+    if kind == 'count':
+        want = entry.get('count')
+        what = 'no elements' if want == 0 else f'{want} element{"" if want == 1 else "s"}'
+        return f'{step} expected {what} matching {where}' + (f', but the page had {actual}.' if actual else ', but the count was different.')
+    if kind == 'text':
+        shown = f', but it showed "{actual[:80]}"' if actual else ", but it didn't"
+        return f'{step} expected {where} to contain "{entry.get("contains")}"{shown}.'
+    if kind == 'visible':
+        return f"{step} expected {where} to be visible, but it wasn't."
+    if kind == 'url':
+        return f'{step} expected the address to contain "{entry.get("contains")}"' + (f', but it was {actual}.' if actual else ", but it didn't.")
+    if kind == 'value':
+        return f'{step} expected {where} to hold "{entry.get("value")}"' + (f', but it held "{actual}".' if actual else '.')
+    if kind == 'checked':
+        return f'{step} expected {where} to be {"ticked" if entry.get("checked", True) else "not ticked"}.'
+    return f"{step}'s result check didn't pass."
 
 
 def edit_cut(path, config, change):
@@ -313,7 +362,20 @@ def failed(folder, take, config):
             repair = json.loads(audit.read_text()) if audit.exists() else {}
             current_sha = digest(board)
             image = meta.get('failure_screenshot')
-            return {'id': report['id'], 'binding': review.binding(root, report),
+            check = None  # the result check that failed, said plainly, so the page can offer to remove it
+            for beat in meta.get('beats', []):
+                bad = next((i for i, x in enumerate(beat.get('expectations') or []) if x.get('status') == 'failed'), None)
+                if bad is not None:
+                    from reshoot import story
+                    beats = story.load(board)['beat']
+                    n = next((k for k, b in enumerate(beats) if b.get('id') == beat['id']), None)
+                    expects = beats[n].get('expect', []) if n is not None else []
+                    if n is not None and bad < len(expects):
+                        error = beat['expectations'][bad].get('error', '')
+                        check = {'beat': beat['id'], 'index': bad, 'expect': expects[bad], 'detail': error,
+                                 'message': explain(n + 1, beat['id'], expects[bad], error)}
+                    break
+            return {'id': report['id'], 'binding': review.binding(root, report), 'check': check,
                     'message': meta.get('error') or '; '.join(report.get('errors', [])),
                     'image': str(Path(take['out']).parent / image) if image else None,
                     'repairable': failure.get('kind') in ('missing-target', 'ambiguous-target'), 'beat': failure.get('beat'),
@@ -950,6 +1012,12 @@ def page(data, accept, seen=0):
         elif failure['stale']:
             message = 'The story changed since this failure. Update preview to get current evidence.'
             buttons = ''
+        elif failure.get('check'):
+            check = failure['check']
+            message = (check['message'] + ' If that is the result you meant to show, fix the app or its demo data. If '
+                       'the check is wrong, remove it, then choose Update preview.')
+            buttons = (f'<button type="button" data-remove-check data-beat="{e(check["beat"])}" data-index="{check["index"]}" '
+                       f'data-expect="{e(json.dumps(check["expect"]))}">Remove this check</button>')
         else:
             message = failure['message']
             buttons = ('<button type="button" data-repair="apply">Use suggested control</button> '
@@ -959,9 +1027,11 @@ def page(data, accept, seen=0):
         suggestions = ''.join(f'<p>Suggested control: <strong>{e(labels[i] if i < len(labels) else "Replacement control")}</strong></p>'
                               f'<details><summary>Control details</summary><code>{e(json.dumps(target))}</code></details>'
                               for i, target in enumerate(failure.get('candidates', [])) if not failure['stale'])
+        detail = (f'<details><summary>Details</summary><pre>{e(failure["check"]["detail"])}</pre></details>'
+                  if failure.get('check') and not failure['stale'] else '')
         failure_box = (f'<div class="failure" data-failure="{e(failure["id"])}" data-binding="{e(failure["binding"])}">'
                        f'<h2>{"Repair ready to verify" if failure["repaired"] else "Recording needs attention"}</h2>'
-                       f'<p>{e(message)}</p>{suggestions}<p>{buttons}</p>{image}</div>')
+                       f'<p>{e(message)}</p>{suggestions}<p>{buttons}</p>{detail}{image}</div>')
     seconds = lambda t: f'{t:.1f} s'
     pending = '<p class="pending"{}>Saved. Update preview to see this change.</p>'
     beats = []
@@ -1602,6 +1672,10 @@ SCRIPT = '''(() => {
     post('job', {kind: 'repair', method: button.dataset.repair, failure_run_id: failure.dataset.failure,
       failure_binding: failure.dataset.binding}).then(out => { if (out.ok) watch(); });
   });
+  document.querySelectorAll('[data-remove-check]').forEach(button => button.onclick = () => {
+    post('edit', {beat: button.dataset.beat, remove_expect: Number(button.dataset.index), expect: JSON.parse(button.dataset.expect)}, true)
+      .then(out => { if (out.ok) location.reload(); });
+  });
   const styleChange = body => post('style', body, true).then(out => { if (out.ok) location.reload(); });
   const customStyle = () => {
     const label = document.getElementById('current-style'); if (label) label.textContent = 'Current: Custom look';
@@ -1892,7 +1966,7 @@ SCRIPT = '''(() => {
     document.body.dataset.jobRunning = job.running ? '1' : '';
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
     document.getElementById('cancel').hidden = !job.running;
-    document.querySelectorAll('[data-job], [data-from], [data-repair], .side input, .side textarea, .side select, .side button, [data-history]').forEach(button => {
+    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .side input, .side textarea, .side select, .side button, [data-history]').forEach(button => {
       if (job.running) {
         if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = button.disabled ? '1' : '';
         button.disabled = true;

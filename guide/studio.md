@@ -204,6 +204,13 @@ last working video and shows the **Failure frame**.
 - **Choose replacement in app** opens a fresh browser at the broken step. Click
   the control, then confirm it. Clicking it there doesn't press it.
 
+When a step's **result check** fails instead, the studio says what it
+expected and what the page showed, such as "Step 5 expected no elements
+matching `#hero > div`, but the page had 4." If the check is right, the app or
+its demo data needs fixing. If the check is wrong, as a suggested one can be,
+choose **Remove this check**, then **Update preview**. Undo puts it back. To
+change a check rather than remove it, edit it in `storyboard.toml`.
+
 A repair changes only how the step finds its control. Its action and expected
 result stay the same. Choose **Update preview** to check the whole task again.
 If the result itself is wrong, fix the app, the demo data or the story, not

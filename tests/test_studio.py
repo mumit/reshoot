@@ -1,4 +1,5 @@
 import json
+import tomllib
 import threading
 import urllib.error
 import urllib.request
@@ -265,3 +266,27 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
     assert any(json.loads(p.read_text())['mode'] == 'partial-preview' for p in (tmp_path / 'takes/runs').glob('*/run.json'))
     import tomllib
     assert tomllib.loads((tmp_path / 'edit.toml').read_text())['part'][0]['card'] == 'Notes, found fast'
+
+
+def test_the_studio_removes_only_the_result_check_it_showed(tmp_path):
+    board = tmp_path / 'storyboard.toml'
+    board.write_text('schema_version = 1\nurl = "http://localhost:8000/"\n\n[[beat]]\nid = "open"\n[[beat.action]]\n'
+                     'type = "click"\ntarget = {css = "#tab"}\n[[beat.expect]]  # suggested\ntype = "count"\n'
+                     'target = {css = "#hero > div"}\ncount = 0\n[[beat.expect]]\ntype = "visible"\ntarget = {css = "#list"}\n\n'
+                     '[[beat]]\nid = "end"\nhold = 0.5\n')
+    shown = {'type': 'count', 'target': {'css': '#hero > div'}, 'count': 0}
+    with pytest.raises(ValueError, match='changed since the page loaded'):
+        studio.edit(board, {'beat': 'open', 'remove_expect': 0, 'expect': {**shown, 'count': 1}})
+    studio.edit(board, {'beat': 'open', 'remove_expect': 0, 'expect': shown})
+    beat = tomllib.loads(board.read_text())['beat'][0]
+    assert beat['expect'] == [{'type': 'visible', 'target': {'css': '#list'}}] and beat['action']
+    with pytest.raises(ValueError, match='no longer in the storyboard'):
+        studio.edit(board, {'beat': 'end', 'remove_expect': 0, 'expect': shown})
+
+
+def test_a_failed_result_check_is_said_plainly():
+    error = "Locator expected to have count '0'\nActual value: 4 \nCall log:\n  - waiting for locator(\"#hero > div\")"
+    assert studio.explain(5, 'action-5', {'type': 'count', 'target': {'css': '#hero > div'}, 'count': 0}, error) == \
+        'Step 5 (action-5) expected no elements matching `#hero > div`, but the page had 4.'
+    assert studio.explain(2, 'search', {'type': 'text', 'target': {'css': '#list li'}, 'contains': 'bikes'},
+                          'Actual value: "Buy stamps"') == 'Step 2 (search) expected `#list li` to contain "bikes", but it showed "Buy stamps".'

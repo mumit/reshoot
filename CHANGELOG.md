@@ -6,6 +6,11 @@ change project files or commands.
 
 ## Unreleased
 
+### Added
+
+- When a result check fails, the studio says in plain words what it expected
+  and what the page showed, and offers **Remove this check**, with Undo.
+
 ### Fixed
 
 - The recorder no longer suggests that a list a tab hid has 0 items: it counts

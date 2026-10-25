@@ -10,6 +10,7 @@ recording before it. Find the message below, or the section that matches.
 |---|---|---|
 | `can't find Chrome or Chromium` | No browser where reshoot looks | Install one, or set `RESHOOT_CHROME`; [Chrome](#chrome-is-missing-or-will-not-start) |
 | `Chrome could not start` | Usually an agent's sandbox | Approve running reshoot outside the sandbox; [Chrome](#chrome-is-missing-or-will-not-start) |
+| `Vision failed (com.apple.Vision 8)` | Usually an agent's sandbox | Approve running reshoot outside the sandbox before installing anything; [scanning](#scanning-fails-or-reports-unavailable-detectors) |
 | `net::ERR_UNSAFE_PORT` | Chrome refuses that port | Use another port; [Chrome](#chrome-is-missing-or-will-not-start) |
 | `something is already answering at` | An old server holds the app's port | Stop it, or change the port; [the app](#the-app-will-not-start) |
 | `the app didn't answer at URL within N s` | Startup was slow or failed quietly | Read `app.log`; raise `[app] timeout`; [the app](#the-app-will-not-start) |

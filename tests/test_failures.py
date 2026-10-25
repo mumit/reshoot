@@ -162,3 +162,10 @@ def test_vision_fails_when_neither_text_reader_works(monkeypatch):
     monkeypatch.setattr(scan, '_text', lambda im, level: (_ for _ in ()).throw(RuntimeError(f'{level} failed')))
     with pytest.raises(RuntimeError, match='fast failed'):
         scan.vision_level()
+
+
+def test_a_vision_failure_names_an_agent_sandbox_as_the_usual_cause(monkeypatch):
+    monkeypatch.setattr(scan, '_level', {})
+    monkeypatch.setattr(scan, '_text', lambda im, level: (_ for _ in ()).throw(RuntimeError('Vision failed (com.apple.Vision 8)')))
+    with pytest.raises(RuntimeError, match="com.apple.Vision 8.*agent's sandbox"):
+        scan.vision_level()

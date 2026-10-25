@@ -96,7 +96,8 @@ def vision_level():
             except RuntimeError as e:
                 error = e
         else:
-            raise error
+            raise RuntimeError(f"{error}. If this runs inside an agent's sandbox, such as Codex's, Vision is usually what "
+                               "the sandbox blocks: run the reshoot command outside it, with the harness's approval") from None
     return _level['level']
 
 

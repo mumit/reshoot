@@ -102,7 +102,7 @@ result.
 | Edit files | To write `demo/` |
 | Read web pages, or a local reshoot checkout | To read this guide when no reshoot skill is installed |
 | Show the model images | To look at frames and scan sheets; without that, it can only go by the result checks |
-| Start Chrome and use a local port | To record. Codex's sandbox blocks Chrome, so Codex asks to run that command outside it |
+| Start Chrome and use a local port | To record. Codex's sandbox blocks Chrome and Apple's Vision, so Codex asks to run reshoot outside it |
 | Write `.claude/skills/` or `.agents/skills/` | To install the skills. Codex protects `.agents/`, so it asks first |
 | Record one window (macOS only) | Only for a native Mac app, which needs screen-recording permission |
 

@@ -22,7 +22,8 @@ def action(name, system):
         return {'ffmpeg': 'With Homebrew: brew install ffmpeg', 'ffprobe': 'With Homebrew: brew install ffmpeg',
                 'chrome': 'Use installed Chrome/Chromium, or with Homebrew: brew install --cask google-chrome',
                 'vhs': 'With Homebrew: brew install vhs', 'python3': 'With Homebrew: brew install python',
-                'text': 'Repair the configured OCR backend. For Tesseract with Homebrew: brew install tesseract'}.get(name, 'Check the tool installation and PATH, then check again.')
+                'text': "If Vision failed inside an agent's sandbox, such as Codex's, run reshoot outside it. Otherwise repair "
+                        'the configured OCR backend. For Tesseract with Homebrew: brew install tesseract'}.get(name, 'Check the tool installation and PATH, then check again.')
     return {'ffmpeg': 'On Debian: sudo apt-get install -y ffmpeg', 'ffprobe': 'On Debian: sudo apt-get install -y ffmpeg',
             'chrome': 'Use installed Chrome/Chromium, or on Debian: sudo apt-get install -y chromium',
             'python3': 'On Debian: sudo apt-get install -y python3',

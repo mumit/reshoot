@@ -4,6 +4,13 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Fixed
+
+- When Vision fails inside an agent's sandbox, such as Codex's, `reshoot doctor`
+  and the scan say to run reshoot outside it before suggesting Tesseract.
+
 ## 0.3.7 (2026-10-25)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

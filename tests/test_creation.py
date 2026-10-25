@@ -262,3 +262,11 @@ def test_create_opens_an_existing_project_without_recording_or_overwriting(tmp_p
     monkeypatch.setattr('reshoot.run.preview', lambda a: pytest.fail('a project with a run opens it as it is'))
     assert create.main(SimpleNamespace(url=None, directory=str(tmp_path),
                                        size='960x540@1.5', no_studio=True, no_open=True)) == 0
+
+
+def test_a_url_projects_brief_names_its_app_and_relative_paths(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    project.init(SimpleNamespace(directory=str((tmp_path / 'demo').resolve()), url='http://localhost:3000/', quiet=True, size=None))
+    brief = (tmp_path / 'demo' / 'BRIEF.md').read_text()
+    assert 'http://localhost:3000/' in brief and 'notes app' not in brief
+    assert str(tmp_path) not in brief and 'reshoot run demo/reshoot.toml' in brief

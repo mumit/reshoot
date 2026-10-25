@@ -15,6 +15,8 @@ change project files or commands.
 
 ### Fixed
 
+- `BRIEF.md` for a project made from a URL names the app and how to start and
+  reset it, instead of the notes app, and uses paths as you'd type them.
 - The recorder no longer suggests that a list a tab hid has 0 items: it counts
   hidden items as the replay does, and never suggests a count of none. A
   **Check result** on a large element checks the start of its words, not all of

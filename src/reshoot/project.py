@@ -47,6 +47,16 @@ def release(text):
         return ()
 
 
+NOTES_DATA = '''Use made-up data only. The bundled notes app resets when the page reloads.
+For another app, document its separate demo account or database, reset command,
+and expected result before changing the storyboard. Log mocked responses explicitly.'''
+URL_DATA = '''The app is at {url}. reshoot records it there but doesn't start it, so start
+it first, or add an `[app]` table to reshoot.toml with the command that starts it
+and one that resets its data. Use made-up data only: write down its demo account,
+how its data is reset, and the result each recording should show. Log mocked
+responses explicitly.'''
+
+
 def init(a):
     root = Path(a.directory)
     template = files('reshoot').joinpath('templates')
@@ -72,7 +82,10 @@ def init(a):
                 text = text[text.index('[[take]]'):]
                 text = 'schema_version = 1\n' + text
         if name == 'BRIEF.md':
-            text = text.replace('demo/', f'{root.as_posix().rstrip("/")}/')
+            if a.url:
+                text = text.replace(NOTES_DATA, URL_DATA.format(url=a.url))
+            here = os.path.relpath(root)  # as the reader types it, not the absolute path create resolved
+            text = text.replace('demo/', f'{(root.as_posix() if here.startswith("..") else Path(here).as_posix()).rstrip("/")}/')
         (root / name).write_text(text)
     if not (root / '.gitignore').exists():  # recordings are remade from the source; demo/accepted/ is what to keep
         (root / '.gitignore').write_text('/takes/\n')

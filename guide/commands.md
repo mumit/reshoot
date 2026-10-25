@@ -11,6 +11,8 @@ command with examples; `reshoot run --help` shows a complete `reshoot.toml`.
 newest successful run or `accepted` for the newest accepted run, such as
 `demo/latest` or `demo/takes/runs/accepted`. The command prints which run it chose.
 
+### Create and set up
+
 | Command | What it does |
 |---|---|
 | `reshoot --version` | Prints the installed package version |
@@ -21,11 +23,21 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot init demo --url URL` | Creates a draft for the supplied app URL |
 | `reshoot doctor --config CONFIG` | Checks tools and installed detectors without recording |
 | `reshoot doctor --config CONFIG --probe` | Tests temporary synthetic H.264 encoding/inspection, TOML browser capture and configured OCR; `--json` includes structured checks and fixes |
+
+### Record
+
+| Command | What it does |
+|---|---|
 | `reshoot preview CONFIG` | Makes an isolated preview with the same actions |
 | `reshoot preview CONFIG --from BEAT` | Replays earlier actions without capturing them; skips the final edit and scan |
-| `reshoot repair RUN` | Inspects a failed browser run and prints any suggested control and the repair commands |
-| `reshoot repair RUN --apply` | Starts the configured demo app, replays to the failure and revalidates the suggestion before changing only the target |
-| `reshoot repair RUN --pick` | Opens a fresh browser at the broken step; select and confirm the replacement without activating it. `--config FILE` names a relocated project |
+| `reshoot run CONFIG` | Starts the configured app, records, edits and scans a new run |
+| `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
+
+### Shape
+
+| Command | What it does |
+|---|---|
+| `reshoot studio PROJECT` | Opens the latest recording to edit captions and holds, undo/redo, update the preview, compare checked revision frames, make a final, inspect scan sheets and accept the displayed run; saved history offers explicit recovery after restart; runs until Ctrl-C |
 | `reshoot recut RUN` | Edits and scans that run's takes again into a new run, after a change to `edit.toml` or the captions; nothing is recorded |
 | `reshoot style list --project demo` | Lists Focus, Midnight, Paper and the project's saved visual styles |
 | `reshoot style apply STYLE --project demo` | Applies a listed style key or portable TOML file to captions, title-card colours and framing; update the preview afterwards |
@@ -54,17 +66,37 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot audio audition search --project demo` | Speaks one saved line into the recording's voice cache and prints its WAV path and duration; no app capture |
 | `reshoot audio set --voice-volume 1 --music-volume 0.15 --duck --project demo` | Saves linear gains and music ducking in `edit.toml`; `--no-duck` disables ducking, and Update preview re-cuts the current recording |
 | `reshoot audio set --engine 'say -v Samantha' --project demo` | Changes the narration command; `--engine ''` returns to the system default. Custom commands need `{out}` and read text on stdin |
-| `reshoot run CONFIG` | Starts the configured app, records, edits and scans a new run |
-| `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
+
+### Repair
+
+| Command | What it does |
+|---|---|
+| `reshoot repair RUN` | Inspects a failed browser run and prints any suggested control and the repair commands |
+| `reshoot repair RUN --apply` | Starts the configured demo app, replays to the failure and revalidates the suggestion before changing only the target |
+| `reshoot repair RUN --pick` | Opens a fresh browser at the broken step; select and confirm the replacement without activating it. `--config FILE` names a relocated project |
+
+### Review and accept
+
+| Command | What it does |
+|---|---|
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
-| `reshoot studio PROJECT` | Opens the latest recording to edit captions and holds, undo/redo, update the preview, compare checked revision frames, make a final, inspect scan sheets and accept the displayed run; saved history offers explicit recovery after restart; runs until Ctrl-C |
 | `reshoot review RUN --serve` | Serves the review page on this computer only, to accept or reject the run with its buttons; stops once you decide |
 | `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name each finding with `--flagged F1` or `--reject F1`, or a single frame by its label. Refuses a preview unless given `--preview` |
 | `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions bound to that run and its policy |
+
+### Share
+
+| Command | What it does |
+|---|---|
 | `reshoot export RUN --directory DEST` | Copies videos, GIFs, subtitles, documentation PNGs and offline tour HTML locally, and prints Markdown; `--file` picks single files; refuses to overwrite unless given `--replace` |
 | `reshoot export RUN --record demo/accepted` | Writes the run's small record (report, beat results, evidence frames) for later comparisons |
 | `reshoot export RUN --directory DEST --record DIR --markdown FILE --link URL` | Also writes Markdown showing the GIF, the MP4 and each scan finding with its frame, such as for a pull request; finding frames go in `DIR/findings/` |
+
+### Skills
+
+| Command | What it does |
+|---|---|
 | `reshoot skills codex --directory PROJECT` | Installs three project-local Codex skills; `--replace` installs over them after an upgrade |
 | `reshoot skills claude --directory PROJECT` | Installs the same primary skills for Claude Code |
 

@@ -1,6 +1,6 @@
 # Project reference
 
-Every field of the three files in a demo project, and what a run writes. For a
+Every field of the files in a demo project, and what a run writes. For a
 guided first recording, use the [agent quickstart](agent-quickstart.md) or the
 [CLI tutorial](step-by-step.md); for your own app, [Record your own web app](your-app.md).
 [Commands](commands.md) lists the CLI, and `reshoot COMMAND --help` describes
@@ -21,55 +21,6 @@ each command.
 `reshoot init demo` writes a complete project with a made-up notes app, and
 `reshoot init demo --url URL` a draft for your app. Paths in each file are
 relative to that file.
-
-## Visual style files
-
-`reshoot style apply STYLE --project demo` accepts a starting look, a saved
-key from `style list`, or a portable style file. The studio also imports and
-downloads portable styles. Applying a style materializes values in each TOML
-browser storyboard's `[caption]`, and the edit's `[style]` and `[frame]`.
-There is no run-time reference to the style file. Story, timing, fonts, logos,
-audio, exports and scan coverage remain in their project files.
-
-A portable style has `schema_version = 1`, a `name` of 1 to 60 characters,
-an optional `description` of at most 200 characters, and these settings:
-
-```toml
-schema_version = 1
-name = "Launch look"
-frame_enabled = true
-
-[caption]
-position = "bottom"
-margin = 0.065
-background = "#172554f2"
-foreground = "#ffffff"
-
-[card]
-background = "#172554"
-foreground = "#ffffff"
-
-[frame]
-background = ["#253a6a", "#101726"]
-padding = 0.045
-radius = 12
-shadow = true
-bar = true
-bar_color = "#1e293b"
-```
-
-Omitted visual fields use the defaults in the caption and frame tables below;
-cards default to `#0e0d0c` and white. A `[frame]` enables framing unless
-`frame_enabled = false` explicitly disables it. Without either, framing is
-off. Backgrounds accept an opaque colour or exactly two colours for a gradient;
-cards use the gradient's top colour. Caption colours can include opacity.
-Styles contain no asset paths, scripts, task content or timing settings.
-
-`style save NAME` stores a complete style under `[styles]` in the optional
-project library `styles.toml`, with `schema_version = 1`. Its key uses lowercase
-letters, numbers and hyphens, such as `launch-look`; each value is an inline
-style table. The CLI lists these keys. `--out FILE` writes the standalone form
-above. Existing names and export paths require `--replace` to overwrite.
 
 ## reshoot.toml
 
@@ -147,7 +98,7 @@ Partial previews produce no documentation screenshots. See
 [screenshots](studio.md#make-screenshots-for-docs) for studio,
 crop, refresh and local export steps.
 
-## Offline tour
+### Offline tour
 
 One optional `[tour]` in `reshoot.toml` exports `tours/NAME.html`. Each of 1 to
 30 steps names a complete TOML browser take and a beat with passing result
@@ -426,6 +377,55 @@ read on 2026-10-24. X's are for an account without Premium. Platforms change
 them, so check before a launch. A square or portrait preset fits the whole
 frame in by default; set `fit = "crop"`, or record a narrower take, so the text
 stays readable.
+
+## Visual style files
+
+`reshoot style apply STYLE --project demo` accepts a starting look, a saved
+key from `style list`, or a portable style file. The studio also imports and
+downloads portable styles. Applying a style materializes values in each TOML
+browser storyboard's `[caption]`, and the edit's `[style]` and `[frame]`.
+There is no run-time reference to the style file. Story, timing, fonts, logos,
+audio, exports and scan coverage remain in their project files.
+
+A portable style has `schema_version = 1`, a `name` of 1 to 60 characters,
+an optional `description` of at most 200 characters, and these settings:
+
+```toml
+schema_version = 1
+name = "Launch look"
+frame_enabled = true
+
+[caption]
+position = "bottom"
+margin = 0.065
+background = "#172554f2"
+foreground = "#ffffff"
+
+[card]
+background = "#172554"
+foreground = "#ffffff"
+
+[frame]
+background = ["#253a6a", "#101726"]
+padding = 0.045
+radius = 12
+shadow = true
+bar = true
+bar_color = "#1e293b"
+```
+
+Omitted visual fields use the defaults in the caption and frame tables below;
+cards default to `#0e0d0c` and white. A `[frame]` enables framing unless
+`frame_enabled = false` explicitly disables it. Without either, framing is
+off. Backgrounds accept an opaque colour or exactly two colours for a gradient;
+cards use the gradient's top colour. Caption colours can include opacity.
+Styles contain no asset paths, scripts, task content or timing settings.
+
+`style save NAME` stores a complete style under `[styles]` in the optional
+project library `styles.toml`, with `schema_version = 1`. Its key uses lowercase
+letters, numbers and hyphens, such as `launch-look`; each value is an inline
+style table. The CLI lists these keys. `--out FILE` writes the standalone form
+above. Existing names and export paths require `--replace` to overwrite.
 
 ## What a run writes
 

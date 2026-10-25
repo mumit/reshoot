@@ -18,8 +18,8 @@ repair, visual styles, beat cuts, destination framing, audio and documentation
 screenshots and offline tours now share that workflow. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **First-run setup.** Surface missing capture/scan dependencies in the creation
-    flow and provide actionable recovery before the first recording.
+1. **Compare revisions in the studio.** Inspect previous and current checked
+    beat frames together, with both recordings and their exact review evidence.
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
@@ -31,8 +31,8 @@ screenshots and offline tours now share that workflow. The
   passed, and "Record from here" above each beat starts a partial run, all from the run reports.
 - **A web player with chapters.** Each beat is a chapter, and the captions are readable, searchable text
   beside the video.
-- **Before and after.** A changed beat's old and new takes play side by side or under a slider, in the
-  studio, the review page and the refresh pull request, and can be cut into a short clip for release notes.
+- **Before-and-after clips.** Extend studio frame comparison to playback in the
+  review page and refresh pull request, and short clips for release notes.
 - A single first-demo page, with the other guides kept as reference, if `rec` and the studio do not carry a
   newcomer on their own.
 - Real changing remote services as a compatibility trial.
@@ -50,6 +50,12 @@ screenshots and offline tours now share that workflow. The
   through the skills.
 
 ## Done
+
+- **First-run setup and continuation:** actionable tool checks and synthetic
+  encoding/browser/OCR probes, a focused studio setup panel, Check again and
+  Continue creation. `create --resume` keeps the saved task after setup/preview
+  failures; concurrent demonstration edits retain both sources. Probe buttons
+  install nothing, preserve scan choices and never accept media.
 
 - **Studio session recovery:** private local checkpoints retain grouped Undo
   and Redo across restarts. Explicit resume requires matching files; conflicting

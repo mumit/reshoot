@@ -90,8 +90,42 @@ reshoot init demo
 reshoot doctor --config demo/reshoot.toml
 ```
 
-`doctor` reports available tools and detectors. It does not install them or
-prove that capture and scanning work. The next step is the
+`doctor` reports tools, versions, detectors and fixes. To test them with a tiny
+made-up video, headless page and text image, run:
+
+```bash
+reshoot doctor --config demo/reshoot.toml --probe
+```
+
+The video check encodes H.264 and reads the result with ffprobe. The browser
+check tests a TOML project's Playwright browser on a temporary page; the text
+check uses the configured OCR backend only when scanning is enabled. These
+checks do not start your app, install anything, test positive face/person
+detection or approve a recording. A full take can still fail.
+
+For a guided first run, `reshoot create` performs these checks before using the
+app. Missing or broken tools open **Recording tools** in the studio, with fixes
+and **Check again**. Successful checks are collapsed under **All tool checks**.
+Choose **Continue creation** after the tools are ready. With `--no-studio`, a
+blocked creation exits 2 and prints its exact resume command:
+
+```bash
+reshoot create --resume --directory demo
+```
+
+Resume keeps the saved URL, viewport and story. After a preview failure it
+retries the saved story without asking you to demonstrate it again. A completed
+creation opens the studio without another recording. Before a demonstration,
+changed project files prevent resume from overwriting the draft. Record to a
+new file or use the studio to continue editing that draft.
+
+Run suggested installation commands in a terminal. Package installation and
+permission changes remain with you or your authorized agent. If you change
+PATH, `RESHOOT_CHROME`, browser flags or the Python environment, restart reshoot
+using the resume command so it sees those changes. **Check again** does not
+install packages or silently turn off scanning.
+
+For the direct file workflow, the next step is the
 [first-demo tutorial](step-by-step.md#2-record-a-preview). If `demo` already exists,
 continue at the preview step instead of running `init` twice.
 

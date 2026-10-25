@@ -3,6 +3,17 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **Missing tools stranded the first create project.** Fixed in reshoot:
+  Recording tools shows actionable fixes and Check again. Continue creation or
+  `create --resume --directory demo` resumes the same project. A failed preview
+  keeps the recorded task, and a completed creation does not record it again.
+- **A found executable still failed at the first capture.** Fixed in reshoot:
+  `doctor --probe` and creation test a tiny synthetic video, TOML browser page
+  and configured OCR before using the app. These tests do not certify the app,
+  face detection or final media, and never disable scanning to make setup pass.
+- **A demonstration replaced edits made while recording.** Fixed in reshoot:
+  creation records into a new draft, checks the original project before applying
+  it and retains both files when external edits conflict.
 - **Closing the studio lost Undo and Redo.** Fixed in reshoot: saved history is
   checkpointed locally and can resume after a restart when tracked files match.
   Changed files are preserved; download the saved source copy to compare or

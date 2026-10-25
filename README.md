@@ -28,6 +28,10 @@ uv tool install 'reshoot[browser]'
 reshoot create                  # make the notes preview and open the studio
 ```
 
+If a tool is missing, creation keeps the project and shows fixes in the studio.
+Choose **Check again**, then **Continue creation**, or resume from the terminal
+with `reshoot create --resume --directory demo`.
+
 With the dependencies installed, the preview takes seconds. In the studio,
 change a caption or result hold, choose **Update preview**, then **Make final**
 when it looks right. Undo keeps experiments easy to reverse.

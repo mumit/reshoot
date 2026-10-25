@@ -1,55 +1,29 @@
 """Project setup and dependency checks using packaged demo data."""
 import json
 import os
-import platform
 import re
 import shutil
 import subprocess
 from importlib.resources import files
 from pathlib import Path
-from reshoot import config, scan, web
+from reshoot import config
 
 
 def doctor(a):
-    shoot = config.read(a.config)[0] if a.config else {'take': [{'web': ''}]}
-    names = ['ffmpeg', 'ffprobe']
-    if any('tape' in t for t in shoot.get('take', [])):
-        names.append('vhs')
-    found = {name: shutil.which(name) for name in names}
-    if any('web' in t for t in shoot.get('take', [])):
-        try:
-            found['chrome'] = shutil.which(web.find_chrome())
-        except SystemExit:
-            found['chrome'] = None
-    required_text = 'check' in shoot and shoot['check'].get('scan', True)
-    engine = shoot.get('check', {}).get('ocr')
-    detectors = sorted(scan.can_scan(engine))
-    if any(str(t.get('web', '')).endswith('.toml') for t in shoot.get('take', [])):
-        import importlib.util
-        found['playwright'] = 'installed' if importlib.util.find_spec('playwright') else None
-    result = {'ok': all(found.values()) and (not required_text or 'text' in detectors),
-              'platform': platform.system(), 'ocr_backend': scan.backend(engine), 'scan_probe': 'not run', 'tools': found, 'detectors': detectors,
-              'window_capture': platform.system() == 'Darwin', 'versions': {}}
-    from importlib.metadata import version
-    result['reshoot'] = {'version': version('reshoot'), 'latest': latest_release()}
-    from reshoot.cut import FONTS
-    result['fonts'] = [Path(f).name for f in FONTS if Path(f).exists()]
-    for name, path in found.items():
-        if path and name != 'playwright':
-            try:
-                result['versions'][name] = subprocess.run([path, '-version' if name in ('ffmpeg', 'ffprobe') else '--version' if name != 'vhs' else '-v'], capture_output=True, text=True, timeout=5).stdout.splitlines()[0]
-            except (OSError, IndexError, subprocess.TimeoutExpired):
-                result['versions'][name] = 'unknown'
+    from reshoot import setup
+    result = setup.inspect(a.config, probe=getattr(a, 'probe', False))
+    result['reshoot']['latest'] = latest_release()
     if a.json:
         print(json.dumps(result, indent=2))
     else:
         installed, latest = result['reshoot']['version'], result['reshoot']['latest']
         newer = latest and release(latest) > release(installed)
         print(f'reshoot: {installed}' + (f"; {latest} is out: uv tool install --upgrade 'reshoot[browser]'" if newer else ''))
-        for name, path in found.items():
-            print(f'{name}: ' + ('available' if path else 'missing; install reshoot[browser]' if name == 'playwright' else 'missing; install it before recording'))
-        print('Text scan: ' + ('installed, not probed' if 'text' in detectors else 'install Tesseract or Vision'))
-        print('Face scan: ' + ('installed, not probed' if 'people' in detectors else 'unavailable'))
+        setup.print_report(result)
+        if not getattr(a, 'probe', False):
+            import shlex
+            print('Test the tools with synthetic data: reshoot doctor --probe' +
+                  (' --config ' + shlex.quote(a.config) if a.config else ''))
     return 0 if result['ok'] else 2
 
 

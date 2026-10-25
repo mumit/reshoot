@@ -140,22 +140,26 @@ def main(argv=None):
                        description='Create a project, check the tools, open a fresh browser to record your task, '
                        'then make a preview and open the studio. Use the recording toolbar to add captions and '
                        'result checks, pause, hide an element and finish. Use demo data. Without a URL, try the '
-                       'bundled notes app. Nothing is accepted or published.\n\n'
+                       'bundled notes app. Missing tools keep the project and show fixes. Use --resume after setup '
+                       'or a failed preview. Nothing is accepted or published.\n\n'
                        '    reshoot create\n'
                        '    reshoot create http://127.0.0.1:3000/ --directory demo', formatter_class=Examples)
     p.add_argument('url', nargs='?', help='your demo app URL; omit to try the bundled notes app')
-    p.add_argument('--directory', default='demo', help='a new project folder (default: demo; existing projects are kept)')
-    p.add_argument('--size', default='960x540@1.5', help='recording viewport (default: 960x540@1.5)')
+    p.add_argument('--directory', default='demo', help='project folder (default: demo; new unless using --resume)')
+    p.add_argument('--size', help='recording viewport (default: 960x540@1.5; saved size when resuming)')
+    p.add_argument('--resume', action='store_true', help='continue this create project after setup or a failed preview, preserving its saved story')
     p.add_argument('--no-open', action='store_true', help='print the studio address instead of opening its page')
     p.add_argument('--no-studio', action='store_true', help='finish after the preview; open the studio later')
     p.set_defaults(run=create.main)
     p = sub.add_parser('doctor', help='check that the tools a project needs are installed, without recording',
                        description='Check that ffmpeg, Chrome, Playwright, VHS and the scan detectors a project needs '
-                       'are installed, and say whether a newer reshoot is out. It does not record or run a scan, so '
-                       'a run can still fail. Exits 0 when everything needed is there and 2 when something is missing.'
+                       'are installed, offer fixes, and say whether a newer reshoot is out. --probe tests tiny synthetic '
+                       'video encoding, headless browser capture and configured text recognition. It does not operate '
+                       'your app or approve media. Exits 0 when checks pass and 2 when something needs attention.'
                        '\n\n    reshoot doctor --config demo/reshoot.toml', formatter_class=Examples)
     p.add_argument('--config', help='the project to check for; without it, the tools for a browser take')
     p.add_argument('--json', action='store_true', help='print paths, versions and detectors as JSON')
+    p.add_argument('--probe', action='store_true', help='also test capture/encoding/text recognition using only temporary synthetic data')
     p.set_defaults(run=project.doctor)
     p = sub.add_parser('init', help='create a demo project: the made-up notes example, or a draft for your app',
                        description='Create a demo project: BRIEF.md, storyboard.toml, edit.toml, reshoot.toml and a '

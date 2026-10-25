@@ -8,6 +8,13 @@ change project files or commands.
 
 ### Added
 
+- First-run Recording tools shows dependency fixes, synthetic rechecks and
+  Continue creation. `create --resume` preserves the project, target and viewport,
+  retries saved stories after preview failures and avoids re-recording completed
+  creation. Concurrent draft edits retain both source files.
+- `doctor --probe` tests tiny synthetic H.264 encoding/inspection, TOML browser
+  capture and configured OCR. Structured checks/fixes join existing JSON fields;
+  no tools are installed, scan settings changed or media accepted by a probe.
 - Studio Undo/Redo checkpoints survive a restart. Resume matching history or
   start with current files; changed files are preserved, with a saved source
   ZIP available for comparison. Fresh starts archive the old checkpoint. Atomic

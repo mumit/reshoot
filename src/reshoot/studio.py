@@ -342,6 +342,19 @@ def view(folder, take, config, run=None):
     edit_path = Path(folder) / shoot['edit']['file'] if shoot.get('edit', {}).get('file') else None
     data = {'story': board_path.name, 'look': board.get('caption', {}), 'run': None, 'beats': [], 'findings': [],
             'edit': None, 'failure': failed(folder, take, config), 'recording_size': recording_size}
+    from reshoot import create, setup
+    tools = setup.current(config)
+    try:
+        creation = create.load(folder)
+        data['create_error'] = ''
+    except ValueError as error:
+        creation = None
+        data['create_error'] = str(error)
+    pending_creation = creation and creation['stage'] != 'done'
+    data['setup'] = tools if not tools['ok'] or pending_creation or not run and not current(folder) else None
+    data['creation_pending'] = bool(pending_creation)
+    data['needs_demonstration'] = bool(creation and creation['stage'] == 'record')
+    data['resume_command'] = create.resume_command(folder) if pending_creation else ''
     from reshoot import audio, screenshots, styles, tours
     data['tour_spec'], data['tours'] = shoot.get('tour'), []
     take_index = next(i for i, item in enumerate(shoot['take']) if item.get('web') == take['web'] and item.get('out') == take['out'])
@@ -782,11 +795,30 @@ def server(a):
                     run = self.displayed(body) if body.get('run_id') else None
                     kind, beat = body.get('kind'), body.get('beat')
                     reason = ''
+                    from reshoot import create
+                    try:
+                        creation = create.load(folder)
+                    except ValueError:
+                        creation = None
+                    if creation and creation['stage'] != 'done' and kind in ('update', 'preview', 'run', 'from', 'recut'):
+                        raise ValueError('Creation is paused. Use Continue creation in Recording tools to finish your saved task first.')
                     if kind == 'update':
                         kind, reason = update_kind(folder, config, take, run)
                     commands = {'recut': [*cli, 'recut', str(run[0]) if run else '', '--config', str(config)],
                                 'preview': [*cli, 'preview', str(config)], 'run': [*cli, 'run', str(config)],
                                 'from': [*cli, 'preview', str(config), '--from', str(beat)]}
+                    if kind == 'setup':
+                        commands['setup'] = [sys.executable, '-m', 'reshoot.setup', str(config)]
+                    elif kind == 'create':
+                        from reshoot import create
+                        creation = create.load(folder)
+                        if not creation or creation['stage'] == 'done':
+                            raise ValueError('No paused creation here. Use Update preview to refresh this project.')
+                        commands['create'] = [*cli, 'create', '--resume', '--directory', str(folder), '--no-studio']
+                    if kind in ('preview', 'run', 'from', 'recut', 'repair'):
+                        from reshoot import setup
+                        if not setup.current(config)['ok']:
+                            raise ValueError('Recording tools need attention. Open Recording tools and choose Check again before updating.')
                     on_done, result = None, None
                     if kind == 'audition':
                         from reshoot import audio
@@ -1182,12 +1214,34 @@ def page(data, accept, seen=0):
         if failure:
             top = '<p class="note">Previous successful recording. Update preview to verify the current story.</p>' + top
     else:
-        top = '<p class="status">No run has worked yet. Record a preview to see the demo here.</p>'
+        top = ('<p class="status">Your preview will appear here after setup and creation.</p>' if data.get('creation_pending') else
+               '<p class="status">No run has worked yet. Record a preview to see the demo here.</p>')
     sheets = ''.join(f'<a href="run/{e(s)}" target="_blank"><img loading="lazy" src="run/{e(s)}" alt="Scan sheet {i + 1}"></a>'
                      for i, s in enumerate((run or {}).get('sheets', [])))
     evidence = (f'<details class="scan"><summary>Inspect scan sheets</summary><p>Open a sheet at full size to inspect the frames.</p>{sheets}</details>' if sheets else '')
     state = data.get('journey', {'title': 'Shape your demo', 'detail': '', 'pending': False, 'phase': 'unknown', 'next': 'update', 'changes': [], 'update_detail': ''})
     session = data.get('session')
+    tools = data.get('setup')
+    tools_box = ''
+    if tools:
+        def tool_rows(items):
+            return ''.join(f'<li><strong>{e(item["label"])}</strong>: {e(item["status"])}'
+                           f'<p>{e(item["detail"])}</p>' +
+                           (f'<p class="fix">{e(item["action"])}</p>' if item['status'] in ('missing', 'failed') else '') + '</li>'
+                           for item in items)
+        problems = [item for item in tools['checks'] if item['status'] in ('missing', 'failed')]
+        checks = tool_rows(problems)
+        all_checks = tool_rows(tools['checks'])
+        continuation = (f'<button type="button" data-job="create"{(" disabled" if not tools["ok"] else "")}>Continue creation</button>'
+                        f'<p>Or restart from a terminal: <code>{e(data["resume_command"])}</code></p>' if data.get('creation_pending') else '')
+        tools_box = f'''<section id="setup-panel" class="journey" data-phase="{'ready' if tools['ok'] else 'pending'}" tabindex="-1"><h2>Recording tools</h2>
+<p>{('Synthetic tool checks passed. Continue when you are ready.' if tools.get('probed') else 'Tools are installed. Check again tests them; continuing creation also tests them before using your app.') if tools['ok'] else 'Your project is saved. Fix the items below, then check again.'}</p>
+{f'<p class="error">{e(data["create_error"])}</p>' if data.get('create_error') else ''}
+<ul>{checks}</ul><p class="hint">Run installation fixes in a terminal. If PATH, browser settings or the Python environment change, restart reshoot. Nothing is installed by these buttons.</p>
+<button type="button" data-job="setup">Check again</button>{continuation}
+<details><summary>All tool checks ({len(tools['checks'])})</summary><ul>{all_checks}</ul></details>
+<p class="hint">Check again tests only a temporary made-up page, video and text. It does not use your app, validate face detection or approve media.</p>
+{f'<p class="hint">Last checked: {e(tools["checked_at"])}</p>' if tools.get('checked_at') else ''}</section>'''
     recovery = ''
     if session:
         copy = (f'<a href="session.zip?token={e(session["token"])}" download="reshoot-saved-sources.zip">Download saved source copy</a>'
@@ -1201,7 +1255,7 @@ def page(data, accept, seen=0):
 <p>Undo: {session['undo']} {'step' if session['undo'] == 1 else 'steps'} · Redo: {session['redo']} {'step' if session['redo'] == 1 else 'steps'}</p>{resume}
 <button type="button" data-session="fresh">Start with current files</button> {copy}
 <p class="hint">Starting fresh keeps a local archive of the previous history. Neither choice replaces the files you have now.</p></section>'''
-    nav = [('preview-panel', 'Preview'), ('story-panel', 'Story'), *([('cut-panel', 'Cut')] if data.get('edit') else []),
+    nav = [*([('setup-panel', 'Tools')] if tools else []), ('preview-panel', 'Preview'), ('story-panel', 'Story'), *([('cut-panel', 'Cut')] if data.get('edit') else []),
            ('look-panel', 'Look'), *([('audio-panel', 'Audio')] if data.get('edit') else []),
            ('screenshots-panel', 'Screenshots'), ('tour-panel', 'Tour'), ('review-panel', 'Review'), ('download-panel', 'Download')]
     navigation = ''.join(f'<a href="#{target}" data-jump="{target}">{label}</a>' for target, label in nav)
@@ -1221,13 +1275,14 @@ def page(data, accept, seen=0):
 <header><h1>reshoot studio</h1><span class="story">{e(data['story'])}</span>
 <fieldset class="actions" aria-label="Recording and history"{(' disabled' if session else '')}><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
 <button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
-<button type="button" class="{'primary' if state['next'] == 'update' else ''}" data-job="update">Update preview</button>
-<button type="button" class="{'primary' if state['next'] == 'run' else ''}" data-job="run" title="Record the full-size video for review">Make final</button>
+<button type="button" class="{'primary' if state['next'] == 'update' else ''}" data-job="update"{(' disabled' if data.get('creation_pending') else '')}>Update preview</button>
+<button type="button" class="{'primary' if state['next'] == 'run' else ''}" data-job="run"{(' disabled' if data.get('creation_pending') else '')} title="Record the full-size video for review">Make final</button>
 <details class="advanced"><summary>More</summary><button type="button" data-job="recut"{'' if run else ' disabled'} title="Edit and scan this run's takes again, with the captions and edit as they are now">Re-cut</button>
 <button type="button" data-job="preview" title="Start the app and record a quick preview">Record a preview</button>
 </details></fieldset><nav class="section-nav" aria-label="Studio sections">{navigation}</nav></header>
 {recovery}
-<section id="journey" class="journey" role="status" aria-live="polite" data-phase="{e(state['phase'])}"><strong id="journey-title">{e(state['title'])}</strong>
+{tools_box}
+<section id="journey" class="journey" role="status" aria-live="polite" data-phase="{e(state['phase'])}"{(' hidden' if data.get('creation_pending') and not run else '')}><strong id="journey-title">{e(state['title'])}</strong>
 <p id="journey-detail">{e(state['detail'])}</p><p id="journey-changes" class="hint"{'' if state.get('changes') else ' hidden'}>{e(', '.join(state.get('changes', [])))}</p>
 <p id="journey-plan" class="hint"{'' if state['pending'] else ' hidden'}>{e(state['update_detail'])}</p>
 <button type="button" data-reset-drafts hidden>Reset unsaved edits</button><button type="button" data-reload-project hidden>Reload project</button>
@@ -1244,7 +1299,7 @@ def page(data, accept, seen=0):
 {f'<div class="found"><h3>What the scan found</h3><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>{downloads}</section>
-<fieldset class="side" aria-label="Demo editing"{(' disabled' if session else '')}><div class="beats" id="story-panel" tabindex="-1"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+<fieldset class="side" aria-label="Demo editing"{(' disabled' if session or data.get('needs_demonstration') else '')}><div class="beats" id="story-panel" tabindex="-1"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
 {audio_box}
 {screenshot_box}
 {tour_box}
@@ -1283,6 +1338,7 @@ fieldset.actions, fieldset.side { border:0; padding:0; min-width:0 } fieldset.si
 .journey { max-width:1460px; margin:14px auto 0; padding:12px 16px; border:1px solid var(--line); border-left:4px solid var(--ok); border-radius:10px; background:var(--panel) }
 .journey p { margin:4px 0 } .journey[data-phase=pending], .journey[data-phase=draft], .journey[data-phase=external] { border-left-color:var(--accent) }
 .journey button { margin:6px 6px 0 0 } .journey a { color:var(--accent) }
+#setup-panel ul { padding-left:20px } #setup-panel li { margin:8px 0 } #setup-panel .fix, #setup-panel code { overflow-wrap:anywhere }
 .review-panel, .downloads { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:16px }
 .downloads ul { padding-left:20px; overflow-wrap:anywhere } .downloads li { margin:7px 0 } .downloads a { color:var(--accent) }
 .download-all { display:inline-block; font-weight:600; border:1px solid var(--accent); border-radius:8px; padding:8px 12px; margin:4px 0; text-decoration:none }
@@ -1783,7 +1839,7 @@ SCRIPT = '''(() => {
   const auditionPlayer = document.getElementById('audition-player');
   auditionPlayer.addEventListener('play', () => { if (video) video.pause(); });
   if (video) video.addEventListener('play', () => auditionPlayer.pause());
-  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat', repair: 'Repairing control', audition: 'Preparing narration'};
+  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat', repair: 'Repairing control', audition: 'Preparing narration', setup:'Checking recording tools', create:'Continuing creation'};
   const watch = () => fetch('job.json').then(r => r.json()).then(job => {
     if (!job.kind) return;
     document.body.dataset.jobRunning = job.running ? '1' : '';
@@ -1812,6 +1868,11 @@ SCRIPT = '''(() => {
     if (job.kind === 'from') {
       title.textContent = job.code === 0 ? `${what} worked. Here is the take, from ${job.beat} on; when it looks right, record the run.` : what + ' failed.';
       if (job.take && take.getAttribute('src') !== job.take) { take.src = job.take; take.hidden = false; }
+      return;
+    }
+    if (job.kind === 'setup') {
+      title.textContent = job.cancelled ? 'Tool check cancelled. Your project is kept.' : job.code === 0 ? 'Tool check passed. Loading the project...' : 'Tool check needs attention. Loading the fixes...';
+      if (!job.cancelled && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
       return;
     }
     title.textContent = job.cancelled ? 'Update cancelled. Your previous recording is kept.' : job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed; the page still shows the last run that worked.';

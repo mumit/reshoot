@@ -19,7 +19,16 @@ fields and running jobs are not checkpointed.
 
 Requires reshoot CLI 0.3.6 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'` before going on. Run `reshoot doctor --config CONFIG` for an existing project. If the CLI is missing, use the repository's documented installation; do not invent commands for a different version.
 
-Resolve missing required tools before recording. If `RESHOOT_CHROME` is set, it must name an executable browser; correct or unset a stale path. A successful doctor check does not probe capture or the final scan.
+Resolve missing required tools before recording. If `RESHOOT_CHROME` is set, it must name an executable browser; correct or unset a stale path. Use `reshoot doctor --config CONFIG --probe` to test temporary synthetic video encoding, TOML browser capture and configured OCR. Default doctor checks availability/versions; neither mode validates the app, positive face detection or final media. Respect the configured OCR/scan choice and fix failures instead of turning scans off.
+
+Creation keeps its first-run state under ignored `takes/`. Recording tools in
+the studio offers fixes, Check again and Continue creation. Use `reshoot create
+--resume --directory demo` after fixing setup or a failed preview. It retains
+the saved story, URL and viewport; completed creation opens the studio without
+recording again. Do not pass another app URL or size when resuming. If a draft
+changed before or during demonstration, preserve it and compare the separately
+saved recording; do not overwrite those changes. Restart reshoot after changing
+shell settings or its Python environment. Probe/check buttons install nothing.
 
 Identify the target: app source, a running web URL, or an installed native macOS app. Source code is optional. Inspect code and demo fixtures when available; otherwise inspect the actual page or window. Choose one useful task with a visible result, audience and destination. Ask only for missing details that materially affect the story.
 

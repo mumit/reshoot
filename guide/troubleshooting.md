@@ -45,6 +45,13 @@ recording before it. Find the message below, or the section that matches.
 
 ## A command or dependency is missing
 
+For a paused first creation, use the studio's **Recording tools** fixes and
+**Check again**, then **Continue creation**. From a terminal, run
+`reshoot create --resume --directory demo`. It preserves the saved task after
+setup and preview failures. `reshoot doctor --config demo/reshoot.toml --probe`
+tests temporary synthetic encoding, browser capture and configured OCR without
+using the app. Restart reshoot after changing shell or Python environment settings.
+
 | Symptom | Action |
 |---|---|
 | `uv` is not found | Follow the [uv installer](https://docs.astral.sh/uv/getting-started/installation/), then open a new terminal |

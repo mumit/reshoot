@@ -39,6 +39,7 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 
 | Date | Record |
 |---|---|
+| 2026-10-25 | [First-run setup](2026-10-25-first-run-setup.md): actionable tool checks, synthetic probes, guarded creation resume and studio continuation |
 | 2026-10-25 | [Studio session recovery](2026-10-25-session-recovery.md): persistent Undo/Redo, explicit resume, preserved external edits and guarded source copies |
 | 2026-10-25 | [Creation-to-review journey](2026-10-25-creation-journey.md): critical persona review, source freshness, section navigation, draft recovery and exact-run downloads |
 | 2026-10-24 | [Offline clickable tours](2026-10-24-offline-tours.md): checked screens, embedded images, keyboard/marker navigation and run-bound refresh review |

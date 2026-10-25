@@ -187,10 +187,28 @@ See [the creation journey review](docs/validation/2026-10-25-creation-journey.md
 
 See [the session recovery trial](docs/validation/2026-10-25-session-recovery.md).
 
+## First-run setup and continuation
+
+- [x] Share structured tool checks and actionable fixes between doctor, creation
+  and the studio, while retaining existing doctor JSON fields.
+- [x] Add explicit synthetic probes for H.264/ffprobe, TOML browser input/capture
+  and configured OCR; keep app state, scan choices and media verdicts separate.
+- [x] Preserve creation stages and offer `create --resume`, retaining URL,
+  viewport and the saved task after setup or preview failures.
+- [x] Record demonstrations into new drafts and guard installation against
+  source changes; keep both sources when another editor changes the project.
+- [x] Offer focused Recording tools fixes, Check again and Continue creation,
+  with successful checks collapsed and terminal/environment recovery explained.
+- [x] Verify missing and corrected tools, probe failures, source preservation,
+  cached-check invalidation, fresh notes creation, mobile UI, regressions and
+  documentation/package checks.
+
+See [the first-run setup trial](docs/validation/2026-10-25-first-run-setup.md).
+
 ## Following milestones
 
-1. Reduce cold-start setup friction: show missing capture/scan dependencies in
-   the creation flow with actionable recovery and verifiable dependency checks.
+1. Compare previous and current checked beat frames in the studio, keeping both
+   recordings and their review evidence bound to the displayed revisions.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

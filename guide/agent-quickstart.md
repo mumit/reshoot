@@ -114,6 +114,10 @@ Update preview chooses the work, and Make final records the full-size exports.
 Inspect the video, GIF and scan sheets there before accepting. Run
 `reshoot create` without a URL to try the notes example.
 
+If tools need attention, the studio shows fixes and **Check again**. Choose
+**Continue creation**, or run `reshoot create --resume --directory demo` after
+fixing setup. A failed preview retains the demonstrated task for that retry.
+
 The [tutorial](step-by-step.md) teaches the individual commands with the notes app.
 Keeping a demo current in CI never needs an agent: the
 [GitHub workflow](ci.md) only runs reshoot.
@@ -272,7 +276,7 @@ When receiving the prompt above, follow this workflow:
 5. Use isolated synthetic data and document its reset. Keep secrets and real
    accounts outside the demo. Resolve a fresh-profile login for web apps or a
    synthetic document for native apps. Ask for missing setup when needed.
-6. For versioned browser projects, run `reshoot doctor --config demo/reshoot.toml`
+6. For versioned browser projects, run `reshoot doctor --config demo/reshoot.toml --probe`
    and `reshoot preview demo/reshoot.toml`. For native apps, verify ffmpeg and
    capture permission, then make a standalone test take. Inspect the result;
    repair actions without changing the intended task. Retain failed attempts.

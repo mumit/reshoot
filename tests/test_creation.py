@@ -60,7 +60,7 @@ def test_recorder_keeps_incomplete_steps_and_explicit_checks(tmp_path):
 
 
 def test_create_keeps_an_incomplete_story_without_attempting_a_preview(tmp_path, monkeypatch):
-    monkeypatch.setattr(project, 'doctor', lambda a: 0)
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config: {'ok': True})
     monkeypatch.setattr(rec, 'main', lambda a: rec.write_toml(a.out, a.url, a.size,
         [(0, {'kind': 'unsupported-drop'})]))
     monkeypatch.setattr('reshoot.run.preview', lambda a: pytest.fail('an incomplete draft must not render'))
@@ -70,7 +70,7 @@ def test_create_keeps_an_incomplete_story_without_attempting_a_preview(tmp_path,
 
 
 def test_create_applies_the_viewport_to_the_notes_example(tmp_path, monkeypatch):
-    monkeypatch.setattr(project, 'doctor', lambda a: 0)
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config: {'ok': True})
     seen = []
     monkeypatch.setattr('reshoot.run.preview', lambda a: seen.append(story.load(tmp_path / 'storyboard.toml')['size']))
     create.main(SimpleNamespace(url=None, directory=str(tmp_path), size='960x540@1.5', no_studio=True, no_open=True))

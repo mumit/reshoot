@@ -126,9 +126,7 @@ PATH, `RESHOOT_CHROME`, browser flags or the Python environment, restart reshoot
 using the resume command so it sees those changes. **Check again** does not
 install packages or silently turn off scanning.
 
-For the direct file workflow, the next step is the
-[first-demo tutorial](step-by-step.md#2-record-a-preview). If `demo` already exists,
-continue at the preview step instead of running `init` twice.
+Next, make your first demo with [the tutorial](step-by-step.md).
 
 ## Upgrade and remove
 

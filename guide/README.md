@@ -23,7 +23,7 @@ watch whether it helps. [How the videos look](look.md) shows each in pictures.
 
 | Goal | Use | Read |
 |---|---|---|
-| See and shape it by pointing | The studio: beats on a timeline, captions, cards, the frame, music and exports | [Shape it in the studio](customize.md#shape-it-in-the-studio) |
+| See and shape it by pointing | The studio: beats on a timeline, captions, cards, the frame, music and exports | [Shape it in the studio](studio.md) |
 | Explain a task without sound | Short captions and readable holds on the result | [Change and grow a demo](customize.md) |
 | Draw the eye to a control | The cursor, auto-zoom and caption placement | [How the videos look](look.md) |
 | Explain a longer process | Sections, title cards, a voiceover and subtitles | [Grow it into a fuller demo](customize.md#grow-it-into-a-fuller-demo) |

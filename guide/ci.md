@@ -44,7 +44,7 @@ sheets and review page stay in the artifact. [Review a refresh pull request](tea
 lists the steps. **Merging the pull request accepts the recording**: the next
 run compares against it. Close the pull request to keep the current demo.
 
-Configured [documentation screenshots](customize.md#keep-documentation-screenshots-current)
+Configured [documentation screenshots](studio.md#make-screenshots-for-docs)
 are copied with the exports, shown with their alt text in the pull request and
 included in the comparison table. Inspect each image and its crop before
 merging. The template copies all final exports; if an older workflow names only
@@ -52,7 +52,7 @@ the MP4 and GIF with `--file`, add each `--file screenshots/NAME.png` or omit th
 file list. Previously copied PNGs are not deleted when a selection is removed;
 remove obsolete files and documentation references in the same pull request.
 
-An optional [clickable tour](customize.md#make-an-offline-clickable-tour) is
+An optional [clickable tour](studio.md#make-a-clickable-tour) is
 staged with the other exports. With an explicit file list, include
 `--file tours/NAME.html`. The Markdown links to the HTML; GitHub displays HTML
 source rather than executing the tour, so download it and open it locally to
@@ -86,7 +86,7 @@ fails. It does not change the repository or open a pull request. Use it to test
 CI recording before adopting the refresh workflow. After a run, download the
 `reshoot-review` artifact, open `review.html` locally and keep the folder
 structure intact so media and original frames remain linked. Review the exports
-and sheets as in the [tutorial](step-by-step.md#4-accept-the-recording).
+and sheets as in the [tutorial](step-by-step.md#5-review-and-accept).
 A recording that worked and an uploaded artifact are not an acceptance.
 
 ## Choose when to record

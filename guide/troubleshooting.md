@@ -157,7 +157,7 @@ First identify which review is pending:
 Watch the final exports, look at the scan items, and run `reshoot accept RUN`.
 It records both the recording and the scan checklist. If it stops and lists
 findings, name each with `--flagged F1`, or `--reject F1` if it must not be
-shared; the [tutorial](step-by-step.md#4-accept-the-recording) walks through
+shared; the [tutorial](step-by-step.md#5-review-and-accept) walks through
 it. `reshoot check --review RUN/review --ok` and
 `reshoot review RUN --import-decisions FILE` each record only one of the two,
 leaving the other pending. After accepting, rebuild the page with

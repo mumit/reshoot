@@ -92,7 +92,7 @@ reshoot check takes/native-01/app.mov takes/native-01/window-final.mp4 takes/nat
 
 Exit 1 means supplied items need human review; exit 2 means an error. Inspect
 the sheets and original frames before recording a scan verdict. Follow the
-[review checklist](step-by-step.md#4-accept-the-recording), using
+[review checklist](step-by-step.md#5-review-and-accept), using
 the actual media and standalone check directory. Record the verdict with
 `reshoot check --review takes/native-01/review --fail LABEL` for a failed item,
 then `--ok` once the rest pass. This route does not generate a versioned

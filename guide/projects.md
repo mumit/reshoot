@@ -144,7 +144,7 @@ automatically appended to the run's check sources when `[check]` is configured;
 alt text is scanned alongside subtitles and narration when scanning is enabled.
 `screenshots.json` binds the PNG, its source frame and take metadata by hash.
 Partial previews produce no documentation screenshots. See
-[screenshots](customize.md#keep-documentation-screenshots-current) for studio,
+[screenshots](studio.md#make-screenshots-for-docs) for studio,
 crop, refresh and local export steps.
 
 ## Offline tour
@@ -189,7 +189,7 @@ source frames and take metadata by hash. Tour images join configured check
 sources, and enabled detection scans their words directly. The manifest and
 PNG assets remain in the run for review; local export needs only the HTML.
 
-See [offline tours](customize.md#make-an-offline-clickable-tour) for studio,
+See [offline tours](studio.md#make-a-clickable-tour) for studio,
 CLI and refresh steps.
 
 ## storyboard.toml
@@ -404,7 +404,7 @@ at result holds, plus checked-result rectangles, without storing sampled page
 text or field values. The `.captions.json` retains caption boxes and font sizes.
 Spatial mappings in `.timeline.json` account for browser framing, cuts and
 export transforms. Missing or unsupported measurements are stated explicitly;
-they never imply a readability pass. See [destination framing](customize.md#frame-and-inspect-a-destination).
+they never imply a readability pass. See [destination framing](studio.md#fit-an-export-to-where-its-shown).
 
 ### Export presets
 
@@ -489,7 +489,7 @@ them otherwise. It asks for confirmation, and without a terminal needs `--yes`.
 a server on `127.0.0.1` that takes it only from its own page. `reshoot studio`
 offers it too, beside the beats.
 A changed file or a new scan undoes the decision. The
-[tutorial](step-by-step.md#4-accept-the-recording) walks through it.
+[tutorial](step-by-step.md#5-review-and-accept) walks through it.
 
 For a decision per beat, the review page's **Your decisions** controls download
 a file for `reshoot review RUN --import-decisions FILE`; that covers the

@@ -165,7 +165,7 @@ the target or app state instead of removing the result check.
 
 The recorder saves alternative locators for future repairs. If the app renames
 a control, the studio shows the failed step and lets you select its replacement;
-see [Repair a changed control](customize.md#repair-a-changed-control). From the
+see [Repair a changed control](studio.md#repair-a-step-that-broke). From the
 CLI, inspect the failed run with `reshoot repair RUN`, then use `--apply` for a
 suggestion or `--pick` to choose the replacement. Result checks still have to
 pass in a fresh recording.
@@ -226,7 +226,7 @@ reshoot run demo/reshoot.toml
 
 Watch the preview before the final. A failing beat names its control; see
 [Troubleshooting](troubleshooting.md#an-action-or-result-check-fails). Then
-[accept the final](step-by-step.md#4-accept-the-recording). For a portrait
+[accept the final](step-by-step.md#5-review-and-accept). For a portrait
 export, choose a crop or record a separate mobile take: fitting a wide page
 into a phone frame does not make its words readable.
 

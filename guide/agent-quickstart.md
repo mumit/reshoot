@@ -164,11 +164,11 @@ first. Reply in plain words:
 
 To make changes yourself by pointing, run `reshoot studio demo`: it shows the
 run beat by beat and saves your edits to the captions, cards, frame and exports
-to the project's files. See [Shape it in the studio](customize.md#shape-it-in-the-studio).
+to the project's files. See [Shape it in the studio](studio.md).
 
 The agent revises the source and records another run. Saying "accept" lets it
 run `reshoot accept` for you; you can also run the command yourself. The
-[review instructions](step-by-step.md#4-accept-the-recording) cover flagged and
+[review instructions](step-by-step.md#5-review-and-accept) cover flagged and
 rejected items. Nothing posts automatically.
 
 You can stop here with your first clip. When ready, see [how the videos look](look.md),

@@ -10,7 +10,7 @@ and alerts.
 Commit the brief, story, edit, `reshoot.toml` and any demo-data reset scripts,
 without credentials. `demo/.gitignore` already keeps `demo/takes/` out.
 
-[Accepting a run](step-by-step.md#4-accept-the-recording) writes
+[Accepting a run](step-by-step.md#5-review-and-accept) writes
 `demo/accepted/`: the run's report, beat results and evidence frames, without
 the media. Commit it with the source. Later runs are compared with it, and
 `demo/accepted` names it in every command. A newer run never replaces it until
@@ -31,7 +31,7 @@ reshoot review demo/latest --previous demo/accepted
 
 `demo/latest` is the newest successful run. Keep the beat IDs and the result
 checks. When a renamed control breaks a beat, repair its target rather than
-deleting its result check; the [tutorial](step-by-step.md#6-change-the-app-and-repair-the-story)
+deleting its result check; the [tutorial](step-by-step.md#6-change-the-app-and-repair-the-demo)
 walks through one. Watch the new exports, look at the new scan items, and
 accept the new run: accepting the old one says nothing about it.
 

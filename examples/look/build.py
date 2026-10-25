@@ -217,7 +217,7 @@ The embedded images, words and navigation work offline.
 
 [Download the offline notes walkthrough](../docs/look/notes-tour.html), then open
 the HTML file in a browser. Create and edit one in the studio's **Clickable tour**
-panel; see [offline tours](customize.md#make-an-offline-clickable-tour).
+panel; see [offline tours](studio.md#make-a-clickable-tour).
 
 ## Documentation screenshots
 
@@ -230,7 +230,7 @@ image, not a stitched full-page capture.
 
 Choose **Use for docs** beside a checked step in the studio, describe the image,
 save it and update the preview. Its name stays stable across fresh recordings.
-See [documentation screenshots](customize.md#keep-documentation-screenshots-current)
+See [documentation screenshots](studio.md#make-screenshots-for-docs)
 for cropping, local export and refresh review.
 
 ## Visual styles
@@ -251,7 +251,7 @@ reshoot recut demo/latest
 ```
 
 Save your own look and use it in another project with
-[reusable styles](customize.md#reuse-a-visual-style).
+[reusable styles](studio.md#change-the-look).
 
 ## Beat cuts and sequence
 
@@ -280,7 +280,7 @@ through = "search"
 ```
 
 The studio's **Your cut** edits these ranges and their order, with Undo and
-Redo. See [trim and arrange the video](customize.md#trim-and-arrange-the-video)
+Redo. See [trim and arrange the video](studio.md#trim-and-arrange-the-video)
 for the CLI equivalents. Update preview reuses a current recording and
 retains repeated captions and narration at their new times.
 
@@ -421,7 +421,7 @@ These are editing hints from sampled main-page text and rendered caption
 geometry. They do not establish readability or accessibility. Camera zoom,
 custom placement, iframe or canvas text need visual inspection. The studio's
 **Inspect at viewing size** keeps the requested width, with scrolling when
-needed. See [destination framing](customize.md#frame-and-inspect-a-destination)
+needed. See [destination framing](studio.md#fit-an-export-to-where-its-shown)
 for the controls and CLI. `reshoot frame check demo/latest` reads the measured
 feedback bound to that run.
 

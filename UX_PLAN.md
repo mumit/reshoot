@@ -152,9 +152,27 @@ See [the documentation screenshots trial](docs/validation/2026-10-24-documentati
 
 See [the offline tour trial](docs/validation/2026-10-24-offline-tours.md).
 
+## Creation-to-review coherence
+
+- [x] Review the complete journey as a newcomer, repeat author and careful
+  reviewer; record critical findings and the limits of persona-based review.
+- [x] Distinguish unsaved fields, saved changes, current previews, final review
+  and accepted files, with a visible next action and pending-review protection.
+- [x] Bind rendered and captured source fingerprints separately, retaining
+  task/data changes across re-cuts and binding fixture bytes after app reset.
+- [x] Add section navigation, measured sticky-header layout, explicit draft
+  reset and external-change reload without silently adopting revisions.
+- [x] Bundle the displayed run's exports and video subtitles for local download,
+  with image Markdown, review status and hashes; exclude sources and logs.
+- [x] Exercise preview, caption revision, re-cut, final review and exact-run
+  downloads; verify mobile navigation, stale edits and source-path replacement.
+
+See [the creation journey review](docs/validation/2026-10-25-creation-journey.md).
+
 ## Following milestones
 
-1. Review the complete creation-to-review journey and reduce remaining friction.
+1. Recover studio editing sessions across a restart: persistent undo history,
+   explicit recovery choices and protection for source changes made elsewhere.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

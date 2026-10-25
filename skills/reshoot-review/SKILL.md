@@ -5,6 +5,13 @@ description: Inspect a reshoot recording and its check report for failed actions
 
 # Review a recording
 
+The studio's Review and Download sections refer to the displayed run. Pending
+source edits must be rendered before accepting there. Earlier recordings can
+remain reviewable without a complete source comparison; the status says so.
+Download all exports packages rendered media and subtitles with image Markdown
+and a hash/status manifest, excluding sources, logs and review evidence. Keep
+the review page and scan sheets available separately. A ZIP is not acceptance.
+
 For `tours.json`, open the actual `tours/NAME.html` and inspect every step,
 explanation, alt description and click marker. Next/Back, step numbers and
 arrow/Home/End keys navigate captured screens; they do not perform live app

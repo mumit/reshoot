@@ -5,6 +5,14 @@ description: Update an existing reshoot demo after an app or release changes. Us
 
 # Refresh a demo
 
+The studio compares saved/rendered sources and retains captured task/data
+fingerprints across re-cuts. Holds, narration, actions, declared inputs and
+uploaded files still need a fresh capture after changing. The status cannot
+verify a live app or undeclared dependencies; explicitly record again after
+those change. Return from an external editor and reload the project before
+editing in the studio. Its Download section packages the shown recording,
+even when another command has made a newer run.
+
 Keep optional `[tour]` and `[[tour.step]]` selections with the demo source.
 `reshoot tour create --title 'Explore the demo' --project demo` starts from checked
 beats; `tour set STEP` edits title, text, alt and optional `--x`/`--y` marker

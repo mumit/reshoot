@@ -8,6 +8,14 @@ change project files or commands.
 
 ### Added
 
+- A studio journey status distinguishes unsaved fields, pending source edits,
+  current previews and final review, with a highlighted next action. Section
+  navigation, Reset unsaved edits and external-change reloads reduce editor
+  friction. Render and capture snapshots retain task/data changes across re-cuts;
+  the studio rejects acceptance while saved changes are pending.
+- Download all exports bundles the shown run's media, tour and video subtitles
+  with image Markdown, file hashes and review status. Downloads retain the exact
+  run binding and exclude source files, logs and review evidence.
 - Offline clickable tours from checked browser result frames. The studio and
   `reshoot tour` create and reorder steps, edit explanations/alt text and place
   optional click markers. One HTML file embeds the images and navigation, with

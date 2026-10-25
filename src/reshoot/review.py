@@ -679,9 +679,13 @@ PANEL_SCRIPT = '''<script>(() => {
   box.addEventListener('change', () => {
     const c = choices();
     button.textContent = c.some(([, v]) => v === 'reject') ? 'Reject the run' : 'Accept the run';
-    button.disabled = !document.getElementById('watched').checked || c.some(([, v]) => !v);
+    button.disabled = document.body.dataset.studioPending === '1' || !document.getElementById('watched').checked || c.some(([, v]) => !v);
   });
   button.onclick = async () => {
+    if (document.body.dataset.studioPending === '1') {
+      document.getElementById('outcome').textContent = 'Update preview or make a final so the recording includes the saved edits.';
+      return;
+    }
     if (document.querySelector('[data-unsaved]')) {
       document.getElementById('outcome').textContent = 'Fix the unsaved field before accepting.';
       return;
@@ -696,6 +700,7 @@ PANEL_SCRIPT = '''<script>(() => {
     document.getElementById('outcome').textContent = out.output;
     if (out.code === 0 || body.reject.length) box.querySelectorAll('input').forEach(i => i.disabled = true);
     else button.disabled = false;
+    if (out.code === 0 && !body.reject.length) document.dispatchEvent(new CustomEvent('reshoot:accepted'));
   };
 })();</script>'''
 

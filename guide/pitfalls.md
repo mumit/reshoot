@@ -3,6 +3,18 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **Saved changes looked like part of the displayed video.** Fixed in reshoot:
+  a global studio status distinguishes unsaved fields, saved edits, current
+  previews and final review. Source snapshots retain captured task/data changes
+  across re-cuts; pending edits must be rendered before accepting in the studio.
+  This compares declared files, not remote apps or undeclared dependencies.
+- **An invalid field trapped further studio work.** Fixed in reshoot:
+  Reset unsaved edits reloads persisted source, including fields in closed panels.
+  External changes offer Reload project without silently adopting a new revision.
+- **Getting the finished files meant finding several run folders.** Fixed in
+  reshoot: Download all exports produces a local ZIP bound to the shown run,
+  with video subtitles, image Markdown and hashes. Source files and app logs
+  stay outside the bundle. Review and publication remain separate decisions.
 - **An exported walkthrough lost its images offline.** Fixed in reshoot: tours
   embed checked result images, styles and navigation in one HTML file. Local
   export includes that file; no assets folder or live app is needed.

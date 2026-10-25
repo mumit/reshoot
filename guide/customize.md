@@ -36,6 +36,17 @@ a timeline under it, green where the result checks passed. Each beat shows its
 last frame, its result checks, and its caption and second line, ready to edit.
 Click a beat to play just that part.
 
+The status above the preview separates unsaved fields, saved changes waiting
+for an update, a current preview and a final ready for review. It highlights
+the next action. **Preview**, **Story**, **Cut**, **Look**, **Audio**,
+**Screenshots**, **Tour**, **Review** and **Download** jump to their sections
+without leaving the page. Open panels and unsaved fields stay in place.
+
+If a field will not save, fix it or choose **Reset unsaved edits** to reload
+the saved project. That resets every unsaved field, including fields in closed
+panels. When you return from another editor, the studio checks for file changes
+and offers **Reload project**. Reset local drafts first if both have changed.
+
 - **Change a caption or result hold** and leave the field: it is saved to
   `demo/storyboard.toml`, and the beat says it is not in the video yet.
 - **Change the caption look**, its place and colours, the same way.
@@ -80,6 +91,20 @@ Click a beat to play just that part.
 - **Cancel update** stops the current job and keeps the previous recording.
   Editing is paused while a job uses the project. Save errors stay visible so
   an unsaved change cannot look like a successful update.
+
+**Download** offers a ZIP of the shown run's videos, GIFs, PNGs, offline tour
+and video subtitles, plus image Markdown and a manifest of file hashes and
+review status. Individual downloads remain available. The bundle excludes
+project sources, app logs and review evidence. It stays bound to the shown
+recording when another command makes a newer one; saved edits enter its files
+only after updating the recording. Downloading does not accept or publish them.
+
+The studio requires pending source edits to be rendered before accepting here.
+Existing runs without the new source snapshot say **Earlier recording**; their
+exact exports remain reviewable, but the studio cannot compare all sources.
+The status compares declared project files and assets, not the running app.
+Re-cuts retain the captured actions, holds, voice and demo data, so changing
+those still requires a fresh capture even after an explicit re-cut.
 
 **More** retains explicit Re-cut and Record a preview commands for advanced use.
 For multiple takes or older recordings without the required metadata, Update

@@ -180,6 +180,8 @@ def main(a):
     path = Path(a.config)
     if not path.exists():
         raise SystemExit(f"no {describe(path)}: see reshoot run --help")
+    from reshoot.journey import snapshot
+    render_state = snapshot(path)
     from reshoot.config import prepare
     shoot = prepare(path)
     if getattr(a, 'full', False):
@@ -221,6 +223,7 @@ def main(a):
     from reshoot.artifacts import digest
     from importlib.metadata import version
     report['inputs'] = {'config_sha256': digest(path), 'reshoot': version('reshoot'), 'stories': [],
+                        'render_state': render_state, 'capture_state': render_state,
                         'fixtures': [{'source': describe(f), 'sha256': digest(f)} for f in shoot.get('inputs', [])]}
     raw_config = tomllib.loads(path.read_text())
     report['inputs']['recording_config_sha256'] = __import__('hashlib').sha256(json.dumps(
@@ -233,6 +236,7 @@ def main(a):
         report['inputs'].update(stories=source_report.get('inputs', {}).get('stories', []),
                                 fixtures=source_report.get('inputs', {}).get('fixtures', []))
         report['inputs']['recording_config_sha256'] = source_report.get('inputs', {}).get('recording_config_sha256')
+        report['inputs']['capture_state'] = source_report.get('inputs', {}).get('capture_state')
         report['recut_from'] = source_report['id']
     if edit := shoot.get('edit'):
         edit_path = edit.get('file', edit.get('script'))
@@ -261,6 +265,11 @@ def main(a):
         if 'app' in shoot:
             app = start_app({**shoot['app'], 'timeout': min(shoot['app'].get('timeout',60), timeout)},
                             report_path.parent / 'app.log')
+        if not source:
+            from reshoot.journey import capture_inputs
+            report['inputs']['render_state'] = capture_inputs(render_state, snapshot(path))
+            report['inputs']['capture_state'] = report['inputs']['render_state']
+            report['inputs']['fixtures'] = [{'source': describe(f), 'sha256': digest(f)} for f in shoot.get('inputs', [])]
         for name, cmd in plan:
             print('\n== ' + redact(name).replace(str(Path.cwd().resolve()) + os.sep, ''), flush=True)
             t = time.monotonic()

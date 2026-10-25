@@ -18,8 +18,8 @@ repair, visual styles, beat cuts, destination framing, audio and documentation
 screenshots and offline tours now share that workflow. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **A coherent creation journey.** Review the complete workflow with newcomer,
-    repeat-author and careful-reviewer personas; simplify the remaining friction.
+1. **Session recovery.** Retain studio edit history across a server restart and
+    offer explicit recovery without overwriting changes from another editor.
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
@@ -50,6 +50,12 @@ screenshots and offline tours now share that workflow. The
   through the skills.
 
 ## Done
+
+- **A coherent creation journey:** global saved/rendered/captured source status,
+  a visible next action, section navigation, explicit draft reset, external-edit
+  reload and review guards. Local ZIP downloads contain the displayed run's
+  exports/subtitles, image Markdown and hash/status manifest, excluding sources
+  and logs. Synthetic persona and workflow evidence is recorded separately.
 
 - **Offline clickable tours:** one HTML file of checked result screens, with
   editable explanations/alt text, optional click markers, ordered steps and

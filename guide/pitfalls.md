@@ -3,6 +3,17 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **A cut lost the last result hold.** Fixed in reshoot: `through = "search"`
+  includes that beat's recorded end; `end = "search"` still stops at its start.
+  Studio ranges use inclusive Through controls and keep named boundaries when
+  the task is freshly recorded. A cut cannot split a narration line.
+- **A repeated beat played at the wrong position.** Fixed in reshoot: the studio
+  maps every appearance, plays the clicked occurrence and marks omitted beats
+  as not in the cut. Part playback includes title cards and new output times.
+- **An unsaved range looked applied.** Fixed in reshoot: save or reset range
+  choices before an update or another edit. Sequencing supports grouped undo
+  and rejects changed source files or recording evidence before writing.
+
 - **A reusable look overwrote the demo or only half applied.** Fixed in reshoot:
   visual styles accept only appearance settings, validate all affected files
   before writing, and preserve task content, timing, fonts, audio, exports and

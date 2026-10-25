@@ -65,9 +65,26 @@ See [the locator repair trial](docs/validation/2026-10-24-locator-repair.md).
 
 See [the visual styles trial](docs/validation/2026-10-24-visual-styles.md).
 
+## Beat trimming and sequencing
+
+- [x] Share inclusive named ranges and move, duplicate, remove and add operations
+  between the CLI and studio, preserving the full capture task and result checks.
+- [x] Retain comments and advanced settings; keep numeric custom ranges until
+  explicitly replaced and leave nested custom tables to file editing.
+- [x] Protect complete narration lines, source revisions and recording hashes;
+  keep concurrent edits outside undo history and reject partial runs as sources.
+- [x] Support one-step undo, range Save/Reset and protection against updates
+  with unsaved range choices.
+- [x] Map every beat appearance and ordered output part, including title cards,
+  and enable playback after rendering the saved cut.
+- [x] Verify notes in the CLI and browser, repeated subtitles and export maps;
+  rebuild and inspect the gallery and document the workflow.
+
+See [the beat sequencing trial](docs/validation/2026-10-24-beat-sequencing.md).
+
 ## Following milestones
 
-1. Beat trimming and sequencing, destination framing and readability feedback,
+1. Destination framing and readability feedback,
    and narration auditioning and audio balance.
 2. Screenshots and tours after the creation and revision loop is established.
 

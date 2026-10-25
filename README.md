@@ -35,6 +35,8 @@ when it looks right. Undo keeps experiments easy to reverse.
 **Style and exports** offers Focus, Midnight and Paper looks, plus saved styles
 you can reuse in another project. Update preview shows the chosen look using
 the existing recording when the story is still current.
+**Your cut** trims clips by beat and rearranges or repeats them, while the
+recording still runs the full task and its checks.
 
 For your own running demo app:
 

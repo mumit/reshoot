@@ -43,6 +43,10 @@ Click a beat to play just that part.
   large; Midnight and Paper frame it. The sketches show the look; choose
   **Update preview** to see it on your video. Save a look by name, download it,
   or import a style from another project. Applying a style is one Undo step.
+- **Shape the video in Your cut**: choose From and Through beats, save the
+  range, move a part earlier or later, repeat it with Duplicate, or remove it.
+  Add clip appends another recorded range. The storyboard still runs the whole
+  task and its checks. Choose Update preview to see the new order.
 - **Change the edit**: add, reword, time or remove an opening or closing title
   card, set card colours, turn the browser frame on and set its background or
   two-colour gradient, choose a music file
@@ -140,6 +144,61 @@ recording. From the CLI, use `recut` only when the app, story and recording
 settings still match that run; otherwise record a new preview. Check caption
 contrast, overlap and app text at the actual export size, especially after
 framing. The [gallery](look.md#visual-styles) shows the starting looks on notes.
+
+## Trim and arrange the video
+
+Open **Your cut** in the studio after recording a complete preview. Each part
+is a recorded clip or a title card. For a clip, choose **From beat** and
+**Through beat (included)**, then **Save range**. Through includes that beat's
+result hold. **Reset** discards an unsaved range; pending choices block updates
+and other edits until saved or reset.
+
+Use **Earlier** and **Later** to change the order, **Duplicate** to repeat a
+part, or **Remove** to leave it out of the video. Keep at least one part. Add
+another range with **Add clip to end**, choosing its recorded take. **Edit title
+card** opens its words and duration under Style and exports. Undo and Redo
+restore each change in one step, and stale tabs preserve newer edits.
+
+Choose **Update preview** to render the saved cut. A current recording is
+reused; changes to the task, timing or app inputs still record again. **Play
+part** then plays each part at its new position. Repeated beats appear at each
+position on the timeline; the story lists their appearance count, and omitted
+beats say **not in this cut**. Checks still describe the full recorded task.
+
+The CLI uses the same operations. Part, take and position numbers start at 1:
+
+```bash
+reshoot sequence list --project demo
+reshoot sequence range 1 --from search --through search --project demo
+reshoot sequence add --take 1 --from intro --through add --project demo
+reshoot sequence duplicate 1 --project demo
+reshoot sequence move 3 --to 2 --project demo
+reshoot recut demo/latest
+```
+
+On the notes project, this shows the result, its creation steps, then the result
+again. `reshoot sequence remove 2 --project demo` removes the second video part. The
+storyboard's actions, captions, holds and expected results remain unchanged.
+These operations need a complete successful run from the project; `--run RUN`
+selects an older one. Record a new preview to choose newly added beats.
+
+The edit stores named boundaries, so they follow a fresh recording's timing:
+
+```toml
+[[part]]
+take = 0
+start = "add"
+through = "search"
+```
+
+`take` in the file starts at 0, matching the edit's input arguments. Existing
+`end = "search"` stops at the start of search; `through = "search"` includes
+its end. Use one or the other. Numeric boundaries remain available in the file;
+a custom boundary stays intact until you explicitly save a named range.
+Nested custom part tables also stay in the file. Cuts cannot split a narration
+line. Repeated clips retain captions, subtitles and complete narration at
+their new times. Watch the [gallery example](look.md#beat-cuts-and-sequence)
+and both exports before keeping the edit.
 
 ## Find the files
 

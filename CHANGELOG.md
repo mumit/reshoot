@@ -8,6 +8,14 @@ change project files or commands.
 
 ### Added
 
+- Your cut in the studio and `reshoot sequence` share inclusive beat-range
+  trimming, moving, duplication, removal and adding clips. Capturing still runs
+  the full task and its checks. Named `through` boundaries retain the last beat's
+  hold across refreshes, and cuts preserve complete narration lines. Studio
+  edits support undo, stale-evidence checks and pending-range protection.
+- Cut-part playback and repeated-beat timeline markers, with omitted beats
+  clearly identified. Finished edit maps retain ordered part intervals and
+  repeated subtitles. Source controls retain their disabled state after jobs.
 - Reusable Focus, Midnight and Paper looks in the studio, with saved project
   styles, portable TOML import/download and one-step undo. `reshoot style`
   lists, applies and saves the same styles from the CLI. Styles keep the task,

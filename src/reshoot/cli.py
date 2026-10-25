@@ -244,6 +244,33 @@ def main(argv=None):
             command.add_argument('--replace', action='store_true', help='replace an existing saved style or export file')
         command.set_defaults(run=styles.main)
 
+    from reshoot import sequence
+    p = sub.add_parser('sequence', help='trim and arrange the video by recorded beats',
+                       description='Choose inclusive beat ranges, move, duplicate, add or remove video parts. '
+                       'The storyboard still runs in full, with its actions and checks unchanged. Numbers for '
+                       'parts, positions and takes start at 1. Update preview after editing.\n\n'
+                       '    reshoot sequence list --project demo\n'
+                       '    reshoot sequence range 1 --from add --through search --project demo\n'
+                       '    reshoot sequence duplicate 1 --project demo\n'
+                       '    reshoot sequence move 2 --to 1 --project demo', formatter_class=Examples)
+    operations = p.add_subparsers(dest='operation', required=True)
+    for operation, label in [('list', 'show the cut and recorded beat names'), ('range', 'choose a part\'s inclusive beat range'),
+                             ('move', 'move a part to a position'), ('duplicate', 'repeat a part'),
+                             ('remove', 'remove a video part'), ('add', 'append a recorded beat range')]:
+        command = operations.add_parser(operation, help=label)
+        command.add_argument('--project', default='demo', help='project folder or reshoot.toml (default: demo)')
+        command.add_argument('--run', dest='run_path', help='use this complete run from the project (default: latest)')
+        if operation not in ('list', 'add'):
+            command.add_argument('part', type=int, help='part number, starting at 1')
+        if operation in ('range', 'add'):
+            command.add_argument('--from', dest='start', required=True, help='first beat to include')
+            command.add_argument('--through', required=True, help='last beat to include, with its result hold')
+        if operation == 'move':
+            command.add_argument('--to', type=int, required=True, help='new position, starting at 1')
+        if operation == 'add':
+            command.add_argument('--take', type=int, default=1, help='recorded take number (default: 1)')
+        command.set_defaults(run=sequence.main)
+
     from reshoot import studio
     p = sub.add_parser('studio', help='shape a demo in a browser: captions, holds, undo, preview, final and review',
                        description='Open a page on this computer for shaping a demo: the latest run\'s video with its '
@@ -254,6 +281,7 @@ def main(argv=None):
                        'full-size run. Inspect scan sheets and accept the exact run shown. Updates can be cancelled. '
                        'Style and exports offers starting looks, saved styles, portable import/export, cards, '
                        'frame, music and export presets. Applying a style is one undoable change. '
+                       'Your cut chooses beat ranges and moves, repeats or removes video parts without changing the task. '
                        'It serves on 127.0.0.1 behind a random address until Ctrl-C.\n\n'
                        '    reshoot studio\n'
                        '    reshoot studio app/demo --port 8800 --no-open', formatter_class=Examples)

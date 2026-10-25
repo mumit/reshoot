@@ -294,7 +294,8 @@ preset = "readme"
 | `[frame] shadow`, `bar` | `true`, `true` | A soft shadow, and a title bar with three dots |
 | `[frame] background`, `bar_color` | `[style] background`, `"#2b2f36"` | Colors for this frame only |
 | `[[part]] take` | `0` | Which take in `[edit] args` |
-| `[[part]] start`, `end` | the whole take | Seconds or beat IDs |
+| `[[part]] start`, `end` | the whole take | Seconds or beat IDs; `end` stops at that beat's start |
+| `[[part]] through` | none | Include this recorded beat through its end and result hold. Use a beat name, without `end` in the same part |
 | `[[part]] speed` | `1` | Any other speed needs a `label` shown on screen, and cannot shorten a voiceover line |
 | `[[part]] label` | none | Words burned into the part, such as "Sped up 2x" |
 | `[[part]] card` | | A title card's words, instead of `take` |
@@ -351,6 +352,7 @@ smaller size with faster encoding and a sampled scan, and `accept` refuses it.
 | `app.log` | The app's own output |
 | `takes/NAME.clean.mp4` | The take without captions, which captions are drawn on |
 | `takes/NAME.captions.json` | When each beat's caption showed, and the words drawn |
+| `takes/NAME.timeline.json` | Source intervals mapped to output time; finished edits also retain ordered part intervals, including cards, for cut-part playback |
 | `takes/NAME.take.json` | Each beat's actions, result checks, timings and evidence frames, and the browser used |
 | `takes/NAME.failure.png` | The page when a beat failed |
 | `takes/demo-final*.mp4`, `.gif`, `.srt` | The exports |

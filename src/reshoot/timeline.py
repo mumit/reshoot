@@ -13,8 +13,11 @@ def read(video):
     return {'schema_version': 1, 'duration': d, 'segments': [{'source': str(Path(video).resolve()), 'source_start': 0, 'source_end': d, 'start': 0, 'end': d}]}
 
 
-def write(video, segments, duration):
-    Path(video).with_suffix('.timeline.json').write_text(json.dumps({'schema_version': 1, 'duration': duration, 'segments': segments}, indent=2))
+def write(video, segments, duration, parts=None):
+    data = {'schema_version': 1, 'duration': duration, 'segments': segments}
+    if parts is not None:
+        data['parts'] = parts
+    Path(video).with_suffix('.timeline.json').write_text(json.dumps(data, indent=2))
 
 
 def trim(source, start, end, out, factor=1):
@@ -34,7 +37,82 @@ def trim(source, start, end, out, factor=1):
 
 def copy(source, out):
     mapping = read(source)
-    write(out, mapping['segments'], mapping['duration'])
+    write(out, mapping['segments'], mapping['duration'], mapping.get('parts'))
+
+
+def beat_bounds(source):
+    """Recorded beat intervals. Older takes with start markers end at the next marker or the take's end."""
+    length = read(source)['duration']
+    path = Path(source).with_suffix('.take.json')
+    rows = json.loads(path.read_text()).get('beats', []) if path.exists() else []
+    if not rows:
+        from reshoot import cut
+        markers = sorted(cut.beats(source).items(), key=lambda row: row[1])
+        rows = [{'id': name, 'start': start, 'end': markers[i + 1][1] if i + 1 < len(markers) else length}
+                for i, (name, start) in enumerate(markers)]
+    result = {}
+    for row in rows:
+        name, start, end = row.get('id'), row.get('start'), row.get('end')
+        if (not isinstance(name, str) or name in result or any(isinstance(v, bool) or not isinstance(v, (int, float))
+            or not math.isfinite(v) for v in (start, end)) or not 0 <= start <= end <= length + .1):
+            raise ValueError('The recording has invalid beat boundaries. Record a fresh preview.')
+        result[name] = (min(start, length), min(end, length))
+    return result
+
+
+def part_range(part, source):
+    """Resolve a cut, including its last beat with `through`, and protect complete narration lines."""
+    from reshoot import cut
+    length = read(source)['duration']
+    def at(value):
+        if isinstance(value, str):
+            markers = cut.beats(source)
+            if value not in markers:
+                raise ValueError(f'No recorded beat {value!r}. Record a preview after changing the story.')
+            return markers[value]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError('Cut boundaries must be beat names or seconds.')
+        return value
+    start = at(part.get('start', 0))
+    if 'through' in part:
+        if 'end' in part:
+            raise ValueError('A part uses either end (exclusive) or through (inclusive), not both.')
+        if not isinstance(part['through'], str) or part['through'] not in (bounds := beat_bounds(source)):
+            raise ValueError('Choose an end beat from the recording, or record a fresh preview.')
+        end = bounds[part['through']][1]
+    else:
+        end = at(part.get('end', length))
+    speed = part.get('speed', 1)
+    if (isinstance(speed, bool) or not isinstance(speed, (int, float)) or
+        not all(math.isfinite(v) for v in (start, end, speed)) or start < 0 or end <= start or end > length + .1 or speed <= 0):
+        raise ValueError('Choose a nonempty cut with its end after its start, within the recorded take.')
+    spoken = cut.lines(source, 0, length)
+    overlap = [line for line in spoken if line[0] < end and line[0] + line[1] > start]
+    if any(at < start < at + seconds or at < end < at + seconds for at, seconds, _, _ in overlap):
+        raise ValueError('The cut would split a narration line. Include the complete spoken beat.')
+    if speed != 1 and (not part.get('label') or overlap):
+        raise ValueError('speed changes need a label and cannot shorten narration')
+    return start, min(end, length), speed
+
+
+def occurrences(segments, source, start, end):
+    """Every appearance of a source interval in an edited video, including trims and repeated beats."""
+    found, previous_end = [], None
+    for row in segments:
+        if Path(row['source']).resolve() != Path(source).resolve():
+            continue
+        a, b = max(start, row['source_start']), min(end, row['source_end'])
+        if b <= a:
+            continue
+        scale = (row['end'] - row['start']) / (row['source_end'] - row['source_start'])
+        output = [row['start'] + (a - row['source_start']) * scale,
+                  row['start'] + (b - row['source_start']) * scale]
+        if found and abs(found[-1][1] - output[0]) < .001 and previous_end is not None and abs(previous_end - a) < .001:
+            found[-1][1] = output[1]
+        else:
+            found.append(output)
+        previous_end = b
+    return found
 
 
 def concat(sources, out):
@@ -137,7 +215,7 @@ def edit(a):
     output = sources[0].parent / output
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as temp:
-        clips = []
+        clips, part_rows, offset = [], [], 0
         for i, part in enumerate(board['part']):
             if 'card' in part:
                 width, height, _ = cut.probe(sources[0])
@@ -157,23 +235,14 @@ def edit(a):
                 clip = Path(temp) / f'{i}.mp4'
                 cut.still(card.save(Path(temp) / f'{i}.png'), seconds, clip)
                 clips.append(clip)
+                part_rows.append({'index': i, 'start': offset, 'end': offset + read(clip)['duration'], 'kind': 'card'})
+                offset = part_rows[-1]['end']
                 continue
             index = part.get('take', 0)
             if not isinstance(index, int) or index < 0 or index >= len(sources):
                 raise ValueError('edit names an unknown take')
             source = sources[index]
-            def at(value):
-                return float(value) if isinstance(value, (int, float)) else cut.beats(source)[value]
-            start, end = at(part.get('start', 0)), at(part.get('end', cut.duration(source)))
-            speed = part.get('speed', 1)
-            if not all(math.isfinite(x) for x in (start, end, speed)) or start < 0 or end <= start or end > cut.duration(source)+.1 or speed <= 0:
-                raise ValueError('invalid edit range or speed')
-            spoken = cut.lines(source, 0, cut.duration(source))
-            overlap = [line for line in spoken if line[0] < end and line[0]+line[1] > start]
-            if any(at < start < at+seconds or at < end < at+seconds for at, seconds, _, _ in overlap):
-                raise ValueError('edit would cut a narration line')
-            if speed != 1 and (not part.get('label') or overlap):
-                raise ValueError('speed changes need a label and cannot shorten narration')
+            start, end, speed = part_range(part, source)
             clip = Path(temp) / f'{i}.mp4'
             waits = waiting_ranges(source, start, end) if board.get('trim_waits') else []
             if waits and speed != 1:
@@ -200,6 +269,8 @@ def edit(a):
             if 'frame' in board:
                 clip = cut.frame(clip, Path(temp) / f'{i}-framed.mp4', **frame_style(board))
             clips.append(clip)
+            part_rows.append({'index': i, 'start': offset, 'end': offset + read(clip)['duration'], 'kind': 'take', 'take': index})
+            offset = part_rows[-1]['end']
         silent = cut.concat(clips, Path(temp) / 'final.mp4')
         lines = []
         for row in read(silent)['segments']:
@@ -214,6 +285,8 @@ def edit(a):
             import shutil
             shutil.copyfile(silent, output)
             copy(silent, output)
+    mapping = read(output)
+    write(output, mapping['segments'], mapping['duration'], part_rows)
     cut.write_srt(cues(output), output.with_suffix('.srt'))
     cut.ff('-ss', cut.duration(output) * .75, '-i', output, '-frames:v', 1, output.with_suffix('.poster.png'))
     for profile in board.get('export', []):

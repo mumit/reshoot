@@ -13,11 +13,11 @@ with a line on what it does. Trial evidence lives in the
 A [persona review of the docs](docs/validation/2026-10-23-persona-review.md)
 found that the tool does the hard part well and loses the joy where a user
 meets it first. The studio now gives a local place to see a story and shape it
-by pointing, with the files in the repository still the source of truth. Recording
-repair and reusable visual styles now share that workflow; next, add sequencing and audio controls. The
+by pointing, with the files in the repository still the source of truth. Recording,
+repair, visual styles and beat cuts now share that workflow; next, add readability feedback and audio controls. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **More creative control.** Beat trimming and sequencing, destination framing and
+1. **More creative control.** Destination framing and
     readability feedback, narration auditioning and audio balance. Why: these shorten the path from a working
     recording to a deliberately composed demo, using the existing rendering stages.
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
@@ -54,6 +54,13 @@ repair and reusable visual styles now share that workflow; next, add sequencing 
 
 ## Done
 
+- **Beat trimming and sequencing:** Your cut and `reshoot sequence` select
+  inclusive named beat ranges, move, duplicate, add and remove video parts.
+  The full task and checks still run. Comments, narration boundaries, source
+  revisions and recording evidence are preserved; studio operations undo as one
+  change. Every repeated or omitted beat is mapped correctly, and finished edit
+  maps retain part intervals for playback. Pending range choices must be saved
+  or reset before another edit. A current recording can be re-cut in seconds.
 - **Reusable visual styles:** Focus, Midnight and Paper starting looks, a project
   style library and portable TOML import/export. The CLI and studio share
   validated edits that preserve the story, timing, fonts, audio, exports and scan

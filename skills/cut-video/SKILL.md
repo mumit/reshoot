@@ -70,6 +70,22 @@ cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceove
 
 ## Declarative edits
 
+For beat trimming and ordering in a versioned project, use Your cut in the
+studio or `reshoot sequence list --project demo`. Part and take numbers in
+the CLI start at 1. `reshoot sequence range 1 --from add --through search --project demo`
+includes the search beat and its hold. `sequence move 2 --to 1`, `sequence duplicate 1`,
+`sequence remove 1` and `sequence add --take 1 --from intro --through add` accept
+the same `--project demo`; keep at least one part. `--run RUN` selects a complete
+successful run from that project. A file's `[[part]] take` still starts at 0.
+It can use `start = "add"` and `through = "search"`; do not also set `end`.
+An `end` beat is exclusive, while `through` includes that beat's end. Named
+boundaries follow newly recorded timing. These edits preserve the full capture
+task and checks. Update preview or re-cut a still-current recording, then inspect
+the reordered MP4, GIF and subtitles. Never weaken checks to make a shorter cut
+pass, or cut through a spoken line. Studio range choices must be saved or reset
+before other edits; each operation supports Undo/Redo. Numeric custom ranges
+and nested part tables remain available by editing the file.
+
 For a versioned browser project, choose a reusable look with
 `reshoot style list --project demo` and `reshoot style apply midnight --project demo`,
 or use Visual styles in the studio's Style and exports. A style changes caption

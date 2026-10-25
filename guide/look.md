@@ -25,6 +25,37 @@ reshoot recut demo/latest
 Save your own look and use it in another project with
 [reusable styles](customize.md#reuse-a-visual-style).
 
+## Beat cuts and sequence
+
+This cut shows the search result, then how the note was created, then the
+result again. The app still runs once in its original order and verifies all
+three result checks. Only the video parts move. `through` includes the last
+beat and its reading hold; `end` stops at the named beat's start.
+
+![The result first, the creation steps, then the result repeated](../docs/look/sequence.gif)
+
+```toml
+[[part]]
+take = 0
+start = "search"
+through = "search"
+
+[[part]]
+take = 0
+start = "intro"
+through = "add"
+
+[[part]]
+take = 0
+start = "search"
+through = "search"
+```
+
+The studio's **Your cut** edits these ranges and their order, with Undo and
+Redo. See [trim and arrange the video](customize.md#trim-and-arrange-the-video)
+for the CLI equivalents. Update preview reuses a current recording and
+retains repeated captions and narration at their new times.
+
 ## The cursor
 
 The cursor glides along a slight curve, taking longer for longer trips,
@@ -146,8 +177,8 @@ past a page's limit. The notes example's loop:
 
 | Width | File |
 |---|---|
-| 800 wide (the default) | 338 KB |
-| 640 wide | 236 KB |
+| 800 wide (the default) | 343 KB |
+| 640 wide | 240 KB |
 
 ## Sound
 

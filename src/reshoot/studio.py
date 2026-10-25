@@ -14,6 +14,7 @@ It serves on 127.0.0.1 behind a random address and takes changes only from its o
 import hashlib, html, json, math, os, re, signal, subprocess, sys, threading, tomllib
 from pathlib import Path
 from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save
+from reshoot.sequence import outputs, check_cut
 
 AUDIO = ('.mp3', '.m4a', '.aac', '.wav', '.ogg', '.flac')
 
@@ -73,43 +74,6 @@ def edit(board, change):
             if span:
                 put(lines, span, key, value or None)
     save(board, lines, story.load)
-
-
-def outputs(cut, folder_of_takes):
-    """The path, beside the takes, of each export an edit file makes, in order, as [check] sources names them."""
-    from reshoot import timeline
-    stem = Path(cut.get('output', 'demo-final.mp4')).stem
-    found = []
-    for profile in cut.get('export', []):
-        preset = timeline.PRESETS.get(profile.get('preset'), ({}, None))[0]
-        name = profile.get('name', profile.get('preset', 'landscape'))
-        found.append(str(Path(folder_of_takes) / f'{stem}-{name}.{profile.get("format", preset.get("format", "mp4"))}'))
-    return found
-
-
-def check_cut(path):
-    """What `reshoot edit` would refuse in an edit file, found before it is written."""
-    from reshoot import timeline
-    cut = tomllib.loads(Path(path).read_text())
-    if cut.get('schema_version') != 1 or not cut.get('part'):
-        raise ValueError('the edit needs schema_version = 1 and at least one part')
-    for part in cut['part']:
-        if 'card' in part:
-            if not isinstance(part['card'], str) or not part['card'].strip():
-                raise ValueError('a card needs words')
-            seconds = part.get('duration', 2)
-            if not isinstance(seconds, (int, float)) or not 0 < seconds <= 30:
-                raise ValueError('a card lasts more than 0 and at most 30 seconds')
-    names = [Path(p).name for p in outputs(cut, '.')]
-    if len(set(names)) != len(names):
-        raise ValueError('two exports would write the same file')
-    for profile in cut.get('export', []):
-        if 'preset' in profile and profile['preset'] not in timeline.PRESETS:
-            raise ValueError(f'unknown preset {profile["preset"]!r}')
-    if 'frame' in cut:
-        timeline.frame_style(cut)
-    if cut.get('music') and not (Path(path).parent / cut['music']).is_file():
-        raise ValueError(f'no music file {cut["music"]}')
 
 
 def edit_cut(path, config, change):
@@ -414,13 +378,11 @@ def view(folder, take, config, run=None):
             drawn = {name: (row.get('text'), row.get('sub')) for name, row in rows.items()}
             look_drawn = sidecar.get('style', {})
         for beat in meta.get('beats', []):
-            a = place(segments, source, beat.get('start', 0))
-            b = place(segments, source, beat.get('end', beat.get('start', 0)))
-            if a is None and b is not None:
-                a = min((r['start'] for r in segments if Path(r['source']).resolve() == source), default=b)
+            appearances = timeline.occurrences(segments, source, beat.get('start', 0), beat.get('end', beat.get('start', 0)))
+            a, b = appearances[0] if appearances else (None, None)
             shot = beat.get('screenshot')
             recorded[beat['id']] = {
-                'start': a, 'end': b if b is not None or a is None else timeline.read(root / video)['duration'],
+                'start': a, 'end': b, 'appearances': appearances,
                 'status': beat.get('status'), 'frame': str(Path(take['out']).parent / shot) if shot else None,
                 'checks': [c.get('status') for c in beat.get('expectations', [])],
                 'definition': beat.get('definition_sha256')}
@@ -462,6 +424,13 @@ def view(folder, take, config, run=None):
             row['changed'] = recorded_as(beat, rows.get(beat['id'])) != row['definition']
         data['beats'].append(row)
     data['look_pending'] = look_drawn is not None and look_drawn != board.get('caption', {})
+    data['sequence'], data['sequence_error'] = None, ''
+    if run and edit_path:
+        from reshoot import sequence
+        try:
+            data['sequence'] = sequence.view(sequence.load(config, run[0]))
+        except (ValueError, OSError) as error:
+            data['sequence_error'] = str(error)
     return data
 
 
@@ -573,7 +542,7 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
-            if action not in ('edit', 'cut', 'style', 'job', 'accept', 'undo', 'redo', 'cancel'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'job', 'accept', 'undo', 'redo', 'cancel'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -594,6 +563,15 @@ def server(a):
                     out = {'ok': True}
                 elif action == 'cut':
                     history.change(lambda: edit_cut(edit_file(), config, body))
+                    out = {'ok': True}
+                elif action == 'sequence':
+                    from reshoot import sequence
+                    run = self.displayed(body)
+                    before = history.snapshot()
+                    data = sequence.load(config, run[0])
+                    data['before'].update(before)
+                    sequence.apply(data, body)
+                    history.remember(before, history.snapshot())
                     out = {'ok': True}
                 elif action == 'style':
                     from reshoot import styles
@@ -741,9 +719,11 @@ def page(data, accept, seen=0):
         state = 'failed' if 'failed' in checks else 'passed' if checks else 'unverified'
         when = (f'{seconds(beat["start"])} to {seconds(beat["end"])}' if beat.get('start') is not None
                 else 'not in this cut' if run and 'status' in beat else 'not recorded yet')
+        if len(beat.get('appearances', [])) > 1:
+            when += f' · {len(beat["appearances"])} appearances'
         frame = f'<img src="run/{e(beat["frame"])}" alt="The last frame of {e(beat["id"])}" loading="lazy">' if beat.get('frame') else '<div class="noframe">No frame yet</div>'
         changed = beat.get('changed')
-        beats.append(f'''<li class="beat {state}" data-beat="{e(beat['id'])}" data-start="{e(beat.get('start'))}" data-end="{e(beat.get('end'))}">
+        beats.append(f'''<li class="beat {state}" data-beat="{e(beat['id'])}" data-start="{e(beat.get('start'))}" data-end="{e(beat.get('end'))}" data-appearances="{e(json.dumps(beat.get('appearances', [])))}">
   <button class="play" type="button" title="Play this beat"{'' if beat.get('start') is not None else ' disabled'}>{frame}<span>&#9654;</span></button>
   <div class="body">
     <div class="head"><strong>{n + 1}. {e(beat['id'])}</strong><span class="when">{when}</span></div>
@@ -762,8 +742,8 @@ def page(data, accept, seen=0):
     if run:
         d = run['duration'] or 1
         marks = ''.join(f'<button class="seg {"failed" if "failed" in (b.get("checks") or []) else "passed" if b.get("checks") else "unverified"}" '
-                        f'style="left:{100 * b["start"] / d:.3f}%;width:{max(.5, 100 * (b["end"] - b["start"]) / d):.3f}%" data-beat="{e(b["id"])}" title="{e(b["id"])}">'
-                        f'<span>{e(b["id"])}</span></button>' for b in data['beats'] if b.get('start') is not None and b.get('end') is not None)
+                        f'style="left:{100 * a / d:.3f}%;width:{max(.5, 100 * (z - a) / d):.3f}%" data-beat="{e(b["id"])}" data-start="{a}" data-end="{z}" title="{e(b["id"])}">'
+                        f'<span>{e(b["id"])}</span></button>' for b in data['beats'] for a, z in b.get('appearances', []))
         marks += ''.join(f'<i class="flag" style="left:{100 * t / d:.3f}%" title="{e(f["name"])}: {e(f["found"])}"></i>'
                          for f in data['findings'] for t in f['times'])
     findings = ''.join(f'<li><strong>{e(f["name"])}</strong> {e(f["found"])}: {f["frames"]} frame{"s" if f["frames"] != 1 else ""}'
@@ -778,6 +758,47 @@ def page(data, accept, seen=0):
 <figcaption><a href="run/{e(x['path'])}" target="_blank">{e(Path(x['path']).name)}</a><br>{x['width']}&times;{x['height']}, {x['seconds']:.1f} s, {x['bytes'] / 1e6:.1f} MB
 {f'<br><span class="fits">{e(x["fits"])}</span>' if x.get('fits') else ''}</figcaption></figure>''')
     cut = data['edit']
+    sequence_box = ''
+    if data.get('sequence'):
+        sequence = data['sequence']
+        def beat_options(names, selected):
+            return ('<option value="">Choose a beat (current boundary is custom)</option>' if selected not in names else '') + ''.join(
+                f'<option value="{e(name)}"{" selected" if name == selected else ""}>{e(name)}</option>' for name in names)
+        part_boxes = []
+        for part in sequence['parts']:
+            i, playback = part['i'], part['play']
+            is_card = part['card'] is not None
+            label = f'Title: {part["card"]}' if is_card else f'Take {part["take"] + 1}: {part.get("file", "unavailable")}'
+            controls = f'''<button type="button" data-part-play data-start="{e((playback or {}).get('start'))}" data-end="{e((playback or {}).get('end'))}"{'' if playback else ' disabled'}>Play part {i + 1}</button>
+<button type="button" data-sequence="move" data-to="{i - 1}" aria-label="Move part {i + 1} earlier"{' disabled' if i == 0 else ''}>Earlier</button>
+<button type="button" data-sequence="move" data-to="{i + 1}" aria-label="Move part {i + 1} later"{' disabled' if i == len(sequence['parts']) - 1 else ''}>Later</button>
+<button type="button" data-sequence="duplicate" aria-label="Duplicate part {i + 1}">Duplicate</button>
+<button type="button" data-sequence="remove" aria-label="Remove part {i + 1}"{' disabled' if len(sequence['parts']) == 1 else ''}>Remove</button>'''
+            ranges = ''
+            if not is_card and isinstance(part['take'], int) and 0 <= part['take'] < len(sequence['sources']):
+                names = sequence['sources'][part['take']]['beats']
+                ranges = f'''<form class="range-form"><label>From beat <select name="start">{beat_options(names, part['start'])}</select></label>
+<label>Through beat (included) <select name="through">{beat_options(names, part['through'])}</select></label>
+<button type="submit">Save range</button><button type="reset">Reset</button></form>'''
+            elif is_card:
+                ranges = f'<p class="hint">{part["seconds"]:g} seconds. <button type="button" data-edit-card="{i}">Edit title card</button></p>'
+            part_boxes.append(f'''<li class="sequence-part" data-part="{i}"><strong>{i + 1}. {e(label)}</strong>
+{ranges}{f'<p class="error">{e(part["error"])}</p>' if part['error'] else ''}<div class="part-actions">{controls}</div></li>''')
+        sources = [s for s in sequence['sources'] if s['beats']]
+        source_options = ''.join(f'<option value="{s["i"]}">Take {s["i"] + 1}: {e(s["file"])}</option>' for s in sources)
+        first_names = sources[0]['beats'] if sources else []
+        add = f'''<form id="add-clip"><h3>Add a clip</h3><label>Recorded take <select name="take">{source_options}</select></label>
+<div class="range-form"><label>From beat <select name="start">{beat_options(first_names, first_names[0])}</select></label>
+<label>Through beat (included) <select name="through">{beat_options(first_names, first_names[-1])}</select></label></div>
+<button type="submit">Add clip to end</button> <button type="reset">Reset</button></form>''' if sources else '<p class="hint">Record takes with beat markers to add clips by name.</p>'
+        sequence_box = f'''<div class="sequence" data-sources="{e(json.dumps(sequence['sources']))}"><h2>Your cut</h2>
+<p class="hint">Choose what appears in the video and its order. Recording still runs the whole task and its result checks.</p>
+<ol class="sequence-parts">{''.join(part_boxes)}</ol>{add}
+<p class="hint">Through includes the beat and its result hold. Update preview to see the saved cut and enable part playback. Undo restores each edit.</p>
+{pending.format('' if sequence['pending'] else ' hidden')}</div>'''
+    elif cut:
+        sequence_box = '<div class="sequence"><h2>Your cut</h2><p class="hint">Record a complete preview to choose and arrange its beats.</p>' + (
+            f'<p class="error">{e(data["sequence_error"])}</p>' if data.get('sequence_error') else '') + '</div>'
     styles_box = ''
     if data.get('styles'):
         from reshoot import styles
@@ -866,6 +887,7 @@ def page(data, accept, seen=0):
 {evidence}
 <div class="accept">{accept}</div></section>
 <section class="side"><div class="beats"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+{sequence_box}
 <details class="styling"><summary>Style and exports</summary>{styles_box}<div class="look"><h2>Caption look</h2>
 <label>Place <select name="position"><option value="bottom"{' selected' if look.get('position', 'bottom') == 'bottom' else ''}>Bottom</option><option value="top"{' selected' if look.get('position') == 'top' else ''}>Top</option></select></label>
 <label>Background <input name="background" value="{e(look.get('background', ''))}" placeholder="#0e0d0cc8"></label>
@@ -957,6 +979,12 @@ summary { cursor:pointer; font-weight:600 } .styling { background:var(--panel); 
 .sketch-caption.top { top:8px; bottom:auto }
 #save-style { display:flex; align-items:end; gap:8px; margin:16px 0 10px } #save-style label { flex:1; min-width:0 }
 #save-style button { flex-shrink:0; margin-bottom:8px }
+.sequence-parts { list-style:none; padding:0; margin:12px 0; display:grid; gap:12px }
+.sequence-part { padding:12px; border:1px solid var(--line); border-radius:8px; overflow-wrap:anywhere }
+.part-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px } .part-actions button { font-size:12px; padding:5px 8px }
+.range-form { display:flex; flex-wrap:wrap; gap:8px; align-items:end; margin:8px 0 }
+.range-form label { flex:1 1 120px; min-width:0 } .range-form button { font-size:13px; margin-bottom:1px }
+#add-clip { border-top:1px solid var(--line); padding-top:8px }
 '''
 
 SCRIPT = '''(() => {
@@ -971,7 +999,10 @@ SCRIPT = '''(() => {
   let queue = Promise.resolve();
   const post = (what, body, requireSaved = false) => {
     const request = () => {
-      if ((requireSaved || ['job', 'undo', 'redo', 'style'].includes(what)) && document.querySelector('[data-unsaved]')) {
+      const ownRange = what === 'sequence' && body.operation === 'range' ? document.querySelector(`.sequence-part[data-part="${body.part}"] .range-form`)
+        : what === 'sequence' && body.operation === 'add' ? document.getElementById('add-clip') : null;
+      const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !ownRange || !ownRange.contains(input));
+      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence'].includes(what)) && unsaved) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
       }
@@ -1019,11 +1050,51 @@ SCRIPT = '''(() => {
   if (video) video.addEventListener('timeupdate', () => {
     if (stopAt != null && video.currentTime >= stopAt) { video.pause(); stopAt = null; }
     head.style.left = (100 * video.currentTime / (video.duration || 1)) + '%';
-    document.querySelectorAll('.beat').forEach(b => b.classList.toggle('now', b.dataset.start !== '' && video.currentTime >= +b.dataset.start && video.currentTime < +b.dataset.end));
+    document.querySelectorAll('.beat').forEach(b => b.classList.toggle('now', JSON.parse(b.dataset.appearances || '[]').some(([start, end]) => video.currentTime >= start && video.currentTime < end)));
   });
   const beat = id => document.querySelector(`.beat[data-beat="${CSS.escape(id)}"]`);
   document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); play(+li.dataset.start, +li.dataset.end); });
-  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); play(+li.dataset.start, +li.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
+  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
+  document.querySelectorAll('[data-part-play]').forEach(button => button.onclick = () => play(+button.dataset.start, +button.dataset.end));
+  const sequence = document.querySelector('.sequence');
+  document.querySelectorAll('.sequence form').forEach(form => {
+    form.querySelectorAll('select').forEach(input => input.onchange = () => input.dataset.unsaved = '1');
+    form.addEventListener('reset', () => {
+      form.querySelectorAll('[data-unsaved]').forEach(input => delete input.dataset.unsaved);
+      if (!document.querySelector('[data-unsaved]')) error('');
+    });
+  });
+  const sequenceChange = body => post('sequence', body, true).then(out => { if (out.ok) location.reload(); });
+  document.querySelectorAll('[data-sequence]').forEach(button => button.onclick = () => sequenceChange({operation: button.dataset.sequence,
+    part: +button.closest('[data-part]').dataset.part, ...(button.dataset.to == null ? {} : {to: +button.dataset.to})}));
+  document.querySelectorAll('.sequence-part .range-form').forEach(form => form.onsubmit = event => {
+    event.preventDefault(); sequenceChange({operation: 'range', part: +form.closest('[data-part]').dataset.part,
+      start: form.elements.start.value, through: form.elements.through.value});
+  });
+  const addClip = document.getElementById('add-clip');
+  if (addClip) {
+    const sources = JSON.parse(sequence.dataset.sources);
+    const optionsForTake = () => {
+      const names = sources.find(source => source.i === +addClip.elements.take.value).beats;
+      ['start', 'through'].forEach(key => {
+        const select = addClip.elements[key]; select.replaceChildren(...names.map(name => new Option(name, name)));
+        select.value = names[key === 'start' ? 0 : names.length - 1];
+      });
+    };
+    addClip.elements.take.addEventListener('change', optionsForTake);
+    addClip.addEventListener('reset', () => setTimeout(optionsForTake, 0));
+    addClip.onsubmit = event => { event.preventDefault(); sequenceChange({operation: 'add', take: +addClip.elements.take.value,
+      start: addClip.elements.start.value, through: addClip.elements.through.value}); };
+  }
+  document.querySelectorAll('[data-edit-card]').forEach(button => button.onclick = () => {
+    document.querySelector('.styling').open = true;
+    const input = document.querySelector(`.cut .card[data-part="${button.dataset.editCard}"] input[name=text]`);
+    if (input) { input.scrollIntoView({block: 'center'}); input.focus(); }
+  });
+  const pendingSequence = () => {
+    if (sequence) { const pending = sequence.querySelector('.pending'); if (pending) pending.hidden = false; }
+    document.querySelectorAll('[data-part-play]').forEach(button => button.disabled = true);
+  };
   document.querySelectorAll('.seek').forEach(s => s.onclick = () => { if (video) { stopAt = null; video.currentTime = +s.dataset.t; video.pause(); } });
   const saved = (out, where, input) => { if (!out.ok) return toast(out.error); if (input) delete input.dataset.unsaved;
     if (!document.querySelector('[data-unsaved]')) error(''); toast('Saved'); const p = where.querySelector('.pending'); if (p) p.hidden = false; };
@@ -1040,7 +1111,7 @@ SCRIPT = '''(() => {
   const cut = document.querySelector('.cut');
   const change = (body, reload, input) => {
     if (input) input.dataset.unsaved = '1';
-    return post('cut', body, reload).then(out => { saved(out, cut, input); if (out.ok && reload) setTimeout(() => location.reload(), 400); return out; });
+    return post('cut', body, reload).then(out => { saved(out, cut, input); if (out.ok) pendingSequence(); if (out.ok && reload) setTimeout(() => location.reload(), 400); return out; });
   };
   if (cut) {
     cut.querySelectorAll('.card input').forEach(input => input.addEventListener('change', () =>
@@ -1066,9 +1137,15 @@ SCRIPT = '''(() => {
   const watch = () => fetch('job.json').then(r => r.json()).then(job => {
     if (!job.kind) return;
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
-    document.querySelectorAll('[data-job], [data-from], [data-repair]').forEach(b => b.disabled = job.running);
     document.getElementById('cancel').hidden = !job.running;
-    document.querySelectorAll('.side input, .side select, .side button, [data-history]').forEach(b => b.disabled = job.running || (b.dataset.history && !b.dataset.enabled));
+    document.querySelectorAll('[data-job], [data-from], [data-repair], .side input, .side select, .side button, [data-history]').forEach(button => {
+      if (job.running) {
+        if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = button.disabled ? '1' : '';
+        button.disabled = true;
+      } else if ('jobDisabled' in button.dataset) {
+        button.disabled = button.dataset.jobDisabled === '1'; delete button.dataset.jobDisabled;
+      }
+    });
     const what = job.kind === 'from' ? `Recording from ${job.beat}` : names[job.kind];
     if (job.running) { title.textContent = what + '...'; take.hidden = true; return setTimeout(watch, 700); }
     if (job.kind === 'from') {

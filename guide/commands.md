@@ -28,6 +28,12 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot style list --project demo` | Lists Focus, Midnight, Paper and the project's saved visual styles |
 | `reshoot style apply STYLE --project demo` | Applies a listed style key or portable TOML file to captions, title-card colours and framing; update the preview afterwards |
 | `reshoot style save NAME --project demo` | Saves the current look in `demo/styles.toml`; `--out FILE` exports a portable style, `--replace` permits overwriting |
+| `reshoot sequence list --project demo` | Lists the video parts and recorded beat names from the latest complete successful run |
+| `reshoot sequence range PART --from BEAT --through BEAT --project demo` | Saves an inclusive beat range; the task and checks stay unchanged |
+| `reshoot sequence move PART --to POSITION --project demo` | Moves a video part; part and position numbers start at 1 |
+| `reshoot sequence duplicate PART --project demo` | Repeats a video part immediately after itself |
+| `reshoot sequence remove PART --project demo` | Removes a video part, keeping at least one |
+| `reshoot sequence add --take TAKE --from BEAT --through BEAT --project demo` | Appends a clip; take numbers start at 1. `--run RUN` on any sequence command selects an older complete run from the project |
 | `reshoot run CONFIG` | Starts the configured app, records, edits and scans a new run |
 | `reshoot runs PROJECT` | Lists a project's runs, newest first, with result, review status and which are `latest` and `accepted` |
 | `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |

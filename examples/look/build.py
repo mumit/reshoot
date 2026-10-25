@@ -131,6 +131,14 @@ fit = "crop"
         takes, beats = record('style-' + name, style=name)
         still(takes / 'demo-final.mp4', beats['intro']['start'] + .9, 'style-' + name + '.jpg')
 
+    outcome_first = lambda text: text.replace('start = 0\nend = "end"',
+        'start = "search"\nthrough = "search"\n\n[[part]]\ntake = 0\nstart = "intro"\nthrough = "add"'
+        '\n\n[[part]]\ntake = 0\nstart = "search"\nthrough = "search"')
+    takes, _ = record('sequence', edit=outcome_first)
+    video = takes / 'demo-final.mp4'
+    from reshoot.cut import duration
+    clip(video, 0, duration(video), 'sequence.gif', width=480, fps=12)
+
     write_page(shapes, gifs, styled, framed)
     print(PAGE.relative_to(ROOT), 'and', MEDIA.relative_to(ROOT))
 
@@ -165,6 +173,37 @@ reshoot recut demo/latest
 
 Save your own look and use it in another project with
 [reusable styles](customize.md#reuse-a-visual-style).
+
+## Beat cuts and sequence
+
+This cut shows the search result, then how the note was created, then the
+result again. The app still runs once in its original order and verifies all
+three result checks. Only the video parts move. `through` includes the last
+beat and its reading hold; `end` stops at the named beat's start.
+
+![The result first, the creation steps, then the result repeated](../docs/look/sequence.gif)
+
+```toml
+[[part]]
+take = 0
+start = "search"
+through = "search"
+
+[[part]]
+take = 0
+start = "intro"
+through = "add"
+
+[[part]]
+take = 0
+start = "search"
+through = "search"
+```
+
+The studio's **Your cut** edits these ranges and their order, with Undo and
+Redo. See [trim and arrange the video](customize.md#trim-and-arrange-the-video)
+for the CLI equivalents. Update preview reuses a current recording and
+retains repeated captions and narration at their new times.
 
 ## The cursor
 

@@ -107,7 +107,7 @@ def save(path, lines, check, expected_sha256=None):
     temp.replace(path)
 
 
-def save_many(changes, before):
+def save_many(changes, before, guard=None):
     """Validate every file before replacing any; roll back our writes if a later replacement fails.
 
     `before` includes None for a file that must not already exist. External edits are never rolled back.
@@ -128,11 +128,15 @@ def save_many(changes, before):
             check(pending[path])
         expected = dict(before)
         for path in changes:
+            if guard:
+                guard()
             if any(content(source) != original for source, original in expected.items()):
                 raise ValueError('The project changed while applying the style. External edits were kept; reload and try again.')
             pending[path].replace(path)
             written.append(path)
             expected[path] = changes[path][0].encode()
+        if guard:
+            guard()
         if any(content(source) != original for source, original in expected.items()):
             raise ValueError('The project changed while applying the style. External edits were kept; reload and try again.')
     except BaseException:

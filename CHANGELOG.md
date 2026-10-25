@@ -4,7 +4,12 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
-## Unreleased
+## 0.3.7 (2026-10-25)
+
+Upgrade the project skills with `reshoot skills claude --directory . --replace`
+(or `codex`): they now need 0.3.7 and know `reshoot create`, repair and the
+studio's new panels. Existing projects keep working; every new setting is
+optional.
 
 ### Added
 

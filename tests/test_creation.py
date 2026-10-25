@@ -245,3 +245,20 @@ def test_create_from_demonstration_replays_toolbar_captions_and_checks(tmp_path,
     first = tmp_path / 'first.png'
     cut.ff('-i', root / 'takes/demo-final.mp4', '-frames:v', 1, first)
     assert max(ImageStat.Stat(Image.open(first).convert('RGB')).stddev) > 5  # an app, not a blank opening
+
+
+def test_create_opens_an_existing_project_without_recording_or_overwriting(tmp_path, monkeypatch):
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config: {'ok': True})
+    monkeypatch.setattr(rec, 'main', lambda a: pytest.fail('an existing story must not be recorded over'))
+    project.init(SimpleNamespace(directory=str(tmp_path), url=None, quiet=True, size='960x540@1.5'))
+    (tmp_path / 'storyboard.toml').write_text((tmp_path / 'storyboard.toml').read_text() + '# kept\n')
+    seen = []
+    monkeypatch.setattr('reshoot.run.preview', lambda a: seen.append(a.config))
+    assert create.main(SimpleNamespace(url='http://localhost:3000/', directory=str(tmp_path),
+                                       size='960x540@1.5', no_studio=True, no_open=True)) == 0
+    assert seen == [str(tmp_path / 'reshoot.toml')]  # no run yet, so it makes the preview
+    assert (tmp_path / 'storyboard.toml').read_text().endswith('# kept\n')
+    monkeypatch.setattr(studio, 'current', lambda folder, partial=False: ('run', {}))
+    monkeypatch.setattr('reshoot.run.preview', lambda a: pytest.fail('a project with a run opens it as it is'))
+    assert create.main(SimpleNamespace(url=None, directory=str(tmp_path),
+                                       size='960x540@1.5', no_studio=True, no_open=True)) == 0

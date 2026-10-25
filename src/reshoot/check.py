@@ -229,6 +229,10 @@ def perform(a, report):
     report['scan']['backend'] = scan.backend(engine) if a.scan else 'disabled'
     report['scan']['engine_version'] = platform.mac_ver()[0] if scan.backend(engine) == 'vision' else (subprocess.run(['tesseract', '--version'], capture_output=True, text=True).stdout.splitlines()[0] if can else 'unavailable')
     report['scan']['rules_version'] = version('reshoot')
+    if a.scan and scan.backend(engine) == 'vision' and scan.vision_level() == 'fast':
+        report['scan']['text_reader'] = 'fast'  # in the policy, so frames read this way are checked apart
+        print("  Vision's accurate text reader fails on this Mac, so text is read with its fast one, which can miss "
+              'small text. Look closely at small text, or install Tesseract and set RESHOOT_OCR=tesseract')
     report['policy'] = hashlib.sha256(json.dumps({'watch': watch, 'scan': report['scan'], 'rules': scan.PATTERNS.__repr__()}, sort_keys=True).encode()).hexdigest()
     originals = review / 'originals'
     originals.mkdir(exist_ok=True)

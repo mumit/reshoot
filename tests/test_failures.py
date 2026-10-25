@@ -141,3 +141,24 @@ def test_explicit_ocr_backend_does_not_silently_fall_back(monkeypatch):
     monkeypatch.setattr(scan, '_vision', lambda *a: (_ for _ in ()).throw(RuntimeError('detector failed')))
     with pytest.raises(RuntimeError, match='detector failed'):
         scan.scan(Image.new('RGB', (20,20)), engine='vision')
+
+
+def test_vision_reads_text_with_its_fast_reader_where_the_accurate_one_fails(monkeypatch):
+    monkeypatch.setattr(scan, '_level', {})
+    tried = []
+
+    def text(im, level):
+        tried.append(level)
+        if level == 'accurate':
+            raise RuntimeError('Vision failed (TextRecognition.CRImageReaderError 1)')
+        return []
+    monkeypatch.setattr(scan, '_text', text)
+    assert scan.vision_level() == 'fast'
+    assert scan.vision_level() == 'fast' and tried == ['accurate', 'fast']  # found once
+
+
+def test_vision_fails_when_neither_text_reader_works(monkeypatch):
+    monkeypatch.setattr(scan, '_level', {})
+    monkeypatch.setattr(scan, '_text', lambda im, level: (_ for _ in ()).throw(RuntimeError(f'{level} failed')))
+    with pytest.raises(RuntimeError, match='fast failed'):
+        scan.vision_level()

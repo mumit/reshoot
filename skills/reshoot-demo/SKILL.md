@@ -19,7 +19,7 @@ fields and running jobs are not checkpointed.
 
 Requires reshoot CLI 0.3.6 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'` before going on. Run `reshoot doctor --config CONFIG` for an existing project. If the CLI is missing, use the repository's documented installation; do not invent commands for a different version.
 
-Resolve missing required tools before recording. If `RESHOOT_CHROME` is set, it must name an executable browser; correct or unset a stale path. Use `reshoot doctor --config CONFIG --probe` to test temporary synthetic video encoding, TOML browser capture and configured OCR. Default doctor checks availability/versions; neither mode validates the app, positive face detection or final media. Respect the configured OCR/scan choice and fix failures instead of turning scans off.
+Resolve missing required tools before recording. If `RESHOOT_CHROME` is set, it must name an executable browser; correct or unset a stale path. Use `reshoot doctor --config CONFIG --probe` to test temporary synthetic video encoding, TOML browser capture and configured OCR. Default doctor checks availability/versions and the required Vision text reader; neither mode validates the app, positive face detection or final media. Respect the configured OCR/scan choice and fix failures instead of turning scans off.
 
 Creation keeps its first-run state under ignored `takes/`. Recording tools in
 the studio offers fixes, Check again and Continue creation. Use `reshoot create

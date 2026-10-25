@@ -90,7 +90,8 @@ reshoot init demo
 reshoot doctor --config demo/reshoot.toml
 ```
 
-`doctor` reports tools, versions, detectors and fixes. To test them with a tiny
+`doctor` reports tools, versions, detectors and fixes. With required Vision OCR,
+it also names the text reader that works on this Mac. To test tools with a tiny
 made-up video, headless page and text image, run:
 
 ```bash

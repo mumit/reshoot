@@ -39,6 +39,7 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 
 | Date | Record |
 |---|---|
+| 2026-10-25 | [Upstream integration](2026-10-25-upstream-integration.md): existing-project reopening and Vision reader fallback retained alongside setup recovery |
 | 2026-10-25 | [First-run setup](2026-10-25-first-run-setup.md): actionable tool checks, synthetic probes, guarded creation resume and studio continuation |
 | 2026-10-25 | [Studio session recovery](2026-10-25-session-recovery.md): persistent Undo/Redo, explicit resume, preserved external edits and guarded source copies |
 | 2026-10-25 | [Creation-to-review journey](2026-10-25-creation-journey.md): critical persona review, source freshness, section navigation, draft recovery and exact-run downloads |

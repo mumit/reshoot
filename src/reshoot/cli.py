@@ -145,7 +145,7 @@ def main(argv=None):
                        '    reshoot create\n'
                        '    reshoot create http://127.0.0.1:3000/ --directory demo', formatter_class=Examples)
     p.add_argument('url', nargs='?', help='your demo app URL; omit to try the bundled notes app')
-    p.add_argument('--directory', default='demo', help='project folder (default: demo; new unless using --resume)')
+    p.add_argument('--directory', default='demo', help='project folder (default: demo); existing projects open without replacing their story')
     p.add_argument('--size', help='recording viewport (default: 960x540@1.5; saved size when resuming)')
     p.add_argument('--resume', action='store_true', help='continue this create project after setup or a failed preview, preserving its saved story')
     p.add_argument('--no-open', action='store_true', help='print the studio address instead of opening its page')

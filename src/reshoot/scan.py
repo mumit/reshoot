@@ -78,23 +78,64 @@ def scan(im, watch=(), engine=None):
     raise RuntimeError("requested OCR backend unavailable")
 
 
-def _vision(im, watch):
+_level = {}  # Vision's text reader on this Mac, found once
+
+
+def vision_level():
+    """'accurate', or 'fast' on a Mac whose accurate text reader fails (TextRecognition.CRImageReaderError 1 on some
+    Macs). Tried once, on a small image of text; raises RuntimeError when neither reads."""
+    if 'level' not in _level:
+        from PIL import Image, ImageDraw
+        im = Image.new('RGB', (320, 60), 'white')
+        ImageDraw.Draw(im).text((10, 20), 'Pick up the bikes', fill='black')
+        for level in ('accurate', 'fast'):
+            try:
+                _text(im, level)
+                _level['level'] = level
+                break
+            except RuntimeError as e:
+                error = e
+        else:
+            raise error
+    return _level['level']
+
+
+def _perform(im, requests):
     import Vision
     from Foundation import NSData
     b = io.BytesIO()
     im.save(b, "PNG")
     data = b.getvalue()
     handler = Vision.VNImageRequestHandler.alloc().initWithData_options_(NSData.dataWithBytes_length_(data, len(data)), None)
+    ok, error = handler.performRequests_error_(requests, None)
+    if not ok:
+        raise RuntimeError(f"Vision failed ({error.domain() if error else 'unknown'} {error.code() if error else 'unknown'})")
+
+
+def _text(im, level):
+    import Vision
     text = Vision.VNRecognizeTextRequest.alloc().init()
-    text.setRecognitionLevel_(Vision.VNRequestTextRecognitionLevelAccurate)
+    text.setRecognitionLevel_(Vision.VNRequestTextRecognitionLevelAccurate if level == 'accurate'
+                              else Vision.VNRequestTextRecognitionLevelFast)
     text.setUsesLanguageCorrection_(False)
+    _perform(im, [text])
+    return text.results() or []
+
+
+def _vision(im, watch):
+    import Vision
+    try:
+        lines = _text(im, vision_level())
+    except RuntimeError:
+        if vision_level() == 'fast':
+            raise
+        _level['level'] = 'fast'  # the accurate reader passed the first try and failed on this image
+        lines = _text(im, 'fast')
     faces = Vision.VNDetectFaceRectanglesRequest.alloc().init()
     people = Vision.VNDetectHumanRectanglesRequest.alloc().init()
     if hasattr(people, "setUpperBodyOnly_"):
         people.setUpperBodyOnly_(False)  # whole figures too, such as someone far away
-    ok, error = handler.performRequests_error_([text, faces, people], None)
-    if not ok:
-        raise RuntimeError(f"Vision failed ({error.domain() if error else 'unknown'} {error.code() if error else 'unknown'})")
+    _perform(im, [faces, people])
     W, H = im.size
 
     def box(obs):  # Vision's boxes are 0 to 1, from the bottom left
@@ -102,7 +143,7 @@ def _vision(im, watch):
         return (r.origin.x * W, (1 - r.origin.y - r.size.height) * H, r.size.width * W, r.size.height * H)
 
     flags = []
-    for obs in text.results() or []:
+    for obs in lines:
         line = obs.topCandidates_(1)[0].string()
         flags += [(box(obs), why, part) for why, part in reasons(line, watch)]
     for obs in faces.results() or []:

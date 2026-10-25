@@ -4,6 +4,11 @@ Give a coding agent the workflow for making a demo, updating it when the app
 changes, and checking the result before sharing. Reshoot's skills guide the
 agent through the work; the reshoot CLI records and edits the media.
 
+A skill is instructions, not a program. It needs a coding agent, a harness such
+as Claude Code or Codex with its model, to read it and run the commands. The
+CLI on its own needs neither; see
+[What your agent needs](../guide/agent-quickstart.md#what-your-agent-needs).
+
 For a first video, use the [agent quickstart](../guide/agent-quickstart.md).
 Paste its prompt into Codex or Claude Code in your app repository or a demo work
 folder and let the agent handle setup. Supply source code, a running URL or an

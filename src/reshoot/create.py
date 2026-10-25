@@ -51,6 +51,8 @@ def main(a):
     from reshoot.artifacts import digest
     root = Path(a.directory).resolve()
     config, board_path = root / 'reshoot.toml', root / 'storyboard.toml'
+    existing = config.is_file() and not getattr(a, 'resume', False)
+    persist = True
     if getattr(a, 'resume', False):
         state = load(root)
         if not state:
@@ -62,6 +64,13 @@ def main(a):
             raise ValueError('The project changed after creation paused. Your draft is kept; open reshoot studio or record to a new storyboard file.')
         if state['stage'] == 'record' and story.load(board_path)['url'] != state['url']:
             raise ValueError('The saved target differs from the draft URL. Your files are kept; use a new directory for another app.')
+    elif existing:
+        print(f'Opening the project already in {root}. Its saved story is kept.', flush=True)
+        if a.url:
+            print('To demonstrate another task, use a new --directory or record into a separate draft.toml.', flush=True)
+        state = load(root)
+        persist = state is not None
+        state = state or {'stage': 'preview', 'url': None, 'size': story.load(board_path).get('size', '960x540@1.5')}
     else:
         size = a.size or '960x540@1.5'
         if a.url and (urlsplit(a.url).scheme not in ('http', 'https') or not urlsplit(a.url).hostname):
@@ -75,7 +84,8 @@ def main(a):
     if state['url'] and (urlsplit(state['url']).scheme not in ('http', 'https') or not urlsplit(state['url']).hostname):
         raise ValueError('The saved demo URL must use http:// or https://.')
     web.parse_size(state['size'])
-    if state['stage'] == 'done':
+    continuation = resume_command(root) if persist else 'reshoot create --directory ' + shlex.quote(str(root))
+    if state['stage'] == 'done' or existing and studio.current(root):
         print('This creation is complete. Your saved project is kept.', flush=True)
         if a.no_studio:
             print('Continue with: reshoot studio ' + shlex.quote(str(root)))
@@ -84,7 +94,12 @@ def main(a):
     print('Checking with a temporary made-up page, video and text; your app is not used for these checks.', flush=True)
     report = setup.check_project(config)
     if not report['ok']:
-        print('Your project is saved. Run the fixes in a terminal, then continue with:\n  ' + resume_command(root), flush=True)
+        print('Your project is saved. Run the fixes in a terminal, then continue with:\n  ' + continuation, flush=True)
+        if a.no_studio:
+            return 2
+        return studio.serve(SimpleNamespace(project=str(root), port=None, no_open=a.no_open))
+    if existing and state['stage'] == 'record':
+        print('Creation is paused before demonstration. Continue with:\n  ' + resume_command(root), flush=True)
         if a.no_studio:
             return 2
         return studio.serve(SimpleNamespace(project=str(root), port=None, no_open=a.no_open))
@@ -119,8 +134,9 @@ def main(a):
             code = 2
         else:
             state['stage'] = 'done'
-            save(root, state)
-    print('Continue with: ' + (resume_command(root) if code else 'reshoot studio ' + shlex.quote(str(root))), flush=True)
+            if persist:
+                save(root, state)
+    print('Continue with: ' + (continuation if code else 'reshoot studio ' + shlex.quote(str(root))), flush=True)
     if a.no_studio:
         return code
     return studio.serve(SimpleNamespace(project=str(root), port=None, no_open=a.no_open))

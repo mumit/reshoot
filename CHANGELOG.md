@@ -68,7 +68,8 @@ change project files or commands.
   current recording. Frame and title-card backgrounds are independently editable.
 - `reshoot create [URL] --directory demo` checks dependencies, records a task
   with a toolbar, makes a preview and opens the studio. Without a URL it tries
-  the notes app. Existing projects are kept.
+  the notes app. Run it again and it opens the existing project in the studio
+  without recording over its story.
 - Recording controls for Done, Pause, Caption here, Check result, Hide and
   Remove last step. Checkbox and radio state replay through a `check` action.
 - Holds, Undo/Redo, automatic Update preview, cancellation and scan sheets in
@@ -82,6 +83,10 @@ change project files or commands.
 
 ### Fixed
 
+- On a Mac whose Vision accurate text reader fails
+  (`TextRecognition.CRImageReaderError 1`), the scan reads text with Vision's
+  fast reader instead of failing, says so, and records it in the scan report.
+  `reshoot doctor` now tries Vision and names the reader it will use.
 - Studio media and acceptance stay bound to the displayed run, even when
   another command produces a newer run. Acceptance verifies the artifact and
   scan binding supplied by the page.

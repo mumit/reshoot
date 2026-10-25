@@ -100,6 +100,10 @@ Use this reference to diagnose recording, editing and review problems.
   every possible item. Check the whole set the app selects from.
 - **A scan finds a key, and prints it.** Listing what was found would put a key in the terminal and in a CI log.
   Fixed in reshoot: `reshoot check` shows only enough to recognize it (`sk-a•••`).
+- **The scan failed with `Vision failed (TextRecognition.CRImageReaderError 1)`.** On some Macs Vision's accurate
+  text reader fails while its fast one works; `doctor` said the scan was installed without trying it. Fixed in
+  reshoot: the scan uses the fast reader there, says so and records it, and `doctor` tries Vision first. The fast
+  reader can miss very small text, so look closely at it on the sheets.
 - **Trusting a clean scan.** A scan reads text and finds faces, but misses text in pictures, odd fonts, and things it
   has no rule for. Only a person marks an image as checked.
 - **Removing something doesn't fix the take.** The take still shows it. Record again after taking it out of the

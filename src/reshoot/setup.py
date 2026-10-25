@@ -61,9 +61,15 @@ def inspect(config=None, probe=False, versions=True):
         row('playwright', 'Browser recording support', tools['playwright'])
     required_text = 'check' in shoot and shoot['check'].get('scan', True)
     engine = shoot.get('check', {}).get('ocr')
-    engine_error = ''
+    engine_error, reader = '', None
     try:
         backend, detectors = scan.backend(engine), sorted(scan.can_scan(engine))
+        if required_text and backend == 'vision' and 'text' in detectors:
+            try:
+                reader = scan.vision_level()
+            except RuntimeError as error:
+                engine_error = str(error)
+                detectors = [name for name in detectors if name != 'text']
     except (ValueError, ImportError) as error:
         backend, detectors, engine_error = 'unavailable', [], str(error)
     if required_text:
@@ -71,7 +77,8 @@ def inspect(config=None, probe=False, versions=True):
     from reshoot.cut import FONTS
     from importlib.metadata import version
     report = {'schema_version': 1, 'platform': system, 'tools': tools, 'checks': checks, 'versions': {},
-              'ocr_backend': backend, 'scan_probe': 'not run', 'detectors': detectors,
+              'ocr_backend': backend, 'scan_probe': reader or ('failed: ' + engine_error if engine_error else 'not run'),
+              'text_reader': reader, 'detectors': detectors,
               'window_capture': system == 'Darwin', 'fonts': [Path(f).name for f in FONTS if Path(f).exists()],
               'reshoot': {'version': version('reshoot'), 'latest': None}, 'probed': probe}
     if versions:
@@ -107,6 +114,8 @@ def inspect(config=None, probe=False, versions=True):
         if required_text and 'text' in detectors:
             attempt('ocr', 'Text recognition', lambda: text_probe(engine), action('text', system))
             report['scan_probe'] = 'passed' if checks[-1]['status'] == 'passed' else 'failed'
+            if backend == 'vision':
+                report['text_reader'] = scan.vision_level()
     report['ok'] = all(item['status'] not in ('missing', 'failed') for item in checks if item['required'])
     return report
 
@@ -161,7 +170,7 @@ def fingerprint(config, report):
             stats[name] = None
     values = {'config': Path(config).read_text(), 'tools': stats, 'python': sys.executable,
               'env': {name: os.environ.get(name) for name in ('PATH', 'RESHOOT_CHROME', 'RESHOOT_CHROME_FLAGS', 'RESHOOT_OCR')},
-              'ocr': report['ocr_backend'], 'detectors': report['detectors']}
+              'ocr': report['ocr_backend'], 'detectors': report['detectors'], 'text_reader': report.get('text_reader')}
     return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
 
@@ -188,6 +197,9 @@ def print_report(report):
     fixes = dict.fromkeys(item['action'] for item in report['checks'] if item['status'] in ('missing', 'failed'))
     for fix in fixes:
         print('  Fix: ' + fix, flush=True)
+    if report.get('text_reader'):
+        print('Vision text reader: ' + report['text_reader'] +
+              ('; the accurate reader failed on this Mac.' if report['text_reader'] == 'fast' else '.'), flush=True)
     print('Checks use synthetic data. Installed tools alone do not prove capture works. '
           'A text probe does not validate face/person detection or approve any recording.', flush=True)
 

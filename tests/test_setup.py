@@ -20,8 +20,8 @@ def test_missing_tools_keep_the_project_and_resume_without_reinitializing(tmp_pa
     assert create.main(args(tmp_path)) == 2
     original = (tmp_path / 'storyboard.toml').read_bytes()
     assert 'reshoot create --resume --directory' in capsys.readouterr().out
-    with pytest.raises(ValueError, match='overwritten'):
-        create.main(args(tmp_path))
+    # Upstream now reopens existing projects; a saved preview can finish there.
+    assert create.main(args(tmp_path)) == 0
     assert create.main(args(tmp_path, resume=True)) == 0
     assert (tmp_path / 'storyboard.toml').read_bytes() == original and len(previews) == 1
     assert create.load(tmp_path)['stage'] == 'done'
@@ -144,6 +144,26 @@ def test_cached_probe_is_invalidated_by_config_or_environment_changes(tmp_path, 
     assert not setup.current(config)['probed']
     (tmp_path / 'takes/setup.json').write_text('{truncated')
     assert not setup.current(config)['probed']
+
+
+@pytest.mark.parametrize('works', [True, False])
+def test_merged_doctor_reports_the_vision_reader_or_its_failure(monkeypatch, works, capsys):
+    from reshoot import scan
+    monkeypatch.setattr(scan, 'backend', lambda engine: 'vision')
+    monkeypatch.setattr(scan, 'can_scan', lambda engine: {'text', 'people'})
+    def reader():
+        if not works:
+            raise RuntimeError('neither Vision reader works')
+        return 'fast'
+    monkeypatch.setattr(scan, 'vision_level', reader)
+    report = setup.inspect(versions=False)
+    assert report['text_reader'] == ('fast' if works else None)
+    assert report['scan_probe'] == ('fast' if works else 'failed: neither Vision reader works')
+    text = next(row for row in report['checks'] if row['id'] == 'text')
+    assert text['status'] == ('installed' if works else 'missing')
+    assert 'people' in report['detectors']
+    setup.print_report(report)
+    assert ('fast' if works else 'neither Vision reader works') in capsys.readouterr().out
 
 
 @pytest.mark.browser

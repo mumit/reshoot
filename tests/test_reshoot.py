@@ -605,3 +605,32 @@ def test_setup_runs_first_and_beats_can_open_new_pages(tmp_path, notes_app):
     out = tmp_path / "pages.mp4"
     assert record(ROOT / "tests/boards/pages.py", out, notes_app) == 0  # each beat throws if it isn't so
     assert list(cut.beats(out)) == ["home", "about", "check", "back"]  # SETUP's beats aren't in the take
+
+
+@pytest.mark.browser
+def test_rec_suggests_no_count_for_a_list_a_tab_hid(tmp_path):
+    """A replay's count check counts hidden items too, so a list a tab hid is not "0 items"; a list that really got
+    shorter still is a result."""
+    import asyncio, sys
+    sys.path.insert(0, str(ROOT / "tests"))
+    import person
+    handler = partial(http.server.SimpleHTTPRequestHandler, directory=str(ROOT / "tests/boards"))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+
+    async def tour(page):
+        await asyncio.sleep(1)
+        await person.click(page, "#albums-tab")
+        await asyncio.sleep(1.2)
+        await person.click(page, "#photos-tab")
+        await asyncio.sleep(1.2)
+        await person.click(page, "#trim")
+        await asyncio.sleep(1.2)
+
+    calls = []
+    try:
+        asyncio.run(rec.session(f"http://127.0.0.1:{server.server_port}/tabs.html", 800, 600, calls, headless=True, drive=tour))
+    finally:
+        server.shutdown()
+    fewer = [c for _, ev in calls if ev["kind"] == "changed" for c in ev["changes"] if c["kind"] == "fewer"]
+    assert [(c["where"], c["count"]) for c in fewer] == [("#photos > div", 2)], fewer

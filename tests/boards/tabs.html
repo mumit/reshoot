@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tabs</title>
+<nav><a href="#" id="photos-tab">Photos</a> <a href="#" id="albums-tab">Albums</a> <button id="trim">Keep two</button></nav>
+<div id="photos"><div>One</div><div>Two</div><div>Three</div><div>Four</div></div>
+<div id="albums" hidden><div>Trip</div></div>
+<script>
+  const show = (on, off) => { document.getElementById(on).hidden = false; document.getElementById(off).hidden = true; };
+  document.getElementById('albums-tab').onclick = e => { e.preventDefault(); show('albums', 'photos'); };
+  document.getElementById('photos-tab').onclick = e => { e.preventDefault(); show('photos', 'albums'); };
+  document.getElementById('trim').onclick = () => { const p = document.getElementById('photos'); while (p.children.length > 2) p.lastElementChild.remove(); };
+</script>

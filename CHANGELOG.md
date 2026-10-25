@@ -8,6 +8,10 @@ change project files or commands.
 
 ### Fixed
 
+- The recorder no longer suggests that a list a tab hid has 0 items: it counts
+  hidden items as the replay does, and never suggests a count of none. A
+  **Check result** on a large element checks the start of its words, not all of
+  them.
 - When Vision fails inside an agent's sandbox, such as Codex's, `reshoot doctor`
   and the scan say to run reshoot outside it before suggesting Tesseract.
 

@@ -73,7 +73,7 @@
       const kids = [...e.children];
       if (kids.length > 1) {
         const first = kids[0].tagName;
-        if (kids.every(k => k.tagName === first)) lists.push([e, first.toLowerCase(), kids.filter(shown).length]);
+        if (kids.every(k => k.tagName === first)) lists.push([e, first.toLowerCase(), kids.length]);
       }
       if (kids.every(k => INLINE.has(k.tagName.toLowerCase())) && shown(e)) {
         const text = words(e);
@@ -115,9 +115,11 @@
           changes.push({ kind: "added", where: spot(box), text });
         }
       }
-      for (const [e, tag, n] of w.before.lists) {  // the same list, now shorter, as a search leaves it
-        const now = e.isConnected ? [...e.children].filter(k => k.tagName.toLowerCase() === tag && shown(k)).length : n;
-        if (now < n) changes.push({ kind: "fewer", where: spot(e) + " > " + tag, count: now, was: n });
+      // The same list, now shorter, as a search leaves it. Counted as a replay's count check counts them, hidden ones
+      // too, and never down to none: a list a tab hid or a page emptied while loading isn't a result.
+      for (const [e, tag, n] of w.before.lists) {
+        const now = e.isConnected ? [...e.children].filter(k => k.tagName.toLowerCase() === tag).length : n;
+        if (now < n && now > 0 && e.getClientRects().length) changes.push({ kind: "fewer", where: spot(e) + " > " + tag, count: now, was: n });
       }
     }
     if (changes.length) report({ kind: "changed", changes });
@@ -229,7 +231,10 @@
       if (picking === 'blur') { report({kind: 'blur', selector}); status('Selected element will be blurred in every take.'); }
       else {
         let check = {type: 'visible', target: {css: selector}};
-        const text = (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 200);
+        // The start of what it says, as the suggested checks do: a whole panel's words break on the smallest change
+        // textContent, as the replay's check reads it, not innerText's line breaks
+        const all = (element.textContent || '').trim().replace(/\s+/g, ' ');
+        const text = all.length <= 60 ? all : all.slice(0, 60).replace(/\s+\S*$/, '');
         if (element.matches('input[type=checkbox],input[type=radio]')) check = {type: 'checked', target: {css: selector}, checked: element.checked};
         else if (text) check = {type: 'text', target: {css: selector}, contains: text};
         check.fallbacks = window.__reshootTargets(element).filter(value => JSON.stringify(value) !== JSON.stringify(check.target));

@@ -152,6 +152,43 @@ flags, and no changes outside `demo/` and `.agents/`.
 - Its closing `reshoot accept` command names `reshoot`, which on the owner's
   path is still 0.3.3; the owner's own upgrade is theirs to run.
 
+## Round 7: shorter docs and skills, on 0.3.7
+
+On 2026-10-25, after the docs were simplified and the skills cut to their
+workflow, six fresh sessions ran the three repository apps on the released
+0.3.7, three in Claude Code and three in Codex, from fresh clones.
+
+| App | Claude Code | Codex |
+|---|---|---|
+| Recipe Box | 2.2 min, $0.46: preview and final, 4 checks | 4.5 min: preview and final, 9 checks |
+| Tiny Tracker | 2.6 min, $0.72: preview and final, 4 checks; wrote its own database reset | 4.8 min: two previews and a final, 13 checks |
+| Team Standup | 4.6 min, $0.94: two previews and a final, 7 checks; logged in during setup | 7.5 min: two previews and a final, 14 checks |
+
+Times match the earlier rounds. Every session installed the 0.3.7 skills, made
+a preview and a final, flagged nothing, changed nothing outside `demo/` and its
+skills folder, and ended with the skill's handoff without running `accept`.
+Several used the new guidance before recording the final: a narrower or square
+viewport for small text, shorter captions after the reading-time hint, and the
+`reshoot frame check` text-size hints. Each mentioned `reshoot studio demo`
+without starting it.
+
+- **Vision in Codex's sandbox.** Plain `reshoot doctor`, which now tries
+  Vision, said `Text scan: missing · Vision failed (com.apple.Vision 8)` inside
+  the sandbox and suggested Tesseract. One session checked for Tesseract
+  before moving on; all three then ran reshoot outside the sandbox, where the
+  check passed. Fixed after the round: the message names the sandbox as the
+  usual cause before suggesting Tesseract.
+- **The owner's install on the path.** The first Claude Code Recipe Box session
+  added `~/.local/bin` to its path itself, found the owner's development
+  install there, and recorded with it and its older skills. It then reported,
+  wrongly, that the 0.3.7 package called itself 0.3.6. That run (3.1 minutes,
+  $0.83) was set aside, and the session was run again with the owner's link
+  moved aside; the table shows the rerun. A normal upgrade replaces the
+  install in place, so this comes from the trial's separate tool folders.
+- **Chrome and `.agents/` in the sandbox:** as in rounds 4 to 6, Codex's first
+  browser probe failed inside the sandbox and the skills folder needed
+  approval; each session handled both.
+
 ## Limits
 
 - One model per harness: `claude-opus-5-5` and Codex's configured default.
@@ -159,6 +196,7 @@ flags, and no changes outside `demo/` and `.agents/`.
 - `claude -p` cannot answer a question, so the URL-only run's stop is the
   correct ending here, not a measure of what a person would do next.
 - Rounds 1 and 2 used 0.3.1; their fixes are in 0.3.2, which rounds 3 and 4
-  used. Round 4 read the guides from `main`; round 5 used 0.3.3.
+  used. Round 4 read the guides from `main`; round 5 used 0.3.3, round 6
+  0.3.5 and round 7 0.3.7.
 - Codex loaded the owner's Codex configuration, including its MCP tools, so it
   was less isolated than the Claude Code sessions.

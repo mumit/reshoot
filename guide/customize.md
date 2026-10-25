@@ -38,7 +38,7 @@ Click a beat to play just that part.
 
 The status above the preview separates unsaved fields, saved changes waiting
 for an update, a current preview and a final ready for review. It highlights
-the next action. **Preview**, **Story**, **Cut**, **Look**, **Audio**,
+the next action. **Preview**, **Story**, **Compare**, **Cut**, **Look**, **Audio**,
 **Screenshots**, **Tour**, **Review** and **Download** jump to their sections
 without leaving the page. Open panels and unsaved fields stay in place.
 
@@ -112,6 +112,34 @@ For multiple takes or older recordings without the required metadata, Update
 preview records again. Changes to a remote app or an external database cannot
 be detected from the files: use More > Record a preview after those change,
 even if you also edit captions. Declared `inputs` are checked automatically.
+
+### Compare recorded revisions
+
+Choose **Compare** in the section navigation. The studio opens **Compare
+revisions** and loads the selected earlier recording beside the current one.
+Choose **Earlier recording** to change the baseline; **Compare frames** reloads
+the same pair. The picker offers up to 30 earlier complete local runs and
+prefers an accepted one when available. Failed and partial captures are excluded.
+
+Steps match by story and beat ID. Added and removed steps stay visible. Labels
+show changes in the frame file, task definition and recorded result details.
+Each image needs a complete TOML browser take with passing result checks and
+hashes binding its metadata and PNG to the run. Missing or unchecked frames
+have an explanation instead of a substitute image. Duplicate story/beat IDs
+are rejected so the studio cannot pair the wrong takes.
+
+**Open frame at image size** shows the original PNG. On narrow screens the two
+sides stack. **Open review evidence** opens that side's exports and scan evidence.
+Both sides retain their run IDs and bindings even if another command creates
+a newer run. A changed artifact or scan requires a reload. Comparison does not
+change sources, record a new take or accept either run.
+
+These are captured result frames with their privacy masks. They do not include
+captions drawn later, zoom, framing, cards or the final cut. A changed file hash
+does not measure visual difference or establish correctness. Watch the exports
+and inspect both scan reports as part of review. Only local runs with their
+media are available here; a committed record without media and legacy takes
+without checked browser evidence cannot provide these frames.
 
 ### Resume an editing session
 

@@ -5,6 +5,14 @@ description: Update an existing reshoot demo after an app or release changes. Us
 
 # Refresh a demo
 
+The studio's Compare section puts earlier and current checked browser result
+frames together without changing either run. Match stable story/beat IDs and
+inspect added/removed steps, frame-file changes and result details. Open each
+side's review evidence and actual exports, since captured frames exclude later
+captions, framing and cuts. Run IDs and bindings remain fixed if another command
+creates a newer run; stale or unbound evidence requires a reload. Comparison
+does not accept a recording or replace its baseline.
+
 The studio compares saved/rendered sources and retains captured task/data
 fingerprints across re-cuts. Holds, narration, actions, declared inputs and
 uploaded files still need a fresh capture after changing. The status cannot

@@ -205,10 +205,28 @@ See [the session recovery trial](docs/validation/2026-10-25-session-recovery.md)
 
 See [the first-run setup trial](docs/validation/2026-10-25-first-run-setup.md).
 
+## Compare recorded revisions
+
+- [x] Offer earlier complete local runs, preferring an accepted baseline, while
+  keeping the current displayed run and chosen baseline explicit.
+- [x] Match stable story/beat IDs, retain added/removed steps and show frame,
+  definition and result-detail changes with eligibility explanations.
+- [x] Require bound metadata and PNGs from complete checked browser takes;
+  reject duplicate IDs, partial captures, unbound/outside frames and stale scans.
+- [x] Bind image-size views and both review pages/media to the selected runs;
+  verify bytes and preserve source, run files and acceptance.
+- [x] Support deferred loading, stale-request protection and stacked mobile
+  frames, with clear limits for captured evidence versus finished exports.
+- [x] Verify fresh scanned notes revisions, HTTP/media bindings, unchanged run
+  files, a newer run arriving during comparison, desktop/mobile UI, regressions
+  and documentation/package checks.
+
+See [the studio comparison trial](docs/validation/2026-10-25-studio-comparison.md).
+
 ## Following milestones
 
-1. Compare previous and current checked beat frames in the studio, keeping both
-   recordings and their review evidence bound to the displayed revisions.
+1. Compare the paired exports through video playback in the studio, including
+   beat-aware seeking while retaining the selected run and review bindings.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

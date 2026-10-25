@@ -355,6 +355,8 @@ def view(folder, take, config, run=None):
     data['creation_pending'] = bool(pending_creation)
     data['needs_demonstration'] = bool(creation and creation['stage'] == 'record')
     data['resume_command'] = create.resume_command(folder) if pending_creation else ''
+    from reshoot import comparison
+    data['comparison'] = comparison.choices(folder, run or current(folder))
     from reshoot import audio, screenshots, styles, tours
     data['tour_spec'], data['tours'] = shoot.get('tour'), []
     take_index = next(i for i, item in enumerate(shoot['take']) if item.get('web') == take['web'] and item.get('out') == take['out'])
@@ -611,6 +613,33 @@ def server(a):
                 if job.kind == 'from' and job.code == 0 and (partial := current(folder, partial=True)):
                     out['take'] = f'runs/{partial[1]["id"]}/' + take['out']
                 return review.reply(self, 200, json.dumps(out).encode(), 'application/json')
+            if name == 'comparison.json':
+                from urllib.parse import parse_qs, urlsplit
+                try:
+                    from reshoot import comparison
+                    query = {key: values[0] for key, values in parse_qs(urlsplit(self.path).query).items()}
+                    result = comparison.model(folder, query.get('run_id'), query.get('binding'),
+                                              query.get('previous_id'), query.get('previous_binding'))
+                    return review.reply(self, 200, json.dumps(result).encode(), 'application/json')
+                except (ValueError, OSError, TypeError, KeyError) as error:
+                    return review.reply(self, 409, json.dumps({'error': str(error)}).encode(), 'application/json')
+            if m := re.fullmatch(r'comparison-frame/([0-9a-f]{32})/([0-9a-f]{64})/([0-9a-f]{64})\.png', name):
+                try:
+                    from reshoot import comparison
+                    return review.reply(self, 200, comparison.frame(folder, *m.groups()), 'image/png')
+                except (ValueError, OSError, TypeError, KeyError) as error:
+                    return review.reply(self, 409, str(error).encode(), 'text/plain')
+            if m := re.fullmatch(r'comparison-review/([0-9a-f]{32})/([0-9a-f]{64})/(.+)', name):
+                try:
+                    from reshoot import comparison
+                    root, report = comparison.read(folder, m[1], m[2])
+                    target = (root / m[3]).resolve()
+                    if not target.is_relative_to(root):
+                        raise ValueError('Review evidence must stay in its run.')
+                    expected = {item['path']: item['sha256'] for item in report.get('files', [])}.get(str(target.relative_to(root)))
+                    return review.send_file(self, root, m[3], expected_sha256=expected)
+                except (ValueError, OSError, TypeError, KeyError) as error:
+                    return review.reply(self, 409, str(error).encode(), 'text/plain')
             if name == 'session.zip':
                 from urllib.parse import parse_qs, urlsplit
                 try:
@@ -1255,7 +1284,16 @@ def page(data, accept, seen=0):
 <p>Undo: {session['undo']} {'step' if session['undo'] == 1 else 'steps'} · Redo: {session['redo']} {'step' if session['redo'] == 1 else 'steps'}</p>{resume}
 <button type="button" data-session="fresh">Start with current files</button> {copy}
 <p class="hint">Starting fresh keeps a local archive of the previous history. Neither choice replaces the files you have now.</p></section>'''
-    nav = [*([('setup-panel', 'Tools')] if tools else []), ('preview-panel', 'Preview'), ('story-panel', 'Story'), *([('cut-panel', 'Cut')] if data.get('edit') else []),
+    comparison = data.get('comparison', {'choices': [], 'default': '', 'note': 'Make two recordings to compare.'})
+    comparison_options = ''.join(f'<option value="{e(row["id"])}" data-binding="{e(row["binding"])}"{(" selected" if row["id"] == comparison["default"] else "")}>'
+                      f'{"Accepted · " if row["accepted"] else ""}{e(row["id"][:8])} · {e(row["finished_at"][:19].replace("T", " "))} UTC · {e(row["mode"])}</option>'
+                      for row in comparison['choices'])
+    compare_box = f'''<details id="compare-panel" class="compare-panel"><summary>Compare revisions</summary>
+<p>{e(comparison['note'])}</p>
+{f'<label>Earlier recording <select id="comparison-source">{comparison_options}</select></label><button type="button" id="compare-refresh">Compare frames</button>' if comparison_options and run else ''}
+<p class="hint">Both sides stay tied to the chosen recordings. Comparing does not change the story or accept either run.</p>
+<p id="comparison-status" role="status"></p><div id="comparison-results" aria-busy="false"></div></details>'''
+    nav = [*([('setup-panel', 'Tools')] if tools else []), ('preview-panel', 'Preview'), ('story-panel', 'Story'), ('compare-panel', 'Compare'), *([('cut-panel', 'Cut')] if data.get('edit') else []),
            ('look-panel', 'Look'), *([('audio-panel', 'Audio')] if data.get('edit') else []),
            ('screenshots-panel', 'Screenshots'), ('tour-panel', 'Tour'), ('review-panel', 'Review'), ('download-panel', 'Download')]
     navigation = ''.join(f'<a href="#{target}" data-jump="{target}">{label}</a>' for target, label in nav)
@@ -1294,6 +1332,7 @@ def page(data, accept, seen=0):
 {f'<div class="shapes"><h2>Exports</h2><p class="hint">Measurements describe this rendered run. Update preview to measure saved changes.</p><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="docs-shots"><h2>Documentation screenshots</h2><p class="hint">From this displayed run. Update preview to render saved changes. Inspect each PNG before sharing.</p><div class="grid">{shot_images}</div></div>' if shot_images else ''}
 {f'<div class="tour-previews"><h2>Clickable tour</h2><p class="hint">From this displayed run. Inspect every step, explanation and click marker before sharing.</p>{tour_previews}</div>' if tour_previews else ''}
+{compare_box}
 <section id="review-panel" class="review-panel" tabindex="-1"><h2>Review this recording</h2>
 <p id="review-current" class="hint"{'' if state['pending'] else ' hidden'}>Saved edits are not shown in this recording. Update preview or make a final before accepting here.</p>
 {f'<div class="found"><h3>What the scan found</h3><ul>{findings}</ul></div>' if findings else ''}
@@ -1313,7 +1352,7 @@ def page(data, accept, seen=0):
 </details></fieldset></main>
 <p id="toast" role="status"></p>
 <dialog id="export-inspector"><form method="dialog"><button>Close</button></form><h2>Inspect the rendered export</h2><p id="inspector-size"></p><div class="inspection-rail"></div></dialog>
-<script>{SCRIPT}</script></body></html>'''
+<script>{SCRIPT}</script><script>{Path(__file__).with_name('comparison.js').read_text()}</script></body></html>'''
     if run:
         document = document.replace('run/', f'runs/{run["id"]}/')
     return document.replace('data-seen="', f'data-revision="{e(data.get("revision", ""))}" '
@@ -1340,6 +1379,14 @@ fieldset.actions, fieldset.side { border:0; padding:0; min-width:0 } fieldset.si
 .journey button { margin:6px 6px 0 0 } .journey a { color:var(--accent) }
 #setup-panel ul { padding-left:20px } #setup-panel li { margin:8px 0 } #setup-panel .fix, #setup-panel code { overflow-wrap:anywhere }
 .review-panel, .downloads { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:16px }
+.compare-panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:16px }
+.compare-panel label { margin:12px 0; display:block } .compare-panel select { max-width:100%; width:100% }
+.compare-run-links { display:grid; grid-template-columns:1fr 1fr; gap:14px; overflow-wrap:anywhere }
+.compare-pair { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px }
+.compare-pair figure { margin:0; min-width:0 } .compare-pair img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:6px }
+.compare-pair figcaption { font-size:13px; margin:6px 0 } .compare-beat { border-top:1px solid var(--line); padding:12px 0 }
+.compare-beat h3, #comparison-status { overflow-wrap:anywhere } .compare-beat h3 { text-transform:none; letter-spacing:normal; color:var(--ink) }
+@media(max-width:600px) { .compare-pair, .compare-run-links { grid-template-columns:1fr } }
 .downloads ul { padding-left:20px; overflow-wrap:anywhere } .downloads li { margin:7px 0 } .downloads a { color:var(--accent) }
 .download-all { display:inline-block; font-weight:600; border:1px solid var(--accent); border-radius:8px; padding:8px 12px; margin:4px 0; text-decoration:none }
 .side > .section-anchor:empty { display:none } :focus-visible { outline:2px solid var(--accent); outline-offset:3px }

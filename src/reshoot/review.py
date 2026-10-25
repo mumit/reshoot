@@ -718,13 +718,15 @@ def reply(handler, code, body, kind='text/html; charset=utf-8', extra=()):
         handler.wfile.write(body)
 
 
-def send_file(handler, root, name):
-    """A file from inside root, with byte ranges, so a video can seek; anything outside it is not found."""
+def send_file(handler, root, name, expected_sha256=None):
+    """A file from inside root, with byte ranges and an optional hash check on the bytes served."""
     import mimetypes
     file = (root / name).resolve()
     if not file.is_relative_to(root.resolve()) or not file.is_file():
         return reply(handler, 404, b'not found', 'text/plain')
     data = file.read_bytes()
+    if expected_sha256 and hashlib.sha256(data).hexdigest() != expected_sha256:
+        return reply(handler, 409, b'The recording artifact changed. Reload before opening it.', 'text/plain')
     kind = mimetypes.guess_type(file.name)[0] or 'application/octet-stream'
     if m := re.fullmatch(r'bytes=(\d*)-(\d*)', handler.headers.get('Range', '')):
         start = int(m[1]) if m[1] else max(0, len(data) - int(m[2] or 0))

@@ -5,6 +5,15 @@ description: Inspect a reshoot recording and its check report for failed actions
 
 # Review a recording
 
+When the owner is using the studio, Compare revisions shows checked result
+frames from the displayed run and an earlier local run. It prefers an accepted
+baseline among up to 30 earlier complete runs. Match story/beat IDs, inspect
+added/removed steps and open both review-evidence links. Those links and frames
+retain explicit run bindings. A changed artifact or scan requires reload.
+These captured PNGs retain privacy masks but exclude later captions, zoom,
+framing, cards and cuts; inspect actual exports too. A matching hash is not
+owner acceptance. Legacy or unbound evidence cannot supply checked frames.
+
 The studio's Review and Download sections refer to the displayed run. Pending
 source edits must be rendered before accepting there. Earlier recordings can
 remain reviewable without a complete source comparison; the status says so.

@@ -40,6 +40,8 @@ elsewhere, recovery keeps those files and offers the saved source copy to compar
 The status above the preview tells you whether saved edits are in the shown
 recording. Jump between sections, inspect the final, then use **Download** to
 get its videos, screenshots, walkthrough and subtitles together.
+**Compare** puts an earlier recording's checked result frames beside the
+current ones, with review evidence for each revision.
 
 **Style and exports** offers Focus, Midnight and Paper looks, plus saved styles
 you can reuse in another project. Update preview shows the chosen look using

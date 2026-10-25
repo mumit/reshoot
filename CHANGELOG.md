@@ -8,6 +8,11 @@ change project files or commands.
 
 ### Added
 
+- Compare revisions in the studio: choose an earlier local recording and inspect
+  checked result frames beside the displayed run, including added/removed steps,
+  frame/task/result changes and full-size image links. Each side links its own
+  exports and scan evidence. Requests retain both run bindings, reject stale or
+  unbound evidence and never change source or acceptance. Frames stack on mobile.
 - First-run Recording tools shows dependency fixes, synthetic rechecks and
   Continue creation. `create --resume` preserves the project, target and viewport,
   retries saved stories after preview failures and avoids re-recording completed

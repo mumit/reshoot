@@ -3,6 +3,12 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **Comparing revisions meant finding old frames in run folders.** Fixed in
+  reshoot: Compare shows checked result frames together, matches stable story
+  and beat IDs, keeps added/removed steps and links each side's review evidence.
+- **A newer run changed what a comparison referred to.** Fixed in reshoot:
+  both sides carry explicit run IDs and bindings. Changed artifacts or scan
+  evidence require reloading; unchecked or unbound frames are never substituted.
 - **Missing tools stranded the first create project.** Fixed in reshoot:
   Recording tools shows actionable fixes and Check again. Continue creation or
   `create --resume --directory demo` resumes the same project. A failed preview

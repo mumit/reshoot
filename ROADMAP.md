@@ -18,8 +18,8 @@ repair, visual styles, beat cuts, destination framing, audio and documentation
 screenshots and offline tours now share that workflow. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **Compare revisions in the studio.** Inspect previous and current checked
-    beat frames together, with both recordings and their exact review evidence.
+1. **Compare export playback.** Inspect the paired exported videos in the studio
+    with beat-aware seeking and both recordings' exact review evidence.
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
@@ -50,6 +50,12 @@ screenshots and offline tours now share that workflow. The
   through the skills.
 
 ## Done
+
+- **Compare revisions in the studio:** earlier/current checked frames, stable
+  story/beat matching, added/removed steps and frame/task/result changes. Both
+  sides retain their bindings and review links, with full-size images, mobile
+  stacking and explicit gaps for missing or unchecked evidence. Comparison
+  leaves sources, run files and acceptance unchanged.
 
 - **First-run setup and continuation:** actionable tool checks and synthetic
   encoding/browser/OCR probes, a focused studio setup panel, Check again and

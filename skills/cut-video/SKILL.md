@@ -5,12 +5,25 @@ description: "Cut checked takes into a finished demo video with ffmpeg and the `
 
 # Cut the video
 
-Each project has a short edit script, since the order of takes and the words on screen differ. Start from
-`../../examples/notes/edit.py` (from this skill's folder) and copy it into the project. It joins a web take, a
-terminal take on a labeled card, and an end card. Run it with `reshoot edit tools/demo/edit.py
-takes/web.mp4`, which makes `reshoot.cut` importable even when reshoot is installed as a tool.
+## Declarative edits
 
-## The helpers
+A versioned project cuts its takes with `edit.toml`: ordered `[[part]]` entries (a beat range of a take, or a title card) and `[[export]]` profiles. `reshoot init` writes an example, and the guide's `projects.md` lists every field. `reshoot edit EDIT.toml TAKE...` runs one by itself.
+
+- **Ranges.** A part takes `start` and either `end` or `through`, by beat name. `end = "search"` stops where that beat starts; `through = "search"` includes it and its hold. Named boundaries follow a new recording's timing. A file's `take` starts at 0. A cut never splits a spoken line.
+- **Order.** `reshoot sequence list --project demo` shows the parts; `range`, `move`, `duplicate`, `remove` and `add` change them (numbers start at 1 there). The recording still runs the whole task and all its checks. Never weaken a check to make a shorter cut pass.
+- **Exports.** An `[[export]]` can name a `preset`: `readme`, `readme-video`, `x`, `x-square`, `x-portrait`, `linkedin`, `linkedin-square` or `linkedin-portrait`. It sets the size, format and frame rate and fails the export when it breaks that platform's limits; fields you give override it.
+- **Framing.** `fit = "crop"` fills the shape and `focus = [x, y]` aims it; Fit keeps the whole video. `display_width` is the width people watch at. `reshoot frame set 1 --fit crop --x 50 --y 50 --view-width 390 --project demo` sets these. `reshoot frame check RUN` reads hints about small text, clipped captions and subtitle pace. They are heuristics, not a readability pass, and a missing measurement is not a pass: inspect the MP4 and GIF at viewing size. To enlarge app text, record a narrower view with `reshoot frame record --size 640x480@2 --project demo` and a fresh preview.
+- **Look.** A `[frame]` puts each take in a browser-like window on the `[style]` background (a colour, or `[top, bottom]`); the page shrinks, so check its text. `reshoot style list` and `reshoot style apply midnight --project demo` set captions, card colours and the frame together, keeping the story, timing, audio, exports and scan. `reshoot style save NAME --project demo` saves the look, and `--out FILE` makes a portable style for another project.
+- **Sound.** `[audio]` sets `voice_volume` (0 to 2), `music_volume` (0 to 1) and `duck`. `reshoot audio set --music-volume 0.15 --duck --project demo` saves them. The mix limits peaks; that is not loudness normalization. Muted narration keeps its timing and subtitles. Changing narration words or the voice needs a new recording; `reshoot audio audition BEAT --project demo` plays a line first.
+- **Waits.** `trim_waits = true` shortens beats marked `trim_wait = true` that have a passed result check. Keep `min_reading` long enough to read the result. Speed changes need a visible label and never shorten narration.
+
+After a change to `edit.toml`, a caption's words or the `[caption]` look, `reshoot recut RUN` draws the captions again and edits and scans the same takes into a new run, without recording. Each caption keeps its beat's recorded time, so a change to actions or holds needs a new recording. Use `recut` only while the recording is still current. `reshoot export RUN --directory DIR` copies the exports, checking their hashes and never overwriting a file.
+
+The studio does the same edits by pointing; the owner uses it, not you.
+
+## Python edits
+
+For a cut the declarative edit can't express, write an edit script. Start from `../../examples/notes/edit.py` (from this skill's folder): it joins a web take, a terminal take on a labelled card, and an end card. Run it with `reshoot edit tools/demo/edit.py takes/web.mp4`, which makes `reshoot.cut` importable even when reshoot is installed as a tool.
 
 ```python
 from reshoot import cut
@@ -34,95 +47,27 @@ cut.add_audio(video, out, voice=wav, music=None, music_volume=0.25, voice_volume
 cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceover, or else the captions
 ```
 
-`cut.ff(...)` runs any other ffmpeg command. Every clip made by these is 60 fps H.264 in yuv420p with no sound.
+`cut.ff(...)` runs any other ffmpeg command. Every clip these make is 60 fps H.264 in yuv420p with no sound, and each helper records where its output came from, so subtitles keep their timing. An ffmpeg edit of your own needs its own map.
 
-## Steps
-
-1. Keep all the words on screen at the top of the edit script, so they're easy to change.
-2. Cut each web part at its beats: the take's own end beat is usually replaced by a proper end card.
+1. Keep all the words on screen at the top of the script, so they're easy to change.
+2. Cut each web part at its beats; the take's own end beat is usually replaced by a proper end card.
 3. Cut a terminal take at `cut.last_change`. Speed up the waiting part and label it ("8x speed").
-4. Join the parts with `cut.concat`. They must all be the same size: a web take at 1280x720@1.5 is 1920x1080, a VHS
-   take is its tape's `Width` and `Height`. Place smaller takes on a full-size card with `cut.place`.
+4. Join the parts with `cut.concat`. They must be the same size: a web take at 1280x720@1.5 is 1920x1080, a VHS take is its tape's `Width` and `Height`. Place smaller takes on a full-size card with `cut.place`.
 5. Make the 9:16 version: the landscape video on a 1080x1920 card, with the name above and the link below.
 6. Make one GIF per section, from beat to beat.
-7. Add sound last, to the finished video: `cut.add_audio` with the voice track (if the storyboard had `VOICE`)
-   and any music. Give each part's lines its place in the finished video with `offset`: a part that starts 12 s
-   in uses `cut.lines(take, a, b, offset=12)`. Write subtitles the same way.
-8. Watch the whole thing, with sound if it has any. Check the end card's spelling and link. Then give the person the files and say where they
-   are. Don't post them.
+7. Add sound last, to the finished video: `cut.add_audio` with the voice track and any music. Place each part's lines with `offset`: a part that starts 12 s in uses `cut.lines(take, a, b, offset=12)`. Write subtitles the same way.
+
+## Finish
+
+Watch the whole video, with sound if it has any, and every GIF: its first frames, last frames and length. Check the end card's spelling and link. Then give the person the files and say where they are. Don't post them.
 
 ## Pitfalls
 
-- **Joining clips of different sizes** fails or looks wrong. `cut.concat` refuses them; make every part the same size.
-- **Colors change when joined.** A clip in full color range (a camera clip, or one made outside these helpers)
-  makes the clips after it look washed out. `cut.concat` refuses a mix; run such a clip through `cut.trim` first.
-- **Odd sizes.** H.264 in yuv420p needs even widths and heights. Scale to `-2` (as the helpers do).
-- **GIF colours.** The default palette bands badly. `cut.gif` makes a palette for each GIF.
-- **Joined GIF sections.** `cut.gif` normalizes frames before building a palette from the full clip, preserving card/browser joins and static scene changes. Inspect the opening, ending and duration so an omitted or frozen section cannot pass on MP4 playback alone.
+- **Clips of different sizes** don't join: `cut.concat` refuses them.
+- **Colours change when joined.** A full-range clip, such as a camera clip, makes later clips look washed out. `cut.concat` refuses a mix; run such a clip through `cut.trim` first.
+- **Odd sizes.** H.264 in yuv420p needs even widths and heights. Scale to `-2`, as the helpers do.
+- **Joining clips with sound.** `cut.concat` joins video only. Join the silent parts, then add the sound.
 - **Fonts.** Cards use SF on macOS, and DejaVu Sans on Linux if installed.
-- **Faststart.** Joined videos are written with `+faststart`, so they play in a browser before they finish loading.
-- **Joining clips with sound.** `cut.concat` joins video only. Join the silent parts first, then add the sound.
-- **Subtitles and burned-in captions.** Captions on screen can't be read by a screen reader or searched, so the
-  `.srt` carries them too. With a voiceover, it carries what's said instead. Upload it with the video where the site
-  allows.
-- **Music you can use.** Only use music you have the right to post. Keep it quiet (`music_volume` 0.15 to 0.3).
-  For a TOML project, `[audio]` sets `voice_volume` (0 to 2), `music_volume`
-  (0 to 1) and `duck` (true/false). The studio's Audio panel and
-  `reshoot audio set --voice-volume 1 --music-volume 0.15 --duck --project demo`
-  save the same mix. Update preview re-cuts a current recording; listen to the
-  rendered MP4. Muted narration keeps its timing and subtitles. The peak limiter
-  is not loudness normalization. Narration words and voice changes record again;
-  audition a saved line first with `reshoot audio audition BEAT --project demo`.
+- **Subtitles.** Captions on screen can't be read by a screen reader or searched, so the `.srt` carries them too; with a voiceover, it carries what's said. Upload it with the video where the site allows.
+- **Music you can use.** Only use music you have the right to post, and keep it quiet (0.15 to 0.3).
 - **Limits for posting.** Sites limit size and length, and change them. Check before uploading.
-
-## Declarative edits
-
-For destination framing, use the export's Fit/Crop controls and crop guide in
-the studio, or `reshoot frame set 1 --fit crop --x 50 --y 50 --view-width 390 --project demo`.
-The number is the export's 1-based position. Save framing, update a current
-recording with a re-cut, and inspect the MP4 and GIF at viewing size. A profile
-can set `focus = [0.5, 0.5]` and `display_width = 390`; Fit ignores focus. MP4
-and GIF share geometry. `reshoot frame check RUN` reads measured font-size,
-caption/result clipping and subtitle-reading hints bound to the rendered run.
-They are heuristics, not a readability or accessibility pass; retain visual
-inspection, especially for zoomed app text, canvas/iframe text and custom placement.
-Never treat the absence of a measurement as a pass. To enlarge an app's text,
-the studio's Recording view can change the first browser take's viewport, or
-use `reshoot frame record --size 640x480@2 --project demo`. That requires a fresh
-preview with the same task and checks. Existing captures do not gain app-font
-samples from a re-cut; new caption measurements can be drawn again.
-
-For beat trimming and ordering in a versioned project, use Your cut in the
-studio or `reshoot sequence list --project demo`. Part and take numbers in
-the CLI start at 1. `reshoot sequence range 1 --from add --through search --project demo`
-includes the search beat and its hold. `sequence move 2 --to 1`, `sequence duplicate 1`,
-`sequence remove 1` and `sequence add --take 1 --from intro --through add` accept
-the same `--project demo`; keep at least one part. `--run RUN` selects a complete
-successful run from that project. A file's `[[part]] take` still starts at 0.
-It can use `start = "add"` and `through = "search"`; do not also set `end`.
-An `end` beat is exclusive, while `through` includes that beat's end. Named
-boundaries follow newly recorded timing. These edits preserve the full capture
-task and checks. Update preview or re-cut a still-current recording, then inspect
-the reordered MP4, GIF and subtitles. Never weaken checks to make a shorter cut
-pass, or cut through a spoken line. Studio range choices must be saved or reset
-before other edits; each operation supports Undo/Redo. Numeric custom ranges
-and nested part tables remain available by editing the file.
-
-For a versioned browser project, choose a reusable look with
-`reshoot style list --project demo` and `reshoot style apply midnight --project demo`,
-or use Visual styles in the studio's Style and exports. A style changes caption
-placement, margin and colours, title-card colours and browser framing across
-the project's TOML browser takes. It keeps the story, timing, fonts, logos,
-audio, exports and scan settings. Update the preview and inspect app text and
-caption overlap at the export size. `reshoot style save "Launch look" --project demo`
-saves it in the project's library; `--out launch-style.toml` makes a portable
-file for `reshoot style apply launch-style.toml --project another-demo`. Existing
-names and files need `--replace`. Studio applies and saves are undoable together
-with the other edits. Importing applies a portable style; Save style keeps it
-in the new project. Use `recut` only when the existing recording is still current.
-
-`reshoot edit EDIT.toml TAKE...` accepts schema-version-1 edit files with ordered `[[part]]` entries and output profiles. The packaged project provides an example. Cut helpers write `.timeline.json` mappings; trims, speed changes, placement, and concatenation retain source times. Speed changes need a visible label and cannot shorten narration. For a versioned project, after a change to `edit.toml`, a caption's words or the storyboard's `[caption]` look, `reshoot recut RUN` draws the captions again and edits and scans that run's takes into a new run without recording. Each caption keeps its beat's recorded time, so a change to actions or holds needs a new recording. An `[[export]]` can name a `preset`: `readme`, `readme-video`, `x`, `x-square`, `x-portrait`, `linkedin`, `linkedin-square` or `linkedin-portrait`. It sets the size, format and frame rate and fails the export when it breaks that platform's limits, which guide/projects.md lists with their sources; fields given override it. A `[frame]` table puts each take in a browser-like window with a title bar, rounded corners and a shadow, on the `[style]` background (a colour, or `[top, bottom]`); the page shrinks, so check its text is still readable. Explicit local copies use `reshoot export RUN --directory DIR --file PATH`; hashes must match the report, and existing destinations are not overwritten.
-
-Declarative edits can use `trim_waits = true` for beats explicitly marked
-`trim_wait = true` with a passed result check. Keep `min_reading` long enough to
-read the result. Reshoot preserves speech and labels shortened waits.

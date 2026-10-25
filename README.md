@@ -14,9 +14,8 @@ Before and after a UI change, from one storyboard.
 - **Re-record, don't redo.** The demo is a `storyboard.toml` of clicks, typing,
   captions and the result that should appear. Run it after every UI change.
 - **Checked, not just captured.** Each run confirms that the result you named
-  appeared, such as a saved item or a search match, and stops on the exact step
-  whose control or label no longer matches. It scans the frames for email
-  addresses, keys and, on macOS, faces before you share anything.
+  appeared, stops on the step whose control no longer matches, and scans the
+  frames for email addresses, keys and faces before you share anything.
 - **Your agent can drive it.** Skills for Claude Code and Codex write the story
   from your app, and a GitHub workflow records it again when the app changes and
   opens a pull request with the new video.
@@ -25,66 +24,26 @@ Before and after a UI change, from one storyboard.
 
 ```bash
 uv tool install 'reshoot[browser]'
-reshoot create                  # make the notes preview and open the studio
+reshoot create        # make the notes demo and open it in the studio
 ```
 
-If a tool is missing, creation keeps the project and shows fixes in the studio.
-Choose **Check again**, then **Continue creation**, or resume from the terminal
-with `reshoot create --resume --directory demo`.
+It makes a made-up notes app and its story, records a preview in about 15
+seconds, and opens [the studio](guide/studio.md): a page on your computer
+where you change captions, timing, the look and the cut by pointing, then
+make the final and accept it.
 
-With the dependencies installed, the preview takes seconds. In the studio,
-change a caption or result hold, choose **Update preview**, then **Make final**
-when it looks right. Undo keeps experiments easy to reverse.
-Saved Undo/Redo history can resume after a studio restart. If files changed
-elsewhere, recovery keeps those files and offers the saved source copy to compare.
-The status above the preview tells you whether saved edits are in the shown
-recording. Jump between sections, inspect the final, then use **Download** to
-get its videos, screenshots, walkthrough and subtitles together.
-**Compare** puts an earlier recording's checked result frames beside the
-current ones, with review evidence for each revision.
-
-**Style and exports** offers Focus, Midnight and Paper looks, plus saved styles
-you can reuse in another project. Update preview shows the chosen look using
-the existing recording when the story is still current.
-**Your cut** trims clips by beat and rearranges or repeats them, while the
-recording still runs the full task and its checks.
-Framing controls and a viewing-size inspector help spot small or clipped text
-in each export before sharing.
-Add a spoken line under a step's **Narration** and audition it before recording.
-**Audio** chooses the voice and balances narration against music.
-**Use for docs** turns a checked result into a named PNG that refreshes with
-the video, with alt text and review included.
-**Clickable tour** turns checked steps into an offline HTML walkthrough, with
-explanations, optional click markers and keyboard navigation.
-
-For your own running demo app:
+For your own app, start its demo server and run:
 
 ```bash
-reshoot create http://127.0.0.1:3000/ --directory my-demo
+reshoot create http://127.0.0.1:3000/ --directory demo
 ```
 
-Show one task in the fresh browser. Its toolbar adds captions, checks a result,
-hides an element, pauses, and finishes. Choose **Done** to make the preview and
-open it in the studio. Use a demo account and resettable made-up data.
+Show one task in the browser that opens. Its toolbar adds a caption, checks a
+result, and finishes with **Done**. Use a demo account and made-up data.
 
-Each preview prints what it made:
-
-```text
-Done in 13 s: 3 of 3 result checks passed · scan: 6 items, 0 flagged · not accepted yet.
-  video  demo/takes/runs/RUN_ID/takes/demo-final.mp4
-  GIF    demo/takes/runs/RUN_ID/takes/demo-final-readme.gif
-  review demo/takes/runs/RUN_ID/review.html
-
-This is a preview, smaller and quicker than a final. When it looks right, record the final:
-  reshoot run demo/reshoot.toml
-```
-
-reshoot runs on macOS or Linux with Python 3.11+, ffmpeg and Chrome or
-Chromium, plus Tesseract on Linux; [installation](guide/install.md) covers each
-platform. The
-[CLI tutorial](guide/step-by-step.md) shows the part only reshoot does: change
-the app, watch the story stop on the beat that broke, fix one line, and compare
-the new recording with the old one.
+reshoot runs on macOS or Linux; [installation](guide/install.md) covers each.
+[The tutorial](guide/step-by-step.md) goes further: change the demo, break the
+app, watch the story stop on the step that broke, repair it, and compare.
 
 ## Or let your agent make it
 
@@ -106,21 +65,14 @@ Ask only for permissions or missing details needed to proceed.
 ```
 
 Change `Target:` to a URL, or to a macOS app and its window, if there's no
-source. Add a task if you have one: "Show creating a project and finding it by
-search."
+source, and add a task if you have one.
 
 What to expect, from [trials on four new apps](docs/validation/2026-10-23-cold-first-demo.md):
-
-- **Time:** 2 to 3 minutes in Claude Code, 5 to 9 in Codex.
-- **Files:** the agent writes `demo/` and its skills, in `.claude/skills/` or
-  `.agents/skills/`, and leaves your README and other files alone.
-- **Permissions:** it may ask to install reshoot and ffmpeg, and in Codex to
-  run Chrome outside the sandbox.
-- **At the end:** it opens the MP4 and GIF, and you reply "accept" or ask for
-  changes, such as shorter captions. Nothing is published.
-- **Agents:** Claude Code or Codex; either one is enough. reshoot calls no
-  model and needs no API key. [What your agent needs](guide/agent-quickstart.md#what-your-agent-needs)
-  covers the permissions, models tried, other agents, and making a demo with no agent.
+2 to 3 minutes in Claude Code, 5 to 9 in Codex. The agent writes `demo/` and
+its skills, may ask to install reshoot and ffmpeg, then opens the MP4 and GIF.
+Reply "accept" or ask for changes. Nothing is published. reshoot itself calls
+no model and needs no API key: see
+[what your agent needs](guide/agent-quickstart.md#what-your-agent-needs).
 
 ## The story is a file
 
@@ -140,25 +92,14 @@ contains = "Pick up the bikes"
 ```
 
 reshoot types into the real page with a visible cursor, shows the caption, and
-holds on the result so people can read it. When the app renames `#q`, the run
-stops on that beat: `type target {css = '#q'} matched 0 elements`. Fix the
-target in the studio by choosing its replacement in the app, then run again.
-Recorded alternatives can suggest a control; repairs always preserve the
-expected result values. The [comparison](guide/publish.md) shows the same beats
-with the same results.
+holds on the result. When the app renames `#q`, the run stops on that beat:
+`type target {css = '#q'} matched 0 elements`. Fix the target, or pick the new
+one in the studio, and run again.
 
 ## Keep it current
 
-Record a final, watch it, and accept it once. That writes `demo/accepted/`, a
-small record to commit with `demo/`:
-
-```bash
-reshoot run demo/reshoot.toml
-reshoot accept demo/latest
-```
-
-After the app changes, record again and compare with the accepted run before
-accepting the new one:
+Accept a final once; that writes `demo/accepted/`, a small record to commit.
+After the app changes, record again, compare and accept the update:
 
 ```bash
 reshoot run demo/reshoot.toml
@@ -189,8 +130,7 @@ beat-by-beat comparison. A broken story fails on its beat and opens nothing.
 | A narrated explanation | Voiceover timed to the beats, music under it, subtitles |
 | Other formats | Edits, portrait crops and size limits for each export |
 
-Use made-up demo data. [Platforms and tested limits](guide/README.md#platforms)
-lists what runs where.
+[Platforms](guide/README.md#platforms) lists what runs where.
 
 ## Skills for Claude Code and Codex
 
@@ -201,28 +141,17 @@ lists what runs where.
 | Before sharing | [reshoot-review](skills/reshoot-review/SKILL.md) | "Check the final video and GIF against the accepted run." |
 
 Skills are instructions for a coding agent, so they need one and its model; the
-CLI on its own needs neither. The first-demo prompt installs them. To install
-them yourself, run
-`reshoot skills claude --directory .` or `reshoot skills codex --directory .`
-in the project, and add `--replace` after an upgrade. In Claude Code, the
-plugin installs all ten: these three, plus seven supporting skills for
-planning, recording, editing, privacy checks and CI:
-
-```text
-/plugin marketplace add mumit/reshoot
-/plugin install reshoot@reshoot
-```
-
-The [agent quickstart](guide/agent-quickstart.md) has follow-up prompts for
-refreshing and reviewing, and the [skill catalog](skills/README.md) describes
-each skill.
+CLI on its own needs neither. The first-demo prompt installs them, and the
+[agent quickstart](guide/agent-quickstart.md#install-the-skills-yourself) shows
+other ways. The [skill catalog](skills/README.md) describes all ten.
 
 ## Where next
 
 | To | Read |
 |---|---|
-| Record your own app | [A web app, from source or a URL](guide/your-app.md), or [a macOS window](guide/macos-window.md) |
-| Change captions, timing or GIF size | [Change and grow a demo](guide/customize.md), or by pointing in [the studio](guide/studio.md): `reshoot studio demo` |
+| Learn it step by step | [The tutorial](guide/step-by-step.md) |
+| Record your own app | [A web app](guide/your-app.md), or [a macOS window](guide/macos-window.md) |
+| Change a demo | By pointing in [the studio](guide/studio.md), or by its [files](guide/customize.md) |
 | See the cursor, zoom, captions and shapes | [How the videos look](guide/look.md) |
 | Use it on a team | [Ownership, review, alerts and CI cost](guide/team.md) |
 | Keep it current in CI | [GitHub Actions](guide/ci.md) |
@@ -232,9 +161,9 @@ each skill.
 ## Why reshoot exists
 
 I made the launch video for [photosearch](https://github.com/mumit/photosearch)
-this way, and pulled the tools and what I learned into reshoot. A demo takes
-work to make. Keeping its story beside the app makes that work pay off again
-every time the product changes.
+this way, and pulled the tools and what I learned into reshoot. Keeping a
+demo's story beside the app makes the work of making it pay off again every
+time the product changes.
 
 The [original notes recording](docs/demo/notes.mp4) and its
 [source files](examples/notes/) are still here.

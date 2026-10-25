@@ -5,16 +5,12 @@ it again when the app changes.
 
 ## Start here
 
-| You are | Start with |
+| You want to | Start with |
 |---|---|
-| Showing a task yourself | `reshoot create URL --directory demo`, or `reshoot create` to try notes; [your app](your-app.md#show-the-task) covers the toolbar |
-| Asking Codex or Claude Code to make a demo | [Make a demo with your agent](agent-quickstart.md): one prompt, then reply "accept" |
-| Using the CLI yourself | [The tutorial](step-by-step.md): record the bundled notes app, break it, repair it, compare |
-| Adopting reshoot for a team | [Reshoot on a team](team.md): ownership, CI, alerts and cost |
-| Reviewing a demo refresh pull request | [Review a refresh pull request](team.md#review-a-refresh-pull-request) |
-
-Then record your own app: [a web app, from source or a URL](your-app.md), or
-[a macOS window](macos-window.md).
+| Learn reshoot on a made-up app | [The tutorial](step-by-step.md): `reshoot create`, the studio, a repair and an accepted update |
+| Make a demo of your own web app | [Record your own web app](your-app.md), or [a macOS window](macos-window.md) |
+| Have Codex or Claude Code make it | [Make a demo with your agent](agent-quickstart.md): one prompt, then reply "accept" |
+| Adopt reshoot for a team | [Reshoot on a team](team.md): ownership, CI, alerts, cost and reviewing a refresh |
 
 ## What you can add
 
@@ -23,7 +19,7 @@ watch whether it helps. [How the videos look](look.md) shows each in pictures.
 
 | Goal | Use | Read |
 |---|---|---|
-| See and shape it by pointing | The studio: beats on a timeline, captions, cards, the frame, music and exports | [Shape it in the studio](studio.md) |
+| See and shape it by pointing | The studio: the story, look, cut, sound, screenshots, tour, review and accept | [The studio](studio.md) |
 | Explain a task without sound | Short captions and readable holds on the result | [Change and grow a demo](customize.md) |
 | Draw the eye to a control | The cursor, auto-zoom and caption placement | [How the videos look](look.md) |
 | Explain a longer process | Sections, title cards, a voiceover and subtitles | [Grow it into a fuller demo](customize.md#grow-it-into-a-fuller-demo) |
@@ -60,6 +56,11 @@ watch whether it helps. [How the videos look](look.md) shows each in pictures.
 | Final | A full-size run, the one you accept |
 | Re-cut | Edit and scan a run's takes again, with the captions and edit as they are now, without recording: `reshoot recut` |
 | Studio | A page on your computer for shaping a demo: `reshoot studio` |
+| Update preview | The studio's button for a new preview: it re-cuts when it can and records when it must |
+| Make final | The studio's button for a full-size run, the one you accept |
+| Cut | Which recorded beats the video shows, and in what order; the recording still runs the whole task |
+| Docs screenshot | A PNG of a checked result, made again on every run |
+| Tour | A clickable HTML walkthrough of the checked results, made again on every run |
 | Export | A finished MP4 or GIF |
 | Scan | The check of every export for private details, shown as numbered sheets |
 | Finding | One thing the scan flagged, such as an email address, in every frame it is in |

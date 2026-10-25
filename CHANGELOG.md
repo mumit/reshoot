@@ -8,6 +8,8 @@ change project files or commands.
 
 ### Added
 
+- Recorded steps are named after what they did, such as `click-albums` or
+  `type-email`, instead of `action-1`.
 - When a result check fails, the studio says in plain words what it expected
   and what the page showed, and offers **Remove this check**, with Undo.
 - Before a first working recording, the studio shows only the story and what

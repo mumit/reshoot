@@ -197,7 +197,8 @@ address, a label that changed. Each is marked
 `# suggested from what this changed on the page`. Keep the ones that show the
 result, delete the rest, and check counts that depend on data the app keeps.
 The draft ends with the `end` beat the generated edit needs. Add captions and
-purposes, give the beats better IDs than `action-1`, and use the draft to
+purposes, rename beats whose IDs, such as `click-albums`, don't say what the
+step is for, and use the draft to
 replace `demo/storyboard.toml`. Every action and result check is in the
 [project reference](projects.md#storyboardtoml).
 

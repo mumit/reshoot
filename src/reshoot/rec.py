@@ -229,6 +229,26 @@ def suggest(step, typed):
     return checks[:2]
 
 
+def step_id(step):
+    """A beat ID that says what the step did, such as click-albums or type-q: the control's words when the recorder
+    saved them, otherwise the last plain word of its selector. """
+    verb = step['verb']
+    if verb == 'key':
+        return 'press-' + re.sub(r'[^a-z0-9]+', '-', str(step.get('key', 'key')).lower()).strip('-')
+    if not step.get('where'):
+        return {'note': 'note', 'issue': 'needs-repair'}.get(verb, verb)
+    kind, value = step['where']
+    words = next((alt.get('name') or alt.get('text') for alt in step.get('fallbacks', [])
+                  if isinstance(alt, dict) and (alt.get('name') or alt.get('text'))), None)
+    if kind == 'text':
+        words = value[1]
+    if not words:  # #tabs > a:nth-of-type(2) says only "tabs"
+        plain = [w for w in re.sub(r'[#\[\]=\"\'>:().,-]+', ' ', value).split() if not w.isdigit() and w not in ('nth', 'of', 'type', 'child')]
+        words = next((w for w in reversed(plain) if len(w) > 1), plain[-1] if plain else 'it')
+    slug = '-'.join(re.findall(r'[a-z0-9]+', words.lower())[:3])[:24].strip('-') or 'it'
+    return f'{verb}-{slug}'
+
+
 def write_toml(path, url, size, calls):
     lines = ['schema_version = 1', 'url = ' + json.dumps(url), 'size = ' + json.dumps(size)]
     hidden = list(dict.fromkeys(ev['selector'] for _, ev in calls if ev['kind'] == 'blur'))
@@ -237,9 +257,11 @@ def write_toml(path, url, size, calls):
     steps = steps_from(calls, include_tab=True)
     if not steps:
         raise ValueError('no supported actions recorded')
-    typed, suggested = [], 0
+    typed, suggested, used = [], 0, {'end': 1}
     for i, step in enumerate(steps):
-        lines += ['', '[[beat]]', f'id = "action-{i+1}"', 'hold = 1.0']
+        name = step_id(step)
+        used[name] = used.get(name, 0) + 1
+        lines += ['', '[[beat]]', 'id = ' + json.dumps(name if used[name] == 1 else f'{name}-{used[name]}'), 'hold = 1.0']
         caption = step.get('caption') or step.get('label')
         if caption:
             lines.append('caption = ' + json.dumps(caption))

@@ -169,11 +169,11 @@ def test_rec_suggests_result_checks_from_what_each_action_changed(tmp_path):
         (9, {'kind': 'changed', 'changes': [{'kind': 'changed', 'where': '#status', 'text': 'Saved'}]})])
     data = story.load(path)
     checks = {beat['id']: beat.get('expect') for beat in data['beat']}
-    assert checks['action-2'] == [{'type': 'text', 'target': {'css': '#list'}, 'contains': 'Buy stamps'}]  # what was typed
-    assert checks['action-3'] == [{'type': 'count', 'target': {'css': '#list > li'}, 'count': 1}]
-    assert checks['action-4'] == [{'type': 'url', 'contains': '/about.html'}]
-    assert checks['action-5'] == [{'type': 'text', 'target': {'css': '#status'}, 'contains': 'Saved'}]
-    assert checks['action-1'] is None and data['beat'][-1] == {'id': 'end', 'hold': 0.5}
+    assert checks['press-enter'] == [{'type': 'text', 'target': {'css': '#list'}, 'contains': 'Buy stamps'}]  # what was typed
+    assert checks['type-q'] == [{'type': 'count', 'target': {'css': '#list > li'}, 'count': 1}]
+    assert checks['click-about'] == [{'type': 'url', 'contains': '/about.html'}]
+    assert checks['click-save'] == [{'type': 'text', 'target': {'css': '#status'}, 'contains': 'Saved'}]
+    assert checks['type-text'] is None and data['beat'][-1] == {'id': 'end', 'hold': 0.5}
     assert (beats, suggested) == (5, 4) and path.read_text().count('# suggested from what this changed') == 4
 
 

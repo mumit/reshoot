@@ -534,7 +534,7 @@ def view(folder, take, config, run=None):
         row = {'id': beat['id'], 'purpose': beat.get('purpose'), 'caption': beat.get('caption') or '',
                'sub': beat.get('sub') or '', 'hold': beat.get('hold', 1),
                'narration': spoken, 'narration_pending': narration_pending,
-               'issue': beat.get('recording_issue'), **recorded.get(beat['id'], {})}
+               'issue': beat.get('recording_issue'), 'expects': len(beat.get('expect', [])), **recorded.get(beat['id'], {})}
         if beat['id'] in drawn:
             row['pending'] = drawn[beat['id']] != (beat.get('caption') or None, beat.get('sub') or None)
         if row.get('definition'):
@@ -562,6 +562,8 @@ def view(folder, take, config, run=None):
 def workflow(config, folder, take, run):
     from reshoot import journey
     state = journey.state(config, run)
+    if not run and (failure := failed(folder, take, config)) and not failure['stale'] and not failure['repaired']:
+        state.update(title='The first preview stopped', detail='Fix the step it stopped on, below, then choose Update preview.')
     kind, reason = update_kind(folder, config, take, run)
     state.update(update_kind=kind, update_detail=reason)
     return state
@@ -1014,8 +1016,9 @@ def page(data, accept, seen=0):
             buttons = ''
         elif failure.get('check'):
             check = failure['check']
+            again = 'Continue creation' if data.get('creation_pending') else 'Update preview'
             message = (check['message'] + ' If that is the result you meant to show, fix the app or its demo data. If '
-                       'the check is wrong, remove it, then choose Update preview.')
+                       f'the check is wrong, remove it, then choose {again}.')
             buttons = (f'<button type="button" data-remove-check data-beat="{e(check["beat"])}" data-index="{check["index"]}" '
                        f'data-expect="{e(json.dumps(check["expect"]))}">Remove this check</button>')
         else:
@@ -1051,8 +1054,9 @@ def page(data, accept, seen=0):
   <div class="body">
     <div class="head"><strong>{n + 1}. {e(beat['id'])}</strong><span class="when">{when}</span></div>
     {f'<p class="purpose">{e(beat["purpose"])}</p>' if beat.get('purpose') else ''}
-    <p class="checks">{f'{passed} of {len(checks)} result checks passed' if checks else 'No result checks'}</p>
-    {f'<button type="button" data-shot-beat="{e(beat["id"])}">Use for docs</button>' if beat['id'] in shot_beats else ''}
+    <p class="checks">{f'{passed} of {len(checks)} result checks passed' if checks else
+                       f'{beat["expects"]} result check{"" if beat["expects"] == 1 else "s"}, not run yet' if beat.get('expects') else 'No result checks'}</p>
+    {f'<button type="button" data-shot-beat="{e(beat["id"])}">Use for docs</button>' if beat['id'] in shot_beats and run else ''}
     <label>Caption <input name="caption" value="{e(beat['caption'])}" placeholder="No caption"></label>
     <label>Second line <input name="sub" value="{e(beat['sub'])}" placeholder="None"></label>
     <label>Hold result (seconds) <input name="hold" type="number" min="0" step="0.5" value="{e(beat['hold'])}"></label>
@@ -1313,7 +1317,7 @@ def page(data, accept, seen=0):
         if failure:
             top = '<p class="note">Previous successful recording. Update preview to verify the current story.</p>' + top
     else:
-        top = ('<p class="status">Your preview will appear here after setup and creation.</p>' if data.get('creation_pending') else
+        top = ('' if failure else '<p class="status">Your preview will appear here after setup and creation.</p>' if data.get('creation_pending') else
                '<p class="status">No run has worked yet. Record a preview to see the demo here.</p>')
     sheets = ''.join(f'<a href="run/{e(s)}" target="_blank"><img loading="lazy" src="run/{e(s)}" alt="Scan sheet {i + 1}"></a>'
                      for i, s in enumerate((run or {}).get('sheets', [])))
@@ -1331,7 +1335,7 @@ def page(data, accept, seen=0):
         problems = [item for item in tools['checks'] if item['status'] in ('missing', 'failed')]
         checks = tool_rows(problems)
         all_checks = tool_rows(tools['checks'])
-        continuation = (f'<button type="button" data-job="create"{(" disabled" if not tools["ok"] else "")}>Continue creation</button>'
+        continuation = (f'<button type="button" data-job="create"{(" disabled" if not tools["ok"] else " class=\"primary\"")}>Continue creation</button>'
                         f'<p>Or restart from a terminal: <code>{e(data["resume_command"])}</code></p>' if data.get('creation_pending') else '')
         tools_box = f'''<section id="setup-panel" class="journey" data-phase="{'ready' if tools['ok'] else 'pending'}" tabindex="-1"><h2>Recording tools</h2>
 <p>{('Synthetic tool checks passed. Continue when you are ready.' if tools.get('probed') else 'Tools are installed. Check again tests them; continuing creation also tests them before using your app.') if tools['ok'] else 'Your project is saved. Fix the items below, then check again.'}</p>
@@ -1366,6 +1370,8 @@ def page(data, accept, seen=0):
     nav = [*([('setup-panel', 'Tools')] if tools else []), ('preview-panel', 'Preview'), ('story-panel', 'Story'), ('compare-panel', 'Compare'), *([('cut-panel', 'Cut')] if data.get('edit') else []),
            ('look-panel', 'Look'), *([('audio-panel', 'Audio')] if data.get('edit') else []),
            ('screenshots-panel', 'Screenshots'), ('tour-panel', 'Tour'), ('review-panel', 'Review'), ('download-panel', 'Download')]
+    if not run:  # before a first working recording, only the story and its preview can do anything
+        nav = [row for row in nav if row[0] in ('setup-panel', 'preview-panel', 'story-panel')]
     navigation = ''.join(f'<a href="#{target}" data-jump="{target}">{label}</a>' for target, label in nav)
     download_rows = ''.join(f'<li><a href="run/{e(item["source"])}" download="{e(item["name"])}">{e(item["name"])}</a></li>' for item in data.get('downloads', []))
     downloads = (f'''<section id="download-panel" class="downloads" tabindex="-1"><h2>Your files</h2>
@@ -1379,7 +1385,7 @@ def page(data, accept, seen=0):
     screenshot_box = screenshot_box.replace('<details class="screenshots-controls"', '<details id="screenshots-panel" class="screenshots-controls"', 1)
     tour_box = tour_box.replace('<details class="tour-controls"', '<details id="tour-panel" class="tour-controls"', 1)
     document = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>reshoot studio</title><link rel="icon" href="data:,"><style>{STYLE}</style></head><body data-seen="{seen}" data-journey="{e(json.dumps(state))}" data-studio-pending="{'1' if state['pending'] else ''}">
+<title>reshoot studio</title><link rel="icon" href="data:,"><style>{STYLE}</style></head><body{'' if run else ' data-first="1"'} data-seen="{seen}" data-journey="{e(json.dumps(state))}" data-studio-pending="{'1' if state['pending'] else ''}">
 <header><h1>reshoot studio</h1><span class="story">{e(data['story'])}</span>
 <fieldset class="actions" aria-label="Recording and history"{(' disabled' if session else '')}><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
 <button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
@@ -1431,6 +1437,10 @@ def page(data, accept, seen=0):
 
 
 STYLE = '''
+body[data-first] #compare-panel, body[data-first] #review-panel, body[data-first] #download-panel,
+body[data-first] #look-panel, body[data-first] #cut-panel, body[data-first] #audio-panel,
+body[data-first] #screenshots-panel, body[data-first] #tour-panel, body[data-first] .beat .narration,
+body[data-first] .beat .redo { display:none }
 :root { --bg:#f6f5f2; --panel:#fff; --ink:#1d1b18; --muted:#6b665e; --line:#e3e0da; --accent:#1d4ed8; --ok:#15803d;
   --bad:#b91c1c; --idle:#a8a29e; --seg-ink:#fff; --header-height:120px; color-scheme: light dark; }
 @media (prefers-color-scheme: dark) { :root { --bg:#131211; --panel:#1c1b19; --ink:#f1efe9; --muted:#a49e94;

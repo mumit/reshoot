@@ -290,3 +290,45 @@ def test_a_failed_result_check_is_said_plainly():
         'Step 5 (action-5) expected no elements matching `#hero > div`, but the page had 4.'
     assert studio.explain(2, 'search', {'type': 'text', 'target': {'css': '#list li'}, 'contains': 'bikes'},
                           'Actual value: "Buy stamps"') == 'Step 2 (search) expected `#list li` to contain "bikes", but it showed "Buy stamps".'
+
+
+@pytest.mark.browser
+def test_a_first_preview_that_stopped_on_a_wrong_check_can_be_fixed_in_the_studio(tmp_path):
+    from playwright.sync_api import sync_playwright
+    from test_reshoot import free_port
+    from reshoot import web
+    from reshoot.cli import main
+    project.init(SimpleNamespace(directory=str(tmp_path), url=None))
+    port = free_port()
+    config = tmp_path / 'reshoot.toml'
+    config.write_text(config.read_text().replace('8765', str(port)).replace('scan = true', 'scan = false'))
+    board = tmp_path / 'storyboard.toml'
+    text = board.read_text().replace('8765', str(port))
+    assert 'count = 1' in text
+    board.write_text(text.replace('count = 1', 'count = 0', 1))  # a wrong suggestion, as a tab once made
+    with pytest.raises(SystemExit) as result:
+        main(['preview', str(config)])
+    assert result.value.code != 0
+    httpd, url, _ = studio.server(SimpleNamespace(project=str(tmp_path), port=None))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(executable_path=web.find_chrome(), headless=True)
+            page = browser.new_page()
+            page.goto(url)
+            assert page.locator('body').get_attribute('data-first') == '1'
+            assert set(page.locator('.section-nav a').all_inner_texts()) <= {'Tools', 'Preview', 'Story'}
+            assert not page.locator('#review-panel').is_visible() and not page.locator('#look-panel').is_visible()
+            assert 'expected no elements matching' in page.locator('.failure').inner_text()
+            assert page.locator('.beat[data-beat=search] .checks').inner_text().endswith('not run yet')
+            page.locator('[data-remove-check]').click()
+            page.wait_for_load_state('load')
+            page.wait_for_function('!document.querySelector("[data-remove-check]")')
+            browser.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    assert 'count = 0' not in board.read_text()
+    with pytest.raises(SystemExit) as result:
+        main(['preview', str(config)])
+    assert result.value.code == 0

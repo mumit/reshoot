@@ -10,6 +10,8 @@ change project files or commands.
 
 - When a result check fails, the studio says in plain words what it expected
   and what the page showed, and offers **Remove this check**, with Undo.
+- Before a first working recording, the studio shows only the story and what
+  to do next, and says which steps have result checks still to run.
 
 ### Fixed
 

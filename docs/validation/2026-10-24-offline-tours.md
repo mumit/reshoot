@@ -1,7 +1,7 @@
 # Offline clickable tours
 
 On 2026-10-24 the local macOS checkout exercised the tour milestone in the
-[creation and revision plan](../../UX_PLAN.md), using only synthetic notes data.
+[creation and revision plan](../plans/ux-plan.md), using only synthetic notes data.
 These are automated and agent-operated checks, not outside-user research or
 owner acceptance of the walkthroughs.
 

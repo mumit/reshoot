@@ -2,7 +2,7 @@
 
 On 2026-10-24, the local macOS checkout was exercised with synthetic notes data
 to verify the destination framing milestone in the [creation and revision
-plan](../../UX_PLAN.md). These are automated and agent-operated checks, not
+plan](../plans/ux-plan.md). These are automated and agent-operated checks, not
 independent-user research or owner acceptance of media.
 
 ## What changed

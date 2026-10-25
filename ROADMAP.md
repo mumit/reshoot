@@ -16,7 +16,7 @@ meets it first. The studio now gives a local place to see a story and shape it
 by pointing, with the files in the repository still the source of truth. Recording,
 repair, visual styles, beat cuts, destination framing, audio and documentation
 screenshots and offline tours now share that workflow. The
-[creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
+[creation and revision plan](docs/plans/ux-plan.md) defines implementation and acceptance.
 
 1. **Compare export playback.** Inspect the paired exported videos in the studio
     with beat-aware seeking and both recordings' exact review evidence.

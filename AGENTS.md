@@ -55,5 +55,16 @@ claude plugin validate .      # checks the plugin and skills
 
 ## When something changes
 
-A change to a command or to `__demo` also changes the skill that documents it, and often the guide. A fixed pitfall
-gets "Fixed in reshoot" in [guide/pitfalls.md](guide/pitfalls.md).
+A change to a command or to `__demo` also changes the skill that documents it, and often the guide. Explain each
+thing once, where it belongs, and link to it from elsewhere:
+
+| What | Where |
+|---|---|
+| A studio panel or button | [guide/studio.md](guide/studio.md), in the order a person meets it, with its command in the table at the end |
+| A file field | [guide/projects.md](guide/projects.md), under its file |
+| A command | [guide/commands.md](guide/commands.md), under its job, and `--help` |
+| A picture of a setting | [guide/look.md](guide/look.md), by editing `examples/look/build.py` |
+| A fixed problem | [CHANGELOG.md](CHANGELOG.md). Keep it in [guide/pitfalls.md](guide/pitfalls.md) only if people still need to do something |
+
+Write for the person using reshoot: what to do, in the studio's own words, then why. Leave out how the code keeps
+things safe unless the reader has to act on it.

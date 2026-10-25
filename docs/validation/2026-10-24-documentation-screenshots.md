@@ -1,7 +1,7 @@
 # Documentation screenshots that stay current
 
 On 2026-10-24 the local macOS checkout exercised the screenshot milestone in
-the [creation and revision plan](../../UX_PLAN.md). Automated tests and
+the [creation and revision plan](../plans/ux-plan.md). Automated tests and
 agent-operated trials used the bundled synthetic notes app. This is not
 outside-user research or owner acceptance of media.
 

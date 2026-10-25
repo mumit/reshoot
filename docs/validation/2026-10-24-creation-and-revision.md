@@ -1,7 +1,7 @@
 # Creation and revision workflow
 
 On 2026-10-24, the local macOS checkout was exercised with synthetic notes data
-to verify the [creation and revision plan](../../UX_PLAN.md). Existing Chrome,
+to verify the [creation and revision plan](../plans/ux-plan.md). Existing Chrome,
 ffmpeg and Vision installations were used. These are automated and agent-operated
 checks, not independent-user usability research or owner acceptance of media.
 

@@ -1,7 +1,7 @@
 # Narration auditioning and audio balance
 
 On 2026-10-24 the local macOS checkout exercised the narration and audio
-milestone in the [creation and revision plan](../../UX_PLAN.md). Tests and
+milestone in the [creation and revision plan](../plans/ux-plan.md). Tests and
 agent-operated trials used only synthetic notes data, generated tones and
 local system speech. This is not independent-user research or owner acceptance.
 

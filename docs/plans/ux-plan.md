@@ -22,7 +22,7 @@ available for automation. Use synthetic data for all verification.
   and the notes exports. Update commands, skills, pitfalls and onboarding.
 
 Verification is recorded in
-[the creation and revision trial](docs/validation/2026-10-24-creation-and-revision.md).
+[the creation and revision trial](../validation/2026-10-24-creation-and-revision.md).
 That trial passed 116 fast tests, 37 browser tests, and the final
 focused browser trial four. A fresh notes preview took 15 seconds; the final
 with an explicit full-frame scan took 76 seconds. Nothing was published or
@@ -47,7 +47,7 @@ remain visible and cannot silently produce an apparently complete final.
 - [x] Test renamed, ambiguous and stale controls, result mismatches and cancellation;
   update commands, skills and validation evidence.
 
-See [the locator repair trial](docs/validation/2026-10-24-locator-repair.md).
+See [the locator repair trial](../validation/2026-10-24-locator-repair.md).
 
 ## Reusable visual styles
 
@@ -63,7 +63,7 @@ See [the locator repair trial](docs/validation/2026-10-24-locator-repair.md).
 - [x] Verify reuse across synthetic projects, re-cutting and undo; rebuild and
   inspect the gallery and document the workflow.
 
-See [the visual styles trial](docs/validation/2026-10-24-visual-styles.md).
+See [the visual styles trial](../validation/2026-10-24-visual-styles.md).
 
 ## Beat trimming and sequencing
 
@@ -80,7 +80,7 @@ See [the visual styles trial](docs/validation/2026-10-24-visual-styles.md).
 - [x] Verify notes in the CLI and browser, repeated subtitles and export maps;
   rebuild and inspect the gallery and document the workflow.
 
-See [the beat sequencing trial](docs/validation/2026-10-24-beat-sequencing.md).
+See [the beat sequencing trial](../validation/2026-10-24-beat-sequencing.md).
 
 ## Destination framing and readability
 
@@ -99,7 +99,7 @@ See [the beat sequencing trial](docs/validation/2026-10-24-beat-sequencing.md).
 - [x] Verify encoded crop colours, MP4/GIF parity, stale edits, source clipping,
   undo and new captures; inspect notes exports and rebuild the gallery.
 
-See [the destination framing trial](docs/validation/2026-10-24-destination-framing.md).
+See [the destination framing trial](../validation/2026-10-24-destination-framing.md).
 
 ## Narration auditioning and audio balance
 
@@ -116,7 +116,7 @@ See [the destination framing trial](docs/validation/2026-10-24-destination-frami
 - [x] Complete the fresh local-speech trial, broader regressions, visual
   inspection, gallery rebuild and documentation/package verification.
 
-See [the narration and audio trial](docs/validation/2026-10-24-narration-and-audio.md).
+See [the narration and audio trial](../validation/2026-10-24-narration-and-audio.md).
 
 ## Documentation screenshots
 
@@ -133,7 +133,7 @@ See [the narration and audio trial](docs/validation/2026-10-24-narration-and-aud
 - [x] Complete the final crop browser trial, regressions, fresh CLI refresh,
   gallery/UI inspection and documentation/package verification.
 
-See [the documentation screenshots trial](docs/validation/2026-10-24-documentation-screenshots.md).
+See [the documentation screenshots trial](../validation/2026-10-24-documentation-screenshots.md).
 
 ## Offline clickable tours
 
@@ -150,7 +150,7 @@ See [the documentation screenshots trial](docs/validation/2026-10-24-documentati
 - [x] Finish the fresh scanned CLI refresh, visual/gallery inspection and
   documentation/package verification.
 
-See [the offline tour trial](docs/validation/2026-10-24-offline-tours.md).
+See [the offline tour trial](../validation/2026-10-24-offline-tours.md).
 
 ## Creation-to-review coherence
 
@@ -167,7 +167,7 @@ See [the offline tour trial](docs/validation/2026-10-24-offline-tours.md).
 - [x] Exercise preview, caption revision, re-cut, final review and exact-run
   downloads; verify mobile navigation, stale edits and source-path replacement.
 
-See [the creation journey review](docs/validation/2026-10-25-creation-journey.md).
+See [the creation journey review](../validation/2026-10-25-creation-journey.md).
 
 ## Studio session recovery
 
@@ -185,7 +185,7 @@ See [the creation journey review](docs/validation/2026-10-25-creation-journey.md
   re-cut, desktop/mobile UI and affected browser regressions; update the guide,
   skills, package checks and validation record.
 
-See [the session recovery trial](docs/validation/2026-10-25-session-recovery.md).
+See [the session recovery trial](../validation/2026-10-25-session-recovery.md).
 
 ## First-run setup and continuation
 
@@ -203,7 +203,7 @@ See [the session recovery trial](docs/validation/2026-10-25-session-recovery.md)
   cached-check invalidation, fresh notes creation, mobile UI, regressions and
   documentation/package checks.
 
-See [the first-run setup trial](docs/validation/2026-10-25-first-run-setup.md).
+See [the first-run setup trial](../validation/2026-10-25-first-run-setup.md).
 
 ## Compare recorded revisions
 
@@ -221,7 +221,7 @@ See [the first-run setup trial](docs/validation/2026-10-25-first-run-setup.md).
   files, a newer run arriving during comparison, desktop/mobile UI, regressions
   and documentation/package checks.
 
-See [the studio comparison trial](docs/validation/2026-10-25-studio-comparison.md).
+See [the studio comparison trial](../validation/2026-10-25-studio-comparison.md).
 
 ## Following milestones
 

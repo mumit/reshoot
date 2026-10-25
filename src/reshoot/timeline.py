@@ -215,6 +215,7 @@ def edit(a):
             shutil.copyfile(silent, output)
             copy(silent, output)
     cut.write_srt(cues(output), output.with_suffix('.srt'))
+    cut.ff('-ss', cut.duration(output) * .75, '-i', output, '-frames:v', 1, output.with_suffix('.poster.png'))
     for profile in board.get('export', []):
         export(output, profile)
     print(output)

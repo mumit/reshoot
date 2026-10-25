@@ -14,12 +14,62 @@ each command.
 | `reshoot.toml` | How to start the app, which takes to record, the edit and the scan |
 | `storyboard.toml` | The beats: actions, captions, result checks and holds |
 | `edit.toml` | Which parts of the takes to keep, title cards, music and the exports |
+| `styles.toml` | Saved visual styles, created by the studio or `style save`; optional |
 | `takes/runs/ID/` | One run: its report, recordings, scan sheets and review page. Ignored by git |
 | `accepted/` | The accepted run's report, beat results and evidence frames, without media, and in CI each scan finding's first frame. Commit it |
 
 `reshoot init demo` writes a complete project with a made-up notes app, and
 `reshoot init demo --url URL` a draft for your app. Paths in each file are
 relative to that file.
+
+## Visual style files
+
+`reshoot style apply STYLE --project demo` accepts a starting look, a saved
+key from `style list`, or a portable style file. The studio also imports and
+downloads portable styles. Applying a style materializes values in each TOML
+browser storyboard's `[caption]`, and the edit's `[style]` and `[frame]`.
+There is no run-time reference to the style file. Story, timing, fonts, logos,
+audio, exports and scan coverage remain in their project files.
+
+A portable style has `schema_version = 1`, a `name` of 1 to 60 characters,
+an optional `description` of at most 200 characters, and these settings:
+
+```toml
+schema_version = 1
+name = "Launch look"
+frame_enabled = true
+
+[caption]
+position = "bottom"
+margin = 0.065
+background = "#172554f2"
+foreground = "#ffffff"
+
+[card]
+background = "#172554"
+foreground = "#ffffff"
+
+[frame]
+background = ["#253a6a", "#101726"]
+padding = 0.045
+radius = 12
+shadow = true
+bar = true
+bar_color = "#1e293b"
+```
+
+Omitted visual fields use the defaults in the caption and frame tables below;
+cards default to `#0e0d0c` and white. A `[frame]` enables framing unless
+`frame_enabled = false` explicitly disables it. Without either, framing is
+off. Backgrounds accept an opaque colour or exactly two colours for a gradient;
+cards use the gradient's top colour. Caption colours can include opacity.
+Styles contain no asset paths, scripts, task content or timing settings.
+
+`style save NAME` stores a complete style under `[styles]` in the optional
+project library `styles.toml`, with `schema_version = 1`. Its key uses lowercase
+letters, numbers and hyphens, such as `launch-look`; each value is an inline
+style table. The CLI lists these keys. `--out FILE` writes the standalone form
+above. Existing names and export paths require `--replace` to overwrite.
 
 ## reshoot.toml
 
@@ -169,6 +219,23 @@ target = {role = "button", name = "Add note"}
 target = {test_id = "note-list"}
 target = {css = "#list li", text = "bikes"}
 ```
+
+Targeted operations can also set `fallbacks`, an array of up to 12 alternative
+target tables. The recorder saves stable alternatives, such as an accessible
+role, name or placeholder:
+
+```toml
+[[beat.action]]
+type = "click"
+target = {css = "#save"}
+fallbacks = [{role = "button", name = "Save"}, {css = "button[name='save']"}]
+```
+
+Fallbacks suggest a repair only when their visible, compatible matches agree
+on one element. They never execute in place of the primary target. Missing or
+ambiguous controls fail the run; `reshoot repair RUN --apply` or the studio
+explicitly changes the locator after rechecking the current app. Wrong result
+values and count mismatches do not get locator repairs.
 
 Actions use real input. A target that is missing, hidden, disabled, covered or
 matches more than one element fails the beat, and the run saves a failure

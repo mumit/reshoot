@@ -163,6 +163,13 @@ Use CSS when that is the clearest stable target. Reshoot fails on missing,
 covered, disabled or ambiguous controls rather than forcing a click. Repair
 the target or app state instead of removing the result check.
 
+The recorder saves alternative locators for future repairs. If the app renames
+a control, the studio shows the failed step and lets you select its replacement;
+see [Repair a changed control](customize.md#repair-a-changed-control). From the
+CLI, inspect the failed run with `reshoot repair RUN`, then use `--apply` for a
+suggestion or `--pick` to choose the replacement. Result checks still have to
+pass in a fresh recording.
+
 ## Draft it by clicking through
 
 ```bash

@@ -47,6 +47,7 @@ def steps_from(calls, include_tab=False):
     href = None
     for t, ev in calls:
         kind, last = ev["kind"], steps[-1] if steps else None
+        alternatives = ev.get('fallbacks', [])
         if kind == 'undo':
             if steps:
                 steps.pop()
@@ -82,18 +83,18 @@ def steps_from(calls, include_tab=False):
                 steps.pop()
                 t, changes = last["start"], last.get("changes", [])
             steps.append(dict(start=t, verb="type", where=ev["where"], value=ev["value"], before=ev.get("before", ""), label=ev.get('label'),
-                              secret=ev.get("secret"), changes=changes))
+                              secret=ev.get("secret"), changes=changes, fallbacks=alternatives))
         elif kind == "click":
-            steps.append(dict(start=t, verb="click", where=ev["where"], label=ev.get('label')))
+            steps.append(dict(start=t, verb="click", where=ev["where"], label=ev.get('label'), fallbacks=alternatives))
         elif kind in ("select", "check"):
             changes = []
             if last and last["verb"] == "click" and last["where"] == ev["where"]:
                 steps.pop()  # the click that opened the dropdown; select replays the whole choice
                 t, changes = last["start"], last.get("changes", [])
             value = {'option': ev['option']} if kind == 'select' else {'checked': ev['checked']}
-            steps.append(dict(start=t, verb=kind, where=ev['where'], changes=changes, **value))
+            steps.append(dict(start=t, verb=kind, where=ev['where'], changes=changes, fallbacks=alternatives, **value))
         elif kind == "key" and ev["key"] in (("Enter", "Escape", "Tab") if include_tab else ("Enter", "Escape")):
-            steps.append(dict(start=t, verb="key", where=ev["where"], key=ev["key"]))
+            steps.append(dict(start=t, verb="key", where=ev["where"], key=ev["key"], fallbacks=alternatives))
         elif kind == "scroll":
             steps.append(dict(start=t, verb="scroll", where=None, dy=ev["dy"]))
     return steps
@@ -158,7 +159,8 @@ async def session(url, w, h, calls, headless=False, drive=None, toolbar=False):
             await page.cmd("Page.enable"); await page.cmd("Runtime.enable")
             await page.cmd("Emulation.setDeviceMetricsOverride", width=w, height=h, deviceScaleFactor=0, mobile=False)
             await page.cmd("Runtime.addBinding", name="__reshootRec")
-            await page.cmd("Page.addScriptToEvaluateOnNewDocument", source='window.__reshootToolbar = ' + json.dumps(toolbar) + ';' + (HERE / "rec.js").read_text())
+            await page.cmd("Page.addScriptToEvaluateOnNewDocument", source='window.__reshootToolbar = ' + json.dumps(toolbar) + ';' +
+                           (HERE / 'targets.js').read_text() + (HERE / "rec.js").read_text())
             await page.cmd("Page.navigate", url=url)
             if drive:
                 await drive(page)
@@ -254,6 +256,10 @@ def write_toml(path, url, size, calls):
                 tag, text = value
                 spec = {'css': tag, 'text': text}
             lines += ['target = {' + ', '.join(key + ' = ' + json.dumps(value) for key, value in spec.items()) + '}']
+            alternatives = [value for value in step.get('fallbacks', []) if value != spec]
+            if alternatives:
+                from reshoot.workspace import quote
+                lines.append('fallbacks = ' + quote(alternatives))
         if step['verb'] == 'type':
             value = 'demo-password' if step.get('secret') else step['value']
             lines += ['text = ' + json.dumps(value), 'clear = true']
@@ -276,6 +282,9 @@ def write_toml(path, url, size, calls):
             if 'target' in check:
                 lines += ['target = {' + ', '.join(k + ' = ' + json.dumps(v) for k, v in check['target'].items()) + '}']
             lines += [f'{key} = ' + json.dumps(check[key]) for key in ('contains', 'count', 'value', 'checked') if key in check]
+            if check.get('fallbacks'):
+                from reshoot.workspace import quote
+                lines.append('fallbacks = ' + quote(check['fallbacks']))
     lines += ['', '[[beat]]', 'id = "end"', 'hold = 0.5']  # the generated edit ends where this starts
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text('\n'.join(lines) + '\n')

@@ -23,7 +23,7 @@ available for automation. Use synthetic data for all verification.
 
 Verification is recorded in
 [the creation and revision trial](docs/validation/2026-10-24-creation-and-revision.md).
-The fast suite passes 116 tests, the full browser suite 37, and the final
+That trial passed 116 fast tests, 37 browser tests, and the final
 focused browser trial four. A fresh notes preview took 15 seconds; the final
 with an explicit full-frame scan took 76 seconds. Nothing was published or
 accepted on the owner's behalf.
@@ -37,13 +37,39 @@ the studio, undo that edit, update the preview and inspect scan evidence.
 Media and acceptance always refer to the run shown. Unsupported interactions
 remain visible and cannot silently produce an apparently complete final.
 
+## Visual repair implementation
+
+- [x] Save stable alternative locators while recording.
+- [x] Diagnose missing controls without silently changing a recording.
+- [x] Offer a revalidated suggested repair through the CLI and studio.
+- [x] Let the owner select and confirm a replacement in the app.
+- [x] Preserve checks, source revisions and studio undo; verify with a fresh preview.
+- [x] Test renamed, ambiguous and stale controls, result mismatches and cancellation;
+  update commands, skills and validation evidence.
+
+See [the locator repair trial](docs/validation/2026-10-24-locator-repair.md).
+
+## Reusable visual styles
+
+- [x] Offer Focus, Midnight and Paper starting looks with illustrative sketches.
+- [x] Share validated style operations between the CLI and studio.
+- [x] Save a project style library and import/export portable TOML styles.
+- [x] Apply to all TOML browser takes in one undoable change, preserving story,
+  timing, fonts, audio, exports and scan coverage.
+- [x] Validate every affected file before replacing any, reject stale edits and
+  roll back the style's own writes if a later replacement fails.
+- [x] Keep frame and card backgrounds independently editable; show a finished
+  export's poster and retain the preview beside desktop style controls.
+- [x] Verify reuse across synthetic projects, re-cutting and undo; rebuild and
+  inspect the gallery and document the workflow.
+
+See [the visual styles trial](docs/validation/2026-10-24-visual-styles.md).
+
 ## Following milestones
 
-1. Visual locator repair and reusable visual styles, with shared validated
-   operations underneath the CLI and studio.
-2. Beat trimming and sequencing, destination framing and readability feedback,
+1. Beat trimming and sequencing, destination framing and readability feedback,
    and narration auditioning and audio balance.
-3. Screenshots and tours after the creation and revision loop is established.
+2. Screenshots and tours after the creation and revision loop is established.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

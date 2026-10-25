@@ -137,7 +137,7 @@
     if (!ev.isTrusted || ev.detail === 0) return;
     const e = target(ev.target);
     if (e === document.body || e === document.documentElement || !e.tagName) return;
-    send({ kind: "click", where: locate(e), field: !!field(e), label: label(e) });
+    send({ kind: "click", where: locate(e), field: !!field(e), label: label(e), fallbacks: window.__reshootTargets(e) });
   }, true);
   // What a field held before the typing started, so replaying can tell adding text from clearing or changing it.
   const valueOf = e => (e.isContentEditable ? e.innerText : e.value) || "";
@@ -146,20 +146,20 @@
   addEventListener("input", ev => {
     if (ignore(ev) || !ev.isTrusted || !field(ev.target) || ev.target.type === 'file') return;
     const e = ev.target;
-    send({ kind: "type", where: locate(e), value: valueOf(e), before: before.get(e) ?? "", secret: e.type === "password", label: label(e) });
+    send({ kind: "type", where: locate(e), value: valueOf(e), before: before.get(e) ?? "", secret: e.type === "password", label: label(e), fallbacks: window.__reshootTargets(e) });
   }, true);
   addEventListener("keydown", ev => {
     if (ignore(ev) || !ev.isTrusted || !["Enter", "Escape", "Tab"].includes(ev.key)) return;
-    send({ kind: "key", key: ev.key, where: locate(ev.target) });
+    send({ kind: "key", key: ev.key, where: locate(ev.target), fallbacks: window.__reshootTargets(ev.target) });
   }, true);
   addEventListener("change", ev => {
     if (ignore(ev) || !ev.isTrusted) return;
     const e = ev.target;
     // A dropdown choice replays as a select action, found by the option's visible label.
     if (e.matches("select:not([multiple])") && e.selectedOptions.length)
-      send({ kind: "select", where: locate(e), option: e.selectedOptions[0].label });
+      send({ kind: "select", where: locate(e), option: e.selectedOptions[0].label, fallbacks: window.__reshootTargets(e) });
     else if (e.matches('input[type=checkbox],input[type=radio]'))
-      send({kind: 'check', where: locate(e), checked: e.checked});
+      send({kind: 'check', where: locate(e), checked: e.checked, fallbacks: window.__reshootTargets(e)});
     else if (e.matches('select,input[type=file]'))
       send({kind: 'unsupported-change', message: 'Record a manual action for this multiple choice or file selection, then remove recording_issue.'});
   }, true);
@@ -232,6 +232,7 @@
         const text = (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 200);
         if (element.matches('input[type=checkbox],input[type=radio]')) check = {type: 'checked', target: {css: selector}, checked: element.checked};
         else if (text) check = {type: 'text', target: {css: selector}, contains: text};
+        check.fallbacks = window.__reshootTargets(element).filter(value => JSON.stringify(value) !== JSON.stringify(check.target));
         report({kind: 'expect', check}); status('Result check added to the current step.');
       }
       picking = null;

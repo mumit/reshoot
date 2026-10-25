@@ -540,7 +540,9 @@ def test_rec_picks_stable_selectors(tmp_path):
     assert found[3] == ["css", "body > div > button:nth-of-type(2)"]  # two buttons say Share: found by place
     assert found[4] == ["text", ["a", "One"]]
     assert [c.get("secret") for _, c in calls if c["kind"] == "type"][-1] is True
-    assert [c for _, c in calls if c["kind"] == "select"] == [{"kind": "select", "where": ["css", "#label"], "option": "feature"}]
+    choices = [c for _, c in calls if c['kind'] == 'select']
+    assert [{k: v for k, v in c.items() if k != 'fallbacks'} for c in choices] == [{"kind": "select", "where": ["css", "#label"], "option": "feature"}]
+    assert choices[0]['fallbacks']
 
 
 @pytest.mark.browser

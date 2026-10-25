@@ -22,6 +22,8 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/run.py` | `reshoot run`: a whole shoot from a reshoot.toml |
 | `src/reshoot/create.py` | `reshoot create`: demonstrate a task, make a preview and open the studio |
 | `src/reshoot/workspace.py` | Studio revisions and reversible edits |
+| `src/reshoot/styles.py` | Portable visual styles shared by the CLI and studio |
+| `src/reshoot/repair.py`, `repair.js`, `targets.js` | Explicit locator repair and shared control discovery |
 | `src/reshoot/rec.py`, `rec.js` | `reshoot rec`: a storyboard written by watching someone use the app |
 | `src/reshoot/zoom.py` | Zoom on clicks, and captions drawn after the zoom |
 | `src/reshoot/captions.py` | TOML storyboard captions, drawn on a take after recording and again on a re-cut |

@@ -2,8 +2,28 @@
 
 Every picture here comes from the bundled notes example, recorded by
 [`examples/look/build.py`](../examples/look/build.py). Each one changes a
-single setting, shown beside it. Run the script again to bring the page up to
+single setting, or combines them in a reusable visual style. Run the script again to bring the page up to
 date.
+
+## Visual styles
+
+Choose a complete look in the studio's **Style and exports**, or apply one
+from the command line. Each changes caption colours and placement, title-card
+colours and browser framing. Fonts, story content, timing, audio and exports
+stay as they are. The app is large in Focus; the framed styles give it a
+background and slightly shrink it, so check text at the exported size.
+
+| Focus | Midnight | Paper |
+|---|---|---|
+| ![Focus, with dark captions and the page filling the video](../docs/look/caption-bottom.jpg) | ![Midnight, with a blue gradient and browser frame](../docs/look/style-midnight.jpg) | ![Paper, with a warm frame and light captions](../docs/look/style-paper.jpg) |
+
+```bash
+reshoot style apply midnight --project demo
+reshoot recut demo/latest
+```
+
+Save your own look and use it in another project with
+[reusable styles](customize.md#reuse-a-visual-style).
 
 ## The cursor
 
@@ -126,8 +146,8 @@ past a page's limit. The notes example's loop:
 
 | Width | File |
 |---|---|
-| 800 wide (the default) | 344 KB |
-| 640 wide | 240 KB |
+| 800 wide (the default) | 338 KB |
+| 640 wide | 236 KB |
 
 ## Sound
 

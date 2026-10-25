@@ -70,6 +70,19 @@ cut.write_srt(cut.cues(take, start, end, offset), srt) # subtitles: the voiceove
 
 ## Declarative edits
 
+For a versioned browser project, choose a reusable look with
+`reshoot style list --project demo` and `reshoot style apply midnight --project demo`,
+or use Visual styles in the studio's Style and exports. A style changes caption
+placement, margin and colours, title-card colours and browser framing across
+the project's TOML browser takes. It keeps the story, timing, fonts, logos,
+audio, exports and scan settings. Update the preview and inspect app text and
+caption overlap at the export size. `reshoot style save "Launch look" --project demo`
+saves it in the project's library; `--out launch-style.toml` makes a portable
+file for `reshoot style apply launch-style.toml --project another-demo`. Existing
+names and files need `--replace`. Studio applies and saves are undoable together
+with the other edits. Importing applies a portable style; Save style keeps it
+in the new project. Use `recut` only when the existing recording is still current.
+
 `reshoot edit EDIT.toml TAKE...` accepts schema-version-1 edit files with ordered `[[part]]` entries and output profiles. The packaged project provides an example. Cut helpers write `.timeline.json` mappings; trims, speed changes, placement, and concatenation retain source times. Speed changes need a visible label and cannot shorten narration. For a versioned project, after a change to `edit.toml`, a caption's words or the storyboard's `[caption]` look, `reshoot recut RUN` draws the captions again and edits and scans that run's takes into a new run without recording. Each caption keeps its beat's recorded time, so a change to actions or holds needs a new recording. An `[[export]]` can name a `preset`: `readme`, `readme-video`, `x`, `x-square`, `x-portrait`, `linkedin`, `linkedin-square` or `linkedin-portrait`. It sets the size, format and frame rate and fails the export when it breaks that platform's limits, which guide/projects.md lists with their sources; fields given override it. A `[frame]` table puts each take in a browser-like window with a title bar, rounded corners and a shadow, on the `[style]` background (a colour, or `[top, bottom]`); the page shrinks, so check its text is still readable. Explicit local copies use `reshoot export RUN --directory DIR --file PATH`; hashes must match the report, and existing destinations are not overwritten.
 
 Declarative edits can use `trim_waits = true` for beats explicitly marked

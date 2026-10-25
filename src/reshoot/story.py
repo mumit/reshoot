@@ -125,11 +125,16 @@ def validate(entry, allowed):
     options = {'click': set(), 'type': {'text', 'clear'}, 'select': {'option'}, 'check': {'checked'}, 'key': {'key'}, 'scroll': {'dy'},
                'navigate': {'url'}, 'wait': set(), 'upload': {'file'}, 'text': {'contains'},
                'visible': set(), 'count': {'count'}, 'value': {'value'}, 'url': {'contains'}, 'checked': {'checked'}}
-    if unknown := set(entry) - ({'type', 'target', 'timeout'} | options[kind]):
+    if unknown := set(entry) - ({'type', 'target', 'timeout', 'fallbacks'} | options[kind]):
         raise ValueError('unknown option ' + ', '.join(sorted(unknown)) + f'; {kind} takes '
-                         + ', '.join(sorted({'target', 'timeout'} | options[kind])))
+                         + ', '.join(sorted({'target', 'timeout', 'fallbacks'} | options[kind])))
     if kind not in {'navigate', 'scroll', 'url'}:
         target(entry.get('target'))
+    if 'fallbacks' in entry:
+        if 'target' not in entry or not isinstance(entry['fallbacks'], list) or len(entry['fallbacks']) > 12:
+            raise ValueError('fallbacks needs at most 12 target tables beside a target')
+        for spec in entry['fallbacks']:
+            target(spec)
     required = {'type': 'text', 'select': 'option', 'key': 'key', 'navigate': 'url', 'text': 'contains', 'count': 'count', 'value': 'value', 'upload': 'file', 'url': 'contains'}
     if kind in required and required[kind] not in entry:
         raise ValueError(f'{kind} needs {required[kind]}')

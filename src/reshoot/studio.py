@@ -13,6 +13,7 @@ It serves on 127.0.0.1 behind a random address and takes changes only from its o
 """
 import hashlib, html, json, math, os, re, signal, subprocess, sys, threading, tomllib
 from pathlib import Path
+from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save
 
 AUDIO = ('.mp3', '.m4a', '.aac', '.wav', '.ogg', '.flac')
 
@@ -31,78 +32,6 @@ def project(path):
     if not take:
         raise ValueError('the studio needs a take with a TOML storyboard, such as web = "storyboard.toml"')
     return config.resolve(), folder, take
-
-
-# Edits change the lines they must and leave the rest of a file, comments included, as it was.
-def quote(value):
-    return json.dumps(value, ensure_ascii=False)  # JSON's strings, numbers, booleans and lists are TOML's too
-
-
-def tables(lines, header):
-    """[(header line, first line, end)] for each table under header, such as [caption] or [[part]], in order. A
-    table ends at the next header."""
-    found = []
-    for n, line in enumerate(lines):
-        if line.strip() == header:
-            end = next((k for k in range(n + 1, len(lines)) if lines[k].lstrip().startswith('[')), len(lines))
-            found.append((n, n + 1, end))
-    return found
-
-
-def block(lines, header, match=None):
-    """(first line, end) of the first table under header whose keys pass match, or None."""
-    for _, start, end in tables(lines, header):
-        if match is None or match(tomllib.loads(''.join(lines[start:end]))):
-            return start, end
-    return None
-
-
-def first_header(lines):
-    return next((n for n, line in enumerate(lines) if line.lstrip().startswith('[')), len(lines))
-
-
-def put(lines, span, key, value, after=None):
-    """Sets key = value inside span, or removes it when value is None; a new key goes after the line `after`."""
-    start, end = span
-    found = next((k for k in range(start, end) if re.match(rf'\s*{key}\s*=', lines[k])), None)
-    if found is not None and re.match(rf'\s*{key}\s*=\s*("""|\'\'\'|\[[^\]]*$)', lines[found]):
-        raise ValueError(f'{key} takes more than one line here; change it in the file')
-    line = f'{key} = {quote(value)}\n'
-    if found is not None:
-        lines[found:found + 1] = [line] if value is not None else []
-    elif value is not None:
-        at = next((k + 1 for k in range(start, end) if after and re.match(rf'\s*{after}\s*=', lines[k])), end)
-        while at > start and not lines[at - 1].strip():  # before the blank lines that end the table
-            at -= 1
-        lines.insert(at, line)
-
-
-def drop(lines, head, end):
-    """Removes a table: its header and every line up to the next one."""
-    del lines[head:end]
-
-
-def read_lines(path):
-    lines = Path(path).read_text().splitlines(keepends=True)
-    if lines and not lines[-1].endswith('\n'):
-        lines[-1] += '\n'
-    return lines
-
-
-def save(path, lines, check):
-    """Writes lines to path only when check passes on them, so a bad change never reaches the file."""
-    path = Path(path)
-    temp = path.with_name('.' + path.name + '.studio')
-    temp.write_text(''.join(lines))
-    try:
-        check(temp)
-    except (ValueError, KeyError, TypeError, tomllib.TOMLDecodeError) as e:
-        temp.unlink(missing_ok=True)
-        raise ValueError(f'not saved: {e}') from None
-    except BaseException:
-        temp.unlink(missing_ok=True)
-        raise
-    temp.replace(path)
 
 
 COLOUR = re.compile(r'#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})')
@@ -220,6 +149,9 @@ def edit_cut(path, config, change):
         value = change['background'] or None
         if value and not COLOUR.fullmatch(value):
             raise ValueError('the background must be a colour such as #1d2433')
+        if value:
+            from reshoot.styles import colour
+            colour(value, alpha=False)
         span = block(lines, '[style]')
         if span is None and value:
             at = first_header(lines)
@@ -227,6 +159,23 @@ def edit_cut(path, config, change):
             span = (at + 1, at + 1)
         if span:
             put(lines, span, 'background', value)
+    if 'foreground' in change:
+        value = change['foreground'] or None
+        if value and not COLOUR.fullmatch(value):
+            raise ValueError('the card text must be a colour such as #ffffff')
+        if value:
+            from reshoot.styles import colour
+            colour(value, alpha=False)
+        if block(lines, '[style]') is None:
+            at = first_header(lines)
+            lines[at:at] = ['[style]\n', '\n']
+        put(lines, block(lines, '[style]'), 'foreground', value)
+    if 'frame_background' in change:
+        from reshoot.styles import background
+        background(change['frame_background'])
+        if block(lines, '[frame]') is None:
+            raise ValueError('Turn on the browser frame before changing its background.')
+        put(lines, block(lines, '[frame]'), 'background', change['frame_background'])
     if 'music' in change:
         put(lines, (0, first_header(lines)), 'music', change['music'] or None, after='output')
     exports = tables(lines, '[[export]]')
@@ -281,7 +230,7 @@ class Job:
     def running(self):
         return self.kind is not None and self.code is None
 
-    def start(self, kind, cmd, cwd, beat=None):
+    def start(self, kind, cmd, cwd, beat=None, on_done=None):
         with self.lock:
             if self.running():
                 raise ValueError(f'a {self.kind} is still running')
@@ -298,9 +247,11 @@ class Job:
                 for line in proc.stdout:
                     self.lines.append(redact(line.rstrip()).replace(str(cwd) + '/', ''))
                 code = proc.wait()
+                if code == 0 and not self.cancelled and on_done:
+                    on_done()
                 self.code = 130 if self.cancelled else code
-            except OSError as e:
-                self.lines.append(str(e))
+            except Exception as e:
+                self.lines.append(redact(str(e)))
                 self.code = 1
         threading.Thread(target=go, daemon=True).start()
 
@@ -374,6 +325,40 @@ def fits(limits, seconds, size):
     return f'{limits["platform"]} takes {" and ".join(rules)}; this is {seconds:.1f} s and {size / 1e6:.1f} MB'
 
 
+def failed(folder, take, config):
+    """The newest failure, until a complete recording succeeds. Its media stays pinned like successful runs."""
+    from reshoot import review
+    from reshoot.artifacts import digest
+    for root, report in review.runs(folder):
+        if report.get('mode') == 'partial-preview' and report.get('ok'):
+            continue
+        if report.get('ok'):
+            return None
+        try:
+            root, report = review.read(root)
+            path = root / Path(take['out']).with_suffix('.take.json')
+            meta = json.loads(path.read_text()) if path.exists() else {}
+            failure = meta.get('failure') or {}
+            board = Path(folder) / take['web']
+            audit = root / 'repair.json'
+            repair = json.loads(audit.read_text()) if audit.exists() else {}
+            current_sha = digest(board)
+            image = meta.get('failure_screenshot')
+            return {'id': report['id'], 'binding': review.binding(root, report),
+                    'message': meta.get('error') or '; '.join(report.get('errors', [])),
+                    'image': str(Path(take['out']).parent / image) if image else None,
+                    'repairable': failure.get('kind') in ('missing-target', 'ambiguous-target'), 'beat': failure.get('beat'),
+                    'visual_repair': not failure.get('target', {}).get('frame'),
+                    'candidates': failure.get('candidates', []),
+                    'candidate_labels': failure.get('candidate_labels', []),
+                    'repaired': repair.get('after') == current_sha,
+                    'stale': (meta.get('story_sha256') is not None and meta['story_sha256'] != current_sha) or
+                             (report.get('inputs', {}).get('config_sha256') is not None and report['inputs']['config_sha256'] != digest(config))}
+        except (OSError, ValueError):
+            continue
+    return None
+
+
 def view(folder, take, config, run=None):
     """What the page shows: the storyboard's beats and the edit, joined to the latest run's where there is one."""
     from reshoot import cut as cuts, review, story, timeline
@@ -385,7 +370,14 @@ def view(folder, take, config, run=None):
     shoot, _ = read(config)
     edit_path = Path(folder) / shoot['edit']['file'] if shoot.get('edit', {}).get('file') else None
     data = {'story': board_path.name, 'look': board.get('caption', {}), 'run': None, 'beats': [], 'findings': [],
-            'edit': None}
+            'edit': None, 'failure': failed(folder, take, config)}
+    from reshoot import styles
+    data['styles'], data['styles_error'], data['current_style'] = {}, '', None
+    try:
+        data['styles'] = styles.choices(folder)
+        data['current_style'] = styles.selected(config, data['styles'])
+    except (ValueError, OSError) as error:
+        data['styles_error'] = str(error)
     if edit_path and edit_path.is_file():
         cut = tomllib.loads(edit_path.read_text())
         parts = cut.get('part', [])
@@ -399,6 +391,8 @@ def view(folder, take, config, run=None):
              'where': 'opening' if i == 0 else 'closing' if i == len(parts) - 1 else 'middle'}
             for i, p in enumerate(parts) if 'card' in p],
             'frame': 'frame' in cut, 'background': cut.get('style', {}).get('background', ''),
+            'foreground': cut.get('style', {}).get('foreground', ''),
+            'frame_background': timeline.frame_style(cut)['background'] if 'frame' in cut else '#1d2433',
             'music': cut.get('music', ''), 'music_choices': music,
             'exports': [{'i': i, 'preset': p.get('preset'), 'name': p.get('name', p.get('preset', 'landscape')),
                          'file': Path(o).name} for i, (p, o) in enumerate(zip(cut.get('export', []), outputs(cut, '.')))],
@@ -448,12 +442,15 @@ def view(folder, take, config, run=None):
             exports.append({'path': path, 'bytes': size, 'width': w, 'height': h, 'seconds': seconds,
                             'poster': str(Path(path).with_suffix('.poster.png')) if (root / Path(path).with_suffix('.poster.png')).exists() else None,
                             'preset': preset, 'fits': fits(timeline.PRESETS[preset][1] if preset else None, seconds, size)})
+        poster = str(Path(video).with_suffix('.poster.png'))
+        if not (root / poster).exists():
+            poster = next((b['frame'] for b in recorded.values() if b.get('frame')), None) if video == take['out'] else None
         data['run'] = {'id': report['id'], 'status': review.status(root, report), 'video': video,
                        'duration': timeline.read(root / video)['duration'], 'mode': report.get('mode', 'final'),
                        'recut_from': report.get('recut_from'), 'accepted': report.get('review_status') == 'completed',
                        'exports': exports, 'captions_drawn': sidecar is not None,
                        'binding': review.binding(root, report),
-                       'poster': next((b['frame'] for b in recorded.values() if b.get('frame')), None),
+                       'poster': poster,
                        'sheets': [str(p.relative_to(root)) for p in sorted((root / 'review').glob('[0-9]*.jpg'))]}
     for beat in board['beat']:
         row = {'id': beat['id'], 'purpose': beat.get('purpose'), 'caption': beat.get('caption') or '',
@@ -520,7 +517,8 @@ def server(a):
     from reshoot.config import read
     from reshoot.workspace import History
     shoot, _ = read(config)
-    editable = [config, Path(folder) / take['web']]
+    editable = [config, *dict.fromkeys((Path(folder) / t['web']).resolve() for t in shoot.get('take', [])
+                                     if str(t.get('web', '')).endswith('.toml')), Path(folder) / 'styles.toml']
     if shoot.get('edit', {}).get('file'):
         editable.append(Path(folder) / shoot['edit']['file'])
     history = History(editable)
@@ -559,6 +557,14 @@ def server(a):
                 if job.kind == 'from' and job.code == 0 and (partial := current(folder, partial=True)):
                     out['take'] = f'runs/{partial[1]["id"]}/' + take['out']
                 return review.reply(self, 200, json.dumps(out).encode(), 'application/json')
+            if name == 'style.toml':
+                from reshoot import styles
+                try:
+                    with history.lock:
+                        text = styles.dumps(styles.snapshot(config, 'My style'))
+                    return review.reply(self, 200, text.encode(), 'application/toml')
+                except (ValueError, OSError) as error:
+                    return review.reply(self, 400, str(error).encode(), 'text/plain')
             if m := re.fullmatch(r'runs/([0-9a-f]{32})/(.+)', name):
                 return review.send_file(self, review.runs_folder(folder) / m[1], m[2])
             review.reply(self, 404, b'not found', 'text/plain')
@@ -567,7 +573,7 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
-            if action not in ('edit', 'cut', 'job', 'accept', 'undo', 'redo', 'cancel'):
+            if action not in ('edit', 'cut', 'style', 'job', 'accept', 'undo', 'redo', 'cancel'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -589,6 +595,27 @@ def server(a):
                 elif action == 'cut':
                     history.change(lambda: edit_cut(edit_file(), config, body))
                     out = {'ok': True}
+                elif action == 'style':
+                    from reshoot import styles
+                    before = history.snapshot()
+                    operation = body.get('operation')
+                    if operation == 'save':
+                        styles.save(config, body.get('name'))
+                    elif operation == 'apply':
+                        # The page selects only listed styles; arbitrary local paths are CLI-only.
+                        spec = styles.choices(folder).get(body.get('key'))
+                        if spec is None:
+                            raise ValueError('This style is no longer available. Reload to choose a style.')
+                        styles.apply(config, spec)
+                    elif operation == 'import':
+                        text = body.get('text')
+                        if not isinstance(text, str) or len(text) > 16384:
+                            raise ValueError('Choose a style TOML file smaller than 16 KB.')
+                        styles.apply(config, styles.validate(tomllib.loads(text)))
+                    else:
+                        raise ValueError('Choose, save or import a style.')
+                    history.remember(before, history.snapshot())
+                    out = {'ok': True}
                 elif action in ('undo', 'redo'):
                     history.move(action)
                     out = {'ok': True}
@@ -601,6 +628,32 @@ def server(a):
                     commands = {'recut': [*cli, 'recut', str(run[0]) if run else '', '--config', str(config)],
                                 'preview': [*cli, 'preview', str(config)], 'run': [*cli, 'run', str(config)],
                                 'from': [*cli, 'preview', str(config), '--from', str(beat)]}
+                    on_done = None
+                    if kind == 'repair':
+                        from reshoot import repair
+                        failure_id = body.get('failure_run_id', '')
+                        if not re.fullmatch(r'[0-9a-f]{32}', failure_id):
+                            raise ValueError('Reload to choose a failed recording.')
+                        failed_root, failed_report = review.read(review.runs_folder(folder) / failure_id)
+                        if body.get('failure_binding') != review.binding(failed_root, failed_report):
+                            raise ValueError('The failure evidence changed. Reload before repairing it.')
+                        diagnosis = repair.load(failed_root, config)
+                        method = body.get('method')
+                        if method not in ('apply', 'pick'):
+                            raise ValueError('Choose a suggested replacement or select one in the app.')
+                        before = history.snapshot()
+                        def remember_repair():
+                            with history.lock:
+                                audit = json.loads((failed_root / 'repair.json').read_text())
+                                after = history.snapshot()
+                                board_path = diagnosis['board_path']
+                                from reshoot.artifacts import digest
+                                if (audit['before'] == diagnosis['meta']['story_sha256'] and
+                                    audit['after'] == digest(board_path) and all(
+                                        after[p] == before[p] for p in before if p != board_path)):
+                                    history.remember(before, after)
+                        on_done = remember_repair
+                        commands['repair'] = [*cli, 'repair', str(failed_root), '--config', str(config), '--' + method]
                     if kind not in commands:
                         raise ValueError('unknown job')
                     if kind == 'recut' and not run:
@@ -609,7 +662,7 @@ def server(a):
                         from reshoot import story
                         if beat not in [b['id'] for b in story.load(Path(folder) / take['web'])['beat']]:
                             raise ValueError(f'no beat {beat!r} in the storyboard')
-                    job.start(kind, commands[kind], folder, beat)
+                    job.start(kind, commands[kind], folder, beat, on_done=on_done)
                     out = {'ok': True, 'reason': reason}
                 else:
                     run = self.displayed(body)
@@ -656,6 +709,29 @@ def page(data, accept, seen=0):
     from reshoot import timeline
     e = lambda v: html.escape(str(v if v is not None else ''), quote=True)
     run = data['run']
+    failure = data.get('failure')
+    failure_box = ''
+    if failure:
+        image = (f'<details><summary>Failure frame</summary><img src="runs/{e(failure["id"])}/{e(failure["image"])}" '
+                 'alt="The page when the recording stopped" loading="lazy"></details>') if failure.get('image') else ''
+        if failure['repaired']:
+            message = 'Control updated. Update preview to verify the original task and result checks.'
+            buttons = ''
+        elif failure['stale']:
+            message = 'The story changed since this failure. Update preview to get current evidence.'
+            buttons = ''
+        else:
+            message = failure['message']
+            buttons = ('<button type="button" data-repair="apply">Use suggested control</button> '
+                       if failure.get('candidates') else '') + ('<button type="button" data-repair="pick">Choose replacement in app</button>'
+                                                               if failure.get('repairable') and failure.get('visual_repair', True) else '')
+        labels = failure.get('candidate_labels', [])
+        suggestions = ''.join(f'<p>Suggested control: <strong>{e(labels[i] if i < len(labels) else "Replacement control")}</strong></p>'
+                              f'<details><summary>Control details</summary><code>{e(json.dumps(target))}</code></details>'
+                              for i, target in enumerate(failure.get('candidates', [])) if not failure['stale'])
+        failure_box = (f'<div class="failure" data-failure="{e(failure["id"])}" data-binding="{e(failure["binding"])}">'
+                       f'<h2>{"Repair ready to verify" if failure["repaired"] else "Recording needs attention"}</h2>'
+                       f'<p>{e(message)}</p>{suggestions}<p>{buttons}</p>{image}</div>')
     seconds = lambda t: f'{t:.1f} s'
     pending = '<p class="pending"{}>Saved. Update preview to see this change.</p>'
     beats = []
@@ -702,11 +778,42 @@ def page(data, accept, seen=0):
 <figcaption><a href="run/{e(x['path'])}" target="_blank">{e(Path(x['path']).name)}</a><br>{x['width']}&times;{x['height']}, {x['seconds']:.1f} s, {x['bytes'] / 1e6:.1f} MB
 {f'<br><span class="fits">{e(x["fits"])}</span>' if x.get('fits') else ''}</figcaption></figure>''')
     cut = data['edit']
+    styles_box = ''
+    if data.get('styles'):
+        from reshoot import styles
+        def css_colour(value):
+            return '#' + ''.join(f'{part:02x}' for part in styles.colour(value))
+        choices = []
+        for key, spec in data['styles'].items():
+            frame = spec['frame']
+            background = frame['background'] if spec['frame_enabled'] else spec['card']['background']
+            background = ('linear-gradient(' + ','.join(css_colour(c) for c in background) + ')'
+                          if isinstance(background, list) else css_colour(background))
+            caption = spec['caption']
+            selected = key == data.get('current_style')
+            choices.append(f'''<button type="button" class="style-choice" data-style="{e(key)}" aria-pressed="{str(selected).lower()}">
+<span class="style-sketch{' framed' if spec['frame_enabled'] else ''}" aria-hidden="true" style="--style-bg:{e(background)};--caption-bg:{css_colour(caption['background'])};--caption-fg:{css_colour(caption['foreground'])};--bar-bg:{css_colour(frame['bar_color'])}">
+<span class="sketch-window"><span class="sketch-bar"></span><span class="sketch-line"></span><span class="sketch-line"></span></span>
+<span class="sketch-caption {e(caption['position'])}">Your caption</span></span>
+<strong>{e(spec['name'])}</strong><span class="hint">{e(spec.get('description') or 'Saved in this project.')}</span></button>''')
+        current_name = data['styles'].get(data.get('current_style'), {}).get('name', 'Custom look')
+        styles_box = f'''<div class="visual-styles"><h2>Visual styles</h2><p id="current-style">Current: {e(current_name)}</p>
+<p class="hint">Choose a look for captions, title cards and browser framing. These are style sketches; Update preview shows your video.</p>
+<div class="style-grid">{''.join(choices)}</div>
+<form id="save-style"><label>Save this look as <input name="style-name" placeholder="My launch style" maxlength="60" required></label><button type="submit">Save style</button></form>
+<label>Import a style <input type="file" id="import-style" accept=".toml"></label>
+<a href="style.toml" download="reshoot-style.toml" id="download-style">Download current style</a>
+<p class="hint">Saved looks are available in this project. Import a downloaded style to use it in another project. Undo restores an applied look in one step.</p></div>'''
+    elif data.get('styles_error'):
+        styles_box = f'<div class="visual-styles"><h2>Visual styles</h2><p class="error">{e(data["styles_error"])}</p></div>'
     if cut:
         cards = ''.join(f'''<li class="card" data-part="{c['i']}"><label>{c['where'].capitalize()} card <input name="text" value="{e(c['text'])}"></label>
 <label class="short">Seconds <input name="duration" type="number" min="0.5" max="30" step="0.5" value="{e(c['duration'])}"></label>
 <button type="button" class="remove" title="Remove this card">Remove</button></li>''' for c in cut['cards'])
         background = cut['background'] if isinstance(cut['background'], str) else ''
+        frame_background = cut['frame_background']
+        frame_top = frame_background[0] if isinstance(frame_background, list) else frame_background
+        frame_end = frame_background[1] if isinstance(frame_background, list) else ''
         music = ''.join(f'<option value="{e(m)}"{" selected" if m == cut["music"] else ""}>{e(m)}</option>' for m in cut['music_choices'])
         if cut['music'] and cut['music'] not in cut['music_choices']:
             music += f'<option value="{e(cut["music"])}" selected>{e(cut["music"])}</option>'
@@ -715,8 +822,11 @@ def page(data, accept, seen=0):
         edit_box = f'''<div class="cut"><h2>The edit</h2><p class="hint">Saved to {e(cut['file'])} as you change it.</p>
 <h3>Title cards</h3><ul class="cards">{cards or '<li class="hint">No cards.</li>'}</ul>
 <p><button type="button" data-add-card="start">Add an opening card</button> <button type="button" data-add-card="end">Add a closing card</button></p>
+<label>Card background <input name="background" value="{e(background)}" placeholder="#0e0d0c"{' disabled title="A gradient: change it in the file"' if not isinstance(cut['background'], str) else ''}></label>
+<label>Card text <input name="foreground" value="{e(cut['foreground'])}" placeholder="#ffffff"></label>
 <h3>Frame</h3><label class="check"><input type="checkbox" name="frame"{' checked' if cut['frame'] else ''}> A browser window round the page, on a background</label>
-<label>Background <input name="background" value="{e(background)}" placeholder="#1d2433"{' disabled title="A gradient: change it in the file"' if not isinstance(cut['background'], str) else ''}></label>
+<label>Frame background <input name="frame_background" value="{e(frame_top)}" placeholder="#1d2433"></label>
+<label>Gradient end (optional) <input name="frame_background_end" value="{e(frame_end)}" placeholder="Leave empty for one colour"></label>
 <h3>Music</h3><label>Track <select name="music"><option value="">None</option>{music}</select></label>
 {'' if cut['music_choices'] else '<p class="hint">Put a sound file in the project folder to choose it here.</p>'}
 <h3>Exports</h3><ul class="exports-edit">{exports}</ul>
@@ -731,6 +841,8 @@ def page(data, accept, seen=0):
                f'<div class="timeline" aria-label="Beats in the video">{marks}<b id="head"></b></div>')
         if not run['captions_drawn']:
             top += '<p class="note">This run was recorded with its captions in the page, so a re-cut keeps them: record again to change them.</p>'
+        if failure:
+            top = '<p class="note">Previous successful recording. Update preview to verify the current story.</p>' + top
     else:
         top = '<p class="status">No run has worked yet. Record a preview to see the demo here.</p>'
     sheets = ''.join(f'<a href="run/{e(s)}" target="_blank"><img loading="lazy" src="run/{e(s)}" alt="Scan sheet {i + 1}"></a>'
@@ -748,13 +860,13 @@ def page(data, accept, seen=0):
 </details></div></header>
 <p id="save-error" class="error" role="alert" hidden></p>
 <section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
-<main><section class="watch">{top}
+<main><section class="watch">{failure_box}{top}
 {f'<div class="shapes"><h2>Exports</h2><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="found"><h2>What the scan found</h2><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>
 <section class="side"><div class="beats"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
-<details class="styling"><summary>Style and exports</summary><div class="look"><h2>Caption look</h2>
+<details class="styling"><summary>Style and exports</summary>{styles_box}<div class="look"><h2>Caption look</h2>
 <label>Place <select name="position"><option value="bottom"{' selected' if look.get('position', 'bottom') == 'bottom' else ''}>Bottom</option><option value="top"{' selected' if look.get('position') == 'top' else ''}>Top</option></select></label>
 <label>Background <input name="background" value="{e(look.get('background', ''))}" placeholder="#0e0d0cc8"></label>
 <label>Text <input name="foreground" value="{e(look.get('foreground', ''))}" placeholder="#ffffff"></label>
@@ -783,6 +895,9 @@ button { font:inherit; border:1px solid var(--line); background:var(--panel); co
 button:hover:not(:disabled) { border-color:var(--accent) } button:disabled { opacity:.5; cursor:default }
 main { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr); gap:20px; padding:20px; max-width:1500px; margin:auto }
 @media (max-width:900px) { main { grid-template-columns:1fr; padding:16px } }
+@media (min-width:1100px) and (min-height:700px) {
+  .watch { position:sticky; top:80px; align-self:start; max-height:calc(100dvh - 100px); overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior:contain }
+}
 .watch > * + *, .side > * + * { margin-top:16px }
 .watch > div, .side > div:not(.beats) { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px }
 video { width:100%; border-radius:10px; background:#000; display:block }
@@ -826,6 +941,22 @@ summary { cursor:pointer; font-weight:600 } .styling { background:var(--panel); 
 #save-error { margin:12px 20px; padding:12px; border:1px solid var(--bad); border-radius:8px }
 .scan img { max-width:100%; display:block; margin-top:10px } .watch { min-width:0 }
 [data-unsaved] { outline:2px solid var(--bad) }
+.failure { border-left:4px solid var(--bad) !important } .failure p { overflow-wrap:anywhere }
+.failure img { width:100%; max-height:340px; object-fit:contain; margin-top:10px }
+.style-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px }
+.style-choice { display:flex; flex-direction:column; align-items:stretch; text-align:left; gap:8px; padding:8px; min-width:0 }
+.style-choice[aria-pressed=true] { outline:2px solid var(--accent); outline-offset:1px }
+.style-choice .hint { font-size:12px; font-weight:400; line-height:1.4 }
+.style-sketch { display:block; position:relative; height:100px; overflow:hidden; background:var(--style-bg); border-radius:6px }
+.sketch-window { position:absolute; inset:0; background:#f8fafc }
+.framed .sketch-window { inset:12px 10px; border-radius:5px; box-shadow:0 3px 8px #0003; overflow:hidden }
+.sketch-bar { display:none; height:10px; background:var(--bar-bg) } .framed .sketch-bar { display:block }
+.sketch-line { display:block; width:65%; height:6px; margin:14px 12px 0; background:#cbd5e1; border-radius:3px }
+.sketch-line + .sketch-line { width:45%; margin-top:6px }
+.sketch-caption { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); white-space:nowrap; padding:4px 7px; border-radius:4px; background:var(--caption-bg); color:var(--caption-fg); font-size:10px }
+.sketch-caption.top { top:8px; bottom:auto }
+#save-style { display:flex; align-items:end; gap:8px; margin:16px 0 10px } #save-style label { flex:1; min-width:0 }
+#save-style button { flex-shrink:0; margin-bottom:8px }
 '''
 
 SCRIPT = '''(() => {
@@ -840,7 +971,7 @@ SCRIPT = '''(() => {
   let queue = Promise.resolve();
   const post = (what, body, requireSaved = false) => {
     const request = () => {
-      if ((requireSaved || ['job', 'undo', 'redo'].includes(what)) && document.querySelector('[data-unsaved]')) {
+      if ((requireSaved || ['job', 'undo', 'redo', 'style'].includes(what)) && document.querySelector('[data-unsaved]')) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
       }
@@ -858,6 +989,31 @@ SCRIPT = '''(() => {
     return queue;
   };
   document.querySelectorAll('[data-history]').forEach(b => { b.dataset.enabled = b.disabled ? '' : '1'; b.onclick = () => post(b.dataset.history, {}).then(out => { if (out.ok) location.reload(); }); });
+  document.querySelectorAll('[data-repair]').forEach(button => button.onclick = () => {
+    const failure = button.closest('.failure');
+    post('job', {kind: 'repair', method: button.dataset.repair, failure_run_id: failure.dataset.failure,
+      failure_binding: failure.dataset.binding}).then(out => { if (out.ok) watch(); });
+  });
+  const styleChange = body => post('style', body, true).then(out => { if (out.ok) location.reload(); });
+  const customStyle = () => {
+    const label = document.getElementById('current-style'); if (label) label.textContent = 'Current: Custom look';
+    document.querySelectorAll('[data-style]').forEach(button => button.setAttribute('aria-pressed', 'false'));
+  };
+  document.querySelectorAll('[data-style]').forEach(button => button.onclick = () => styleChange({operation: 'apply', key: button.dataset.style}));
+  const saveStyle = document.getElementById('save-style');
+  if (saveStyle) saveStyle.onsubmit = event => { event.preventDefault(); styleChange({operation: 'save', name: saveStyle.elements['style-name'].value}); };
+  const importStyle = document.getElementById('import-style');
+  if (importStyle) importStyle.onchange = async () => {
+    const file = importStyle.files[0]; if (!file) return;
+    if (file.size > 16384) { error('Choose a style TOML file smaller than 16 KB.'); importStyle.value = ''; return; }
+    try { await styleChange({operation: 'import', text: await file.text()}); }
+    catch (_) { error('Could not read the style file. Choose it again.'); }
+    importStyle.value = '';
+  };
+  const downloadStyle = document.getElementById('download-style');
+  if (downloadStyle) downloadStyle.onclick = event => {
+    if (document.querySelector('[data-unsaved]')) { event.preventDefault(); error('Fix the unsaved field before downloading this look.'); }
+  };
   let stopAt = null;
   const play = (from, to) => { if (!video) return; stopAt = to; video.currentTime = from; video.play(); };
   if (video) video.addEventListener('timeupdate', () => {
@@ -878,32 +1034,39 @@ SCRIPT = '''(() => {
   }));
   document.querySelectorAll('.look input, .look select').forEach(input => input.addEventListener('change', () => {
     input.dataset.unsaved = '1';
-    post('edit', {look: {[input.name]: input.value}}).then(out => saved(out, input.closest('.look'), input));
+    post('edit', {look: {[input.name]: input.value}}).then(out => { saved(out, input.closest('.look'), input); if (out.ok) customStyle(); });
   }));
   // Changes to the edit file. One that adds or removes a card or an export reloads, to show it in the list.
   const cut = document.querySelector('.cut');
   const change = (body, reload, input) => {
     if (input) input.dataset.unsaved = '1';
-    return post('cut', body, reload).then(out => { saved(out, cut, input); if (out.ok && reload) setTimeout(() => location.reload(), 400); });
+    return post('cut', body, reload).then(out => { saved(out, cut, input); if (out.ok && reload) setTimeout(() => location.reload(), 400); return out; });
   };
   if (cut) {
     cut.querySelectorAll('.card input').forEach(input => input.addEventListener('change', () =>
       change({card: +input.closest('.card').dataset.part, [input.name]: input.name === 'duration' ? +input.value : input.value}, false, input)));
     cut.querySelectorAll('.card .remove').forEach(b => b.onclick = () => change({card: +b.closest('.card').dataset.part, remove: true}, true));
     cut.querySelectorAll('[data-add-card]').forEach(b => b.onclick = () => change({add_card: b.dataset.addCard}, true));
-    cut.querySelector('[name=frame]').addEventListener('change', e => change({frame: e.target.checked}, false, e.target));
-    cut.querySelector('[name=background]').addEventListener('change', e => change({background: e.target.value}, false, e.target));
+    cut.querySelector('[name=frame]').addEventListener('change', e => change({frame: e.target.checked}, false, e.target).then(out => { if (out.ok) customStyle(); }));
+    ['background', 'foreground'].forEach(name => cut.querySelector(`[name=${name}]`).addEventListener('change', e =>
+      change({[name]: e.target.value}, false, e.target).then(out => { if (out.ok) customStyle(); })));
+    ['frame_background', 'frame_background_end'].forEach(name => cut.querySelector(`[name=${name}]`).addEventListener('change', e => {
+      const top = cut.querySelector('[name=frame_background]').value, end = cut.querySelector('[name=frame_background_end]').value;
+      change({frame_background: end ? [top, end] : top}, false, e.target).then(out => {
+        if (out.ok) { delete cut.querySelector('[name=frame_background]').dataset.unsaved; delete cut.querySelector('[name=frame_background_end]').dataset.unsaved; customStyle(); }
+      });
+    }));
     cut.querySelector('[name=music]').addEventListener('change', e => change({music: e.target.value}, false, e.target));
     cut.querySelectorAll('.export select').forEach(s => s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true)));
     cut.querySelectorAll('.export .remove').forEach(b => b.onclick = () => change({export: +b.closest('.export').dataset.export, remove: true}, true));
     cut.querySelector('[name=add_export]').addEventListener('change', e => e.target.value && change({add_export: e.target.value}, true));
   }
   const box = document.getElementById('job'), log = document.getElementById('job-log'), title = document.getElementById('job-title'), take = document.getElementById('job-take');
-  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat'};
+  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat', repair: 'Repairing control'};
   const watch = () => fetch('job.json').then(r => r.json()).then(job => {
     if (!job.kind) return;
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
-    document.querySelectorAll('[data-job], [data-from]').forEach(b => b.disabled = job.running);
+    document.querySelectorAll('[data-job], [data-from], [data-repair]').forEach(b => b.disabled = job.running);
     document.getElementById('cancel').hidden = !job.running;
     document.querySelectorAll('.side input, .side select, .side button, [data-history]').forEach(b => b.disabled = job.running || (b.dataset.history && !b.dataset.enabled));
     const what = job.kind === 'from' ? `Recording from ${job.beat}` : names[job.kind];

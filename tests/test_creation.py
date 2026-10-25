@@ -137,7 +137,7 @@ def test_studio_media_and_decisions_keep_the_displayed_run(tmp_path, monkeypatch
         # Run 2 is already newest; an old tab's exact run 1 media still returns run 1.
         assert urllib.request.urlopen(url + f'runs/{roots[0].name}/clip.mp4').read() == b'run 1'
         config, folder, take = studio.project(tmp_path)
-        rev = History([config, folder / take['web'], folder / 'edit.toml']).revision()
+        rev = History([config, folder / take['web'], folder / 'styles.toml', folder / 'edit.toml']).revision()
         body = {'run_id': chosen[1]['id'], 'binding': review.binding(*chosen), 'revision': rev}
         def post(data):
             return json.loads(urllib.request.urlopen(urllib.request.Request(url + 'accept',

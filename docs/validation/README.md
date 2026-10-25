@@ -39,6 +39,8 @@ as evidence; use the [roadmap](../../ROADMAP.md) for planned work.
 
 | Date | Record |
 |---|---|
+| 2026-10-24 | [Reusable visual styles](2026-10-24-visual-styles.md): starting looks, saved and portable styles, grouped undo, preserved tasks and rendered previews |
+| 2026-10-24 | [Explicit locator repair](2026-10-24-locator-repair.md): suggested and visual replacements, preserved checks, stale-edit protection and studio undo |
 | 2026-10-24 | [Creation and revision](2026-10-24-creation-and-revision.md): one-command creation, recording controls, studio updates, undo, cancellation and exact-run review |
 | 2026-10-19 | [Delivery status](2026-10-19-delivery-status.md): original implementation and limits |
 | 2026-10-20 | [Resume validation](2026-10-20-resume-validation.md): host checks, fixes, 18 harness tasks |

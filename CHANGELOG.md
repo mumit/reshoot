@@ -8,6 +8,11 @@ change project files or commands.
 
 ### Added
 
+- Reusable Focus, Midnight and Paper looks in the studio, with saved project
+  styles, portable TOML import/download and one-step undo. `reshoot style`
+  lists, applies and saves the same styles from the CLI. Styles keep the task,
+  timing, fonts, audio, exports and scan coverage; Update preview re-cuts a
+  current recording. Frame and title-card backgrounds are independently editable.
 - `reshoot create [URL] --directory demo` checks dependencies, records a task
   with a toolbar, makes a preview and opens the studio. Without a URL it tries
   the notes app. Existing projects are kept.
@@ -16,6 +21,11 @@ change project files or commands.
 - Holds, Undo/Redo, automatic Update preview, cancellation and scan sheets in
   the studio. The story appears before styling, with Make final for full-size
   recording and explicit pipeline operations under More.
+- Explicit locator repair: recorded `fallbacks` suggest a replacement only
+  when they agree on one compatible control. `reshoot repair RUN --apply`
+  revalidates the suggestion; `--pick` lets you select and confirm a replacement
+  without activating it. The studio shows the failure frame and repair actions,
+  with Undo/Redo and a fresh preview to verify the original expected results.
 
 ### Fixed
 

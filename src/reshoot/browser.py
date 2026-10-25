@@ -199,18 +199,27 @@ async def capture(board, a, frames, out, metadata, spoken):
         frame_handler = lambda event: frame_tasks.append(asyncio.create_task(frame(event)))
         cdp.on('Page.screencastFrame', frame_handler)
         current = None
+        async def perform(entry, section, index, beat_id, hand=None):
+            try:
+                return (await assertion(page, entry)) if section == 'expect' else await action(page, entry, events, root, hand)
+            except Exception:
+                from reshoot.repair import diagnose
+                diagnosis = await diagnose(page, entry)
+                if diagnosis:
+                    metadata['failure'] = {**diagnosis, 'beat': beat_id, 'section': section, 'index': index}
+                raise
         try:
             await page.goto(a.url or board.get('url', 'http://localhost:8000/'), wait_until='load', timeout=30000)
             await page.evaluate('document.fonts.ready')
-            for entry in board.get('setup', []):
-                await action(page, entry, events, root)
+            for index, entry in enumerate(board.get('setup', []), 1):
+                await perform(entry, 'setup', index, ids[0])
             for previous in board['beat'][:split]:
                 if previous.get('recording_issue'):
                     raise ValueError(f'Unresolved step {previous["id"]}: {previous["recording_issue"]}')
-                for entry in previous.get('action', []):
-                    await action(page, entry, events, root)
-                for entry in previous.get('expect', []):
-                    await assertion(page, entry)
+                for index, entry in enumerate(previous.get('action', []), 1):
+                    await perform(entry, 'action', index, previous['id'])
+                for index, entry in enumerate(previous.get('expect', []), 1):
+                    await perform(entry, 'expect', index, previous['id'])
             metadata['replayed_before'] = ids[:split]
             # Force the first composition before capture starts. Without this Chrome can begin the take with a
             # blank frame even though the DOM and fonts are ready. Screenshots remain off camera; during capture
@@ -229,11 +238,11 @@ async def capture(board, a, frames, out, metadata, spoken):
                           'status': 'running', 'expectations': []}
                 metadata['beats'].append(result)
                 await page.evaluate('p => __demo.caption(p[0], p[1])', [beat.get('caption'), beat.get('sub')])
-                for entry in beat.get('action', []):
-                    await action(page, entry, events, root, hand)
-                for entry in beat.get('expect', []):
+                for index, entry in enumerate(beat.get('action', []), 1):
+                    await perform(entry, 'action', index, current, hand)
+                for index, entry in enumerate(beat.get('expect', []), 1):
                     try:
-                        actual = await assertion(page, entry)
+                        actual = await perform(entry, 'expect', index, current)
                     except Exception as error:
                         result['expectations'].append({'type': entry['type'], 'status': 'failed', 'error': redact(str(error))})
                         raise

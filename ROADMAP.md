@@ -13,20 +13,14 @@ with a line on what it does. Trial evidence lives in the
 A [persona review of the docs](docs/validation/2026-10-23-persona-review.md)
 found that the tool does the hard part well and loses the joy where a user
 meets it first. The studio now gives a local place to see a story and shape it
-by pointing, with the files in the repository still the source of truth. Next,
-point while recording and repairing, and get more from each story. The
+by pointing, with the files in the repository still the source of truth. Recording
+repair and reusable visual styles now share that workflow; next, add sequencing and audio controls. The
 [creation and revision plan](UX_PLAN.md) defines implementation and acceptance.
 
-1. **Suggested repair when a story breaks.** `reshoot rec` saves fallback ways to find each element: test
-    id, id, name or label, text. When the main selector matches nothing, reshoot tries them, and if exactly
-    one matches, the failure prints a ready fix, such as "`Save` is now `#save-btn`", that one command
-    applies. When none or several match, the studio shows the failure frame and asks the person to click the
-    element. CI shows the fix in the failure summary. The run still fails until someone applies it. Why: a
-    renamed button is the most common way a demo goes stale, and finding the new selector is the dull part.
-2. **More creative control.** Reusable visual styles, beat trimming and sequencing, destination framing and
+1. **More creative control.** Beat trimming and sequencing, destination framing and
     readability feedback, narration auditioning and audio balance. Why: these shorten the path from a working
     recording to a deliberately composed demo, using the existing rendering stages.
-3. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
+2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
 ## Later
@@ -60,6 +54,18 @@ point while recording and repairing, and get more from each story. The
 
 ## Done
 
+- **Reusable visual styles:** Focus, Midnight and Paper starting looks, a project
+  style library and portable TOML import/export. The CLI and studio share
+  validated edits that preserve the story, timing, fonts, audio, exports and scan
+  settings. Studio applies and saves support Undo/Redo; stale or invalid changes
+  preserve source files. Finished-export posters show the chosen look before
+  playback, and the preview stays beside desktop style controls.
+- **Explicit locator repair:** recorder-generated alternatives suggest a replacement only when visible,
+  compatible matches agree on one element. Failures and CI show the suggestion; `reshoot repair RUN --apply`
+  replays the prefix and revalidates it before changing the locator. The studio also shows failure evidence
+  and opens a picker to select and confirm the replacement without activating it. Repairs retain expected
+  values, support studio undo and require a new preview. Stale source, conflicting controls and wrong results
+  never silently pass. Shared validated file edits support the CLI and studio.
 - **Create and revise in one place:** `reshoot create [URL] --directory demo` checks tools, records a task or
   tries notes, makes a preview and opens the studio. The recording toolbar adds captions and explicit result
   checks, hides elements, pauses, removes a step and finishes. Checkbox and radio choices replay their state;

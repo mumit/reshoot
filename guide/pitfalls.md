@@ -3,6 +3,19 @@
 Use this reference to diagnose recording, editing and review problems.
 "Fixed in reshoot" identifies problems the tool now handles automatically.
 
+- **A reusable look overwrote the demo or only half applied.** Fixed in reshoot:
+  visual styles accept only appearance settings, validate all affected files
+  before writing, and preserve task content, timing, fonts, audio, exports and
+  scan coverage. A later write failure rolls back the style's own changes;
+  concurrent edits are kept. Studio applies and saved styles support Undo/Redo.
+- **Changing a frame background also changed a title card.** Fixed in reshoot:
+  the studio edits frame and card backgrounds separately, including a frame's
+  two-colour gradient.
+- **The paused studio preview hid the applied style.** Fixed in reshoot:
+  finished edits have a poster from the rendered export, and the studio uses
+  that poster instead of a raw take's frame. On larger displays, the preview
+  stays beside the style controls while the page scrolls.
+
 ## Privacy
 
 - **A full-screen capture shows everything.** Record only a headless browser page,
@@ -33,6 +46,13 @@ Use this reference to diagnose recording, editing and review problems.
 
 ## Web takes
 
+- **A renamed control required finding its CSS selector by hand.** Fixed in
+  reshoot: the recorder saves stable alternatives; missing controls suggest a
+  replacement only when the alternatives agree on one compatible element.
+  Apply it explicitly, or choose the control in the app through the studio or
+  `reshoot repair RUN --pick`. The repair preserves expected values and needs a
+  fresh preview. Ambiguous controls require selection; wrong results and counts
+  are never silently healed. Changed source or changed suggestions are refused.
 - **The video opened on a blank first frame.** Fixed in reshoot: the page is
   composed once before recording starts. The studio also shows a recorded
   evidence frame as its poster while the player waits to start.

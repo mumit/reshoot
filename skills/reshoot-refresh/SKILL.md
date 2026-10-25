@@ -13,6 +13,8 @@ For a standalone native recording, read the brief, capture/edit scripts and exac
 
 Reset the made-up demo data and record the current app using `reshoot preview CONFIG`. Retain stable beat names. Diagnose failures using the beat, the failure image, and the result check. A selector repair should still perform the same task; it must not delete a failed result check or replace the intended result with whatever the app happens to show.
 
+For a missing control, read the failed run with `reshoot repair RUN`. Recorder-generated fallbacks suggest a replacement only when they agree on one visible, compatible element. Within authorization for local fixes, `reshoot repair RUN --apply` starts the configured demo app, replays the prefix, rechecks the current suggestion and changes only the locator. It refuses changed source or settings and preserves expected values. Run a fresh preview afterwards. The studio also shows the failure frame and offers a suggested or visual repair; `reshoot repair RUN --pick` lets the owner select and confirm the replacement without activating it. The picker waits for interaction, so do not launch it unattended. Use only resettable synthetic data. Count mismatches and wrong result values need their real cause fixed, not a locator substituted to make a check pass.
+
 When authorized to make local fixes, update the smallest necessary part, then rerun the affected flow. Use a full fresh `reshoot run CONFIG` for the final take. Keep the previous run. Read the report for execution errors, scan coverage, and pending human review.
 
 A failed or missing browser take leaves the result checks unverified unless one explicitly failed. Earlier passed result checks do not establish the result of an incomplete flow.

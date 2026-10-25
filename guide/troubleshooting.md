@@ -17,6 +17,9 @@ recording before it. Find the message below, or the section that matches.
 | `demo data reset failed` | The `[app] reset` command failed | Run it by hand from the `reshoot.toml` folder |
 | `click target {css = '#q'} matched 0 elements` | The control is gone or renamed | Fix the target; [a beat fails](#an-action-or-result-check-fails) |
 | `... matched 2 elements; it must match exactly one` | The target is ambiguous | Add `name` or `text`, or use a test ID |
+| `The storyboard changed since this failure` / `Project settings changed since this failure` | Repair evidence belongs to older source | Record a new preview, then repair its failed run |
+| `The suggested control changed or is ambiguous` | The current app no longer supports the recorded suggestion | Choose the replacement in the studio or with `reshoot repair RUN --pick` |
+| `This run has no repairable control diagnosis` | The failure is not a missing or ambiguous control | Fix the app state, demo data or failing result; retain its expected values |
 | `beat 'search' failed: Locator expected ...` | A result check did not pass in time | Look at the failure image; [a beat fails](#an-action-or-result-check-fails) |
 | `page error:` | The page threw a JavaScript error | Often a beat ran before the page was ready: add a `wait` action |
 | `run exceeded its timeout` | The whole run took over `timeout` seconds | Raise `timeout` in `reshoot.toml`, or shorten the story |

@@ -85,6 +85,23 @@ def main(argv=None):
     p.add_argument("--headless", action="store_true", help=argparse.SUPPRESS)
     p.set_defaults(run=rec.main)
 
+    from reshoot import repair
+    p = sub.add_parser('repair', help='inspect a missing control and explicitly choose its replacement',
+                       description='Inspect a failed browser run. --apply rechecks a suggested control in the current '
+                       'app before changing the target; --pick replays to the broken step and opens a fresh browser '
+                       'where you select and confirm the replacement. The app action is not activated by selection. '
+                       'Operation types and expected result values stay unchanged. Record a new preview afterwards.\n\n'
+                       '    reshoot repair demo/takes/runs/ID\n'
+                       '    reshoot repair demo/takes/runs/ID --apply\n'
+                       '    reshoot repair demo/takes/runs/ID --pick', formatter_class=Examples)
+    p.add_argument('run_path', help='the failed run printed by preview or run')
+    p.add_argument('--config', help='the project reshoot.toml (default: beside the run folder)')
+    choice = p.add_mutually_exclusive_group()
+    choice.add_argument('--apply', action='store_true', help='revalidate and apply the suggested control')
+    choice.add_argument('--pick', action='store_true', help='select and confirm the replacement in the app')
+    p.add_argument('--headless', action='store_true', help=argparse.SUPPRESS)
+    p.set_defaults(run=repair.main)
+
     from reshoot import run
     p = sub.add_parser("run", help="run a whole shoot from a reshoot.toml: the app, every take, the cut and the check",
                        description=run.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -205,6 +222,28 @@ def main(argv=None):
     p.add_argument('--no-open', action='store_true', help='with --serve, print the address without opening a browser')
     p.set_defaults(run=lambda a: review.serve(a) if a.serve else review.main(a))
 
+    from reshoot import styles
+    p = sub.add_parser('style', help='choose, save or reuse a visual style',
+                       description='Apply caption placement and colours, title-card colours and browser framing '
+                       'without changing the story, timing, fonts, audio or exports. Styles become ordinary '
+                       'storyboard and edit settings. Update the preview afterwards.\n\n'
+                       '    reshoot style list --project demo\n'
+                       '    reshoot style apply midnight --project demo\n'
+                       '    reshoot style save "Launch look" --project demo --out launch-style.toml', formatter_class=Examples)
+    operations = p.add_subparsers(dest='operation', required=True)
+    for operation, help_text in [('list', 'list starting looks and saved project styles'),
+                                 ('apply', 'apply a listed style or portable style TOML file'),
+                                 ('save', 'save the current look for reuse')]:
+        command = operations.add_parser(operation, help=help_text)
+        command.add_argument('--project', default='demo', help='project folder or reshoot.toml (default: demo)')
+        if operation == 'apply':
+            command.add_argument('style', help='a listed style name or path to a style TOML file')
+        elif operation == 'save':
+            command.add_argument('name', help='a name for the current look')
+            command.add_argument('--out', help='export a portable style file instead of saving in the project library')
+            command.add_argument('--replace', action='store_true', help='replace an existing saved style or export file')
+        command.set_defaults(run=styles.main)
+
     from reshoot import studio
     p = sub.add_parser('studio', help='shape a demo in a browser: captions, holds, undo, preview, final and review',
                        description='Open a page on this computer for shaping a demo: the latest run\'s video with its '
@@ -213,7 +252,8 @@ def main(argv=None):
                        'changes in another editor require a reload. Update preview chooses a re-cut for caption '
                        'or edit changes and a recording for timing, actions or settings. Make final records the '
                        'full-size run. Inspect scan sheets and accept the exact run shown. Updates can be cancelled. '
-                       'Style and exports holds the look, cards, frame, music and export presets. '
+                       'Style and exports offers starting looks, saved styles, portable import/export, cards, '
+                       'frame, music and export presets. Applying a style is one undoable change. '
                        'It serves on 127.0.0.1 behind a random address until Ctrl-C.\n\n'
                        '    reshoot studio\n'
                        '    reshoot studio app/demo --port 8800 --no-open', formatter_class=Examples)

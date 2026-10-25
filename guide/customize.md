@@ -39,8 +39,13 @@ Click a beat to play just that part.
 - **Change a caption or result hold** and leave the field: it is saved to
   `demo/storyboard.toml`, and the beat says it is not in the video yet.
 - **Change the caption look**, its place and colours, the same way.
+- **Choose a visual style** under **Style and exports**: Focus keeps the app
+  large; Midnight and Paper frame it. The sketches show the look; choose
+  **Update preview** to see it on your video. Save a look by name, download it,
+  or import a style from another project. Applying a style is one Undo step.
 - **Change the edit**: add, reword, time or remove an opening or closing title
-  card, turn the browser frame on and set its background, choose a music file
+  card, set card colours, turn the browser frame on and set its background or
+  two-colour gradient, choose a music file
   from the project folder, and change, add or remove exports by preset. These
   are saved to `demo/edit.toml`, and `[check] sources` in `reshoot.toml` follows
   the exports, so each one is still scanned.
@@ -72,11 +77,69 @@ preview records again. Changes to a remote app or an external database cannot
 be detected from the files: use More > Record a preview after those change,
 even if you also edit captions. Declared `inputs` are checked automatically.
 
+### Repair a changed control
+
+After a failed recording, the studio keeps the previous working video and
+shows the failure frame above it. When the recorded alternatives agree on one
+replacement, **Use suggested control** replays the earlier steps and rechecks
+that control before changing the locator. Otherwise choose **Choose replacement
+in app**: a fresh browser replays to the broken step, then lets you select the
+control and confirm **Use this control**. Selecting it does not activate it.
+
+The repair keeps the action and expected result values. Undo and Redo also
+cover repairs made from the studio. Choose **Update preview** afterwards to
+verify the original task; the failed run stays failed. Closing or cancelling
+the picker keeps the storyboard unchanged. A source or settings change since
+the failure requires another preview before repair. An incorrect result needs
+the app, fixture or story corrected, without weakening its result check.
+
+The prefix replay uses the demo app and its configured reset. Use resettable
+synthetic data, as for recording. Visual selection currently supports the main
+page; repair iframe targets in the storyboard. Handwritten count queries also
+stay in the storyboard because selecting one element would change their meaning.
+
 The files stay the source of truth: edit them by hand or ask an agent while the
 studio is open, and reload the page to see the change. Actions and result checks
 are changed in the storyboard itself; holds are also editable in the studio. The studio serves on
 `127.0.0.1` behind a random address, takes changes only from its own page, and
 runs until you press Ctrl-C.
+
+## Reuse a visual style
+
+In the studio, choose **Style and exports**, pick a starting look, then refine
+its colours. **Save style** keeps the current look in this project's
+`styles.toml`. Names must differ from the starting styles and existing saved
+styles. Undo also reverses saving a style. **Download current style** makes a
+portable TOML file; **Import a style** applies it in another project. An import
+does not add it to the saved list until you choose **Save style**.
+
+The same operations work from the command line:
+
+```bash
+reshoot style list --project demo
+reshoot style apply midnight --project demo
+reshoot recut demo/latest
+reshoot style save "Launch look" --project demo
+reshoot style save "Launch look" --project demo --out launch-style.toml
+reshoot style apply launch-style.toml --project another-demo
+```
+
+`another-demo` must already be a versioned project. A saved name becomes a
+key such as `launch-look`, shown by `style list`. Existing saved names and
+export files are kept unless the CLI receives `--replace`.
+
+Styles set caption placement, margin and colours, title-card colours, and
+browser-frame settings across all TOML browser takes in the project. They
+keep fonts and logos, the story, holds, checks, narration, music, exports and
+scan settings. The values are written into the ordinary storyboard and edit
+files, so rendering does not depend on the style library afterwards. If takes
+have different looks, saving uses the first browser take's caption look.
+
+For a current recording with editable captions, **Update preview** reuses the
+recording. From the CLI, use `recut` only when the app, story and recording
+settings still match that run; otherwise record a new preview. Check caption
+contrast, overlap and app text at the actual export size, especially after
+framing. The [gallery](look.md#visual-styles) shows the starting looks on notes.
 
 ## Find the files
 
@@ -85,6 +148,7 @@ runs until you press Ctrl-C.
 | `demo/BRIEF.md` | Describe the audience, task and visible result |
 | `demo/storyboard.toml` | Change actions, captions, result checks or holds |
 | `demo/edit.toml` | Change cuts, title cards or export dimensions |
+| `demo/styles.toml` | Keep named visual styles for reuse; created by Save style |
 | `demo/reshoot.toml` | Change startup, take paths or check coverage |
 
 These are the files generated for browser projects. For native recordings,

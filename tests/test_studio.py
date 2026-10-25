@@ -135,7 +135,8 @@ def test_studio_edits_cards_frame_music_and_exports_in_the_edit_file(tmp_path):
     before = cut.read_text()
     for change, error in (({'card': 1, 'text': 'x'}, 'a take'), ({'add_export': 'x-square'}, 'same file'),
                           ({'music': 'gone.mp3'}, 'no music'), ({'export': 0, 'preset': 'tiktok'}, 'unknown preset'),
-                          ({'card': 0, 'duration': 0}, 'seconds'), ({'background': 'navy'}, 'colour')):
+                          ({'card': 0, 'duration': 0}, 'seconds'), ({'background': 'navy'}, 'colour'),
+                          ({'background': '#00000080'}, 'opaque'), ({'foreground': '#ffffff80'}, 'opaque')):
         with pytest.raises(ValueError, match=error):
             studio.edit_cut(cut, config, change)
         assert cut.read_text() == before
@@ -184,7 +185,7 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             browser = pw.chromium.launch(executable_path=web.find_chrome(), headless=True)
             page = browser.new_page()
             page.goto(url)
-            assert f'/runs/{page.locator("body").get_attribute("data-run")}/' in page.locator('#video').get_attribute('src')
+            assert f'/runs/{page.locator("body").get_attribute("data-run")}/' in page.locator('#video').evaluate('video => video.src')
             assert page.locator('.scan img').count() >= 1
             assert page.locator('.beat').count() == 4 and page.locator('.seg').count() >= 3
             assert page.locator('.beat[data-beat=search] .checks').inner_text() == '2 of 2 result checks passed'

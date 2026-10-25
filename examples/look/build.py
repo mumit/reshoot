@@ -31,7 +31,7 @@ def ff(*args):
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *map(str, args)], check=True)
 
 
-def record(name, story=None, edit=None, config=None):
+def record(name, story=None, edit=None, config=None, style=None):
     """A final of the notes example with one change, without the scan, which the gallery doesn't need."""
     folder = WORK / name
     shutil.rmtree(folder, ignore_errors=True)
@@ -43,6 +43,8 @@ def record(name, story=None, edit=None, config=None):
     for file, change in (('storyboard.toml', story), ('edit.toml', edit)):
         if change:
             (demo / file).write_text(change((demo / file).read_text()))
+    if style:
+        subprocess.run([cli(), 'style', 'apply', style, '--project', 'demo'], cwd=folder, check=True, capture_output=True)
     subprocess.run([cli(), 'run', 'demo/reshoot.toml'], cwd=folder, check=True, capture_output=True)
     run = max((demo / 'takes/runs').iterdir(), key=lambda p: p.stat().st_mtime)
     beats = {b['id']: b for b in json.loads((run / 'takes/demo.take.json').read_text())['beats']}
@@ -125,6 +127,10 @@ fit = "crop"
     takes, beats = record('frame', edit=lambda t: t.replace('[[part]]', framed + '\n[[part]]', 1))
     still(takes / 'demo-final.mp4', result, 'frame.jpg')
 
+    for name in ('midnight', 'paper'):
+        takes, beats = record('style-' + name, style=name)
+        still(takes / 'demo-final.mp4', beats['intro']['start'] + .9, 'style-' + name + '.jpg')
+
     write_page(shapes, gifs, styled, framed)
     print(PAGE.relative_to(ROOT), 'and', MEDIA.relative_to(ROOT))
 
@@ -137,8 +143,28 @@ def write_page(shapes, gifs, styled, framed):
 
 Every picture here comes from the bundled notes example, recorded by
 [`examples/look/build.py`](../examples/look/build.py). Each one changes a
-single setting, shown beside it. Run the script again to bring the page up to
+single setting, or combines them in a reusable visual style. Run the script again to bring the page up to
 date.
+
+## Visual styles
+
+Choose a complete look in the studio's **Style and exports**, or apply one
+from the command line. Each changes caption colours and placement, title-card
+colours and browser framing. Fonts, story content, timing, audio and exports
+stay as they are. The app is large in Focus; the framed styles give it a
+background and slightly shrink it, so check text at the exported size.
+
+| Focus | Midnight | Paper |
+|---|---|---|
+| ![Focus, with dark captions and the page filling the video](../docs/look/caption-bottom.jpg) | ![Midnight, with a blue gradient and browser frame](../docs/look/style-midnight.jpg) | ![Paper, with a warm frame and light captions](../docs/look/style-paper.jpg) |
+
+```bash
+reshoot style apply midnight --project demo
+reshoot recut demo/latest
+```
+
+Save your own look and use it in another project with
+[reusable styles](customize.md#reuse-a-visual-style).
 
 ## The cursor
 

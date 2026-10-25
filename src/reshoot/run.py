@@ -158,6 +158,9 @@ def save(report, path):
                  f"{report.get('flagged') or 0} flagged",
                  f"- Review: {report.get('review_status')}"]
         lines += [f"- Error: {error}" for error in report.get('errors', [])]
+        for failure in report.get('repairs', []):
+            for target in failure.get('candidates', []):
+                lines.append(f'- Suggested control for {failure["beat"]}: `' + redact(json.dumps(target)) + '`; apply explicitly and record again.')
         with open(summary, "a") as f:
             f.write('\n'.join(lines) + '\n\n')
 
@@ -314,6 +317,8 @@ def main(a):
         for metadata in metadata_files:
             try:
                 result = json.loads(metadata.read_text())
+                if result.get('failure'):
+                    report.setdefault('repairs', []).append(result['failure'])
                 incomplete = incomplete or result.get('status') != 'completed'
                 if result.get('error') and result['error'] not in report['errors']:
                     report['errors'].append(result['error'])  # which beat failed, and why
@@ -330,6 +335,11 @@ def main(a):
     if failure or not report["ok"]:
         lines = [(failure or 'run failed').replace(str(Path.cwd().resolve()) + os.sep, ''), '  run folder     ' + shown(root)]
         lines += ['  failure image  ' + shown(p) for p in sorted(root.rglob('*.failure.png'))]
+        for item in report.get('repairs', []):
+            if item.get('candidates'):
+                lines.append('  suggested control ' + redact(json.dumps(item['candidates'][0])))
+                lines.append('  apply repair   reshoot repair ' + shlex.quote(shown(root)) + ' --apply')
+            lines.append('  choose control reshoot repair ' + shlex.quote(shown(root)) + ' --pick')
         if app is not None and (root / 'app.log').exists():
             lines.append('  app output     ' + shown(root / 'app.log'))
         raise SystemExit('\n'.join(lines))

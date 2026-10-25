@@ -32,6 +32,10 @@ With the dependencies installed, the preview takes seconds. In the studio,
 change a caption or result hold, choose **Update preview**, then **Make final**
 when it looks right. Undo keeps experiments easy to reverse.
 
+**Style and exports** offers Focus, Midnight and Paper looks, plus saved styles
+you can reuse in another project. Update preview shows the chosen look using
+the existing recording when the story is still current.
+
 For your own running demo app:
 
 ```bash
@@ -117,7 +121,9 @@ contains = "Pick up the bikes"
 reshoot types into the real page with a visible cursor, shows the caption, and
 holds on the result so people can read it. When the app renames `#q`, the run
 stops on that beat: `type target {css = '#q'} matched 0 elements`. Fix the
-target and run again; the [comparison](guide/publish.md) shows the same beats
+target in the studio by choosing its replacement in the app, then run again.
+Recorded alternatives can suggest a control; repairs always preserve the
+expected result values. The [comparison](guide/publish.md) shows the same beats
 with the same results.
 
 ## Keep it current

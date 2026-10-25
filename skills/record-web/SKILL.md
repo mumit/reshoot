@@ -113,6 +113,9 @@ put it in the next beat.
      For a complete owner-driven project, offer `reshoot create URL --directory demo` instead. The TOML recorder
      toolbar adds captions and explicit checks, hides an element, pauses and finishes. Checkbox and radio choices
      replay their state. Unsupported interactions are saved as blocking `recording_issue` steps for repair.
+     TOML operations also save `fallbacks` with stable alternative targets. They only suggest a later repair;
+     replay never silently substitutes them. Inspect a missing-control failure with `reshoot repair RUN`, apply
+     a revalidated suggestion with `--apply`, or let the owner choose with `--pick`, then record a fresh preview.
    - **You write it:** read the app's HTML for the selectors. Prefer test ids, ids and names.
 3. Finish the storyboard: add captions, check the holds, and give the beats names the cut can use. Try a beat at a
    time: put the beats so far in the file and record a short take.

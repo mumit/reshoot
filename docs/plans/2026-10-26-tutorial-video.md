@@ -4,8 +4,8 @@ Produce a local, narrated workshop using only the synthetic notes web app.
 Show a usable result early, then demonstrate editing and the second recording.
 Keep the media pending owner review; never publish or replace accepted media.
 
-- [ ] Write a chaptered lesson and a written follow-along companion.
-- [ ] Build a repeatable page-only capture recipe. Use native input on the real
+- [x] Write a chaptered lesson and a written follow-along companion.
+- [x] Build a repeatable page-only capture recipe. Use native input on the real
   recorder and Studio, preserving raw footage, source snapshots and run reports.
 - [ ] Record URL-based creation, meaningful checks, preview playback, caption
   and hold editing, Undo, demonstrated replacement actions, a look, narration,

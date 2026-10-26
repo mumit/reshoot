@@ -1,0 +1,294 @@
+title = "Make a web app demo, then keep it current"
+voice = "say -v Samantha -r 145"
+subtitle = "A practical reshoot workshop with the made-up notes app"
+
+[[scene]]
+id = "welcome"
+chapter = "Start with the result"
+title = "A demo you can update"
+takeaway = "One useful task. A clear result. A recording you can refresh."
+text = "In this workshop, we will turn one useful task in a web app into a short video and a README GIF. Then we will improve the story, change the app, and make the recording current again. We are using the made up notes app, real browser actions, and synthetic data throughout."
+
+[[scene]]
+id = "app"
+chapter = "Start with the result"
+title = "Choose one visible result"
+takeaway = "Save a note, then find it by a word."
+text = "Here is our task. Save a note that says, Pick up the bikes. Search for bike and show the saved note. That is enough for a useful first demo. The notes app resets when its page reloads, so each recording can start from the same state. Your own app needs an equally deliberate demo data setup."
+
+[[scene]]
+id = "command"
+chapter = "Record your task"
+title = "Point reshoot at the running app"
+takeaway = "Start the demo app first, then use its URL."
+command = "reshoot create http://127.0.0.1:8765/ --directory demo"
+text = "With reshoot installed and the web app running, enter this command in a terminal. Replace the address with the address of your app. The directory is where the recording source will live. Reshoot checks its tools, then opens a fresh browser profile for the demonstration. Installation and troubleshooting links are in the written companion."
+
+[[scene]]
+id = "write"
+chapter = "Record your task"
+title = "Demonstrate the useful action"
+takeaway = "Use demo data and show one task."
+text = "The recording toolbar belongs to reshoot. Click Write a note, type Pick up the bikes, and press Enter. The note appears in the list. These are ordinary browser inputs. Reshoot records how to repeat them, so the future video can be generated from the story. There is no need to get your first performance perfectly timed."
+
+[[scene]]
+id = "save-check"
+chapter = "Record your task"
+title = "Name the result that matters"
+takeaway = "Check the saved note, not an unrelated part of the page."
+text = "Choose Check result in the toolbar, then select the note you just saved. This selection adds a result check without activating the selected element. We are asking the next recording to confirm that the note really appeared. A meaningful check makes the story more useful than a list of clicks. It gives a failed recording somewhere specific to stop."
+
+[[scene]]
+id = "search"
+chapter = "Record your task"
+title = "Show the next step"
+takeaway = "Search for bike and hold on its matching note."
+text = "Now click Search notes and type bike. The list narrows to the saved note. Choose Caption here and write Find the matching note. The caption explains the outcome to the viewer. Keep it short enough to read while watching the result. We will adjust both the words and the reading time in Studio after the first preview."
+
+[[scene]]
+id = "search-check"
+chapter = "Record your task"
+title = "Check the search result"
+takeaway = "Keep checks that prove the task worked."
+text = "Choose Check result again and select the matching note. This check belongs to the search action. The recorder can also suggest checks from changes on the page. Inspect those suggestions when they need attention, and keep the ones that actually prove your task. For this lesson, the important evidence is the saved note appearing after the search."
+
+[[scene]]
+id = "done"
+chapter = "Record your task"
+title = "Finish the demonstration"
+takeaway = "Done saves the story and starts its preview."
+text = "Choose Done when the task is complete. Reshoot saves the actions, captions, and checks into the project, then records a preview by replaying the story. This workshop uses an automated hand in a headless browser to demonstrate the same controls. The recording and checks are real. Any generation wait shortened in the edit is labeled on screen."
+
+[[scene]]
+id = "first-preview"
+chapter = "Read your preview"
+title = "Watch the first usable clip"
+takeaway = "The MP4 and GIF come from the same saved story."
+text = "Here is the first preview in Studio. Watch the task play: the note is entered, saved, and found again. The recorder toolbar is absent from this generated clip. Reshoot adds the visible cursor and the caption. At this point you already have a useful result. The remaining chapters show how to improve it and keep it current."
+
+[[scene]]
+id = "proof"
+chapter = "Read your preview"
+title = "Read the result checks"
+focus = "right"
+takeaway = "Passing checks are evidence for the result you named."
+text = "Select the search step. Its inspector shows the result checks from this recording, along with its caption and hold. Green checks mean that those particular expectations passed. They do not judge whether the story is persuasive or the video looks good. You still decide whether the result is understandable, accurate, and worth showing to your audience."
+
+[[scene]]
+id = "story-files"
+chapter = "Read your preview"
+title = "Keep the source beside your app"
+takeaway = "storyboard.toml: task and checks\nedit.toml: cut and exports\nreshoot.toml: the recording project"
+text = "The project is made of ordinary files. The storyboard holds the task, captions, and expected results. The edit file describes the cut and export choices. The project configuration connects them. Studio saves changes to those files. Keep that source beside your application so the choices you make today are available when you record the next version."
+
+[[scene]]
+id = "selection"
+chapter = "Shape one moment"
+title = "Choose a step in the filmstrip"
+takeaway = "Select one step and work in its inspector."
+text = "The filmstrip gives you a compact view of the story. Choose a step to edit just that moment. The selected step is named above the preview, and the inspector contains its controls. You can move between steps with the arrow keys. This keeps the task visible while you work, without opening every step's form at once."
+
+[[scene]]
+id = "caption"
+chapter = "Shape one moment"
+title = "Make the caption clearer"
+focus = "right"
+takeaway = "A layout still gives quick visual feedback."
+text = "Change the search caption to A note found in a moment, then leave the field to save it. The layout still updates using the recorded page and the video caption renderer. This is representative visual feedback. The saved video keeps its recorded words until you update the preview. Use the still to judge placement and readability while you edit."
+
+[[scene]]
+id = "hold"
+chapter = "Shape one moment"
+title = "Give the result time to land"
+focus = "right"
+takeaway = "Hold result controls the reading time after the action."
+text = "Increase Hold result to three seconds. A small pause lets the viewer see the note and finish reading the caption. Timing is part of the explanation. A still cannot tell you whether that pause feels right, so we will play the generated clip again. Changing a hold requires a new recording because the action's timing has changed."
+
+[[scene]]
+id = "undo"
+chapter = "Shape one moment"
+title = "Try a change, then undo it"
+takeaway = "Undo and Redo make exploration comfortable."
+text = "Choose Undo to restore the earlier hold, then Redo to bring back the longer one. The caption remains as we saved it. History groups each change so you can experiment without rebuilding the project. When your saved files still match the session, Undo and Redo also survive restarting Studio. External edits are kept and may require you to reload."
+
+[[scene]]
+id = "update"
+chapter = "Shape one moment"
+title = "Update the actual recording"
+takeaway = "Saved edits become a new preview. The previous run stays available."
+text = "Choose Update preview to see the saved changes in a real video. Studio chooses whether it can reuse the existing capture or needs to replay the task. Caption and look edits can reuse footage. Our hold change needs a fresh capture. The previous successful recording stays available while the new one is being made and checked."
+
+[[scene]]
+id = "play-step"
+chapter = "Shape one moment"
+title = "Watch just the selected step"
+takeaway = "Judge the action, caption and pause together."
+text = "Choose Play selected step. Watch how the search action, caption, and hold work together. A useful demo gives the viewer enough time to understand what changed. If the pacing is wrong, adjust the hold and update again. The goal is a clear explanation of the result, so prefer a purposeful pause over extra movement that adds no information."
+
+[[scene]]
+id = "shape"
+chapter = "Shape one moment"
+title = "Inspect an export at its viewing size"
+takeaway = "Check the size your audience will actually see."
+text = "Open Style and exports and inspect the export's framing and viewing width. Fit keeps the whole source visible. Crop fills the destination and may remove content near an edge. Use the layout feedback to check the note and caption. A wide application squeezed into a small image can become hard to read, even when the file has plenty of pixels."
+
+[[scene]]
+id = "replace-intro"
+chapter = "Demonstrate a changed step"
+title = "Replace one action by showing it"
+focus = "right"
+takeaway = "Replay the prefix, then demonstrate only the change."
+text = "Suppose bikes is a better search word for this demonstration. In the selected step, open Change actions by showing them and choose Replace this step's actions. Reshoot opens a fresh browser and replays the earlier task. You arrive just before the step you want to change, with the note already saved and ready to find."
+
+[[scene]]
+id = "replace-show"
+chapter = "Demonstrate a changed step"
+title = "Show the replacement action"
+takeaway = "Done saves a separate draft for review."
+text = "In the fresh browser, type bikes into Search notes. The same saved note appears. Choose Done. This time Done saves a separate action draft. The existing story has not been replaced. For an additional step, the inspector also offers an add option that replays through the selected step before letting you demonstrate what should happen next."
+
+[[scene]]
+id = "replace-review"
+chapter = "Demonstrate a changed step"
+title = "Review before using the draft"
+focus = "right"
+takeaway = "Existing words, timing and result checks stay."
+text = "Back in Studio, compare Current actions and Proposed actions. We are replacing bike with bikes in the search field. The step's caption, hold, and existing result checks stay. Open the file changes if you need more detail, then choose Use these actions. You can discard an unwanted draft instead. Applying it remains reversible with Undo."
+
+[[scene]]
+id = "replace-verify"
+chapter = "Demonstrate a changed step"
+title = "Verify the whole task again"
+takeaway = "A reviewed draft still needs a fresh recording."
+text = "Update the preview again. This records the complete task using the replacement and runs its checks. A draft being reasonable is different from the application actually producing the result. If the checks fail, correct the action, app, or data and try again. The previous recording stays available while you work through that change."
+
+[[scene]]
+id = "style"
+chapter = "Add useful polish"
+title = "Choose a coherent look"
+takeaway = "A style changes the presentation while retaining the task."
+text = "Open Look and choose Midnight. The style coordinates the caption treatment, title colors, and browser frame. The task and its checks stay the same. Starting recipes go further by choosing pacing and export options as well. Pick one when it suits your destination, then refine it. A short task does not need extra steps just to meet a duration target."
+
+[[scene]]
+id = "voice"
+chapter = "Add useful polish"
+title = "Add one helpful spoken line"
+focus = "right"
+takeaway = "Narration can explain why a result matters."
+text = "Return to the search step and open Narration. Write, Find the note you saved by typing one of its words. Choose Save narration. Reshoot prepares that line before recording so the step can wait for it. Use speech when it adds useful context. Captions still let someone follow the result when they cannot play the audio."
+
+[[scene]]
+id = "audition"
+chapter = "Add useful polish"
+focus = "right"
+title = "Audition before recording"
+takeaway = "Listen to the wording before rebuilding the demo."
+text = "Choose Audition saved line to prepare a small audio preview. In your own session, listen for pronunciation, pace, and unnecessary words. The workshop uses the installed local synthetic voice, which is also used for this narration. The tutorial audio continues here so the two voices do not compete. A new preview will bring the spoken line into the actual demo."
+
+[[scene]]
+id = "card"
+chapter = "Add useful polish"
+title = "Give the clip a useful opening"
+focus = "right"
+takeaway = "One short title is enough for this story."
+text = "Under Style and exports, add an opening card and write Find a note in seconds. Keep it short. The opening should orient the viewer and lead into the useful action. You can arrange parts under Your cut when a longer story needs a different sequence. For this task, we will keep the demonstration in its natural order."
+
+[[scene]]
+id = "polished"
+chapter = "Add useful polish"
+title = "Watch the polished preview"
+takeaway = "Inspect words, pacing, frame and audio in the rendered result."
+text = "Update the preview and watch the opening, task, caption, and result hold together. The saved narration is now part of the demo's audio, and its timing is included in the recording. Inspect every export at a useful viewing size. A layout still is good for arranging a frame; playback is where you judge transitions and the overall explanation."
+
+[[scene]]
+id = "data"
+chapter = "Keep the demo current"
+title = "Make repeatability deliberate"
+takeaway = "A fresh browser profile does not reset an external database."
+text = "Before changing the app, remember why this lesson repeats reliably. The notes app uses made up data and resets on reload. Reshoot starts each browser capture with a fresh profile. Your own application's database may persist between runs, so provide a separate demo account and reset routine. A privacy blur can hide an element, but isolated data is the foundation."
+
+[[scene]]
+id = "change"
+chapter = "Keep the demo current"
+title = "Change the app's search control"
+takeaway = "In the demo app only: q becomes note-search."
+command = "# Demo app change\nid=\"q\"                 → id=\"note-search\"\nquerySelector(\"#q\")     → querySelector(\"#note-search\")"
+text = "Imagine a new version of the app renames its search control. We will make that change in the synthetic notes page, and change its heading to Notes, refreshed. The visible task still works, but the saved story refers to the earlier control. This is a useful failure to demonstrate because it happens when real interfaces evolve."
+
+[[scene]]
+id = "refresh"
+chapter = "Keep the demo current"
+title = "Record the changed web app"
+takeaway = "For an external app change, explicitly record a new preview."
+text = "This project points at a running URL, so the page files are outside the project. Studio cannot automatically know that those files changed. Open More and choose Record a preview to force a fresh capture. If your configured app and declared inputs are part of the project, the normal update workflow can track more of that source state."
+
+[[scene]]
+id = "failure"
+chapter = "Keep the demo current"
+title = "Read the failure at its step"
+takeaway = "The last good recording remains available."
+text = "The new recording stops at the search step. Studio explains that it could not find the old control and shows a possible replacement. The previous successful video remains available. This prevents a broken story from silently becoming a misleading update. Read the explanation and confirm that the suggested control still serves the same purpose before using it."
+
+[[scene]]
+id = "repair"
+chapter = "Keep the demo current"
+title = "Choose the current control"
+takeaway = "Repair the target while keeping the intended result."
+text = "Use the suggested Search notes control. Reshoot checks it against the current app and updates how the step finds its target. The words being typed and the expected result stay as they were. If the suggestion is wrong, Choose replacement in app lets you point to the right control. Do not remove a useful result check to make a failure disappear."
+
+[[scene]]
+id = "verify"
+chapter = "Keep the demo current"
+title = "Run the repaired story"
+takeaway = "Same saved note. Same result. A fresh app recording."
+text = "Update the preview after the repair. The same note is saved, and the updated search field finds it using bikes. The result checks pass again. Watch the new heading and the task in the refreshed recording. This is the payoff for keeping the recording source: the story, caption choices, and useful checks carry forward as the app changes."
+
+[[scene]]
+id = "compare"
+chapter = "Keep the demo current"
+title = "Compare two recordings"
+takeaway = "Play corresponding steps and inspect their checked results."
+text = "Open More tools, then Compare, and choose the earlier polished recording. Play both exports or choose a matching step to inspect the change. Each side keeps its own cut timing and recording identity. Compare the visible result as well as the appearance. Both recordings in this workshop remain pending review; comparison does not accept either one."
+
+[[scene]]
+id = "final"
+chapter = "Review and take your files"
+title = "Make the full-size final"
+takeaway = "Make final records the complete task again."
+text = "When the preview looks right, choose Make final. This records the complete task at the configured final size, then edits, exports, and scans the output. A preview helped us make decisions quickly. The final is the actual set of files to inspect before sharing. A passing run is useful evidence, and the human review still belongs to you."
+
+[[scene]]
+id = "review"
+chapter = "Review and take your files"
+title = "Review this exact recording"
+takeaway = "Watch the final MP4 and every export before accepting."
+text = "Open Review this recording. Watch the final video and the README GIF, inspect the framing, and read the scan coverage. The review applies to this particular recording. Saved changes made later need another update before they can be accepted here. This workshop leaves acceptance undecided so that generating a tutorial never stands in for the owner's review."
+
+[[scene]]
+id = "sheets"
+chapter = "Review and take your files"
+title = "Inspect the scan sheets"
+takeaway = "A scan points to possible problems. It does not approve the media."
+text = "Open a scan sheet and inspect its frames at full size. Look for unintended information, hard to read text, and anything the automatic scan missed. Check whether the scan sampled frames or covered every frame. Resolve any findings before making your review decision. Synthetic data makes this exercise safer, and inspection is still part of finishing a useful demo."
+
+[[scene]]
+id = "download"
+chapter = "Review and take your files"
+title = "Download the rendered exports"
+takeaway = "The ZIP contains the files from the displayed recording."
+text = "Open Download and choose Download all exports. The archive contains the rendered files from the recording on this page, together with available subtitles and a file manifest. Downloading does not accept or publish them. Keep the source project for future updates, and put the final exports where your documentation or release workflow expects them after your review."
+
+[[scene]]
+id = "own-app"
+chapter = "Use the workflow on your app"
+title = "Bring your own useful task"
+takeaway = "Start the app. Use demo data. Show one result."
+command = "reshoot create YOUR_DEMO_URL --directory demo\n\n# Try the bundled app without starting a server yourself\nreshoot create --recipe feature --directory notes-demo"
+text = "For your own web app, start its demo environment and replace the URL in the create command. Choose one task and a visible result. If setup, login, or interactions need more control, keep the story in files and use an agent to help author it. The written companion links to that route, the command reference, and the installation steps."
+
+[[scene]]
+id = "close"
+chapter = "Use the workflow on your app"
+title = "Make the next recording easier"
+takeaway = "Keep the story. Refine a moment. Refresh when the app changes."
+text = "You now have the full loop: demonstrate a task, check its result, shape the preview, revise one action, and refresh the video after the app changes. Keep the project source beside your code. Start with a small useful clip, and add polish where it helps someone understand the result. Return to any chapter when you need that particular step again."

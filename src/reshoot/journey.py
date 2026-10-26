@@ -167,3 +167,45 @@ def state(project, run):
                       'Make a final when the preview looks right.' if mode != 'final' else
                       'Watch the exports and inspect the scan evidence, then accept this recording.',
             'changes': [], 'next': 'download' if accepted else 'run' if mode != 'final' else 'review'}
+
+
+def workflow(saved, *, creating=False, tools=None, failure=None, session=None, has_run=False):
+    """One next action for status, recovery instructions and recording controls."""
+    out = dict(saved)
+    continuation = 'create' if creating else 'update'
+    labels = {'create': 'Continue creation', 'update': 'Update preview', 'run': 'Make final',
+              'setup': 'Check again', 'session': 'Review saved history',
+              'review': 'Review this final', 'download': 'Get your files'}
+    tools_missing = tools is not None and not tools['ok']
+    block = ('Resolve the saved editing history first.' if session else
+             'Fix the recording tools, then choose Check again.' if tools_missing else
+             'Finish the first preview with Continue creation.' if creating else '')
+    out['actions'] = {kind: {'kind': kind, 'label': labels[kind], 'enabled': not block, 'reason': block}
+                      for kind in ('update', 'run')}
+    out['actions']['create'] = {'kind': 'create', 'label': labels['create'],
+                               'enabled': creating and not session and not tools_missing,
+                               'reason': block if session or tools_missing else ''}
+    out['continuation'] = {'kind': continuation, 'label': labels[continuation],
+                           'enabled': out['actions'][continuation]['enabled'],
+                           'reason': out['actions'][continuation]['reason']}
+    if creating:
+        out.update(phase='creation', next='create', title='Continue your first demo',
+                   detail='Your story is saved. Choose Continue creation to make its preview.')
+    if failure:
+        again = labels[continuation]
+        if failure.get('repaired'):
+            detail = f'Control updated. Choose {again} to verify the original task and result checks.'
+        elif failure.get('stale'):
+            detail = f'The story changed since this failure. Choose {again} to get current evidence.'
+        else:
+            detail = f'Fix the step it stopped on, below, then choose {again}.'
+        out.update(title='The latest recording stopped' if has_run else 'The first preview stopped',
+                   phase='stopped', next=continuation,
+                   detail=detail + (' The video is the last recording that worked.' if has_run else ''))
+    if tools_missing:
+        out.update(phase='setup', next='setup', title='Recording tools need attention', detail=block)
+    if session:
+        out.update(phase='recovery', next='session', title=session['title'], detail=session['detail'])
+    kind = out['next']
+    out['action'] = out['actions'].get(kind, {'kind': kind, 'label': labels[kind], 'enabled': True, 'reason': ''})
+    return out

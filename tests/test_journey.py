@@ -101,6 +101,30 @@ def test_earlier_runs_do_not_claim_full_source_freshness(tmp_path):
     assert journey.state(config, run)['pending']
 
 
+@pytest.mark.parametrize('creating', [False, True])
+@pytest.mark.parametrize('failure', [{'stale': False, 'repaired': False}, {'stale': True, 'repaired': False},
+                                   {'stale': False, 'repaired': True}])
+def test_recovery_instruction_and_available_continuation_agree(creating, failure):
+    base = {'next': 'run', 'phase': 'preview', 'title': 'Preview', 'detail': '', 'pending': False}
+    state = journey.workflow(base, creating=creating, tools={'ok': True}, failure=failure)
+    continuation = state['continuation']
+    assert continuation['enabled'] and continuation['label'] in state['detail']
+    assert state['action'] == continuation
+    assert state['actions']['update']['enabled'] is not creating
+    assert base['phase'] == 'preview'
+
+
+def test_tool_and_history_blocks_take_precedence_over_recording_actions():
+    base = {'next': 'update', 'phase': 'empty', 'title': 'Preview', 'detail': '', 'pending': False}
+    stopped = journey.workflow(base, creating=True, tools={'ok': False}, failure={'stale': True})
+    assert stopped['action']['kind'] == 'setup'
+    assert all(not action['enabled'] and action['reason'] for action in stopped['actions'].values())
+    recovery = journey.workflow(base, creating=True, tools={'ok': True},
+                                session={'title': 'Changed files', 'detail': 'Compare the files.'})
+    assert recovery['action']['kind'] == 'session' and recovery['title'] == 'Changed files'
+    assert all(not action['enabled'] and action['reason'] for action in recovery['actions'].values())
+
+
 def test_bundle_contains_only_exports_and_hashes_the_actual_archived_bytes(tmp_path):
     from test_screenshots import source, bind, SPEC as SHOT, TAKES
     from test_tours import SPEC as TOUR

@@ -82,9 +82,8 @@ size. A preview is for looking at; accept a final.
 **Undo** and **Redo** cover every change you save in the studio, including a
 style, a cut, a repair or a screenshot. They keep up to 50 changes.
 
-The history survives a restart. When you open the studio again, choose
-**Resume history** to keep it, or **Start with current files** to begin a new
-one. Resuming works only while the files still match the saved history.
+The history survives a restart. When the files still match, the studio keeps
+your Undo and Redo automatically so you can carry on editing.
 
 You or an agent can edit the files while the studio is open. When you come
 back to the page, it offers **Reload project**. If a field won't save, fix it or
@@ -93,6 +92,8 @@ choose **Reset unsaved edits** to reload the saved project.
 If the files changed while the studio was closed, it lists them and keeps
 them. **Download saved source copy** gives you the files as the studio last
 saved them, so you can compare and copy over what you want by hand.
+Choose **Start with current files** to begin a new history with those files.
+The previous history stays in a local archive.
 
 ## Change the look
 

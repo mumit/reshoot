@@ -6,6 +6,14 @@ change project files or commands.
 
 ## Unreleased
 
+### Changed
+
+- The studio resumes Undo and Redo automatically when the project still
+  matches the saved session. Changed files and unreadable history still offer
+  recovery choices and a saved source copy when available.
+- Recording controls and recovery messages use the same next step, including
+  tool setup, first creation and a stopped preview.
+
 ### Fixed
 
 - Recorded steps keep unique names when a task repeats a control beside one

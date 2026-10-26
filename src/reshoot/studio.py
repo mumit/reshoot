@@ -551,7 +551,7 @@ def view(folder, take, config, run=None):
             data['sequence'] = sequence.view(sequence.load(config, run[0]))
         except (ValueError, OSError) as error:
             data['sequence_error'] = str(error)
-    data['journey'] = workflow(config, folder, take, run)
+    data['journey'] = workflow(config, folder, take, run, context=data)
     data['downloads'] = []
     if run:
         from reshoot.delivery import files
@@ -562,13 +562,17 @@ def view(folder, take, config, run=None):
     return data
 
 
-def workflow(config, folder, take, run):
-    from reshoot import journey
+def workflow(config, folder, take, run, context=None, session=None):
+    from reshoot import create, journey, setup
     state = journey.state(config, run)
-    if (failure := failed(folder, take, config)) and not failure['stale'] and not failure['repaired']:
-        state.update(title='The latest recording stopped' if run else 'The first preview stopped', phase='stopped', next='update',
-                     detail='Fix the step it stopped on, below, then choose Update preview.' +
-                            (' The video is the last recording that worked.' if run else ''))
+    if context is None:
+        creation = create.load(folder)
+        creating = bool(creation and creation['stage'] != 'done')
+        context = {'creation_pending': creating,
+                   'setup': setup.current(config) if creating or not run else None,
+                   'failure': failed(folder, take, config)}
+    state = journey.workflow(state, creating=context.get('creation_pending', False), tools=context.get('setup'),
+                             failure=context.get('failure'), session=session, has_run=bool(run))
     kind, reason = update_kind(folder, config, take, run)
     state.update(update_kind=kind, update_detail=reason)
     return state
@@ -736,7 +740,7 @@ def server(a):
                     with history.lock:
                         active_take = refresh_project()
                         run = self.displayed(query) if query.get('run_id') else None
-                        state = workflow(config, folder, active_take, run)
+                        state = workflow(config, folder, active_take, run, session=history.info())
                         state['external'] = query.get('revision') != history.revision()
                         state['revision'] = history.revision()
                         state['session_pending'] = history.pending
@@ -968,7 +972,7 @@ def server(a):
                     out = {'code': code, 'output': text}
                 run = self.displayed(body) if body.get('run_id') else None
                 out.update(revision=history.revision(), undo=bool(history.undo), redo=bool(history.redo),
-                           journey=workflow(config, folder, take, run))
+                           journey=workflow(config, folder, take, run, session=history.info()))
             except (ValueError, OSError) as e:
                 out = {'ok': False, 'error': str(e), 'code': 2, 'output': str(e)}
             review.reply(self, 200, json.dumps(out).encode(), 'application/json')
@@ -1005,20 +1009,24 @@ def serve(a):
 
 
 def page(data, accept, seen=0):
-    from reshoot import timeline
+    from reshoot import journey, timeline
     e = lambda v: html.escape(str(v if v is not None else ''), quote=True)
     run = data['run']
     failure = data.get('failure')
+    state = journey.workflow(data.get('journey', {'title': 'Shape your demo', 'detail': '', 'pending': False,
+                             'phase': 'unknown', 'next': 'update', 'changes': [], 'update_detail': ''}),
+                             creating=data.get('creation_pending', False), tools=data.get('setup'),
+                             failure=failure, session=data.get('session'), has_run=bool(run))
     failure_box = ''
     if failure:
-        again = 'Continue creation' if data.get('creation_pending') else 'Update preview'
+        again = state['continuation']['label']
         image = (f'<details><summary>Failure frame</summary><img src="runs/{e(failure["id"])}/{e(failure["image"])}" '
                  'alt="The page when the recording stopped" loading="lazy"></details>') if failure.get('image') else ''
         if failure['repaired']:
-            message = f'Control updated. Choose {again} to verify the original task and result checks.'
+            message = state['detail']
             buttons = ''
         elif failure['stale']:
-            message = f'The story changed since this failure. Choose {again} to get current evidence.'
+            message = state['detail']
             buttons = ''
         elif failure.get('check'):
             check = failure['check']
@@ -1050,7 +1058,7 @@ def page(data, accept, seen=0):
     for n, beat in enumerate(data['beats']):
         checks = beat.get('checks') or []
         passed = sum(c == 'passed' for c in checks)
-        state = 'failed' if 'failed' in checks else 'passed' if checks else 'unverified'
+        check_state = 'failed' if 'failed' in checks else 'passed' if checks else 'unverified'
         when = (f'at {seconds(beat["start"])}' if beat.get('start') is not None and beat["start"] == beat["end"]
                 else f'{seconds(beat["start"])} to {seconds(beat["end"])}' if beat.get('start') is not None
                 else 'not in this cut' if run and 'status' in beat else 'not recorded yet')
@@ -1058,7 +1066,7 @@ def page(data, accept, seen=0):
             when += f' · {len(beat["appearances"])} appearances'
         frame = f'<img src="run/{e(beat["frame"])}" alt="The last frame of {e(beat["id"])}" loading="lazy">' if beat.get('frame') else '<div class="noframe">No frame yet</div>'
         changed = beat.get('changed')
-        beats.append(f'''<li class="beat {state}" data-beat="{e(beat['id'])}" data-start="{e(beat.get('start'))}" data-end="{e(beat.get('end'))}" data-appearances="{e(json.dumps(beat.get('appearances', [])))}">
+        beats.append(f'''<li class="beat {check_state}" data-beat="{e(beat['id'])}" data-start="{e(beat.get('start'))}" data-end="{e(beat.get('end'))}" data-appearances="{e(json.dumps(beat.get('appearances', [])))}">
   <button class="play" type="button" title="Play this beat"{'' if beat.get('start') is not None else ' disabled'}>{frame}<span>&#9654;</span></button>
   <div class="body">
     <div class="head"><strong>{n + 1}. {e(beat['id'])}</strong><span class="when">{when}</span></div>
@@ -1331,7 +1339,6 @@ def page(data, accept, seen=0):
     sheets = ''.join(f'<a href="run/{e(s)}" target="_blank"><img loading="lazy" src="run/{e(s)}" alt="Scan sheet {i + 1}"></a>'
                      for i, s in enumerate((run or {}).get('sheets', [])))
     evidence = (f'<details class="scan"><summary>Inspect scan sheets</summary><p>Open a sheet at full size to inspect the frames.</p>{sheets}</details>' if sheets else '')
-    state = data.get('journey', {'title': 'Shape your demo', 'detail': '', 'pending': False, 'phase': 'unknown', 'next': 'update', 'changes': [], 'update_detail': ''})
     session = data.get('session')
     tools = data.get('setup')
     tools_box = ''
@@ -1344,7 +1351,7 @@ def page(data, accept, seen=0):
         problems = [item for item in tools['checks'] if item['status'] in ('missing', 'failed')]
         checks = tool_rows(problems)
         all_checks = tool_rows(tools['checks'])
-        ready = ' class="primary"' if tools['ok'] else ' disabled'
+        ready = (' class="primary"' if state['action']['kind'] == 'create' else '') if state['actions']['create']['enabled'] else ' disabled'
         go_on = f'<button type="button" data-job="create"{ready}>Continue creation</button>' if data.get('creation_pending') else ''
         continuation = go_on + (f'<p>Or restart from a terminal: <code>{e(data["resume_command"])}</code></p>' if go_on else '')
         if tools['ok'] and not data.get('create_error'):  # nothing to fix: one line, and the way to go on
@@ -1404,14 +1411,14 @@ def page(data, accept, seen=0):
 <header><h1>reshoot studio</h1><span class="story">{e(data['story'])}</span>
 <fieldset class="actions" aria-label="Recording and history"{(' disabled' if session else '')}><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
 <button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
-<button type="button" class="{'primary' if state['next'] == 'update' else ''}" data-job="update"{(' disabled' if data.get('creation_pending') else '')}>Update preview</button>
-<button type="button" class="{'primary' if state['next'] == 'run' else ''}" data-job="run"{(' disabled' if data.get('creation_pending') else '')} title="Record the full-size video for review">Make final</button>
+<button type="button" class="{'primary' if state['action']['kind'] == 'update' else ''}" data-job="update"{'' if state['actions']['update']['enabled'] else ' disabled'} title="{e(state['actions']['update']['reason'])}">Update preview</button>
+<button type="button" class="{'primary' if state['action']['kind'] == 'run' else ''}" data-job="run"{'' if state['actions']['run']['enabled'] else ' disabled'} title="{e(state['actions']['run']['reason'] or 'Record the full-size video for review')}">Make final</button>
 <details class="advanced"><summary>More</summary><button type="button" data-job="recut"{'' if run else ' disabled'} title="Edit and scan this run's takes again, with the captions and edit as they are now">Re-cut</button>
 <button type="button" data-job="preview" title="Start the app and record a quick preview">Record a preview</button>
 </details></fieldset><nav class="section-nav" aria-label="Studio sections">{navigation}</nav></header>
 {recovery}
 {tools_box}
-<section id="journey" class="journey" role="status" aria-live="polite" data-phase="{e(state['phase'])}"{(' hidden' if data.get('creation_pending') and not run else '')}><strong id="journey-title">{e(state['title'])}</strong>
+<section id="journey" class="journey" role="status" aria-live="polite" data-phase="{e(state['phase'])}"><strong id="journey-title">{e(state['title'])}</strong>
 <p id="journey-detail">{e(state['detail'])}</p><p id="journey-changes" class="hint"{'' if state.get('changes') else ' hidden'}>{e(', '.join(state.get('changes', [])))}</p>
 <p id="journey-plan" class="hint"{'' if state['pending'] else ' hidden'}>{e(state['update_detail'])}</p>
 <button type="button" data-reset-drafts hidden>Reset unsaved edits</button><button type="button" data-reload-project hidden>Reload project</button>
@@ -1614,8 +1621,15 @@ SCRIPT = '''(() => {
     const accept = document.getElementById('accept');
     if (accept) accept.disabled = pending || !document.getElementById('watched')?.checked ||
       [...document.querySelectorAll('#to-accept fieldset')].some(field => !field.querySelector('input:checked'));
-    document.querySelector('[data-job=update]').classList.toggle('primary', pending || journeyState.next === 'update');
-    document.querySelector('[data-job=run]').classList.toggle('primary', !pending && journeyState.next === 'run');
+    const next = !drafts && !external ? journeyState.action : null;
+    document.querySelectorAll('[data-job=update], [data-job=run], [data-job=create], [data-job=setup]').forEach(button => {
+      button.classList.toggle('primary', !!next?.enabled && button.dataset.job === next.kind);
+      const action = journeyState.actions[button.dataset.job];
+      if (action && document.body.dataset.jobRunning !== '1') {
+        button.disabled = !action.enabled || external;
+        if (action.reason) button.title = action.reason;
+      }
+    });
   };
   const applyJourney = state => { journeyState = state; renderJourney(); };
   new MutationObserver(renderJourney).observe(document.body, {subtree:true, attributes:true, attributeFilter:['data-unsaved']});

@@ -40,19 +40,15 @@ def test_restart_recovers_grouped_undo_redo_and_absent_files(tmp_path):
         paths[3].write_text(paths[3].read_text() + '# same Undo step\n')
     change(session, operation)
     saved = session.snapshot()
+    checkpoint = session.file.read_bytes()
     restarted = Session(config, paths)
-    assert restarted.info()['resume'] and restarted.info()['undo'] == 1
-    assert restarted.snapshot() == saved and not restarted.undo
-    with pytest.raises(ValueError, match='Choose how to resume'):
-        with restarted.transaction():
-            restarted.move('undo')
-    recover(restarted)
+    assert restarted.info() is None and len(restarted.undo) == 1
+    assert restarted.snapshot() == saved and restarted.file.read_bytes() == checkpoint
     with restarted.transaction():
         restarted.move('undo')
     assert restarted.snapshot() == initial and not paths[2].exists()
     again = Session(config, paths)
-    assert again.info()['redo'] == 1
-    recover(again)
+    assert again.info() is None and len(again.redo) == 1
     with again.transaction():
         again.move('redo')
     assert again.snapshot() == saved
@@ -133,7 +129,8 @@ def test_competing_studios_cannot_overwrite_a_newer_checkpoint(tmp_path):
         change(second, lambda: paths[1].write_text('must not run'))
     assert first.file.read_bytes() == checkpoint and 'first studio' in paths[1].read_text()
     second.refresh(paths)
-    recover(second)
+    assert second.info() is None and second.file.read_bytes() == checkpoint
+    change(second, lambda: paths[1].write_text(paths[1].read_text() + '# second studio\n'))
     with pytest.raises(ValueError, match='another studio'):
         change(first, lambda: paths[1].write_text('must not run either'))
 
@@ -142,14 +139,15 @@ def test_change_during_resume_is_not_adopted_into_the_old_undo_stack(tmp_path, m
     config, paths = files(tmp_path)
     session = Session(config, paths)
     change(session, lambda: paths[1].write_text(paths[1].read_text() + '# saved\n'))
-    restarted = Session(config, paths)
-    matches = restarted.can_resume
-    def concurrent_edit():
-        result = matches()
-        paths[1].write_text(paths[1].read_text() + '# concurrent editor\n')
+    matches = Session.can_resume
+    def concurrent_edit(self):
+        result = matches(self)
+        if result:
+            paths[1].write_text(paths[1].read_text() + '# concurrent editor\n')
         return result
-    monkeypatch.setattr(restarted, 'can_resume', concurrent_edit)
-    recover(restarted)
+    with monkeypatch.context() as patch:
+        patch.setattr(Session, 'can_resume', concurrent_edit)
+        restarted = Session(config, paths)
     with pytest.raises(ValueError, match='editor'):
         with restarted.transaction():
             restarted.move('undo')
@@ -186,7 +184,7 @@ def test_history_remains_bounded_and_blob_storage_deduplicates(tmp_path):
     for i in range(55):
         change(session, lambda: paths[1].write_text(f'# synthetic revision {i}\n'))
     restarted = Session(config, paths)
-    assert restarted.info()['undo'] == 50
+    assert len(restarted.undo) == 50 and restarted.info() is None
     data = json.loads(restarted.file.read_text())
     assert len(data['blobs']) == 53  # 51 story versions, one config and one cut
 
@@ -205,6 +203,7 @@ def test_http_recovery_blocks_edits_jobs_and_decisions_until_resolved(tmp_path, 
     config, paths = files(tmp_path)
     session = Session(config, paths)
     change(session, lambda: paths[1].write_text(paths[1].read_text() + '# checkpoint\n'))
+    paths[1].write_text(paths[1].read_text() + '# external change\n')
     expected = session.snapshot()
     launched = []
     monkeypatch.setattr(studio.Job, 'start', lambda *args, **kwargs: launched.append(args))
@@ -223,7 +222,7 @@ def test_http_recovery_blocks_edits_jobs_and_decisions_until_resolved(tmp_path, 
         assert 'saved session changed' in post('session', choice='fresh', session_token='stale')['error']
         with pytest.raises(urllib.error.HTTPError, match='409'):
             urllib.request.urlopen(url + 'session.zip?token=stale')
-        assert post('session', choice='resume', session_token=session.token)['ok']
+        assert post('session', choice='fresh', session_token=session.token)['ok']
         assert post('edit', beat='search', caption='Recovered edit')['ok']
         assert 'Recovered edit' in paths[1].read_text()
     finally:
@@ -250,20 +249,15 @@ def test_studio_restarts_resume_redo_and_external_recovery_download(tmp_path):
             assert b'Resume this caption' in paths[1].read_bytes()
             stop(httpd); httpd, url = serve(tmp_path)
             page.goto(url)
-            expect(page.locator('#session-recovery')).to_be_visible()
-            expect(page.locator('[data-session=resume]')).to_be_visible()
-            expect(caption).to_be_disabled()
-            with page.expect_navigation():
-                page.locator('[data-session=resume]').click()
+            expect(page.locator('#session-recovery')).to_have_count(0)
             expect(caption).to_be_enabled()
             with page.expect_navigation():
                 page.locator('[data-history=undo]').click()
             assert paths[1].read_bytes() == original
             stop(httpd); httpd, url = serve(tmp_path)
             page.goto(url)
-            expect(page.locator('#session-recovery')).to_contain_text('Redo: 1 step')
-            with page.expect_navigation():
-                page.locator('[data-session=resume]').click()
+            expect(page.locator('#session-recovery')).to_have_count(0)
+            expect(page.locator('[data-history=redo]')).to_be_enabled()
             with page.expect_navigation():
                 page.locator('[data-history=redo]').click()
             saved = paths[1].read_bytes()

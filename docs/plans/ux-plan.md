@@ -225,8 +225,18 @@ See [the studio comparison trial](../validation/2026-10-25-studio-comparison.md)
 
 ## Following milestones
 
-1. Compare the paired exports through video playback in the studio, including
-   beat-aware seeking while retaining the selected run and review bindings.
+The [upstream UX review](../reviews/2026-10-26-joyful-use-review.md) sets the
+order for the next improvements:
+
+- [x] Fix recorded-name collisions, moving final handoffs, contradictory
+  first-preview recovery and repair history after repeated failures.
+- [x] Share the next-action decision between recording controls and recovery
+  messages. Resume matching Undo/Redo history automatically; retain explicit
+  recovery for changed files and unreadable history.
+- [ ] Correct failed result checks in the studio, keep the selected step and
+  its preview together, and put optional tools behind a deliberate entry.
+- [ ] Compare the paired exports through video playback in the studio,
+  including beat-aware seeking while retaining selected run/review bindings.
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

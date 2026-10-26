@@ -116,7 +116,20 @@ class Session(History):
             self.saved = self.decode(self.file.read_bytes())
         except (ValueError, OSError) as error:
             self.problem = str(error)
-        self.pending = bool(self.problem or self.saved['undo'] or self.saved['redo'])
+        if not self.problem and self.can_resume():
+            self.restore_history()
+            self.saved = None
+            self.pending = False
+        else:
+            self.pending = True
+
+    def restore_history(self):
+        """Attach matching history without changing files or writing a new checkpoint."""
+        def snapshot(values):
+            return dict(zip(self.paths, values))
+        self.undo = [(snapshot(before), snapshot(after)) for before, after in self.saved['undo']]
+        self.redo = [(snapshot(before), snapshot(after)) for before, after in self.saved['redo']]
+        self.expected = snapshot(self.saved['expected'])
 
     def refresh(self, paths):
         with self.storage():
@@ -197,10 +210,7 @@ class Session(History):
         if choice == 'resume':
             if not self.can_resume():
                 raise ValueError('The project changed since this session was saved. Current files have been kept; reload to compare.')
-            def snapshot(values):
-                return dict(zip(self.paths, values))
-            self.undo = [(snapshot(before), snapshot(after)) for before, after in self.saved['undo']]
-            self.redo = [(snapshot(before), snapshot(after)) for before, after in self.saved['redo']]
+            self.restore_history()
         elif choice == 'fresh':
             # Retain the old checkpoint, including an unreadable one, for manual recovery.
             archive = self.file.with_name(self.file.stem + '-archived-' + uuid.uuid4().hex + '.json')

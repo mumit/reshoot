@@ -4,7 +4,11 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
-## Unreleased
+## 0.3.8 (2026-10-25)
+
+Upgrade the project skills with `reshoot skills claude --directory . --replace`
+(or `codex`): they now need 0.3.8. Recorded drafts name their steps after what
+they did, and the studio explains a failed result check and can remove it.
 
 ### Added
 

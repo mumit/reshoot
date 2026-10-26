@@ -1011,17 +1011,17 @@ def page(data, accept, seen=0):
     failure = data.get('failure')
     failure_box = ''
     if failure:
+        again = 'Continue creation' if data.get('creation_pending') else 'Update preview'
         image = (f'<details><summary>Failure frame</summary><img src="runs/{e(failure["id"])}/{e(failure["image"])}" '
                  'alt="The page when the recording stopped" loading="lazy"></details>') if failure.get('image') else ''
         if failure['repaired']:
-            message = 'Control updated. Update preview to verify the original task and result checks.'
+            message = f'Control updated. Choose {again} to verify the original task and result checks.'
             buttons = ''
         elif failure['stale']:
-            message = 'The story changed since this failure. Update preview to get current evidence.'
+            message = f'The story changed since this failure. Choose {again} to get current evidence.'
             buttons = ''
         elif failure.get('check'):
             check = failure['check']
-            again = 'Continue creation' if data.get('creation_pending') else 'Update preview'
             message = (check['message'] + ' If that is the result you meant to show, fix the app or its demo data. If '
                        f'the check is wrong, remove it, then choose {again}.')
             buttons = (f'<button type="button" data-remove-check data-beat="{e(check["beat"])}" data-index="{check["index"]}" '

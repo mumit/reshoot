@@ -293,7 +293,8 @@ def test_a_failed_result_check_is_said_plainly():
 
 
 @pytest.mark.browser
-def test_a_first_preview_that_stopped_on_a_wrong_check_can_be_fixed_in_the_studio(tmp_path):
+@pytest.mark.parametrize('creating', [False, True])
+def test_a_first_preview_that_stopped_on_a_wrong_check_can_be_fixed_in_the_studio(tmp_path, creating):
     from playwright.sync_api import sync_playwright
     from test_reshoot import free_port
     from reshoot import web
@@ -306,6 +307,9 @@ def test_a_first_preview_that_stopped_on_a_wrong_check_can_be_fixed_in_the_studi
     text = board.read_text().replace('8765', str(port))
     assert 'count = 1' in text
     board.write_text(text.replace('count = 1', 'count = 0', 1))  # a wrong suggestion, as a tab once made
+    if creating:
+        from reshoot import create
+        create.save(tmp_path, {'schema_version': 1, 'stage': 'preview', 'url': None, 'size': '960x540@1.5'})
     with pytest.raises(SystemExit) as result:
         main(['preview', str(config)])
     assert result.value.code != 0
@@ -324,6 +328,9 @@ def test_a_first_preview_that_stopped_on_a_wrong_check_can_be_fixed_in_the_studi
             page.locator('[data-remove-check]').click()
             page.wait_for_load_state('load')
             page.wait_for_function('!document.querySelector("[data-remove-check]")')
+            again = 'Continue creation' if creating else 'Update preview'
+            assert again in page.locator('.failure').inner_text()
+            assert page.get_by_role('button', name=again, exact=True).is_enabled()
             browser.close()
     finally:
         httpd.shutdown()

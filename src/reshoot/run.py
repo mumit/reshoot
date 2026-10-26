@@ -169,8 +169,8 @@ def earlier(shoot, config):
     """Where an earlier take of this project is: the newest good runs, then the accepted one, so a take whose control
     has gone can compare the page with what the control was."""
     from reshoot import review
-    folders = [str(root) for root, report in review.runs(config)[:5]
-               if report.get('ok') and report.get('mode') != 'partial-preview' and str(root) != shoot.get('_run_dir')]
+    folders = [str(root) for root, report in review.runs(config)
+               if report.get('ok') and report.get('mode') != 'partial-preview' and str(root) != shoot.get('_run_dir')][:5]
     accepted = Path(config).resolve().parent / 'accepted'
     return {'RESHOOT_RUN_DIR': shoot.get('_run_dir', ''),
             'RESHOOT_EARLIER': os.pathsep.join(folders + ([str(accepted)] if accepted.is_dir() else []))}
@@ -406,7 +406,7 @@ def main(a):
     if any(file['path'].endswith('.readability.json') for file in report['files']):
         print('  text sizes   reshoot frame check ' + shlex.quote(shown(root)))
     folder = shown(path.parent) or '.'
-    latest = shlex.quote(str(Path(folder) / 'latest'))
+    finished = shlex.quote(shown(root))
     change = '  change it    reshoot studio ' + shlex.quote(folder)
     if preview:
         print(f'\nThis is a preview, smaller and quicker than a final. Watch it, then:\n'
@@ -417,8 +417,8 @@ def main(a):
     groups = findings(load(root / 'review' / 'flags.json', {}))
     print('\nNothing is accepted or shared yet. Watch it, then:')
     if groups:  # each finding is named when accepting, after looking at it
-        print('  look first   reshoot review ' + latest + ' --serve, at what the scan flagged')
-    print('  keep it      reshoot accept ' + latest + (' --flagged ' + ' '.join(groups) if groups else '') + ' --export docs/demo')
+        print('  look first   reshoot review ' + finished + ' --serve, at what the scan flagged')
+    print('  keep it      reshoot accept ' + finished + (' --flagged ' + ' '.join(groups) if groups else '') + ' --export docs/demo')
     print(change)
 
 

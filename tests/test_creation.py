@@ -69,6 +69,16 @@ def test_create_keeps_an_incomplete_story_without_attempting_a_preview(tmp_path,
     assert story.load(tmp_path / 'storyboard.toml')['beat'][0]['recording_issue']
 
 
+@pytest.mark.parametrize('names', [('Save', 'Save', 'Save 2', 'Save'), ('Save 2', 'Save', 'Save', 'Save 2')])
+def test_recorded_readable_ids_survive_numbered_and_repeated_names(tmp_path, names):
+    board = tmp_path / 'storyboard.toml'
+    rec.write_toml(board, 'http://localhost/', '640x360@1', [
+        (i, {'kind': 'click', 'where': ['text', ['button', name]]}) for i, name in enumerate(names)])
+    beats = story.load(board)['beat']
+    assert len(beats) == len(names) + 1 and beats[-1]['id'] == 'end'
+    assert [b['action'][0]['target']['text'] for b in beats[:-1]] == list(names)
+
+
 def test_create_applies_the_viewport_to_the_notes_example(tmp_path, monkeypatch):
     monkeypatch.setattr('reshoot.setup.check_project', lambda config: {'ok': True})
     seen = []

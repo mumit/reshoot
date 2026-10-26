@@ -10,6 +10,16 @@ from reshoot import project, repair, review, story, studio
 from reshoot.artifacts import digest
 
 
+def test_repair_keeps_successful_references_after_repeated_failures(tmp_path, monkeypatch):
+    from reshoot import run
+    history = [(tmp_path / f'failed-{i}', {'ok': False}) for i in range(5)]
+    history += [(tmp_path / 'partial', {'ok': True, 'mode': 'partial-preview'})]
+    history += [(tmp_path / f'good-{i}', {'ok': True, 'mode': 'final'}) for i in range(7)]
+    monkeypatch.setattr(review, 'runs', lambda config: history)
+    chosen = run.earlier({'_run_dir': str(tmp_path / 'good-0')}, tmp_path / 'reshoot.toml')
+    assert chosen['RESHOOT_EARLIER'].split(__import__('os').pathsep) == [str(tmp_path / f'good-{i}') for i in range(1, 6)]
+
+
 def source(tmp_path):
     board = tmp_path / 'storyboard.toml'
     board.write_text('''schema_version = 1

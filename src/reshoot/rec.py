@@ -257,11 +257,15 @@ def write_toml(path, url, size, calls):
     steps = steps_from(calls, include_tab=True)
     if not steps:
         raise ValueError('no supported actions recorded')
-    typed, suggested, used = [], 0, {'end': 1}
+    typed, suggested, used = [], 0, {'end'}
     for i, step in enumerate(steps):
         name = step_id(step)
-        used[name] = used.get(name, 0) + 1
-        lines += ['', '[[beat]]', 'id = ' + json.dumps(name if used[name] == 1 else f'{name}-{used[name]}'), 'hold = 1.0']
+        ident, number = name, 2
+        while ident in used:
+            ident = f'{name}-{number}'
+            number += 1
+        used.add(ident)
+        lines += ['', '[[beat]]', 'id = ' + json.dumps(ident), 'hold = 1.0']
         caption = step.get('caption') or step.get('label')
         if caption:
             lines.append('caption = ' + json.dumps(caption))

@@ -4,6 +4,17 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Fixed
+
+- Recorded steps keep unique names when a task repeats a control beside one
+  with a numbered name, such as Save and Save 2.
+- A finished run's review and acceptance instructions keep referring to that
+  recording after a newer one is made.
+- After fixing a first preview, the studio names the available continuation.
+- Repair can find the last working recording after several failed attempts.
+
 ## 0.3.9 (2026-10-25)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

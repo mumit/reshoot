@@ -118,6 +118,24 @@ scan=false
     assert report['ok'] and report['unchecked'] == 1 and report['review_status'] == 'pending'
 
 
+def test_finished_run_instructions_keep_the_exact_run(tmp_path, capsys):
+    import shlex
+    from reshoot import review, run
+    config = tmp_path / 'reshoot.toml'
+    config.write_text('schema_version=1\n')
+    assert invoke('run', str(config)) == 0
+    completed = next((tmp_path / 'takes/runs').glob('*/run.json')).parent
+    keep = next(line for line in capsys.readouterr().out.splitlines() if 'keep it' in line)
+    command = shlex.split(keep.split('reshoot ', 1)[1])
+    assert command[:2] == ['accept', run.shown(completed)]
+    later = completed.parent / ('f' * 32)
+    later.mkdir()
+    (later / 'run.json').write_text(json.dumps({'id': later.name, 'ok': True, 'mode': 'preview',
+                                              'finished_at': '2099-01-01T00:00:00+00:00'}))
+    assert review.resolve(tmp_path / 'latest') == later
+    assert review.resolve(command[1]).resolve() == completed.resolve()
+
+
 def test_browser_disconnect_releases_waiters():
     class Connection:
         def __aiter__(self):

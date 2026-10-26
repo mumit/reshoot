@@ -169,7 +169,7 @@ def test_offline_tour_navigation_escape_and_no_network(tmp_path):
 
 @pytest.mark.browser
 def test_studio_builds_edits_and_recuts_checked_tour(tmp_path):
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import expect, sync_playwright
     from reshoot import web
     from reshoot.cli import main
     project.init(SimpleNamespace(directory=str(tmp_path), url=None, quiet=True))
@@ -219,7 +219,7 @@ def test_studio_builds_edits_and_recuts_checked_tour(tmp_path):
             frame = page.frame_locator('.tour-previews iframe')
             assert frame.get_by_role('link', name='Next', exact=True).evaluate('el => el.getBoundingClientRect().bottom <= innerHeight')
             frame.get_by_role('link', name='Next', exact=True).click()
-            assert frame.locator('.step:visible').get_attribute('id') == 'step-2'
+            expect(frame.locator('.step:visible')).to_have_attribute('id', 'step-2')  # waits for the step to change
             assert 'tours/demo-tour.html' in review.exports(current, report)
             key = json.loads((current / 'review/key.json').read_text())
             from reshoot.safety import describe

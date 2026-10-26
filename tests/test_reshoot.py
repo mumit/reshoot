@@ -594,7 +594,7 @@ def test_each_beat_waits_for_its_voiceover_line(tmp_path, notes_app):
     out = tmp_path / "v.mp4"
     assert record(ROOT / "tests/boards/voice.py", out, notes_app) == 0
     beats = cut.beats(out)
-    assert beats["second"] - beats["first"] >= 2.2 and beats["end"] - beats["second"] >= 2.2  # not the 0.2 s holds
+    assert beats["second"] - beats["first"] >= 2.0 and beats["end"] - beats["second"] >= 2.0  # the 2 s lines, not the 0.2 s holds
     said = json.loads(out.with_suffix(".voice.json").read_text())
     assert [v["beat"] for v in said] == ["first", "second"] and said[1]["t"] == pytest.approx(beats["second"], abs=0.05)
 

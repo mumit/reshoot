@@ -4,6 +4,13 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Fixed
+
+- On a slow machine, the start of a browser take is no longer cut from the
+  video: recording waits for Chrome's first frame before the first step.
+
 ## 0.3.8 (2026-10-25)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

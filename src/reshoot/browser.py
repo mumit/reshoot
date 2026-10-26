@@ -228,7 +228,9 @@ async def capture(board, a, frames, out, metadata, spoken):
             timestamp = event['metadata'].get('timestamp')
             painted = timestamp + clock if timestamp else time.monotonic()
             frames.append((painted, base64.b64decode(event['data'])))
+            started.set()
             await cdp.send('Page.screencastFrameAck', {'sessionId': event['sessionId']})
+        started = asyncio.Event()
         frame_tasks = []
         frame_handler = lambda event: frame_tasks.append(asyncio.create_task(frame(event)))
         cdp.on('Page.screencastFrame', frame_handler)
@@ -262,6 +264,12 @@ async def capture(board, a, frames, out, metadata, spoken):
             events.clear()
             clock = time.monotonic() - time.time()
             await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': int(w*cap_dpr), 'maxHeight': int(h*cap_dpr)})
+            # The video starts at the first frame, so wait for it before the first beat: on a slow machine it came
+            # a third of a second late, and the start of the take was cut from the video.
+            try:
+                await asyncio.wait_for(started.wait(), 5)
+            except asyncio.TimeoutError:
+                pass  # a page that never paints still records; the first frame then starts the video, as before
             for beat in board['beat'][split:]:
                 current = beat['id']
                 if beat.get('recording_issue'):

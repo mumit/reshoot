@@ -388,7 +388,13 @@ def accept(a):
         target = record(root, report, root.parent.parent.parent / 'accepted')
         from reshoot.run import shown
         print(f'Wrote {shown(target)}: commit it with the demo source, so CI and fresh checkouts compare against this run.')
-        print(f'To copy the video and GIF for a README: reshoot export {shlex.quote(shown(target))} --directory docs/demo')
+        if not getattr(a, 'export', None):
+            print(f'To copy the video and GIF for a README: reshoot export {shlex.quote(shown(target))} --directory docs/demo')
+    if getattr(a, 'export', None):
+        from types import SimpleNamespace
+        from reshoot.project import export
+        return export(SimpleNamespace(run_path=str(root), directory=a.export, file=None, replace=True, record=None,
+                                      markdown=None))
     return 0
 
 

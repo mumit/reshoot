@@ -165,8 +165,19 @@ def save(report, path):
             f.write('\n'.join(lines) + '\n\n')
 
 
-def execute(cmd, timeout, cwd=None):
-    env = {**os.environ, 'RESHOOT_IN_RUN': '1'}
+def earlier(shoot, config):
+    """Where an earlier take of this project is: the newest good runs, then the accepted one, so a take whose control
+    has gone can compare the page with what the control was."""
+    from reshoot import review
+    folders = [str(root) for root, report in review.runs(config)[:5]
+               if report.get('ok') and report.get('mode') != 'partial-preview' and str(root) != shoot.get('_run_dir')]
+    accepted = Path(config).resolve().parent / 'accepted'
+    return {'RESHOOT_RUN_DIR': shoot.get('_run_dir', ''),
+            'RESHOOT_EARLIER': os.pathsep.join(folders + ([str(accepted)] if accepted.is_dir() else []))}
+
+
+def execute(cmd, timeout, cwd=None, extra=None):
+    env = {**os.environ, 'RESHOOT_IN_RUN': '1', **(extra or {})}
     if cwd:
         env['RESHOOT_VOICE_CACHE'] = str(Path(cwd) / 'takes' / 'voice-cache')
     proc = subprocess.Popen(cmd, start_new_session=True, cwd=cwd, env=env)
@@ -270,6 +281,7 @@ def main(a):
             report['inputs']['render_state'] = capture_inputs(render_state, snapshot(path))
             report['inputs']['capture_state'] = report['inputs']['render_state']
             report['inputs']['fixtures'] = [{'source': describe(f), 'sha256': digest(f)} for f in shoot.get('inputs', [])]
+        before = earlier(shoot, path)
         for name, cmd in plan:
             print('\n== ' + redact(name).replace(str(Path.cwd().resolve()) + os.sep, ''), flush=True)
             t = time.monotonic()
@@ -277,7 +289,7 @@ def main(a):
             remaining = timeout - (t - t0)
             if remaining <= 0:
                 raise TimeoutError('run exceeded its timeout')
-            code = execute(cmd, remaining, shoot.get('_root'))
+            code = execute(cmd, remaining, shoot.get('_root'), before)
             report['steps'].append({'step': redact(name), 'ok': code == 0,
                                     'seconds': round(time.monotonic() - t, 1)})
             event('step_end', index=len(report['steps'])-1, exit=code)
@@ -367,9 +379,11 @@ def main(a):
         lines += ['  failure image  ' + shown(p) for p in sorted(root.rglob('*.failure.png'))]
         for item in report.get('repairs', []):
             if item.get('candidates'):
-                lines.append('  suggested control ' + redact(json.dumps(item['candidates'][0])))
-                lines.append('  apply repair   reshoot repair ' + shlex.quote(shown(root)) + ' --apply')
+                label = (item.get('candidate_labels') or [None])[0]
+                lines.append('  suggested      ' + (redact(json.dumps(label)) + ' ' if label else '') + redact(json.dumps(item['candidates'][0])))
+                lines.append('  use it         reshoot repair ' + shlex.quote(shown(root)) + ' --apply')
             lines.append('  choose control reshoot repair ' + shlex.quote(shown(root)) + ' --pick')
+            lines.append('  or in studio   reshoot studio ' + shlex.quote(shown(path.parent)))
         if app is not None and (root / 'app.log').exists():
             lines.append('  app output     ' + shown(root / 'app.log'))
         raise SystemExit('\n'.join(lines))
@@ -377,8 +391,8 @@ def main(a):
     from reshoot import review
     preview = report.get('mode', 'final') != 'final'
     print(f"\nDone in {report['seconds']:.0f} s: {review.status(root, report)}.")
-    for path in review.exports(root, report):
-        print(f"  {'tour' if path.endswith('.html') else 'PNG' if path.endswith('.png') else 'GIF' if path.endswith('.gif') else 'video':6} " + shown(root / path))
+    for name in review.exports(root, report):
+        print(f"  {'tour' if name.endswith('.html') else 'PNG' if name.endswith('.png') else 'GIF' if name.endswith('.gif') else 'video':12} " + shown(root / name))
     if report['review_status'] == 'completed':
         return
     try:
@@ -388,21 +402,24 @@ def main(a):
         page = None
     else:
         page = root / 'review.html'
-        print('  review ' + shown(page))
+        print('  review page  ' + shown(page))
     if any(file['path'].endswith('.readability.json') for file in report['files']):
-        print('  framing/readability: reshoot frame check ' + shlex.quote(shown(root)))
+        print('  text sizes   reshoot frame check ' + shlex.quote(shown(root)))
+    folder = shown(path.parent) or '.'
+    latest = shlex.quote(str(Path(folder) / 'latest'))
+    change = '  change it    reshoot studio ' + shlex.quote(folder)
     if preview:
-        print(f'\nThis is a preview, smaller and quicker than a final. When it looks right, record the final:\n'
-              f'  reshoot run {shlex.quote(str(a.config))}')
+        print(f'\nThis is a preview, smaller and quicker than a final. Watch it, then:\n'
+              f'  record final reshoot run {shlex.quote(str(a.config))}\n{change}')
         return
     from reshoot.check import load
     from reshoot.check import findings
     groups = findings(load(root / 'review' / 'flags.json', {}))
-    print('\nNothing is accepted or shared yet. Watch the exports' + (' and look at the scan items, findings first,'
-          if page else '') + ' then accept the run:')
-    print('  reshoot accept ' + shlex.quote(shown(root)) + (' --flagged ' + ' '.join(groups) if groups else ''))
-    if page:
-        print('or on its review page, with a button for each finding:\n  reshoot review ' + shlex.quote(shown(root)) + ' --serve')
+    print('\nNothing is accepted or shared yet. Watch it, then:')
+    if groups:  # each finding is named when accepting, after looking at it
+        print('  look first   reshoot review ' + latest + ' --serve, at what the scan flagged')
+    print('  keep it      reshoot accept ' + latest + (' --flagged ' + ' '.join(groups) if groups else '') + ' --export docs/demo')
+    print(change)
 
 
 def redraw(take):

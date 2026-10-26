@@ -6,8 +6,32 @@ change project files or commands.
 
 ## Unreleased
 
+### Added
+
+- When a step can't find its control, it says so in words, such as
+  `couldn't find the link "New issue"`. It also suggests what the control
+  became, such as "Report a problem", when one goes to the same place, has the
+  same id or sits where the old one was in the last recording that worked. Use it with
+  **Use "Report a problem"** in the studio or `reshoot repair RUN --apply`.
+  This works for any story, not only recorded ones. When it can't tell, it
+  lists the controls of that kind the page has now.
+- `reshoot accept demo/latest --export docs/demo` accepts the run and copies its
+  video and GIF in one step. The README Markdown it prints describes the GIF
+  with the task from `BRIEF.md`.
+
+### Changed
+
+- A finished run ends with its files and two next steps: keep it, or change it
+  in the studio.
+
 ### Fixed
 
+- `reshoot studio` starts on Python 3.11 again; 0.3.8's studio needed 3.12.
+- The studio shows where each step plays after the project folder is moved or
+  renamed, or for a run made elsewhere, such as in CI. A last step that takes
+  no time shows its moment instead of "not in this cut".
+- When the latest recording stopped, the studio's status says so, instead of
+  "Accepted recording" for the last one that worked.
 - On a slow machine, the start of a browser take is no longer cut from the
   video: recording waits for Chrome's first frame before the first step.
 - A Chrome call that stalls during a take fails within 30 s and says what it

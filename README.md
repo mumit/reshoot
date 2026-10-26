@@ -113,7 +113,7 @@ After the app changes, record again, compare and accept the update:
 ```bash
 reshoot run demo/reshoot.toml
 reshoot compare demo/accepted demo/latest --out demo/comparison.json
-reshoot accept demo/latest
+reshoot accept demo/latest --export docs/demo
 ```
 
 Or let CI do it: the [GitHub workflow](guide/ci.md) records the demo when the

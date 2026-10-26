@@ -16,8 +16,7 @@ From the folder that holds `demo/`:
 
     reshoot preview demo/reshoot.toml    a quick, smaller recording to check
     reshoot run demo/reshoot.toml        the final
-    reshoot accept demo/latest           once you've watched it
-    reshoot export demo/accepted --directory docs/demo
+    reshoot accept demo/latest --export docs/demo   once you've watched it
 
 Each run ends with the paths of its video, GIF and review page. Nothing is
 published. Commit `demo/`, including `demo/accepted/`; `demo/.gitignore` keeps

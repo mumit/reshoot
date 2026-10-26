@@ -479,6 +479,9 @@ def view(folder, take, config, run=None):
             look_drawn = sidecar.get('style', {})
         for beat in meta.get('beats', []):
             appearances = timeline.occurrences(segments, source, beat.get('start', 0), beat.get('end', beat.get('start', 0)))
+            if not appearances and beat.get('start') is not None and beat.get('end', beat['start']) == beat['start']:
+                at = place(segments, source, beat['start'])  # a step that takes no time, such as the last one
+                appearances = [] if at is None else [[at, at]]
             a, b = appearances[0] if appearances else (None, None)
             shot = beat.get('screenshot')
             recorded[beat['id']] = {
@@ -562,8 +565,10 @@ def view(folder, take, config, run=None):
 def workflow(config, folder, take, run):
     from reshoot import journey
     state = journey.state(config, run)
-    if not run and (failure := failed(folder, take, config)) and not failure['stale'] and not failure['repaired']:
-        state.update(title='The first preview stopped', detail='Fix the step it stopped on, below, then choose Update preview.')
+    if (failure := failed(folder, take, config)) and not failure['stale'] and not failure['repaired']:
+        state.update(title='The latest recording stopped' if run else 'The first preview stopped', phase='stopped', next='update',
+                     detail='Fix the step it stopped on, below, then choose Update preview.' +
+                            (' The video is the last recording that worked.' if run else ''))
     kind, reason = update_kind(folder, config, take, run)
     state.update(update_kind=kind, update_detail=reason)
     return state
@@ -1022,12 +1027,15 @@ def page(data, accept, seen=0):
             buttons = (f'<button type="button" data-remove-check data-beat="{e(check["beat"])}" data-index="{check["index"]}" '
                        f'data-expect="{e(json.dumps(check["expect"]))}">Remove this check</button>')
         else:
-            message = failure['message']
-            buttons = ('<button type="button" data-repair="apply">Use suggested control</button> '
+            message = failure['message'][:1].upper() + failure['message'][1:]
+            label = (failure.get('candidate_labels') or [None])[0]
+            use = f'Use "{label}"' if label else 'Use suggested control'
+            buttons = (f'<button type="button" data-repair="apply">{e(use)}</button> '
                        if failure.get('candidates') else '') + ('<button type="button" data-repair="pick">Choose replacement in app</button>'
                                                                if failure.get('repairable') and failure.get('visual_repair', True) else '')
         labels = failure.get('candidate_labels', [])
-        suggestions = ''.join(f'<p>Suggested control: <strong>{e(labels[i] if i < len(labels) else "Replacement control")}</strong></p>'
+        suggestions = ''.join((f'<p>Suggested control: <strong>{e(labels[i] if i < len(labels) else "Replacement control")}</strong></p>'
+                               if i >= len(labels) or f'"{labels[i]}"' not in failure['message'] else '') +
                               f'<details><summary>Control details</summary><code>{e(json.dumps(target))}</code></details>'
                               for i, target in enumerate(failure.get('candidates', [])) if not failure['stale'])
         detail = (f'<details><summary>Details</summary><pre>{e(failure["check"]["detail"])}</pre></details>'
@@ -1043,7 +1051,8 @@ def page(data, accept, seen=0):
         checks = beat.get('checks') or []
         passed = sum(c == 'passed' for c in checks)
         state = 'failed' if 'failed' in checks else 'passed' if checks else 'unverified'
-        when = (f'{seconds(beat["start"])} to {seconds(beat["end"])}' if beat.get('start') is not None
+        when = (f'at {seconds(beat["start"])}' if beat.get('start') is not None and beat["start"] == beat["end"]
+                else f'{seconds(beat["start"])} to {seconds(beat["end"])}' if beat.get('start') is not None
                 else 'not in this cut' if run and 'status' in beat else 'not recorded yet')
         if len(beat.get('appearances', [])) > 1:
             when += f' · {len(beat["appearances"])} appearances'
@@ -1143,7 +1152,7 @@ def page(data, accept, seen=0):
         d = run['duration'] or 1
         marks = ''.join(f'<button class="seg {"failed" if "failed" in (b.get("checks") or []) else "passed" if b.get("checks") else "unverified"}" '
                         f'style="left:{100 * a / d:.3f}%;width:{max(.5, 100 * (z - a) / d):.3f}%" data-beat="{e(b["id"])}" data-start="{a}" data-end="{z}" title="{e(b["id"])}">'
-                        f'<span>{e(b["id"])}</span></button>' for b in data['beats'] for a, z in b.get('appearances', []))
+                        f'<span>{e(b["id"])}</span></button>' for b in data['beats'] for a, z in b.get('appearances', []) if z > a)
         marks += ''.join(f'<i class="flag" style="left:{100 * t / d:.3f}%" title="{e(f["name"])}: {e(f["found"])}"></i>'
                          for f in data['findings'] for t in f['times'])
     findings = ''.join(f'<li><strong>{e(f["name"])}</strong> {e(f["found"])}: {f["frames"]} frame{"s" if f["frames"] != 1 else ""}'
@@ -1311,7 +1320,7 @@ def page(data, accept, seen=0):
         top = (f'<p class="status">Run {e(run["id"][:8])}{" (a re-cut of " + e(run["recut_from"][:8]) + ")" if run["recut_from"] else ""}'
                f': {e(run["status"])}.</p><video id="video" src="run/{e(run["video"])}"' +
                (f' poster="run/{e(run["poster"])}"' if run.get('poster') else '') + ' controls preload="auto"></video>'
-               f'<div class="timeline" aria-label="Beats in the video">{marks}<b id="head"></b></div>')
+               f'<div class="timeline" aria-label="Beats in the video"{"" if marks else " hidden"}>{marks}<b id="head"></b></div>')
         if not run['captions_drawn']:
             top += '<p class="note">This run was recorded with its captions in the page, so a re-cut keeps them: record again to change them.</p>'
         if failure:
@@ -1335,8 +1344,8 @@ def page(data, accept, seen=0):
         problems = [item for item in tools['checks'] if item['status'] in ('missing', 'failed')]
         checks = tool_rows(problems)
         all_checks = tool_rows(tools['checks'])
-        go_on = (f'<button type="button" data-job="create"{(" disabled" if not tools["ok"] else " class=\"primary\"")}>Continue creation</button>'
-                 if data.get('creation_pending') else '')
+        ready = ' class="primary"' if tools['ok'] else ' disabled'
+        go_on = f'<button type="button" data-job="create"{ready}>Continue creation</button>' if data.get('creation_pending') else ''
         continuation = go_on + (f'<p>Or restart from a terminal: <code>{e(data["resume_command"])}</code></p>' if go_on else '')
         if tools['ok'] and not data.get('create_error'):  # nothing to fix: one line, and the way to go on
             tools_box = f'''<section id="setup-panel" class="journey tools-ready" data-phase="ready" tabindex="-1"><p><strong>Recording tools are ready.</strong>
@@ -1461,7 +1470,7 @@ fieldset.actions, fieldset.side { border:0; padding:0; min-width:0 } fieldset.si
 .section-nav a:hover, .section-nav a[aria-current] { color:var(--ink); border-color:var(--accent) }
 [id$="-panel"] { scroll-margin-top:calc(var(--header-height) + 16px) }
 .journey { max-width:1460px; margin:14px auto 0; padding:12px 16px; border:1px solid var(--line); border-left:4px solid var(--ok); border-radius:10px; background:var(--panel) }
-.journey p { margin:4px 0 } .journey[data-phase=pending], .journey[data-phase=draft], .journey[data-phase=external] { border-left-color:var(--accent) }
+.journey p { margin:4px 0 } .journey[data-phase=pending], .journey[data-phase=draft], .journey[data-phase=external] { border-left-color:var(--accent) } .journey[data-phase=stopped] { border-left-color:var(--bad) }
 .journey button { margin:6px 6px 0 0 } .journey a { color:var(--accent) }
 #setup-panel ul { padding-left:20px } #setup-panel li { margin:8px 0 } #setup-panel .fix, #setup-panel code { overflow-wrap:anywhere }
 .review-panel, .downloads { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:16px }

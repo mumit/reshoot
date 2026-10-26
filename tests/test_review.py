@@ -436,3 +436,20 @@ def test_the_owner_accepts_a_run_on_its_served_review_page(tmp_path, monkeypatch
     assert review.read(root)[1]['review_status'] == 'completed'
     assert (tmp_path / 'demo/accepted/run.json').exists()
     assert '<strong>Accepted.</strong>' in (root / 'review.html').read_text()
+
+
+def test_accept_can_copy_the_exports_for_a_readme_in_the_same_step(tmp_path, capsys, monkeypatch):
+    root = project_run(tmp_path)
+    (root / 'takes/demo-final-readme.gif').write_bytes(b'GIF89a')
+    report = json.loads((root / 'run.json').read_text())
+    report['files'].append({'path': 'takes/demo-final-readme.gif', 'sha256': digest(root / 'takes/demo-final-readme.gif')})
+    (root / 'run.json').write_text(json.dumps(report))
+    (tmp_path / 'demo/BRIEF.md').write_text('# Demo brief\n\n- Audience: developers\n- One task to show: Save a note, then find it [fast]\n')
+    (tmp_path / 'docs/demo').mkdir(parents=True)
+    (tmp_path / 'docs/demo/demo-final.mp4').write_bytes(b'the last accepted video')
+    monkeypatch.chdir(tmp_path)
+    assert review.accept(SimpleNamespace(**vars(accept_args(root)), export='docs/demo')) == 0
+    assert (tmp_path / 'docs/demo/demo-final.mp4').read_bytes() == b'synthetic media placeholder'
+    out = capsys.readouterr().out
+    assert 'reshoot export' not in out
+    assert 'Save a note, then find it \\[fast\\]' in out

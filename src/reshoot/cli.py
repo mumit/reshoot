@@ -411,6 +411,8 @@ def main(argv=None):
     p.add_argument('--reject', nargs='+', metavar='LABEL', help='items that must not be shared; marks the run failed')
     p.add_argument('--yes', action='store_true', help='skip the confirmation; only for the owner\'s own scripts')
     p.add_argument('--preview', action='store_true', help='accept a preview, which is otherwise refused')
+    p.add_argument('--export', metavar='DIRECTORY', help='then copy its videos and GIFs there, such as docs/demo, '
+                   'replacing the ones already there')
     p.set_defaults(run=review.accept)
     p = sub.add_parser('export', help='copy a run\'s videos and GIFs to a local directory', description=runs)
     p.add_argument('run_path', help='the run to copy from, such as demo/latest')

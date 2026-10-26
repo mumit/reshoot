@@ -47,7 +47,9 @@ reshoot export demo/accepted --directory docs/demo
 ```
 
 It copies the accepted run's videos, GIFs and subtitles, checks their hashes,
-and prints the README Markdown for the GIF, linked to the video. `--file` picks
+and prints the README Markdown for the GIF, linked to the video, described by
+the task in `BRIEF.md`. `reshoot accept demo/latest --export docs/demo` accepts
+and copies in one step, replacing the files already there. `--file` picks
 single files, and `--replace` overwrites files already there, as when updating
 the repository's demo. It copies locally and uploads nothing.
 

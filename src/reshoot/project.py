@@ -106,6 +106,16 @@ def free_port():
             return s.getsockname()[1]
 
 
+def task(root):
+    """The brief's task, such as "Save a note, then find it", for a README image's alt text."""
+    for folder in (root.parent, *root.parents[1:3]):
+        brief = folder / 'BRIEF.md'
+        if brief.is_file():
+            found = re.search(r'(?m)^- One task to show:[ \t]*(\S.*)$', brief.read_text())
+            return found[1].strip() if found else None
+    return None
+
+
 def export(a):
     from reshoot.review import read, record
     root, report = read(a.run_path)
@@ -154,7 +164,8 @@ def export(a):
         return 0
     gifs, videos = [shown(t) for t in targets if t.suffix == '.gif'], [shown(t) for t in targets if t.suffix == '.mp4']
     if gifs:
-        image = f'![Describe what the demo shows]({gifs[0]})'
+        alt = re.sub(r'([\\\[\]`*_<>])', r'\\\1', task(root) or 'Describe what the demo shows')
+        image = f'![{alt}]({gifs[0]})'
         print('To show it in a README at the top of this folder:\n  ' + (f'[{image}]({videos[0]})' if videos else image))
     from reshoot.screenshots import listing
     from urllib.parse import quote

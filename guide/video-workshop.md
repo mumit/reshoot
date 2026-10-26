@@ -105,6 +105,12 @@ it does not accept either one.
 
 ## Finish and keep the source
 
+Before the final, inspect the small export. The workshop's wide view makes
+its app text too small. Choose **Compact view: 640 x 480** under **Recording
+view** and save it. Set the export to **Fit** with a viewing width of 640,
+update the preview and inspect it again. A narrower app view gives the
+important words more room in the finished image.
+
 Choose **Make final**. Watch the final MP4 and each export, open the scan
 sheets, inspect findings and read the coverage. A sampled scan can miss frames;
 automatic checks do not approve your media. Make your own acceptance decision

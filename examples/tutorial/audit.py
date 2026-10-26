@@ -5,6 +5,8 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import zipfile
+import hashlib
 
 from PIL import Image, ImageDraw, ImageStat
 from reshoot import cut, review
@@ -84,6 +86,9 @@ def audit(folder):
             previous=cue['end']-.002
         chapters=json.loads((folder/'exports'/(name+'-chapters.json')).read_text())
         assert len(info['chapters'])==len(chapters)
+        for track in info['streams']:
+            if track['codec_type']=='data' and track.get('codec_tag_string')=='text':
+                assert abs(float(track['duration'])-seconds)<.3,('Truncated QuickTime chapters',name,track)
         assert abs(chapters[-1]['end']-seconds)<.3,(name,chapters[-1],seconds)
         loudness=subprocess.run(['ffmpeg','-v','info','-i',str(file),'-vn','-af','volumedetect','-f','null','-'],capture_output=True,text=True,check=True).stderr
         mean=float(re.search(r'mean_volume: ([-.\d]+)',loudness)[1]);peak=float(re.search(r'max_volume: ([-.\d]+)',loudness)[1])
@@ -110,6 +115,13 @@ def audit(folder):
     assert native_report['mode']=='final' and native_report['ok'] and native_report['expectations_status']=='passed'
     assert native_report['review_status']=='pending'
     result['native_checks']=native_report['expectations_count']
+    with zipfile.ZipFile(folder/'exports/notes-demo-exports.zip') as archive:
+        manifest=json.loads(archive.read('manifest.json'))
+        assert manifest['run_id']==native_report['id'] and manifest['review_status']=='pending'
+        for entry in manifest['files']:
+            assert hashlib.sha256(archive.read(entry['name'])).hexdigest()==entry['sha256']
+            assert digest(native/entry['source'])==entry['sha256']
+        result['downloaded_files_match_displayed_final']=True
     successful=[];failed=[]
     for path in (folder/'demo/takes/runs').glob('*/run.json'):
         report=json.loads(path.read_text())
@@ -119,8 +131,11 @@ def audit(folder):
     result.update(native_successful_runs=successful,native_failed_runs=failed)
     command=[sys.executable,'-m','reshoot.cli','check',str(folder/'exports/tutorial.mp4'),str(folder/'exports/first-demo.mp4'),
              '--review',str(folder/'scan'),'--every','3','--text-file',str(folder/'exports/tutorial.srt'),'--text-file',str(folder/'exports/first-demo.srt')]
-    with (folder/'privacy-scan.log').open('w') as log:subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,check=True,timeout=1200)
+    with (folder/'privacy-scan.log').open('w') as log:
+        checked=subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=1200)
     result['scan']=json.loads((folder/'scan/report.json').read_text())
+    # check returns 1 for a completed scan whose human review is pending.
+    assert checked.returncode in (0,1) and result['scan']['status']=='completed' and result['scan']['scan']['status']=='completed',result['scan']
     save(folder/'audit.json',result)
     player(folder,lesson,timeline,result)
     print('Audit passed. Owner review remains pending:',folder/'review/index.html',flush=True)

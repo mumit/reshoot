@@ -56,6 +56,8 @@ If the browser restricts local caption tracks, serve the attempt with
 - Actual page footage stays under `raw/`. The edit map records retained time
   ranges. Only recording waits may be shortened, with an on-screen label;
   clicks and typing retain their original speed. Detail views crop the page.
+  The opening plays the finished demo and holds its result under the
+  introduction; the hold is labeled and recorded in the edit map.
 - Local synthetic narration is disclosed. Sentence-timed subtitles are
   available as SRT, VTT and an embedded MP4 subtitle track. Browser audio is
   not mixed over the workshop voice; the native demo exports retain their audio.

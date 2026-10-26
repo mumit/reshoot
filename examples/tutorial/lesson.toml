@@ -180,7 +180,6 @@ text = "Return to the search step and open Narration. Write, Find the note you s
 [[scene]]
 id = "audition"
 chapter = "Add useful polish"
-focus = "right"
 title = "Audition before recording"
 takeaway = "Listen to the wording before rebuilding the demo."
 text = "Choose Audition saved line to prepare a small audio preview. In your own session, listen for pronunciation, pace, and unnecessary words. The workshop uses the installed local synthetic voice, which is also used for this narration. The tutorial audio continues here so the two voices do not compete. A new preview will bring the spoken line into the actual demo."
@@ -249,6 +248,13 @@ chapter = "Keep the demo current"
 title = "Compare two recordings"
 takeaway = "Play corresponding steps and inspect their checked results."
 text = "Open More tools, then Compare, and choose the earlier polished recording. Play both exports or choose a matching step to inspect the change. Each side keeps its own cut timing and recording identity. Compare the visible result as well as the appearance. Both recordings in this workshop remain pending review; comparison does not accept either one."
+
+[[scene]]
+id = "readable-final"
+chapter = "Review and take your files"
+title = "Make the app readable at its destination"
+takeaway = "Use a compact recording view, then inspect a fresh preview."
+text = "Before the final, inspect the small export. This wide recording makes the app text too small. Under Style and exports, choose the compact recording view and save it. Set the export to Fit at a viewing width of six hundred and forty pixels. Update the preview, then inspect the note again. Recording a narrower app view gives its words more room in the finished image."
 
 [[scene]]
 id = "final"

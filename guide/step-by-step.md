@@ -241,6 +241,9 @@ record committed, [CI](ci.md) can record the demo again and compare it.
 
 ## Next
 
+- Follow the [video workshop companion](video-workshop.md) for URL-based
+  demonstration, Studio editing and updating a changed app. Its linked recipe
+  builds the narrated video locally.
 - Record your own app: [a web app](your-app.md), or [a macOS window](macos-window.md).
 - Every studio panel: [the studio](studio.md).
 - Change a demo by its files: [change and grow a demo](customize.md).

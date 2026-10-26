@@ -144,6 +144,8 @@ class Camera:
         else:
             def frame(event):
                 at = event['metadata']['timestamp']
+                if event['metadata']['deviceWidth']!=1440 or event['metadata']['deviceHeight']!=810:
+                    self.bad_size=(event['metadata']['deviceWidth'],event['metadata']['deviceHeight'])
                 if self.offset is None: self.offset = time.monotonic() - at
                 self.frames.append((at+self.offset,base64.b64decode(event['data'])))
                 task = asyncio.create_task(self.cdp.send('Page.screencastFrameAck',{'sessionId':event['sessionId']}))
@@ -165,6 +167,8 @@ class Camera:
             if self.tasks: await asyncio.gather(*self.tasks)
             await self.cdp.detach()
         self.frames.append((stopped,None))
+        if hasattr(self,'bad_size'):
+            raise ValueError(f'Browser filming viewport was clipped: {self.bad_size}. Keep a 1440 by 810 window.')
         if len(self.frames) < 2: raise ValueError('No browser-page frames captured.')
         try:
             first, last = self.frames[0][0], self.frames[-1][0]
@@ -231,16 +235,22 @@ def compose(folder, lesson, spoken):
             from reshoot import review
             native,report=review.read(folder/'demo/latest')
             source=native/next(name for name in review.exports(native,report) if name.endswith('.mp4'))
-            begin=max(0,cut.duration(source)-spoken[key]['seconds']-.1)
+            native_seconds=cut.duration(source)
+            begin=max(0,native_seconds-spoken[key]['seconds']-.1)
             meta={**meta,'kind':'finished demo export','seconds':spoken[key]['seconds'],
-                  'source_file':str(source.relative_to(folder)),'source_start':begin}
+                  'source_file':str(source.relative_to(folder)),'source_start':begin,
+                  'source_end':min(native_seconds,begin+spoken[key]['seconds']),
+                  'hold_last_frame_seconds':max(0,spoken[key]['seconds']-(native_seconds-begin))}
         selected = ranges(meta,spoken[key]['seconds'])
         seconds = max(spoken[key]['seconds'],sum(end-start for start,end in selected))
         seconds = math.ceil(seconds*30)/30
         detail = scene.get('focus') == 'right' and meta['kind']=='browser footage'
         png = work/(key+'.png')
         image=plate(scene,chapters.index(scene['chapter'])+1,detail)
-        if key=='welcome':draw_text(ImageDraw.Draw(image),(1300,13),'Finished example · MP4 export',25,ACCENT)
+        if meta['kind'] in ('browser footage','finished demo export') and not detail:
+            image=Image.new('RGB',(1920,1080),BG)
+            draw_text(ImageDraw.Draw(image),(48,13),f'reshoot workshop  /  {chapters.index(scene["chapter"])+1:02}  {scene["chapter"]}',25,ACCENT)
+        if key=='welcome':draw_text(ImageDraw.Draw(image),(1220,13),'Finished example · result held',25,ACCENT)
         if key=='done':draw_text(ImageDraw.Draw(image),(1260,13),'Preview generation wait omitted',25,ACCENT)
         elif len(selected)>1:draw_text(ImageDraw.Draw(image),(1330,13),'Recording wait shortened',25,ACCENT)
         image.save(png)
@@ -258,10 +268,10 @@ def compose(folder, lesson, spoken):
                     filters.append('[p0][p1]concat=n=2:v=1:a=0[page]')
                 else: filters.append('[1:v]setpts=PTS-STARTPTS[page]')
                 if detail:
-                    filters.append('[page]tpad=stop_mode=clone:stop_duration=1,crop=625:810:815:0,scale=-2:936:flags=lanczos[screen]')
+                    filters.append('[page]tpad=stop_mode=clone:stop_duration=60,crop=625:810:815:0,scale=-2:936:flags=lanczos[screen]')
                     filters.append('[0:v][screen]overlay=1070:60:shortest=1[v]')
                 else:
-                    filters.append('[page]tpad=stop_mode=clone:stop_duration=1,scale=1664:936:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad=1664:936:(ow-iw)/2:(oh-ih)/2:color=0x101a29[screen]')
+                    filters.append('[page]tpad=stop_mode=clone:stop_duration=60,scale=1664:936:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad=1664:936:(ow-iw)/2:(oh-ih)/2:color=0x101a29[screen]')
                     filters.append('[0:v][screen]overlay=128:60:shortest=1[v]')
                 visual = '[v]'
                 audio_index=2
@@ -275,7 +285,8 @@ def compose(folder, lesson, spoken):
             save(cache,{'signature':signature})
         row = {'id':key,'chapter':scene['chapter'],'title':scene['title'],'start':at,'end':at+seconds,
                'source':meta.get('source_file',f'raw/{key}.mp4' if meta['kind']=='browser footage' else 'authored instruction graphic'),
-               'source_ranges':[(meta['source_start'],meta['source_start']+seconds)] if key=='welcome' else selected,
+               'source_ranges':[(meta['source_start'],meta['source_end'])] if key=='welcome' else selected,
+               'hold_last_frame_seconds':meta.get('hold_last_frame_seconds',0),
                'wait_shortened':len(selected)>1,'generation_wait_omitted':key=='done','detail_crop':detail}
         timeline.append(row)
         all_cues += [{**cue,'start':at+cue['start'],'end':at+cue['end']} for cue in spoken[key]['cues']]
@@ -313,6 +324,7 @@ def export(folder, lesson, timeline, cues, name, selected):
     (folder/'exports'/(name+'.vtt')).write_text('WEBVTT\n\n'+re.sub(r'(\d{2}:\d{2}:\d{2}),(\d{3})',r'\1.\2',srt.read_text()))
     cut.ff('-f','concat','-safe','0','-i',listing,'-i',meta,'-i',srt,'-map','0:v','-map','0:a','-map','2:0',
            '-map_metadata','1','-map_chapters','1','-c:v','copy','-c:a','aac','-b:a','160k',
-           '-af','aresample=async=1:first_pts=0','-c:s','mov_text','-movflags','+faststart',folder/'exports'/(name+'.mp4'))
+           '-af','aresample=async=1:first_pts=0','-c:s','mov_text','-movie_timescale','1000',
+           '-movflags','+faststart',folder/'exports'/(name+'.mp4'))
     save(folder/'exports'/(name+'-chapters.json'),chapters)
     save(folder/'exports'/(name+'-captions.json'),mapped)

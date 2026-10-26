@@ -5,6 +5,7 @@ from functools import partial
 import hashlib
 import http.server
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -297,6 +298,22 @@ class Workshop:
             await click(p,'.compare-playback button:has-text("Play both")')
             await p.locator('.compare-pair').first.scroll_into_view_if_needed()
         await self.shoot.run('compare',page,compare)
+        async def readable(p):
+            await self.jump(p,'look-panel')
+            await p.locator('.recording-view').scroll_into_view_if_needed()
+            await asyncio.sleep(2)
+            await p.locator('.recording-view [name=size]').select_option('640x480@2')
+            await click(p,'.recording-view button[type=submit]')
+            await p.wait_for_function('!document.querySelector("[data-unsaved]")')
+            form=p.locator('.export-framing').first
+            await form.scroll_into_view_if_needed()
+            await form.locator('[name=fit]').select_option('contain')
+            await form.locator('[name=display_width]').fill('640')
+            await click(p,'.export-framing button[type=submit]')
+            await asyncio.sleep(1)
+            await self.job(p,'[data-job=update]')
+            await self.play(p)
+        await self.shoot.run('readable-final',page,readable)
         await self.shoot.run('final',page,lambda p:self.job(p,'[data-job=run]'))
         await self.jump(page,'review-panel')
         await self.shoot.run('review',page)
@@ -305,6 +322,8 @@ class Workshop:
             image=p.locator('.scan a').first
             href=await image.get_attribute('href')
             await p.goto(self.url+href)
+            await asyncio.sleep(2)
+            await click(p,'img')
         await self.shoot.run('sheets',page,sheets)
         await page.goto(self.url)
         async def download(p):
@@ -320,6 +339,10 @@ class Workshop:
 
 
 def record(folder, lesson, rehearse=False):
+    # Chrome otherwise screencasts only 723 of an 810-pixel emulated page,
+    # clipping bottom controls. Native reshoot takes append their own size.
+    os.environ['RESHOOT_CHROME_FLAGS']=(os.environ.get('RESHOOT_CHROME_FLAGS','')+
+                                       ' --force-device-scale-factor=1 --window-size=1440,810').strip()
     state=read(folder/'recording.json')
     spoken=speech(folder,lesson)
     print('narration minutes',round(sum(row['seconds'] for row in spoken.values())/60,2),flush=True)

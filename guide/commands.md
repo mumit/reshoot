@@ -73,7 +73,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot audio set --beat search --text "Find the matching note." --project demo` | Saves a narration line on the first TOML browser take; empty `--text ''` removes it. Update preview records again so beats wait for their lines |
 | `reshoot audio audition search --project demo` | Speaks one saved line into the recording's voice cache and prints its WAV path and duration; no app capture |
 | `reshoot audio set --voice-volume 1 --music-volume 0.15 --duck --project demo` | Saves linear gains and music ducking in `edit.toml`; `--no-duck` disables ducking, and Update preview re-cuts the current recording |
-| `reshoot audio set --engine 'say -v Samantha' --project demo` | Changes the narration command; `--engine ''` returns to the system default. Custom commands need `{out}` and read text on stdin |
+| `reshoot audio set --engine 'kokoro --voice af_heart --speed 1' --project demo` | Chooses optional [local neural narration](install.md#local-neural-narration). System commands such as `say -v Samantha` still work; `--engine ''` returns to the system default. Custom commands need `{out}` and read text on stdin |
 
 ### Repair
 

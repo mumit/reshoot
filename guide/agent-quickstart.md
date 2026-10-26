@@ -61,7 +61,7 @@ and permissions required by your chosen tool.
 
 There are two ways to use reshoot, and only one needs a model:
 
-| Use | Needs a model | Who decides the story |
+| Use | Needs a coding model | Who decides the story |
 |---|---|---|
 | The CLI on its own | No | You: show the task with `reshoot create`, or write the storyboard, then shape it in the studio |
 | The skills | Yes: a coding agent, which is a harness such as Claude Code or Codex plus its model | The agent: it reads your app, writes the story in `demo/`, runs the reshoot commands, looks at the frames and fixes the story until it records cleanly |
@@ -70,13 +70,13 @@ The skills call no model themselves. They are Markdown instructions that the
 agent reads, and the agent runs the same reshoot commands you would. You can
 also read a skill as a checklist and follow it by hand.
 
-Either way, reshoot never calls a model and needs no API key. The recording,
+Either way, reshoot needs no API key. The recording,
 editing and scanning run on your computer, and are the same on every agent:
 headless Chrome, VHS or one macOS window to record, ffmpeg to edit, and Apple
 Vision or Tesseract, which recognize text and faces on the device, to scan.
-Narration uses macOS `say` or the speech command you set. Keeping a demo
-current in CI needs no model either: the [GitHub workflow](ci.md) only runs
-reshoot.
+Narration uses system speech, optional [local Kokoro speech](install.md#local-neural-narration),
+or the command you set. Keeping a demo current in CI needs no coding agent:
+the [GitHub workflow](ci.md) only runs reshoot.
 
 ### Which agent
 

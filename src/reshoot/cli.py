@@ -388,7 +388,7 @@ def main(argv=None):
     command.add_argument('--project', default='demo')
     command.add_argument('--beat', help='beat ID for --text')
     command.add_argument('--text', help='spoken words; empty text removes the line')
-    command.add_argument('--engine', help='speech command, such as say -v Samantha; empty uses the system default')
+    command.add_argument('--engine', help='kokoro [--voice af_heart] [--speed 1], or a speech command; empty uses the system default')
     command.add_argument('--voice-volume', type=float, help='voice gain from 0 to 2 (default 1)')
     command.add_argument('--music-volume', type=float, help='music gain from 0 to 1 (default 0.25)')
     command.add_argument('--duck', action=argparse.BooleanOptionalAction, default=None,

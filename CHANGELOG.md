@@ -8,6 +8,10 @@ change project files or commands.
 
 ### Added
 
+- Optional local Kokoro English narration, selectable in Studio or with
+  `reshoot audio set --engine 'kokoro --voice af_heart'`. Auditions share the
+  recording cache; the workshop recipe uses connected passages and model word
+  timings, with a short voice comparison before a full rebuild.
 - A local narrated web-app workshop recipe, first-demo excerpt, chapter
   player, subtitles and written companion using only synthetic notes data.
   The recipe preserves original page footage and leaves owner review pending.

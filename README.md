@@ -45,8 +45,8 @@ app, writes the story and the checks that prove it worked, and fixes it until
 it records cleanly. In
 [trials on new apps](docs/validation/2026-10-23-cold-first-demo.md) that took
 2 to 5 minutes in Claude Code and 5 to 9 in Codex. It opens the MP4 and GIF;
-reply "accept" or ask for changes. Nothing is published. reshoot itself calls
-no model and needs no API key: see
+reply "accept" or ask for changes. Nothing is published. reshoot needs no
+API key: see
 [what your agent needs](guide/agent-quickstart.md#what-your-agent-needs).
 
 ## Or see it on a made-up app first
@@ -149,8 +149,8 @@ beat-by-beat comparison. A broken story fails on its beat and opens nothing.
 | The app changed | [reshoot-refresh](skills/reshoot-refresh/SKILL.md) | "Record that task again with the updated UI." |
 | Before sharing | [reshoot-review](skills/reshoot-review/SKILL.md) | "Check the final video and GIF against the accepted run." |
 
-Skills are instructions for a coding agent, so they need one and its model; the
-CLI on its own needs neither. The first-demo prompt installs them, and the
+Skills are instructions for a coding agent and its model; the CLI also runs
+without a coding agent. The first-demo prompt installs the skills, and the
 [agent quickstart](guide/agent-quickstart.md#install-the-skills-yourself) shows
 other ways. The [skill catalog](skills/README.md) describes all ten.
 

@@ -111,6 +111,10 @@ def apply(project, change, expected=None):
 def voices():
     """Discover installed local voices only; custom project commands remain file/CLI settings."""
     result = {'': 'System default'}
+    from importlib.util import find_spec
+    if find_spec('kokoro'):
+        from reshoot.kokoro import VOICES
+        result.update({f'kokoro --voice {name}': f'Kokoro · {label}' for name, label in VOICES.items()})
     try:
         if platform.system() == 'Darwin' and shutil.which('say'):
             output = subprocess.run(['say', '-v', '?'], capture_output=True, text=True, timeout=5, check=True).stdout

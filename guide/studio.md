@@ -73,6 +73,8 @@ frame, result checks, caption, second line and hold.
 - **Narration:** open it under a step, write **Spoken words** and choose
   **Save narration**. **Audition saved line** plays it without starting the
   app. Clear the words and save to remove the line.
+  Optional [Kokoro voices](install.md#local-neural-narration) appear in the
+  voice selector after installation; restart Studio if it was already open.
 
 Choose a step's frame, a mark on the timeline or one of its fields to select
 it. **Editing step** above the preview keeps that step named while you work.

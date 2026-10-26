@@ -49,17 +49,33 @@ def speech(folder, lesson):
     result = {}
     for scene in lesson['scene']:
         target = cache / (scene['id'] + '.wav')
-        signature = hashlib.sha256((lesson['voice'] + scene['text']).encode()).hexdigest()
+        signature = hashlib.sha256(('passage-v2\0' + lesson['voice'] + scene['text']).encode()).hexdigest()
         info = target.with_suffix('.json')
         if info.exists() and json.loads(info.read_text()).get('signature') == signature and target.exists():
             result[scene['id']] = json.loads(info.read_text()); continue
-        sentences = re.split(r'(?<=[.!?])\s+', scene['text'])
+        neural = voice.engine_command(lesson['voice']).startswith('kokoro ')
+        sentences = [scene['text']] if neural else re.split(r'(?<=[.!?])\s+', scene['text'])
         files, cues, at = [], [], .2
         for sentence in sentences:
             key = voice.cache_key(sentence, lesson['voice'])
             path = cache / (key + '.wav')
             length = cut.duration(path) if path.exists() else voice.speak(sentence, path, lesson['voice'])
             files.append(path)
+            timing = path.with_suffix('.words.json')
+            if neural and timing.exists():
+                words = json.loads(timing.read_text())
+                group = []
+                for word in words:
+                    group.append(word)
+                    text = ''.join(item['text'] for item in group).strip()
+                    if (len(text) >= 85 and word['text'][-1:].isspace()) or re.search(r'[.!?]$', text):
+                        cues.append({'start':at+group[0]['start'], 'end':at+group[-1]['end'], 'text':text})
+                        group = []
+                if group:
+                    cues.append({'start':at+group[0]['start'], 'end':at+group[-1]['end'],
+                                 'text':''.join(item['text'] for item in group).strip()})
+                at += length
+                continue
             chunks, current = [], ''
             for word in sentence.split():
                 if current and len(current) + len(word) > 116:

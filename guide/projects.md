@@ -182,7 +182,7 @@ count = 1
 | `seed` | `1` | Sets the cursor's path and typing rhythm, so takes match |
 | `timeout` | `600` | Seconds the whole take may take |
 | `voice` | none | A voiceover: `{beat_id = "Words"}`. Each line is spoken before recording, and its beat waits for it |
-| `voice_engine` | `say` or `espeak-ng` | A text-to-speech command; `{out}` is the sound file and the text comes on stdin. Lines are cached by their words and this command, in `takes/voice-cache`, so change the command to change the voice |
+| `voice_engine` | `say` or `espeak-ng` | `"kokoro --voice af_heart --speed 1"` uses optional [local neural narration](install.md#local-neural-narration). Other text-to-speech commands need `{out}` for the sound file and read text on stdin. Lines are cached by their words and engine in `takes/voice-cache`; changing the voice or speed makes a new line |
 | `[[setup]]` | none | Actions run before recording, such as a demo login. Same fields as `[[beat.action]]` |
 | `[caption]` | | How captions look, below |
 | `[cursor]` | | How the cursor looks, below |

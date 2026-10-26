@@ -5,7 +5,8 @@ beat can wait for its line to finish.
     VOICE_ENGINE = "say -v Samantha"            # optional: see below
 
 The keys are beat names; a line starts with its beat. By default the voice is macOS's `say`, or `espeak-ng` (or
-`espeak`) elsewhere. VOICE_ENGINE can be any command that reads the text on stdin and writes a sound file to
+`espeak`) elsewhere. Set VOICE_ENGINE = "kokoro --voice af_heart" for optional local neural English speech.
+Other engines can be any command that reads the text on stdin and writes a sound file to
 {out}, such as a script that calls a text-to-speech service:
 
     VOICE_ENGINE = "python3 tools/demo/tts.py {out}"
@@ -17,7 +18,11 @@ from pathlib import Path
 
 
 def engine_command(engine=None):
-    """The command for an engine setting, with {out} for the file to write; text goes on stdin."""
+    """Normalize a built-in engine or a command with {out}; custom commands read stdin."""
+    if engine and engine.split()[0] == 'kokoro':
+        from reshoot.kokoro import settings
+        name, speed = settings(engine)
+        return f'kokoro --voice {name} --speed {speed:g}'
     if engine and "{out}" in engine:
         return engine
     if engine and engine.split()[0] == "say":
@@ -40,14 +45,22 @@ def speak(text, out, engine=None, cwd=None):
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='reshoot-voice-', dir=out.parent) as temp:
-        raw = Path(temp) / ('raw.aiff' if engine_command(engine).startswith('say') else 'raw.wav')
-        cmd = engine_command(engine).replace('{out}', shlex.quote(str(raw)))
-        r = subprocess.run(cmd, shell=True, input=text.encode(), capture_output=True, timeout=120, cwd=cwd)
-        if r.returncode or not raw.exists():
-            raise ValueError(f'voice command failed (exit {r.returncode})')
+        command = engine_command(engine)
+        raw = Path(temp) / ('raw.aiff' if command.startswith('say') else 'raw.wav')
+        words = None
+        if command.startswith('kokoro '):
+            from reshoot.kokoro import render
+            words = render(text, raw, command)
+        else:
+            cmd = command.replace('{out}', shlex.quote(str(raw)))
+            r = subprocess.run(cmd, shell=True, input=text.encode(), capture_output=True, timeout=120, cwd=cwd)
+            if r.returncode or not raw.exists():
+                raise ValueError(f'voice command failed (exit {r.returncode})')
         finished = Path(temp) / 'line.wav'
         ff('-i', raw, '-ar', 48000, '-ac', 1, finished)
         finished.replace(out)
+        if words is not None:
+            out.with_suffix('.words.json').write_text(json.dumps(words) + '\n')
     return duration(out)
 
 

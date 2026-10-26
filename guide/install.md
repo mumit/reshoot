@@ -20,6 +20,39 @@ macOS uses Apple's Vision framework for text, face and person detection by
 default. Tesseract provides text detection only. Select it explicitly on either
 platform when needed; it does not provide face or person detection.
 
+## Local neural narration
+
+Kokoro is an optional local speech engine for English narration. Install it
+with the browser tools:
+
+```bash
+uv tool install --upgrade 'reshoot[browser,kokoro]'
+```
+
+From a source checkout, use `uv sync --extra browser --extra kokoro` instead.
+The extra includes PyTorch and adds a substantial download. The first audition
+also downloads the public Kokoro model, selected voice and English language
+data. Speech is generated on your CPU; no account, API key or speech service
+is needed. Subsequent synthesis can run offline with the downloaded files.
+
+Choose a voice and [audition a saved line](commands.md#shape):
+
+```bash
+reshoot audio set --engine 'kokoro --voice af_heart' --project demo
+reshoot audio audition search --project demo
+```
+
+The step needs saved spoken words before it can be auditioned.
+Heart (`af_heart`), Bella (`af_bella`), Michael (`am_michael`) and British
+Emma (`bf_emma`) also appear in Studio's voice selector after installation.
+Use `--speed 0.9` for slower speech; the supported range is 0.5 to 2.
+Audition the actual words before recording a long explanation.
+For offline synthesis after the first successful audition of a voice, set
+`HF_HUB_OFFLINE=1` to use downloaded model files without checking the Hub.
+
+The [Kokoro voice catalog](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md)
+lists other English voice IDs. Try an unfamiliar ID with an audition first.
+
 ## macOS
 
 With [Homebrew](https://brew.sh/) installed:

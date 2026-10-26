@@ -55,7 +55,7 @@ Older takes use a Python storyboard; `../../examples/notes/storyboard.py` from t
 | `__demo.byText(tag, text)` | the element whose words are text, to pass to `click` |
 | `__demo.zoom(sel, {scale})` / `zoomOut()` | zooms in on sel until `zoomOut()`, over the automatic zoom |
 
-`VOICE = {beat: words}` speaks each line before recording, so its beat waits until the line is done. The voice is macOS `say`, or `espeak-ng` on Linux; `VOICE_ENGINE` sets another command, with `{out}` for the sound file and the text on stdin, which handles any service key itself. Python stories use the older overlay input, so they can't claim TOML's native-input checks.
+`VOICE` maps beat names to narration; each beat waits for its line. `VOICE_ENGINE = "kokoro --voice af_heart"` selects [optional local neural speech](../../guide/install.md#local-neural-narration). Audition with `reshoot audio audition BEAT --project demo`. Otherwise the default is macOS `say` or Linux `espeak-ng`. Custom commands read stdin and need `{out}`. Python stories use older overlay input, so they cannot claim TOML's native-input checks.
 
 ## Pitfalls
 

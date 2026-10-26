@@ -30,6 +30,27 @@ def test_caption_rounding_carries_across_minute_boundaries():
     assert media.stamp(59.9998,True)=='00:01:00,000'
 
 
+def test_neural_passage_uses_word_timing_without_detaching_punctuation(tmp_path, monkeypatch):
+    from reshoot import cut, voice
+    calls = []
+    text = 'A connected explanation with enough words to reach the caption break before its punctuation.'
+    def speak(passage, path, engine):
+        calls.append(passage)
+        cut.ff('-f','lavfi','-i','anullsrc=r=48000:cl=mono','-t','2',path)
+        words = [{'text':text[:-1], 'start':.1,'end':1.6}, {'text':'.','start':1.6,'end':1.7}]
+        path.with_suffix('.words.json').write_text(json.dumps(words))
+        return 2
+    monkeypatch.setattr(voice, 'speak', speak)
+    lesson = {'voice':'kokoro','scene':[{'id':'sample','text':text}]}
+    spoken = media.speech(tmp_path,lesson)['sample']
+    assert calls == [text]
+    assert len(spoken['cues']) == 1 and spoken['cues'][0]['text'] == text
+    assert spoken['cues'][0]['start'] == pytest.approx(.3)
+    assert spoken['cues'][0]['end'] == pytest.approx(1.9)
+    media.speech(tmp_path,lesson)
+    assert calls == [text]
+
+
 def test_local_review_serves_seek_ranges_and_keeps_symlinks_inside_its_root(tmp_path):
     import http.server
     import threading

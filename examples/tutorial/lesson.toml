@@ -1,5 +1,5 @@
 title = "Make a web app demo, then keep it current"
-voice = "say -v Samantha -r 145"
+voice = "kokoro --voice af_heart --speed 1"
 subtitle = "A practical reshoot workshop with the made-up notes app"
 
 [[scene]]

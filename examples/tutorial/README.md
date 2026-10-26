@@ -12,13 +12,27 @@ the build does not pad it to a target length.
 
 ## Build
 
-From the repository root, install the browser development environment and
-the [platform tools](../../guide/install.md). The default narration uses an
-installed macOS Samantha voice. On Linux, change `voice` in `lesson.toml` to
-an installed `espeak-ng` voice before recording.
+Audition voices on an existing recording before rebuilding the workshop:
 
 ```bash
-uv sync --extra browser
+uv sync --extra browser --extra kokoro
+uv run python examples/tutorial/audition.py --attempt takes/tutorial/attempt-ID
+```
+
+It prints a new comparison page under `takes/kokoro-audition-ID/` with Heart,
+Bella and Michael reading the same shorter script over original notes footage.
+Repeat `--voice ID` to choose other English voices. The clips are listening
+samples, not accepted workshop exports. Open the page through a local server
+for caption tracks, or play its MP4 files directly.
+
+From the repository root, install the browser development environment and
+the [platform tools](../../guide/install.md). The narration uses optional
+[local Kokoro speech](../../guide/install.md#local-neural-narration) on macOS
+or Linux. First use downloads the model, selected voice and English language
+data. No account or API key is needed.
+
+```bash
+uv sync --extra browser --extra kokoro
 uv run python examples/tutorial/build.py record
 ```
 
@@ -64,7 +78,8 @@ Ctrl-C stops the server. It listens only on `127.0.0.1` and does not publish.
   clicks and typing retain their original speed. Detail views crop the page.
   The opening plays the finished demo and holds its result under the
   introduction; the hold is labeled and recorded in the edit map.
-- Local synthetic narration is disclosed. Sentence-timed subtitles are
+- Local synthetic narration is disclosed. Kokoro speaks connected passages;
+  subtitle cues use its model word timings. Subtitles are
   available as SRT, VTT and an embedded MP4 subtitle track. Browser audio is
   not mixed over the workshop voice; the native demo exports retain their audio.
 - Every native recording and the workshop remain pending owner review. The

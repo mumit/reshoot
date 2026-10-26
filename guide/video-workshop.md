@@ -23,14 +23,23 @@ To try the bundled notes project without starting a server yourself:
 reshoot create --recipe feature --directory notes-demo
 ```
 
-That starts with a prepared story. To demonstrate your own task instead, use
-the running app's URL:
+That starts with a prepared story. To follow the video's URL-based recording
+on the notes app, make a separate fixture and start its server:
 
 ```bash
-reshoot create http://127.0.0.1:3000/ --directory demo
+reshoot init notes-app
+python3 -m http.server 8765 --bind 127.0.0.1 --directory notes-app
 ```
 
-Replace the address, and use a new directory for a new project. Reshoot checks
+Leave that server running. In another terminal, demonstrate the task:
+
+```bash
+reshoot create http://127.0.0.1:8765/ --directory demo
+```
+
+For your own app, replace the address with its development URL. If port 8765
+is busy, choose another server port and use it in the recording command too.
+Use a new directory for a new project. Reshoot checks
 the tools and opens a fresh browser profile. [Recording tools](studio.md#open-it)
 helps you continue if setup needs attention.
 

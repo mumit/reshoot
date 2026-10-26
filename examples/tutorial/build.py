@@ -402,10 +402,11 @@ def record(folder, lesson, rehearse=False):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation',choices=['record','compose','audit','demonstrate'])
+    parser.add_argument('operation',choices=['record','compose','audit','serve','demonstrate'])
     parser.add_argument('--attempt',type=Path)
     parser.add_argument('--reuse-speech',type=Path,help='reuse local cached speech from an earlier tutorial attempt')
     parser.add_argument('--rehearse',action='store_true',help='exercise the real workflow quickly; not a candidate video')
+    parser.add_argument('--port',type=int,default=8800,help='local review port for serve (default: 8800)')
     parser.add_argument('--project');parser.add_argument('--beat');parser.add_argument('--draft-id');parser.add_argument('--expected-revision')
     args=parser.parse_args()
     lesson=tomllib.loads((BASE/'lesson.toml').read_text())
@@ -438,6 +439,9 @@ def main():
     sys.stdout=Tee(sys.stdout,log);sys.stderr=Tee(sys.stderr,log)
     if args.operation=='record':record(folder,lesson,args.rehearse)
     elif args.operation=='compose':compose(folder,read(folder/'lesson.json'),read(folder/'speech.json'))
+    elif args.operation=='serve':
+        from serve import serve
+        serve(folder,args.port)
     elif args.operation=='demonstrate':
         spoken=read(folder/'speech.json')
         if read(folder/'recording.json').get('mode')=='rehearsal':

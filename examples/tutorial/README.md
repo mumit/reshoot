@@ -40,9 +40,15 @@ uv run python examples/tutorial/build.py audit --attempt takes/tutorial/attempt-
 native run results and unchanged accepted repository media. It makes chapter
 contact sheets, runs the privacy scan with explicitly sampled coverage, and
 writes a local review player. Open `review/index.html` from the attempt folder.
-If the browser restricts local caption tracks, serve the attempt with
-`python3 -m http.server 8800 --directory takes/tutorial/attempt-ID` and open
-`http://127.0.0.1:8800/review/`.
+For chapter seeking and caption tracks in the browser, use the range-aware
+local server:
+
+```bash
+uv run python examples/tutorial/build.py serve --attempt takes/tutorial/attempt-ID
+```
+
+Open `http://127.0.0.1:8800/review/`. `--port` chooses another local port;
+Ctrl-C stops the server. It listens only on `127.0.0.1` and does not publish.
 
 ## What the recording means
 

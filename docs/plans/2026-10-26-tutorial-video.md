@@ -7,13 +7,13 @@ Keep the media pending owner review; never publish or replace accepted media.
 - [x] Write a chaptered lesson and a written follow-along companion.
 - [x] Build a repeatable page-only capture recipe. Use native input on the real
   recorder and Studio, preserving raw footage, source snapshots and run reports.
-- [ ] Record URL-based creation, meaningful checks, preview playback, caption
+- [x] Record URL-based creation, meaningful checks, preview playback, caption
   and hold editing, Undo, demonstrated replacement actions, a look, narration,
   a changed app, failed control repair, comparison, review and downloads.
-- [ ] Compose a roughly 12–16 minute narrated MP4, with optional subtitles,
+- [x] Compose a roughly 12–16 minute narrated MP4, with optional subtitles,
   embedded chapters, transcript and local chapter player. Derive a short
   first-demo excerpt from the same captured work.
-- [ ] Inspect encoded frames across every chapter, verify audio/video/caption
+- [x] Inspect encoded frames across every chapter, verify audio/video/caption
   timing, scan the exports with stated coverage, and preserve validation.
 
 Command graphics are instructions rather than simulated terminal output.

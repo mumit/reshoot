@@ -147,6 +147,8 @@ def main(argv=None):
     p.add_argument('url', nargs='?', help='your demo app URL; omit to try the bundled notes app')
     p.add_argument('--directory', default='demo', help='project folder (default: demo); existing projects open without replacing their story')
     p.add_argument('--size', help='recording viewport (default: 960x540@1.5; saved size when resuming)')
+    p.add_argument('--recipe', choices=['feature', 'walkthrough', 'release'], help='starting pace, look and exports for a new project')
+    p.add_argument('--title', help='title for a recipe\'s new cards; requires --recipe')
     p.add_argument('--resume', action='store_true', help='continue this create project after setup or a failed preview, preserving its saved story')
     p.add_argument('--no-open', action='store_true', help='print the studio address instead of opening its page')
     p.add_argument('--no-studio', action='store_true', help='finish after the preview; open the studio later')
@@ -247,6 +249,25 @@ def main(argv=None):
             command.add_argument('--out', help='export a portable style file instead of saving in the project library')
             command.add_argument('--replace', action='store_true', help='replace an existing saved style or export file')
         command.set_defaults(run=styles.main)
+
+    from reshoot import recipes
+    p = sub.add_parser('recipe', help='start with a useful pace, look and export choice',
+                       description='Starting recipes preserve task actions and result checks, set holds and appearance, '
+                       'and replace export choices. Existing cut ranges and cards are kept; recipes with cards add '
+                       'an opening and closing only when none exist. Durations are approximate.\n\n'
+                       '    reshoot recipe list\n'
+                       '    reshoot recipe apply feature --project demo\n'
+                       '    reshoot recipe apply release --title "Find the new search" --project demo --dry-run',
+                       formatter_class=Examples)
+    operations = p.add_subparsers(dest='operation', required=True)
+    command = operations.add_parser('list', help='list the three starting recipes')
+    command.set_defaults(run=recipes.main)
+    command = operations.add_parser('apply', help='apply a starting recipe to a versioned browser project')
+    command.add_argument('recipe', choices=list(recipes.CATALOG))
+    command.add_argument('--project', default='demo')
+    command.add_argument('--title', help='words for new title cards; existing cards keep their words')
+    command.add_argument('--dry-run', action='store_true', help='describe the result without changing files')
+    command.set_defaults(run=recipes.main)
 
     from reshoot import framing
     p = sub.add_parser('frame', help='set destination framing or inspect measured readability',

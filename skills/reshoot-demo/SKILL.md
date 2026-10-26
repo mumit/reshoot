@@ -28,6 +28,15 @@ Record only a headless browser page, a VHS terminal, or one macOS window by ID. 
 
 If the owner wants to show the task themselves, offer `reshoot create URL --directory demo`. It records in a browser with a toolbar, makes a preview and opens the studio. It waits for a person, so do not start it during an autonomous recording. `reshoot create --resume --directory demo` continues one after setup is fixed; do not give it another URL or size. If the storyboard changed while the owner was recording, keep both versions and compare them; never overwrite those changes. Repair any `recording_issue` step it leaves; never delete one to make a recording pass.
 
+For a useful starting presentation, `reshoot recipe list` describes feature,
+walkthrough and release recipes. Use `reshoot recipe apply feature --project demo`
+after writing the task, or offer `create --recipe feature` for a new creation.
+Recipes keep actions and checks, change pacing/look/export choices, and need a
+fresh preview. Inspect `recipe apply NAME --dry-run --project demo` first when
+the project already has custom delivery settings. Existing cut ranges and cards
+stay; [the studio guide](https://github.com/mumit/reshoot/blob/main/guide/studio.md#choose-a-starting-recipe)
+describes the choices. Never treat a recipe as a verified result or acceptance.
+
 For combined web and VHS edits, give both takes the same dimensions.
 
 ## Write a native macOS project

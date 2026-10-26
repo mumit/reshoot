@@ -13,6 +13,10 @@ change project files or commands.
 - Layout stills show caption, window and crop changes as you edit, using the
   recording's clean frames and the video renderers. Saved videos and review
   stay associated with their recording while outdated still responses are ignored.
+- Feature highlight, Task walkthrough and Release update starting recipes
+  set pacing, look and export choices while retaining the task, checks and
+  current cut. Apply one in the studio with Undo, use `reshoot recipe apply`,
+  or start with `reshoot create --recipe feature`.
 
 - Correct a failed check's expected count, text, address, field value or ticked
   state in the studio, with Undo, before recording a preview to verify it.

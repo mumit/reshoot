@@ -36,9 +36,28 @@ not in the video yet, a current preview, or a final ready to review. It
 highlights the next thing to do.
 
 The links under it jump to **Preview**, **Story**, **Cut**, **Look**, **Review**
-and **Download**. **More tools** holds **Compare**, **Audio**, **Screenshots**
-and **Tour**. Before the first recording, only the story and creation tools
+and **Download**. **More tools** holds **Compare**, **Audio**, **Screenshots**,
+**Tour** and **Recipes**. Before the first recording, only the story and creation tools
 are shown.
+
+## Choose a starting recipe
+
+Open **More tools**, then **Recipes**, to choose a useful starting pace and look.
+
+| Recipe | For | Files |
+|---|---|---|
+| Feature highlight | One useful result, aiming for about 15 seconds with a quiet Focus look | MP4 and README GIF |
+| Task walkthrough | Several explained steps at a comfortable pace, aiming for about 45 seconds with a Paper look | MP4 and subtitles |
+| Release update | An opening, a demonstration and the result, aiming for about 25 seconds with a Midnight look | MP4 and README GIF |
+
+Enter an optional title for new cards and choose **Apply recipe**. It changes
+holds, caption colours, the browser frame and export choices. Existing task
+actions, result checks, cut ranges and cards stay. Walkthrough and release
+recipes add an opening and closing only when there are no cards.
+
+The targets guide pacing: a simple task stays shorter, while app waits and
+narration may make it longer. **Undo** restores the previous settings.
+**Update preview** records the task with the new pacing before final review.
 
 ## Change the story
 

@@ -27,6 +27,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/stills.py`, `stills.js` | Bounded representative still feedback using production caption, window and export renderers |
 | `src/reshoot/session.py` | Persistent studio history, explicit recovery and saved-source copies |
 | `src/reshoot/styles.py` | Portable visual styles shared by the CLI and studio |
+| `src/reshoot/recipes.py` | Starting pacing, style, cards and exports that retain the task and result checks |
 | `src/reshoot/sequence.py` | Beat ranges and video-part ordering shared by the CLI and studio |
 | `src/reshoot/framing.py`, `readability.py`, `layout.js` | Shared export geometry and measured text/crop feedback |
 | `src/reshoot/repair.py`, `repair.js`, `targets.js` | Explicit locator repair and shared control discovery |

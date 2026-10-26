@@ -58,7 +58,31 @@ Local scripts, screenshots and latency data are under ignored
 No accepted exports under `docs/demo/` were changed. Nothing was accepted on
 the owner's behalf, pushed or published.
 
-## Following stages
+## Starting recipes
 
-Starting recipes and reviewed step demonstrations are the next stages in
-the plan. Outside-user testing remains deferred.
+Feature highlight, Task walkthrough and Release update set pace, look and
+export choices. They preserve actions, result checks, narration, current cut
+ranges and existing cards. Recipes with cards add an opening and closing only
+when there are none. A three-file application validates everything before
+writing and rolls back its own writes if a later replacement fails. Undo/Redo
+groups the studio application. Deliveries named by `[keep]` cannot silently
+lose their export.
+
+`create --recipe` remembers its choice and applies it once after demonstration.
+After a failed preview, resuming preserves subsequent edits rather than
+reapplying the recipe. `recipe list` and `recipe apply --dry-run` let CLI users
+inspect choices. Applying a style or recipe shows its still immediately while
+keeping the original recording; a new run returns to recorded-video playback.
+
+Verification: 35 recipe/creation/setup/docs fast tests and the connected
+browser journey passed. It created with Feature highlight, applied Task
+walkthrough in the studio, undid/redid the grouped edit, then recorded the
+same three passing task checks with the new presentation and no GIF export.
+A fresh CLI Release update also produced MP4/GIF exports with all three task
+checks passing. Its opening card was extracted and inspected; review remained
+pending. The recipe targets are pacing guides, not guaranteed final lengths.
+
+## Following stage
+
+Reviewed step demonstrations are the final stage in the plan. Outside-user
+testing remains deferred.

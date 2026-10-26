@@ -13,7 +13,7 @@ review associated with the selected run, and use synthetic data for every trial.
   edits using production drawing/geometry. Preserve the recorded video,
   reject stale results, bound work and cache unchanged frames. Measure latency
   and clearly distinguish draft feedback from rendered exports.
-- [ ] Offer feature-highlight, task-walkthrough and release-update recipes
+- [x] Offer feature-highlight, task-walkthrough and release-update recipes
   with purposeful pacing, look and export choices. Preserve task actions and
   checks; support Undo and resume creation after failures.
 - [ ] Let an author add or replace a step by demonstrating it after replaying

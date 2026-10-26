@@ -27,6 +27,7 @@ def save(root, state):
 
 
 def load(root):
+    from reshoot.recipes import CATALOG
     path = state_file(root)
     if not path.is_file():
         return None
@@ -35,7 +36,9 @@ def load(root):
             raise ValueError('creation state exceeds 16 KB')
         state = json.loads(path.read_text())
         if (state['schema_version'] != 1 or state['stage'] not in ('record', 'preview', 'done')
-                or not isinstance(state['size'], str) or not (state['url'] is None or isinstance(state['url'], str))):
+                or not isinstance(state['size'], str) or not (state['url'] is None or isinstance(state['url'], str))
+                or state.get('recipe') not in (None, *CATALOG)
+                or 'recipe_applied' in state and type(state['recipe_applied']) is not bool):
             raise ValueError('invalid creation state')
         return state
     except (ValueError, KeyError, TypeError) as error:
@@ -47,16 +50,25 @@ def resume_command(root):
 
 
 def main(a):
-    from reshoot import project, rec, run, setup, story, studio, web
+    from reshoot import project, rec, recipes, run, setup, story, studio, web
     from reshoot.artifacts import digest
     root = Path(a.directory).resolve()
     config, board_path = root / 'reshoot.toml', root / 'storyboard.toml'
     existing = config.is_file() and not getattr(a, 'resume', False)
+    chosen, title = getattr(a, 'recipe', None), getattr(a, 'title', None)
+    if chosen is not None and chosen not in recipes.CATALOG:
+        raise ValueError('Choose feature, walkthrough or release.')
+    if title is not None and not chosen:
+        raise ValueError('Use --title with --recipe for a new creation.')
+    if existing and chosen:
+        raise ValueError('The project already exists. Apply its recipe with reshoot recipe apply instead.')
     persist = True
     if getattr(a, 'resume', False):
         state = load(root)
         if not state:
             raise ValueError('No saved create session here. Existing files are kept; use reshoot studio for an existing project.')
+        if chosen is not None and chosen != state.get('recipe') or title is not None and title != state.get('title'):
+            raise ValueError('Resume with the saved recipe and title, or apply a different recipe in the studio afterwards.')
         if (a.url is not None and a.url != state['url']) or (a.size is not None and a.size != state['size']):
             raise ValueError('The URL or size differs from the saved creation. Resume without changing them, or use a new directory.')
         if state['stage'] == 'record' and any(digest(path) != state.get(key) for path, key in (
@@ -78,7 +90,8 @@ def main(a):
         web.parse_size(size)
         project.init(SimpleNamespace(directory=str(root), url=a.url, quiet=True, size=size))
         state = {'schema_version': 1, 'url': a.url, 'size': size, 'stage': 'record' if a.url else 'preview',
-                 'config_sha256': digest(config), 'story_sha256': digest(board_path)}
+                 'config_sha256': digest(config), 'story_sha256': digest(board_path),
+                 'recipe': chosen, 'title': title, 'recipe_applied': False}
         save(root, state)
         print(f'Created {root}. Checking the recording tools…', flush=True)
     if state['url'] and (urlsplit(state['url']).scheme not in ('http', 'https') or not urlsplit(state['url']).hostname):
@@ -120,6 +133,11 @@ def main(a):
         draft.unlink()
         state.update(stage='preview', config_sha256=digest(config), story_sha256=digest(board_path))
         save(root, state)
+    if state.get('recipe') and not state.get('recipe_applied'):
+        result = recipes.apply(config, state['recipe'], state.get('title'))
+        state.update(recipe_applied=True, config_sha256=digest(config), story_sha256=digest(board_path))
+        save(root, state)
+        print(f'Applied {result["recipe"]}. {result["note"]}', flush=True)
     board = story.load(board_path)
     problems = [beat for beat in board['beat'] if beat.get('recording_issue')]
     code = 0

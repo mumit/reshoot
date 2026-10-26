@@ -18,11 +18,14 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot --version` | Prints the installed package version |
 | `reshoot create` | Creates the notes project, checks dependencies, makes a preview and opens the studio. Run it again and it opens the existing project, making a preview only when it has no run yet |
 | `reshoot create URL --directory demo` | Records your task in a fresh browser with a toolbar, then makes a preview and opens the studio; `--no-studio` stops after the preview, `--no-open` prints the studio address |
+| `reshoot create --recipe feature --directory demo` | Starts a new project with a recipe; also accepts `walkthrough` or `release` and an optional `--title` for new cards. Resuming keeps the chosen recipe and applies it once |
 | `reshoot create --resume --directory demo` | Continues setup or retries a failed preview from the saved creation, preserving its story, URL and viewport; a completed creation opens the studio |
 | `reshoot init demo` | Creates the bundled notes demo; refuses to overwrite files |
 | `reshoot init demo --url URL` | Creates a draft for the supplied app URL |
 | `reshoot doctor --config CONFIG` | Checks tools and installed detectors without recording |
 | `reshoot doctor --config CONFIG --probe` | Tests temporary synthetic H.264 encoding/inspection, TOML browser capture and configured OCR; `--json` includes structured checks and fixes |
+| `reshoot recipe list` | Lists starting pacing, look and file choices |
+| `reshoot recipe apply feature --project demo` | Applies a starting recipe; `--title 'Words'` sets new card titles and `--dry-run` describes changes without saving. See [starting recipes](studio.md#choose-a-starting-recipe) |
 
 ### Record
 

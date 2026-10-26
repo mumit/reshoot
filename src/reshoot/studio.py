@@ -783,7 +783,7 @@ def server(a):
                     return
                 except (ValueError, OSError, KeyError, TypeError) as error:
                     return review.reply(self, 409, str(error).encode(), 'text/plain')
-            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'job', 'accept', 'undo', 'redo', 'cancel', 'session'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'recipe', 'job', 'accept', 'undo', 'redo', 'cancel', 'session'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -864,6 +864,12 @@ def server(a):
                     tours.apply(config, body.get('change'), expected=before)
                     history.remember(before, history.snapshot())
                     out = {'ok': True}
+                elif action == 'recipe':
+                    from reshoot import recipes
+                    before = history.snapshot()
+                    result = recipes.apply(config, body.get('recipe'), body.get('title') or None, expected=before)
+                    history.remember(before, history.snapshot())
+                    out = {'ok': True, 'recipe': result}
                 elif action == 'style':
                     from reshoot import styles
                     before = history.snapshot()
@@ -1390,6 +1396,18 @@ def page(data, accept, seen=0):
 <button type="button" data-session="fresh">Start with current files</button> {copy}
 <p class="hint">Starting fresh keeps a local archive of the previous history. Neither choice replaces the files you have now.</p></section>'''
     comparison = data.get('comparison', {'choices': [], 'default': '', 'note': 'Make two recordings to compare.'})
+    from reshoot import recipes
+    recipe_box = ''
+    if data.get('edit'):
+        choices = ''.join(f'<label class="recipe-choice"><input type="radio" name="recipe" value="{row["key"]}"'
+                          f'{" checked" if row["key"] == "feature" else ""}><span><strong>{e(row["name"])}</strong>'
+                          f'<span>{e(row["description"])}</span><small>Aim: {row["target"]} s for a short task · {e(row["files"])}</small></span></label>'
+                          for row in recipes.catalog())
+        recipe_box = f'''<details id="recipe-panel" class="recipe-controls"><summary>Starting recipes</summary>
+<p>Choose a useful starting pace, look and files. The recipe changes holds, colours and exports. Your task, result checks, cut ranges and existing cards stay.</p>
+<form id="apply-recipe">{choices}<label>Title for new cards <input name="title" maxlength="120" placeholder="Use the opening caption"></label>
+<p class="hint">Walkthrough and release recipes add an opening and closing only when there are no cards. Pacing is approximate; waits and narration may take longer.</p>
+<button type="submit">Apply recipe</button><p class="hint">Undo restores the previous settings. Update preview verifies the task with the new pacing.</p></form></details>'''
     comparison_options = ''.join(f'<option value="{e(row["id"])}" data-binding="{e(row["binding"])}"{(" selected" if row["id"] == comparison["default"] else "")}>'
                       f'{"Accepted · " if row["accepted"] else ""}{e(row["id"][:8])} · {e(row["finished_at"][:19].replace("T", " "))} UTC · {e(row["mode"])}</option>'
                       for row in comparison['choices'])
@@ -1400,10 +1418,10 @@ def page(data, accept, seen=0):
 <p id="comparison-status" role="status"></p><div id="comparison-results" aria-busy="false"></div></details>'''
     nav = [*([('setup-panel', 'Tools')] if tools else []), ('preview-panel', 'Preview'), ('story-panel', 'Story'), ('compare-panel', 'Compare'), *([('cut-panel', 'Cut')] if data.get('edit') else []),
            ('look-panel', 'Look'), *([('audio-panel', 'Audio')] if data.get('edit') else []),
-           ('screenshots-panel', 'Screenshots'), ('tour-panel', 'Tour'), ('review-panel', 'Review'), ('download-panel', 'Download')]
+           ('screenshots-panel', 'Screenshots'), ('tour-panel', 'Tour'), *([('recipe-panel', 'Recipes')] if recipe_box else []), ('review-panel', 'Review'), ('download-panel', 'Download')]
     if not run:  # before a first working recording, only the story and its preview can do anything
         nav = [row for row in nav if row[0] in ('setup-panel', 'preview-panel', 'story-panel')]
-    optional = {'compare-panel', 'audio-panel', 'screenshots-panel', 'tour-panel'}
+    optional = {'compare-panel', 'audio-panel', 'screenshots-panel', 'tour-panel', 'recipe-panel'}
     nav_link = lambda target, label: f'<a href="#{target}" data-jump="{target}">{label}</a>'
     navigation = ''.join(nav_link(target, label) for target, label in nav if target not in optional)
     extra = ''.join(nav_link(target, label) for target, label in nav if target in optional)
@@ -1454,6 +1472,7 @@ def page(data, accept, seen=0):
 {evidence}
 <div class="accept">{accept}</div></section>{downloads}</section>
 <fieldset class="side" aria-label="Demo editing"{locked}><div class="beats" id="story-panel" tabindex="-1"><h2>Selected step</h2><p class="hint">Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+{recipe_box}
 {audio_box}
 {screenshot_box}
 {tour_box}
@@ -1543,6 +1562,9 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .beat.selected { box-shadow:0 0 0 2px var(--accent) } #selected-step a { display:inline-block; margin-left:12px; color:var(--accent) }
 .selected-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between }
 .selected-head button, .selected-head a { font-size:13px } #selected-step .hint { font-size:13px }
+.recipe-controls { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
+.recipe-choice { display:flex; align-items:start; gap:10px; border:1px solid var(--line); border-radius:8px; padding:10px }
+.recipe-choice > span { display:grid; gap:4px; color:var(--ink) } .recipe-choice small { color:var(--muted) }
 #still-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; font-size:12px }
 #still-controls label { display:flex; align-items:center; gap:6px; margin:0; font-size:12px; flex:0 1 200px }
 #still-controls select { width:auto; min-width:0; flex:1; margin:0; padding:3px }
@@ -1732,7 +1754,7 @@ SCRIPT = '''(() => {
       const editingCheck = what === 'edit' && body.update_expect != null ? document.querySelector('.check-correction') : null;
       const savingForm = ownForm || editingCheck;
       const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !savingForm || !savingForm.contains(input));
-      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour'].includes(what)) && unsaved) {
+      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'recipe'].includes(what)) && unsaved) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
       }
@@ -1776,7 +1798,12 @@ SCRIPT = '''(() => {
         .then(out => { if (out.ok) location.reload(); });
     };
   });
-  const styleChange = body => post('style', body, true).then(out => { if (out.ok) location.reload(); });
+  const styleChange = body => post('style', body, true).then(out => { if (out.ok) { document.dispatchEvent(new CustomEvent('reshoot:prefer-still')); location.reload(); } });
+  const recipeForm = document.getElementById('apply-recipe');
+  if (recipeForm) recipeForm.onsubmit = event => {
+    event.preventDefault(); post('recipe', {recipe:recipeForm.elements.recipe.value, title:recipeForm.elements.title.value}, true)
+      .then(out => { if (out.ok) { document.dispatchEvent(new CustomEvent('reshoot:prefer-still')); location.reload(); } });
+  };
   const customStyle = () => {
     const label = document.getElementById('current-style'); if (label) label.textContent = 'Current: Custom look';
     document.querySelectorAll('[data-style]').forEach(button => button.setAttribute('aria-pressed', 'false'));

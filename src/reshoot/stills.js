@@ -5,6 +5,8 @@
   const status = document.getElementById('still-status'), toggle = document.getElementById('toggle-still');
   const video = document.getElementById('video');
   let generation = 0, timer, controller, url, wantStill = false, ready = false;
+  const preferenceKey = location.pathname + ':layout-still';
+  try { const previous = JSON.parse(sessionStorage.getItem(preferenceKey)); wantStill = previous?.run === document.body.dataset.run && previous.want === true; } catch (_) {}
   document.body.dataset.stillReady = '1';
   const view = () => {
     image.hidden = !wantStill || !ready;
@@ -12,6 +14,7 @@
     else delete document.body.dataset.layoutStill;
     toggle.textContent = wantStill && ready ? 'Show recorded video' : 'Show layout still';
     toggle.disabled = !ready;
+    sessionStorage.setItem(preferenceKey, JSON.stringify({run:document.body.dataset.run, want:wantStill}));
   };
   const draft = () => {
     const panel = document.querySelector('.beat.selected');
@@ -85,6 +88,7 @@
   document.addEventListener('reshoot:sources-saved', () => schedule());
   document.addEventListener('reshoot:project-state', () => schedule());
   document.addEventListener('reshoot:show-recording', () => { wantStill = false; view(); });
+  document.addEventListener('reshoot:prefer-still', () => { wantStill = true; view(); });
   document.querySelectorAll('.beat input[name=caption], .beat input[name=sub], .look input, .look select, .cut [name=frame], .cut [name=frame_background], .cut [name=frame_background_end], .export-framing input, .export-framing select').forEach(input => {
     input.addEventListener('input', () => {
       const form = input.closest('.export-framing'); if (form) output.value = form.dataset.export;

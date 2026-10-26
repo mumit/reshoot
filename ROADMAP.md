@@ -18,8 +18,9 @@ repair, visual styles, beat cuts, destination framing, audio and documentation
 screenshots and offline tours now share that workflow. The
 [creation and revision plan](docs/plans/ux-plan.md) defines implementation and acceptance.
 
-1. **Compare export playback.** Inspect the paired exported videos in the studio
-    with beat-aware seeking and both recordings' exact review evidence.
+1. **Direct creation and editing.** A focused step workspace, fast faithful
+    still feedback, useful starting recipes and demonstrated step changes.
+    See the [execution plan](docs/plans/2026-10-26-direct-creation.md).
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 
@@ -50,6 +51,11 @@ screenshots and offline tours now share that workflow. The
   through the skills.
 
 ## Done
+
+- **Paired export playback and simpler recovery:** compare exact exported
+  videos with step seeking and one side's audio, correct a failed expectation
+  in place, resume matching editing history automatically and keep the next
+  action consistent. See the [validation record](docs/validation/2026-10-26-joyful-creation.md).
 
 - **Compare revisions in the studio:** earlier/current checked frames, stable
   story/beat matching, added/removed steps and frame/task/result changes. Both

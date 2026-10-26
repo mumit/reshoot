@@ -64,6 +64,23 @@ recorded words until you update it.
 To change how a step is done, edit its actions in `storyboard.toml`, or record
 the task again.
 
+### See layout changes as you edit
+
+With a recording that has editable captions, the studio shows a **layout
+still** when you choose a step or edit its caption, caption colours, browser
+frame or crop. **Preview shape** chooses the main video or one of its exports.
+Draft words and crop positions can be previewed before saving.
+
+The still uses the recorded step with the caption drawing, window frame and
+export geometry used by the video. **Show recorded video** returns to playback;
+**Play selected step** does the same. Update preview makes the edited video.
+Use playback to check timing, transitions, title cards, narration and audio.
+A layout still does not record the app again or approve the final.
+
+If a value is invalid, correct it or reset the unsaved edit. The previous
+recording is kept while the still updates. Older recordings without a clean
+take need a fresh preview before layout stills are available.
+
 ### Correct a failed result check
 
 When a check fails, the studio explains what it expected and what appeared.

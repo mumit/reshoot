@@ -72,13 +72,9 @@ def speed(src, start, end, factor, out):
     return out
 
 
-def frame(src, out, background="#1d2433", padding=0.06, radius=12, shadow=True, bar=True, bar_color="#2b2f36"):
-    """src shrunk into a browser-like window on a background, the same size as src: rounded corners, a soft shadow and,
-    with bar, a title bar with three dots. background is a colour or [top, bottom] for a gradient; radius is in the
-    output's pixels; padding is a fraction of the width on each side."""
+def frame_layers(w, h, background="#1d2433", padding=0.06, radius=12, shadow=True, bar=True, bar_color="#2b2f36"):
+    """Shared window artwork and geometry for the video renderer and representative stills."""
     from PIL import Image, ImageColor, ImageDraw, ImageFilter
-    import tempfile
-    w, h, seconds = probe(src)
     pad = round(w * padding)
     top = round(h * 0.045) if bar else 0
     scale = min((w - 2 * pad) / w, (h - 2 * pad - top) / h)
@@ -106,18 +102,29 @@ def frame(src, out, background="#1d2433", padding=0.06, radius=12, shadow=True, 
             d.ellipse((cx - dot, y + top // 2 - dot, cx + dot, y + top // 2 + dot), fill=colour)
     mask = Image.new("L", (cw, ch), 0)  # the page's corners: rounded at the bottom, and at the top without a bar
     ImageDraw.Draw(mask).rounded_rectangle((0, -radius if bar else 0, cw - 1, ch - 1), radius, fill=255)
+    return canvas, mask, (cw, ch, x, y + top)
+
+
+def frame_filter(cw, ch, x, y):
+    return (f"[1:v]scale={cw}:{ch},format=rgba[page];[2:v]format=gray[m];[page][m]alphamerge[cut];"
+            f"[0:v][cut]overlay={x}:{y}:shortest=1,fps={FPS},format=yuv420p")
+
+
+def frame(src, out, background="#1d2433", padding=0.06, radius=12, shadow=True, bar=True, bar_color="#2b2f36"):
+    """Shrink src into a browser window on a background, keeping its dimensions."""
+    w, h, seconds = probe(src)
+    canvas, mask, (cw, ch, x, y) = frame_layers(w, h, background, padding, radius, shadow, bar, bar_color)
     with tempfile.TemporaryDirectory() as temp:
         canvas.save(Path(temp) / "back.png")
         mask.save(Path(temp) / "mask.png")
         # The pictures are looped only as long as the clip, or ffmpeg would wait on them for ever.
         ff("-loop", 1, "-t", seconds, "-i", Path(temp) / "back.png", "-i", src,
            "-loop", 1, "-t", seconds, "-i", Path(temp) / "mask.png",
-           "-filter_complex", f"[1:v]scale={cw}:{ch},format=rgba[page];[2:v]format=gray[m];[page][m]alphamerge[cut];"
-           f"[0:v][cut]overlay={x}:{y + top}:shortest=1,fps={FPS},format=yuv420p", "-an", *ENC, out)
+           "-filter_complex", frame_filter(cw, ch, x, y), "-an", *ENC, out)
     from reshoot import timeline
     timeline.copy(src, out)
     from reshoot.framing import map_video
-    map_video(out, {'sx': cw / w, 'sy': ch / h, 'x': x, 'y': y + top})
+    map_video(out, {'sx': cw / w, 'sy': ch / h, 'x': x, 'y': y})
     return out
 
 

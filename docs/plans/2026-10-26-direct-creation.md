@@ -9,7 +9,7 @@ review associated with the selected run, and use synthetic data for every trial.
 - [x] Focus the workspace on a compact step filmstrip and one inspector,
   retaining keyboard selection, saved selection, existing editing features,
   first-creation recovery and a readable page without JavaScript.
-- [ ] Show fast representative stills for caption, look and export-framing
+- [x] Show fast representative stills for caption, look and export-framing
   edits using production drawing/geometry. Preserve the recorded video,
   reject stale results, bound work and cache unchanged frames. Measure latency
   and clearly distinguish draft feedback from rendered exports.

@@ -599,6 +599,8 @@ def server(a):
     history = Session(config, editable)
     token = secrets.token_urlsafe(16)
     job = Job()
+    from reshoot.stills import Renderer
+    stills = Renderer()
     prefix = f'/{token}/'
     cli = [sys.executable, '-m', 'reshoot.cli']
 
@@ -753,6 +755,34 @@ def server(a):
 
         def do_POST(self):
             action = self.path[len(prefix):] if self.path.startswith(prefix) else ''
+            if action == 'still':
+                body = review.from_page(self, prefix + action)
+                if body is None:
+                    return
+                try:
+                    import time
+                    from reshoot import comparison, stills as module
+                    started = time.monotonic()
+                    with history.lock:
+                        active = refresh_project()
+                        with history.transaction():
+                            history.check(body.get('revision'))
+                            run = comparison.read(folder, body.get('run_id'), body.get('binding'))
+                            request = module.prepare(config, active, run, body)
+                    png = stills.render(request)
+                    with history.lock, history.transaction():
+                        history.check(body.get('revision'))
+                        fresh = comparison.read(folder, body.get('run_id'), body.get('binding'))
+                        if request != module.prepare(config, active, fresh, body):
+                            raise ValueError('The layout changed while previewing. Try the latest edit again.')
+                    return review.reply(self, 200, png, 'image/png',
+                                        [('X-Reshoot-Revision', body['revision']),
+                                         ('ETag', hashlib.sha256(png).hexdigest()),
+                                         ('X-Reshoot-Preview-Ms', str(round((time.monotonic() - started) * 1000)))])
+                except (BrokenPipeError, ConnectionResetError):
+                    return
+                except (ValueError, OSError, KeyError, TypeError) as error:
+                    return review.reply(self, 409, str(error).encode(), 'text/plain')
             if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'job', 'accept', 'undo', 'redo', 'cancel', 'session'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
@@ -1297,15 +1327,22 @@ def page(data, accept, seen=0):
     else:
         edit_box = audio_box = ''
     if run:
+        still_options = '<option value="-1">Main video</option>' + ''.join(
+            f'<option value="{item["i"]}">{e(item["name"])}</option>' for item in (data.get('edit') or {}).get('exports', []))
+        still_controls = (f'<div id="still-controls"><label>Preview shape <select id="still-export">{still_options}</select></label>'
+                          '<p id="still-status" role="status">Layout still uses this recording. Update preview makes the video.</p>'
+                          '<button type="button" id="toggle-still" disabled>Show layout still</button></div>' if run['captions_drawn'] else '')
         top = (f'<p class="status">Run {e(run["id"][:8])}{" (a re-cut of " + e(run["recut_from"][:8]) + ")" if run["recut_from"] else ""}'
-               f': {e(run["status"])}.</p><video id="video" src="run/{e(run["video"])}"' +
+               f': {e(run["status"])}.</p><div class="preview-stage"><video id="video" src="run/{e(run["video"])}"' +
                (f' poster="run/{e(run["poster"])}"' if run.get('poster') else '') + ' controls preload="auto"></video>'
+               '<img id="still-image" alt="Representative layout still from this recording" hidden></div>'
                f'<div class="timeline" aria-label="Beats in the video"{"" if marks else " hidden"}>{marks}<b id="head"></b></div>')
         if not run['captions_drawn']:
             top += '<p class="note">This run was recorded with its captions in the page, so a re-cut keeps them: record again to change them.</p>'
         if failure:
             top = '<p class="note">Previous successful recording. Update preview to verify the current story.</p>' + top
     else:
+        still_controls = ''
         top = ('' if failure else '<p class="status">Your preview will appear here after setup and creation.</p>' if data.get('creation_pending') else
                '<p class="status">No run has worked yet. Record a preview to see the demo here.</p>')
     sheets = ''.join(f'<a href="run/{e(s)}" target="_blank"><img loading="lazy" src="run/{e(s)}" alt="Scan sheet {i + 1}"></a>'
@@ -1405,7 +1442,7 @@ def page(data, accept, seen=0):
 <section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><audio id="audition-player" controls hidden></audio><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
 <main><section class="watch" id="preview-panel" tabindex="-1">{failure_box}
 <div id="selected-step" hidden><div class="selected-head"><strong id="selected-step-title"></strong><span>
-<button type="button" id="play-selected">Play selected step</button><a href="#story-panel" id="edit-selected">Edit this step</a></span></div><p class="hint" id="selected-step-status"></p></div>{top}
+<button type="button" id="play-selected">Play selected step</button><a href="#story-panel" id="edit-selected">Edit this step</a></span></div><p class="hint" id="selected-step-status"></p>{still_controls}</div>{top}
 <section id="step-strip" aria-label="Choose a story step" hidden><h2>Your story</h2><p class="hint">Choose a step to edit. Use arrow keys to move between steps.</p></section>
 {f'<div class="shapes"><h2>Exports</h2><p class="hint">Measurements describe this rendered run. Update preview to measure saved changes.</p><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="docs-shots"><h2>Documentation screenshots</h2><p class="hint">From this displayed run. Update preview to render saved changes. Inspect each PNG before sharing.</p><div class="grid">{shot_images}</div></div>' if shot_images else ''}
@@ -1430,7 +1467,7 @@ def page(data, accept, seen=0):
 </details></fieldset></main>
 <p id="toast" role="status"></p>
 <dialog id="export-inspector"><form method="dialog"><button>Close</button></form><h2>Inspect the rendered export</h2><p id="inspector-size"></p><div class="inspection-rail"></div></dialog>
-<script>{SCRIPT}</script><script>{Path(__file__).with_name('editor.js').read_text()}</script><script>{Path(__file__).with_name('playback.js').read_text()}</script><script>{Path(__file__).with_name('comparison.js').read_text()}</script></body></html>'''
+<script>{SCRIPT}</script><script>{Path(__file__).with_name('editor.js').read_text()}</script><script>{Path(__file__).with_name('stills.js').read_text()}</script><script>{Path(__file__).with_name('playback.js').read_text()}</script><script>{Path(__file__).with_name('comparison.js').read_text()}</script></body></html>'''
     if run:
         document = document.replace('run/', f'runs/{run["id"]}/')
     return document.replace('data-seen="', f'data-revision="{e(data.get("revision", ""))}" '
@@ -1484,7 +1521,7 @@ main { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr); ga
 @media (max-width:900px) { main { grid-template-columns:1fr; padding:16px } }
 @media (min-width:1100px) and (min-height:700px) {
   .watch { position:sticky; top:calc(var(--header-height) + 16px); align-self:start; max-height:calc(100dvh - var(--header-height) - 32px); overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior:contain }
-  body[data-focused] #video { max-height:calc(100dvh - var(--header-height) - 450px); min-height:180px; object-fit:contain }
+  body[data-focused] #video, body[data-focused] #still-image { max-height:calc(100dvh - var(--header-height) - 450px); min-height:180px; object-fit:contain }
 }
 .watch > * + *, .side > * + * { margin-top:16px }
 .watch > div, .side > div:not(.beats) { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px }
@@ -1506,6 +1543,14 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .beat.selected { box-shadow:0 0 0 2px var(--accent) } #selected-step a { display:inline-block; margin-left:12px; color:var(--accent) }
 .selected-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between }
 .selected-head button, .selected-head a { font-size:13px } #selected-step .hint { font-size:13px }
+#still-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; font-size:12px }
+#still-controls label { display:flex; align-items:center; gap:6px; margin:0; font-size:12px; flex:0 1 200px }
+#still-controls select { width:auto; min-width:0; flex:1; margin:0; padding:3px }
+#still-status { flex:1 1 220px; margin:0; color:var(--muted); font-size:12px }
+#toggle-still { font-size:12px; margin-top:6px } body[data-still-ready] #selected-step-status { display:none }
+.preview-stage { padding:0 !important; overflow:hidden; background:#000 !important }
+#still-image { display:block; width:100%; height:auto; object-fit:contain; background:#000 }
+#still-image[hidden], body[data-layout-still] #video { display:none }
 body[data-focused] .beat[hidden] { display:none }
 #step-strip { padding:12px; background:var(--panel); border:1px solid var(--line); border-radius:10px; min-width:0 }
 #step-strip[hidden] { display:none } #step-strip .hint { font-size:12px }
@@ -1542,7 +1587,7 @@ summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screensh
 .styling > div { margin-top:14px } .error { color:var(--bad); font-weight:600 }
 #save-error { margin:12px 20px; padding:12px; border:1px solid var(--bad); border-radius:8px }
 .scan img { max-width:100%; display:block; margin-top:10px } .watch { min-width:0 }
-[data-unsaved] { outline:2px solid var(--bad) }
+[data-unsaved] { outline:2px solid var(--accent) } [data-invalid] { outline:2px solid var(--bad) }
 .failure { border-left:4px solid var(--bad) !important } .failure p { overflow-wrap:anywhere }
 .failure img { width:100%; max-height:340px; object-fit:contain; margin-top:10px }
 .style-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px }
@@ -1631,7 +1676,7 @@ SCRIPT = '''(() => {
       }
     });
   };
-  const applyJourney = state => { journeyState = state; renderJourney(); };
+  const applyJourney = state => { journeyState = state; renderJourney(); document.dispatchEvent(new CustomEvent('reshoot:project-state')); };
   new MutationObserver(renderJourney).observe(document.body, {subtree:true, attributes:true, attributeFilter:['data-unsaved']});
   document.querySelectorAll('.beat input, .look input, .look select, .cut .card input, .cut [name=frame], .cut [name=background], .cut [name=foreground], .cut [name=frame_background], .cut [name=frame_background_end], .export-framing input').forEach(input =>
     input.addEventListener('input', () => input.dataset.unsaved = '1'));
@@ -1696,6 +1741,7 @@ SCRIPT = '''(() => {
         revision: document.body.dataset.revision, ...body})}).then(r => r.json()).then(out => {
           if (out.revision) document.body.dataset.revision = out.revision;
           if (out.journey) applyJourney(out.journey);
+          if (out.ok !== false) document.dispatchEvent(new CustomEvent('reshoot:sources-saved'));
           if (out.ok === false) error(out.error);
           else { if (!document.querySelector('[data-unsaved]')) error(''); document.querySelectorAll('[data-history]').forEach(b => { b.disabled = !out[b.dataset.history]; b.dataset.enabled = out[b.dataset.history] ? '1' : ''; }); }
           return out;
@@ -1751,7 +1797,7 @@ SCRIPT = '''(() => {
     if (document.querySelector('[data-unsaved]')) { event.preventDefault(); error('Fix the unsaved field before downloading this look.'); }
   };
   let stopAt = null;
-  const play = (from, to) => { if (!video) return; stopAt = to; video.currentTime = from; video.play(); };
+  const play = (from, to) => { if (!video) return; document.dispatchEvent(new CustomEvent('reshoot:show-recording')); stopAt = to; video.currentTime = from; video.play(); };
   if (video) video.addEventListener('timeupdate', () => {
     if (stopAt != null && video.currentTime >= stopAt) { video.pause(); stopAt = null; }
     head.style.left = (100 * video.currentTime / (video.duration || 1)) + '%';
@@ -1895,7 +1941,7 @@ SCRIPT = '''(() => {
     document.querySelectorAll('[data-part-play]').forEach(button => button.disabled = true);
   };
   document.querySelectorAll('.seek').forEach(s => s.onclick = () => { if (video) { stopAt = null; video.currentTime = +s.dataset.t; video.pause(); } });
-  const saved = (out, where, input) => { if (!out.ok) return toast(out.error); if (input) delete input.dataset.unsaved;
+  const saved = (out, where, input) => { if (!out.ok) { if (input) input.dataset.invalid = '1'; return toast(out.error); } if (input) { delete input.dataset.unsaved; delete input.dataset.invalid; }
     if (!document.querySelector('[data-unsaved]')) error(''); toast('Saved'); const p = where.querySelector('.pending'); if (p) p.hidden = false;
     if (where.classList.contains('beat')) selectBeat(where); };
   document.querySelectorAll('.beat input').forEach(input => input.addEventListener('change', () => {

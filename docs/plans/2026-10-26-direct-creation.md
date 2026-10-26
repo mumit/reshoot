@@ -6,7 +6,7 @@ review associated with the selected run, and use synthetic data for every trial.
 
 ## Execution order
 
-- [ ] Focus the workspace on a compact step filmstrip and one inspector,
+- [x] Focus the workspace on a compact step filmstrip and one inspector,
   retaining keyboard selection, saved selection, existing editing features,
   first-creation recovery and a readable page without JavaScript.
 - [ ] Show fast representative stills for caption, look and export-framing

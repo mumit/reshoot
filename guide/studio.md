@@ -42,8 +42,10 @@ are shown.
 
 ## Change the story
 
-Each step of the story shows its last frame, its result checks, and its
-caption, second line and hold.
+The filmstrip under the video shows the story's steps. Choose one to open its
+inspector beside the preview. Left and right arrow keys move between steps;
+Home and End choose the first or last. The inspector shows that step's last
+frame, result checks, caption, second line and hold.
 
 - **Caption and second line:** change them and leave the field. They're saved
   to `storyboard.toml`, and the step says the change isn't in the video yet.
@@ -55,7 +57,7 @@ caption, second line and hold.
 
 Choose a step's frame, a mark on the timeline or one of its fields to select
 it. **Editing step** above the preview keeps that step named while you work.
-**Play selected step** plays it; **Back to this step** returns to its fields.
+**Play selected step** plays it; **Edit this step** returns to its fields.
 Saved changes say when an update is still needed. The shown video keeps its
 recorded words until you update it.
 

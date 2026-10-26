@@ -23,6 +23,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/create.py` | `reshoot create`: demonstrate a task, make a preview and open the studio |
 | `src/reshoot/setup.py` | Actionable dependency checks, synthetic probes and first-run setup state |
 | `src/reshoot/workspace.py` | Studio revisions and reversible edits |
+| `src/reshoot/editor.js` | Keyboard story filmstrip and one selected-step inspector |
 | `src/reshoot/session.py` | Persistent studio history, explicit recovery and saved-source copies |
 | `src/reshoot/styles.py` | Portable visual styles shared by the CLI and studio |
 | `src/reshoot/sequence.py` | Beat ranges and video-part ordering shared by the CLI and studio |

@@ -219,6 +219,7 @@ def test_creation_journey_shows_saved_state_navigates_and_downloads_bound_export
                 page.locator('[data-reset-drafts]').click()
             assert 'invalid colour' not in board.read_text()
             page.locator('.section-nav [data-jump=story-panel]').click()
+            page.locator('[data-select-step=search]').click()
             caption = page.locator('.beat[data-beat=search] input[name=caption]')
             caption.fill('A clearer result'); caption.press('Tab')
             page.wait_for_function("!document.querySelector('[data-unsaved]')")

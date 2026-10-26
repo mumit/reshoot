@@ -259,6 +259,7 @@ def test_studio_restarts_resume_redo_and_external_recovery_download(tmp_path):
             page.goto(url)
             original = paths[1].read_bytes()
             caption = page.locator('.beat[data-beat=search] input[name=caption]')
+            page.locator('[data-select-step=search]').click()
             caption.fill('Resume this caption'); caption.press('Tab')
             page.wait_for_function("!document.querySelector('[data-unsaved]')")
             assert b'Resume this caption' in paths[1].read_bytes()

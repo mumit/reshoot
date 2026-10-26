@@ -1404,8 +1404,9 @@ def page(data, accept, seen=0):
 <p id="save-error" class="error" role="alert" hidden></p>
 <section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><audio id="audition-player" controls hidden></audio><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
 <main><section class="watch" id="preview-panel" tabindex="-1">{failure_box}
-<div id="selected-step" hidden><strong id="selected-step-title"></strong><p class="hint" id="selected-step-status"></p>
-<button type="button" id="play-selected">Play selected step</button><a href="#story-panel" id="edit-selected">Back to this step</a></div>{top}
+<div id="selected-step" hidden><div class="selected-head"><strong id="selected-step-title"></strong><span>
+<button type="button" id="play-selected">Play selected step</button><a href="#story-panel" id="edit-selected">Edit this step</a></span></div><p class="hint" id="selected-step-status"></p></div>{top}
+<section id="step-strip" aria-label="Choose a story step" hidden><h2>Your story</h2><p class="hint">Choose a step to edit. Use arrow keys to move between steps.</p></section>
 {f'<div class="shapes"><h2>Exports</h2><p class="hint">Measurements describe this rendered run. Update preview to measure saved changes.</p><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="docs-shots"><h2>Documentation screenshots</h2><p class="hint">From this displayed run. Update preview to render saved changes. Inspect each PNG before sharing.</p><div class="grid">{shot_images}</div></div>' if shot_images else ''}
 {f'<div class="tour-previews"><h2>Clickable tour</h2><p class="hint">From this displayed run. Inspect every step, explanation and click marker before sharing.</p>{tour_previews}</div>' if tour_previews else ''}
@@ -1415,7 +1416,7 @@ def page(data, accept, seen=0):
 {f'<div class="found"><h3>What the scan found</h3><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>{downloads}</section>
-<fieldset class="side" aria-label="Demo editing"{locked}><div class="beats" id="story-panel" tabindex="-1"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+<fieldset class="side" aria-label="Demo editing"{locked}><div class="beats" id="story-panel" tabindex="-1"><h2>Selected step</h2><p class="hint">Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
 {audio_box}
 {screenshot_box}
 {tour_box}
@@ -1429,7 +1430,7 @@ def page(data, accept, seen=0):
 </details></fieldset></main>
 <p id="toast" role="status"></p>
 <dialog id="export-inspector"><form method="dialog"><button>Close</button></form><h2>Inspect the rendered export</h2><p id="inspector-size"></p><div class="inspection-rail"></div></dialog>
-<script>{SCRIPT}</script><script>{Path(__file__).with_name('playback.js').read_text()}</script><script>{Path(__file__).with_name('comparison.js').read_text()}</script></body></html>'''
+<script>{SCRIPT}</script><script>{Path(__file__).with_name('editor.js').read_text()}</script><script>{Path(__file__).with_name('playback.js').read_text()}</script><script>{Path(__file__).with_name('comparison.js').read_text()}</script></body></html>'''
     if run:
         document = document.replace('run/', f'runs/{run["id"]}/')
     return document.replace('data-seen="', f'data-revision="{e(data.get("revision", ""))}" '
@@ -1483,6 +1484,7 @@ main { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr); ga
 @media (max-width:900px) { main { grid-template-columns:1fr; padding:16px } }
 @media (min-width:1100px) and (min-height:700px) {
   .watch { position:sticky; top:calc(var(--header-height) + 16px); align-self:start; max-height:calc(100dvh - var(--header-height) - 32px); overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior:contain }
+  body[data-focused] #video { max-height:calc(100dvh - var(--header-height) - 450px); min-height:180px; object-fit:contain }
 }
 .watch > * + *, .side > * + * { margin-top:16px }
 .watch > div, .side > div:not(.beats) { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px }
@@ -1502,6 +1504,16 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .beat { display:grid; grid-template-columns:150px 1fr; gap:12px; background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--idle); border-radius:12px; padding:12px; scroll-margin-top:calc(var(--header-height) + 16px) }
 .beat.passed { border-left-color:var(--ok) } .beat.failed { border-left-color:var(--bad) } .beat.now { outline:2px solid var(--accent) }
 .beat.selected { box-shadow:0 0 0 2px var(--accent) } #selected-step a { display:inline-block; margin-left:12px; color:var(--accent) }
+.selected-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between }
+.selected-head button, .selected-head a { font-size:13px } #selected-step .hint { font-size:13px }
+body[data-focused] .beat[hidden] { display:none }
+#step-strip { padding:12px; background:var(--panel); border:1px solid var(--line); border-radius:10px; min-width:0 }
+#step-strip[hidden] { display:none } #step-strip .hint { font-size:12px }
+.step-choices { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 8px; position:relative }
+.step-choices button { flex:0 0 122px; padding:6px; text-align:left; min-width:0; font-size:12px }
+.step-choices button[aria-selected=true] { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) }
+.step-choices img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:4px; margin-bottom:5px }
+.step-choices span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .check-correction { margin:12px 0; padding:12px; border:1px solid var(--line); border-radius:8px }
 .check-correction fieldset { border:0; padding:0; margin:0; min-width:0 }
 .check-correction textarea { width:100%; box-sizing:border-box; font:inherit; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:7px; padding:6px 8px }
@@ -1762,7 +1774,16 @@ SCRIPT = '''(() => {
       'Showing the recorded version. Captions and timing save as you leave a field.');
     document.getElementById('play-selected').disabled = !video || li.dataset.start === '';
     if (seek && video && li.dataset.start !== '') { stopAt = null; video.pause(); video.currentTime = +li.dataset.start; }
+    document.dispatchEvent(new CustomEvent('reshoot:step-selected', {detail:{id:li.dataset.beat}}));
   };
+  document.addEventListener('reshoot:select-step', event => queue.then(() => {
+    const target = beat(event.detail.id);
+    if (target !== selected && selected?.querySelector('[data-unsaved]')) {
+      error('Save or reset the unsaved step before choosing another.');
+      selected.querySelector('[data-unsaved]').focus(); return;
+    }
+    selectBeat(target, event.detail.seek);
+  }));
   document.querySelectorAll('.beat').forEach(li => li.addEventListener('focusin', () => { if (selected !== li) selectBeat(li, true); }));
   selectBeat(beat(sessionStorage.getItem(selectionKey) || ''));
   document.getElementById('play-selected').onclick = () => { if (selected) play(+selected.dataset.start, +selected.dataset.end); };

@@ -189,6 +189,7 @@ def test_studio_selects_checked_docs_frame_and_recuts_with_scan_and_review(tmp_p
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(url)
             assert page.locator('.beat[data-beat=intro] [data-shot-beat]').count() == 0
+            page.locator('[data-select-step=search]').click()
             page.locator('[data-shot-beat=search]').click()
             form = page.locator('#add-screenshot')
             assert form.locator('[name=name]').input_value() == 'search-result'

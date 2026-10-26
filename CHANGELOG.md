@@ -8,6 +8,9 @@ change project files or commands.
 
 ### Added
 
+- A keyboard-accessible story filmstrip selects one step inspector beside the
+  preview, keeping other steps' forms out of the way while retaining edits.
+
 - Correct a failed check's expected count, text, address, field value or ticked
   state in the studio, with Undo, before recording a preview to verify it.
 - A selected-step bar keeps the step being edited beside the preview, with

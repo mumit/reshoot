@@ -167,6 +167,7 @@ def test_studio_narration_audition_capture_and_mix_recut(tmp_path):
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(url)
             search = page.locator('.beat[data-beat=search]')
+            page.locator('[data-select-step=search]').click()
             search.locator('.narration summary').click()
             search.locator('textarea').fill('Find the matching note.')
             page.click('[data-job=update]')

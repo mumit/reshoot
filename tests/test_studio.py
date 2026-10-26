@@ -160,6 +160,52 @@ def test_fits_says_where_an_export_is_going_and_its_limits():
 
 
 @pytest.mark.browser
+def test_filmstrip_keyboard_selection_preserves_edits_and_blocks_invalid_step_switches(tmp_path):
+    from playwright.sync_api import sync_playwright, expect
+    from reshoot import web, story
+    project.init(SimpleNamespace(directory=str(tmp_path), url=None, quiet=True))
+    original = (tmp_path / 'storyboard.toml').read_bytes()
+    httpd, url, _ = studio.server(SimpleNamespace(project=str(tmp_path), port=None))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(executable_path=web.find_chrome(), headless=True)
+            page = browser.new_page(viewport={'width': 1280, 'height': 900})
+            errors = []
+            page.on('pageerror', lambda error: errors.append(str(error)))
+            page.goto(url)
+            expect(page.locator('#story-panel .beat:visible')).to_have_count(1)
+            tab = page.locator('[data-select-step=intro]')
+            tab.focus(); tab.press('End')
+            expect(page.locator('[data-select-step=end]')).to_have_attribute('aria-selected', 'true')
+            page.locator('[data-select-step=end]').press('Home')
+            expect(tab).to_have_attribute('aria-selected', 'true')
+            caption = page.locator('.beat[data-beat=intro] input[name=caption]')
+            caption.fill('A saved opening')
+            page.locator('[data-select-step=add]').click()  # waits for the caption's blur-save
+            expect(page.locator('.beat[data-beat=add]')).to_be_visible()
+            assert story.load(tmp_path / 'storyboard.toml')['beat'][0]['caption'] == 'A saved opening'
+            hold = page.locator('.beat[data-beat=add] input[name=hold]')
+            hold.fill('-1')
+            page.locator('[data-select-step=search]').click()
+            expect(page.locator('.beat[data-beat=add]')).to_be_visible()
+            expect(page.locator('#save-error')).to_contain_text('Save or reset the unsaved step')
+            with page.expect_navigation():
+                page.locator('[data-reset-drafts]').click()
+            expect(page.locator('.beat[data-beat=add]')).to_be_visible()
+            assert story.load(tmp_path / 'storyboard.toml')['beat'][1]['hold'] == 1
+            page.set_viewport_size({'width': 390, 'height': 844})
+            page.locator('[data-select-step=add]').press('End')
+            expect(page.locator('.beat[data-beat=end]')).to_be_visible()
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            assert (tmp_path / 'storyboard.toml').read_bytes() != original
+            assert not errors
+            browser.close()
+    finally:
+        httpd.shutdown(); httpd.server_close()
+
+
+@pytest.mark.browser
 def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
     from playwright.sync_api import sync_playwright
     from test_reshoot import free_port
@@ -191,6 +237,8 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             assert page.locator('.beat').count() == 4 and page.locator('.seg').count() >= 3
             assert page.locator('.beat[data-beat=search] .checks').inner_text() == '2 of 2 result checks passed'
             search = page.locator('.beat[data-beat=search]')
+            assert page.locator('#story-panel .beat:visible').count() == 1
+            page.locator('[data-select-step=search]').click()
             assert search.locator('.pending').is_hidden()
             search.locator('input[name=caption]').fill('A caption from the studio')
             search.locator('input[name=caption]').press('Tab')
@@ -380,6 +428,7 @@ def test_correct_a_first_check_then_refine_resume_and_review_the_same_final(tmp_
             assert first[1]['expectations_count'] == 3 and first[1]['expectations_status'] == 'passed'
             clean_hash = digest(first[0] / 'takes/demo.clean.mp4')
             caption = page.locator('.beat[data-beat=search] input[name=caption]')
+            page.locator('[data-select-step=search]').click()
             caption.fill('A note found in a moment'); caption.press('Tab')
             page.wait_for_function('!document.querySelector("[data-unsaved]")')
             expect(page.locator('#selected-step-title')).to_have_text('Editing step: search')

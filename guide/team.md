@@ -47,7 +47,7 @@ The owner reviews the new recording that follows.
 
 If a result check fails, no pull request opens. The run fails on the beat that
 broke, and its summary names the beat and the control, such as
-`type target {css = '#q'} matched 0 elements`.
+`step 'search' stopped: it couldn't find the control matching #q`.
 
 ## Review a refresh pull request
 

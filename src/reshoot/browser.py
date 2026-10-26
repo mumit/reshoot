@@ -245,15 +245,22 @@ async def capture(board, a, frames, out, metadata, spoken):
         frame_handler = lambda event: frame_tasks.append(asyncio.create_task(frame(event)))
         cdp.on('Page.screencastFrame', frame_handler)
         current = None
+        from reshoot import repair
+        known = repair.earlier(out)
+        metadata['targets'] = []
         async def perform(entry, section, index, beat_id, hand=None):
+            seen = await repair.fingerprint(page, entry) if section != 'expect' and entry.get('target') else None
             try:
-                return (await assertion(page, entry)) if section == 'expect' else await action(page, entry, events, root, hand)
+                result = (await assertion(page, entry)) if section == 'expect' else await action(page, entry, events, root, hand)
             except Exception:
-                from reshoot.repair import diagnose
-                diagnosis = await diagnose(page, entry)
+                before = next((row['seen'] for row in known if row.get('target') == entry.get('target')), None)
+                diagnosis = await repair.diagnose(page, entry, before)
                 if diagnosis:
                     metadata['failure'] = {**diagnosis, 'beat': beat_id, 'section': section, 'index': index}
                 raise
+            if seen and not any(row['target'] == entry['target'] for row in metadata['targets']):
+                metadata['targets'].append({'target': entry['target'], 'seen': seen})
+            return result
         try:
             await page.goto(a.url or board.get('url', 'http://localhost:8000/'), wait_until='load', timeout=30000)
             metadata['stage'] = 'loading the page'
@@ -335,6 +342,9 @@ async def capture(board, a, frames, out, metadata, spoken):
             except Exception:
                 pass
             where = f'beat {current!r}' if current else 'opening the storyboard url'
+            if message := metadata.get('failure', {}).get('message'):
+                metadata['failure']['detail'] = redact(str(e))
+                raise RuntimeError(f'step {current!r} stopped: it {message}' if current else f'{where} failed: it {message}') from None
             hint = ''
             if 'ERR_UNSAFE_PORT' in str(e):
                 hint = ('. Chrome refuses some ports, such as 5060 and 6000: run the app on another port, or set '

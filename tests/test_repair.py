@@ -148,6 +148,42 @@ def test_alternatives_must_agree_and_never_mask_a_wrong_result():
     asyncio.run(check())
 
 
+def test_a_renamed_control_is_found_from_what_it_was_and_said_plainly():
+    from playwright.async_api import async_playwright
+    from reshoot import web
+    async def check():
+        async with async_playwright() as pw:
+            chrome = await pw.chromium.launch(executable_path=web.find_chrome(), headless=True)
+            try:
+                page = await chrome.new_page()
+                await page.set_content('<a href="/">Home</a> <a href="/new">New issue</a> <button>Save</button>')
+                entry = {'type': 'click', 'target': {'role': 'link', 'name': 'New issue'}}
+                before = await repair.fingerprint(page, entry)
+                await page.set_content('<a href="/">Home</a> <a href="/new">Report a problem</a> <button>Save</button>')
+                found = await repair.diagnose(page, entry, before)
+                assert found['candidates'] == [{'role': 'link', 'name': 'Report a problem'}]
+                assert found['message'] == ('couldn\'t find the link "New issue". It\'s probably "Report a problem" now: '
+                                            'that one goes to the same place.')
+                assert not await page.locator('[data-reshoot-candidate]').count()
+                # Without an earlier take, it says what the page has instead
+                found = await repair.diagnose(page, entry)
+                assert not found['candidates']
+                assert found['message'] == 'couldn\'t find the link "New issue". The links on the page now: "Home", "Report a problem".'
+                # Two controls that could both be it are not guessed between
+                await page.set_content('<a href="/new">Report a problem</a> <a href="/new">New</a>')
+                assert not (await repair.diagnose(page, entry, before))['candidates']
+                # A control of the same kind where the old one was
+                button = {'type': 'click', 'target': {'role': 'button', 'name': 'Save'}}
+                await page.set_content('<p>Notes</p><button>Save</button>')
+                before = await repair.fingerprint(page, button)
+                await page.set_content('<p>Notes</p><button>Keep</button>')
+                found = await repair.diagnose(page, button, before)
+                assert found['candidates'] == [{'role': 'button', 'name': 'Keep'}] and found['reason'] == 'is where it was'
+            finally:
+                await chrome.close()
+    asyncio.run(check())
+
+
 def broken_project(tmp_path):
     from test_reshoot import free_port
     project.init(SimpleNamespace(directory=str(tmp_path), url=None))
@@ -187,6 +223,33 @@ def test_failed_run_suggests_repair_and_new_preview_keeps_original_checks(tmp_pa
     assert result.value.code == 0
     latest = review.read(tmp_path / 'latest')[1]
     assert latest['expectations_status'] == 'passed' and latest['expectations_count'] == 3
+
+
+@pytest.mark.browser
+def test_a_story_without_alternatives_gets_a_suggestion_from_its_last_good_run(tmp_path):
+    from reshoot.cli import main
+    from test_reshoot import free_port
+    project.init(SimpleNamespace(directory=str(tmp_path), url=None))
+    port = free_port()
+    for name in ('reshoot.toml', 'storyboard.toml'):
+        path = tmp_path / name
+        path.write_text(path.read_text().replace('8765', str(port)))
+    config, board = tmp_path / 'reshoot.toml', tmp_path / 'storyboard.toml'
+    config.write_text(config.read_text().replace('scan = true', 'scan = false'))
+    with pytest.raises(SystemExit) as result:
+        main(['preview', str(config)])
+    assert result.value.code == 0
+    app = tmp_path / 'index.html'
+    app.write_text(app.read_text().replace('id="q"', 'id="search"').replace("'#q'", "'#search'").replace('#q', '#search'))
+    root = fail(config)
+    data = repair.load(root)
+    assert data['failure']['candidates'] == [{'css': '#search'}]
+    assert data['failure']['message'] == ('couldn\'t find the control matching #q. It\'s probably "Search notes" now: '
+                                          'that one is where it was.')
+    repair.main(SimpleNamespace(run_path=str(root), config=None, apply=True, pick=False))
+    with pytest.raises(SystemExit) as result:
+        main(['preview', str(config)])
+    assert result.value.code == 0
 
 
 @pytest.mark.browser

@@ -28,16 +28,165 @@ async def compatible(item, entry):
     }''', kind)
 
 
-async def diagnose(page, entry):
+# What a control was when a take last used it: compared with the page when the control has gone, so a renamed link
+# or button can still be found. Positions are in page coordinates, as the page was scrolled to the control.
+FINGERPRINT = """el => {
+  const r = el.getBoundingClientRect();
+  return {tag: el.tagName.toLowerCase(), href: el.getAttribute('href'), id: el.id || null, name: el.getAttribute('name'),
+          test_id: el.getAttribute('data-testid'), rect: [r.x + scrollX, r.y + scrollY, r.width, r.height]};
+}"""
+
+# Every visible control, scored against a fingerprint: the same link, id or test id is the same control; the same kind
+# of element where the old one was is probably it. Only a single best match is offered.
+MATCH = """before => {
+  const seen = el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+  const centre = r => [r[0] + r[2] / 2, r[1] + r[3] / 2];
+  const [bx, by] = centre(before.rect || [0, 0, 0, 0]);
+  const scored = [];
+  for (const el of document.querySelectorAll('a,button,input,select,textarea,summary,[role],[tabindex],[data-testid]')) {
+    if (!seen(el)) continue;
+    const r = el.getBoundingClientRect(), [x, y] = centre([r.x + scrollX, r.y + scrollY, r.width, r.height]);
+    const href = el.getAttribute('href'), tag = el.tagName.toLowerCase();
+    let score = 0, reason = '';
+    if (before.href && before.href !== '#' && href === before.href) { score = 3; reason = 'goes to the same place'; }
+    else if (before.id && el.id === before.id) { score = 3; reason = 'has the same id'; }
+    else if (before.test_id && el.getAttribute('data-testid') === before.test_id) { score = 3; reason = 'has the same test id'; }
+    else if (before.name && el.getAttribute('name') === before.name) { score = 2; reason = 'has the same name'; }
+    else if (before.rect && tag === before.tag && Math.hypot(x - bx, y - by) < 48) { score = 1; reason = 'is where it was'; }
+    if (score) scored.push({el, score, reason});
+  }
+  scored.sort((a, b) => b.score - a.score);
+  if (!scored.length || (scored[1] && scored[1].score === scored[0].score)) return null;
+  document.querySelectorAll('[data-reshoot-candidate]').forEach(el => el.removeAttribute('data-reshoot-candidate'));
+  scored[0].el.setAttribute('data-reshoot-candidate', '');
+  const el = scored[0].el;
+  return {reason: scored[0].reason, tag: el.tagName.toLowerCase(), href: el.getAttribute('href'), id: el.id || null,
+          label: (el.getAttribute('aria-label') || (el.labels && el.labels[0] ? el.labels[0].innerText : '') || el.innerText ||
+                  el.getAttribute('placeholder') || '').trim().replace(/\\s+/g, ' ').slice(0, 100)};
+}"""
+
+LABEL = "el => (el.getAttribute('aria-label') || (el.labels && el.labels[0] ? el.labels[0].innerText : '') || el.innerText || el.getAttribute('placeholder') || '').trim().replace(/\\s+/g, ' ').slice(0, 60)"
+
+KINDS = {'link': 'link', 'button': 'button', 'textbox': 'text box', 'combobox': 'list', 'checkbox': 'checkbox',
+         'radio': 'option', 'tab': 'tab', 'menuitem': 'menu item', 'switch': 'switch', 'searchbox': 'search box'}
+
+
+async def fingerprint(page, entry):
+    """The control an action is about to use, or None when it can't be told apart."""
+    from reshoot.browser import locator
+    try:
+        item = locator(page, entry['target'])
+        return await asyncio.wait_for(item.evaluate(FINGERPRINT), 1) if await item.count() == 1 else None
+    except Exception:
+        return None
+
+
+def earlier(out):
+    """The controls an earlier take of this story used: the last good run's and the accepted run's when recording in a
+    run, or the previous take at the same path."""
+    import os
+    paths = []
+    if (run_dir := os.environ.get('RESHOOT_RUN_DIR')) and Path(out).resolve().is_relative_to(Path(run_dir).resolve()):
+        relative = Path(out).resolve().relative_to(Path(run_dir).resolve())
+        paths += [Path(root) / relative for root in os.environ.get('RESHOOT_EARLIER', '').split(os.pathsep) if root]
+    paths.append(Path(out))
+    for path in paths:
+        try:
+            targets = json.loads(path.with_suffix('.take.json').read_text()).get('targets')
+        except (OSError, ValueError):
+            continue
+        if targets:
+            return targets
+    return []
+
+
+def plain(entry, failure, present=()):
+    """What a missing or ambiguous control means, in a person's words."""
+    target = entry['target']
+    kind = KINDS.get(target.get('role'), target.get('role') or 'control')
+    if target.get('name'):
+        named = f'the {kind} "{target["name"]}"'
+    elif target.get('role'):
+        named = f'the {kind}'
+    elif target.get('test_id'):
+        named = f'the control with test id "{target["test_id"]}"'
+    else:
+        named = f'the control matching {target.get("css")}' + (f' with the text "{target["text"]}"' if target.get('text') else '')
+    if failure['kind'] == 'ambiguous-target':
+        return f'found more than one control that could be {named}. Give the target something that tells them apart, such as a name or a test id.'
+    if failure.get('candidate_labels') and failure.get('reason'):
+        return f"couldn't find {named}. It's probably \"{failure['candidate_labels'][0]}\" now: that one {failure['reason']}."
+    message = f"couldn't find {named}."
+    if present:
+        message += f' The {kind}s on the page now: ' + ', '.join(f'"{label}"' for label in present) + '.'
+    return message
+
+
+async def present(page, entry):
+    """Up to eight controls of the same kind that the page shows now, by their words."""
+    from reshoot.browser import locator
+    target = entry['target']
+    if not target.get('role'):
+        return []
+    try:
+        items = locator(page, {k: v for k, v in target.items() if k in ('role', 'frame')})
+        labels = []
+        for n in range(min(await items.count(), 30)):
+            item = items.nth(n)
+            if await item.is_visible() and (label := await item.evaluate(LABEL)) and label not in labels:
+                labels.append(label)
+        return labels[:8]
+    except Exception:
+        return []
+
+
+async def diagnose(page, entry, before=None):
     """Bound optional diagnosis so a stale iframe cannot hide or indefinitely delay the original failure."""
     try:
-        return await asyncio.wait_for(_diagnose(page, entry), timeout=2)
+        found = await asyncio.wait_for(_diagnose(page, entry, before), timeout=2)
     except asyncio.TimeoutError:
-        return ({'kind': 'missing-target', 'target': entry['target'], 'candidates': [], 'ambiguous': False}
-                if entry.get('target') and entry['type'] != 'count' else None)
+        found = ({'kind': 'missing-target', 'target': entry['target'], 'candidates': [], 'ambiguous': False}
+                 if entry.get('target') and entry['type'] != 'count' else None)
+    from reshoot.story import EXPECT
+    if found and entry['type'] not in EXPECT:  # a failed result check is explained by the studio, with its values
+        others = []
+        if not (found.get('candidates') or found.get('ambiguous')):
+            try:
+                others = await asyncio.wait_for(present(page, entry), 2)
+            except asyncio.TimeoutError:
+                pass
+        found['message'] = plain(entry, found, others)
+    return found
 
 
-async def _diagnose(page, entry):
+async def _guess(page, entry, before):
+    """A replacement for a missing control, from what the control was when a take last used it."""
+    from reshoot.browser import locator
+    if not before or entry['target'].get('frame'):
+        return None
+    match = await page.evaluate(MATCH, before)
+    if not match:
+        return None
+    try:
+        target, specs = entry['target'], []
+        if target.get('role') and match['label']:
+            specs.append({'role': target['role'], 'name': match['label']})
+        if match['href']:
+            specs.append({'css': f'{match["tag"]}[href={json.dumps(match["href"])}]'})
+        if match['id']:
+            specs.append({'css': f'#{match["id"]}'})
+        for spec in specs:
+            item = locator(page, spec)
+            if (await item.count() == 1 and await item.evaluate("el => el.hasAttribute('data-reshoot-candidate')")
+                    and await compatible(item, entry)):
+                return {'candidates': [spec], 'candidate_labels': [match['label'] or match['tag']], 'reason': match['reason']}
+        return None
+    finally:
+        await page.evaluate("() => document.querySelectorAll('[data-reshoot-candidate]').forEach(el => el.removeAttribute('data-reshoot-candidate'))")
+
+
+async def _diagnose(page, entry, before=None):
     """Suggest only visible alternatives that agree on one element. Never execute or substitute a target."""
     from reshoot.browser import locator
     if not entry.get('target') or entry['type'] == 'count':
@@ -65,6 +214,8 @@ async def _diagnose(page, entry):
             if spec not in found:
                 found.append(spec)
                 labels.append(await item.evaluate("el => (el.getAttribute('aria-label') || el.getAttribute('placeholder') || (el.labels && el.labels[0] ? el.labels[0].innerText : '') || el.innerText || el.tagName).trim().replace(/\\s+/g, ' ').slice(0,100)"))
+        if not found and (guess := await _guess(page, entry, before)):
+            return {'kind': 'missing-target', 'target': entry['target'], 'ambiguous': False, 'before': before, **guess}
         return {'kind': 'missing-target', 'target': entry['target'],
                 'candidates': found[:1] if len(identities) == 1 else [],
                 'candidate_labels': labels[:1] if len(identities) == 1 else [], 'ambiguous': len(identities) > 1}
@@ -201,7 +352,7 @@ async def choose(data, pick=False, headless=False, drive=None):
             await replay(page, data)
             await page.evaluate('() => __demo.hide()')
             if not pick:
-                fresh = await diagnose(page, data['entry'])
+                fresh = await diagnose(page, data['entry'], data['failure'].get('before'))
                 candidates = (fresh or {}).get('candidates', [])
                 old = data['failure'].get('candidates', [])
                 if len(candidates) != 1 or candidates[0] not in old:
@@ -238,7 +389,8 @@ def main(a):
     from reshoot.workspace import History
     data = load(a.run_path, a.config)
     failure = data['failure']
-    print(f'Control needs repair: beat {failure["beat"]}, {failure["section"]} {failure["index"]}.')
+    print(f"Step {failure['beat']!r} stopped: it {failure['message']}" if failure.get('message') else
+          f'Control needs repair: beat {failure["beat"]}, {failure["section"]} {failure["index"]}.')
     if not (a.apply or a.pick):
         for target in failure.get('candidates', []):
             print('Suggested replacement: ' + redact(json.dumps(target)))
@@ -259,6 +411,6 @@ def main(a):
         apply(data, target, alternatives)
     finally:
         run.stop_app(app)
-    print('Updated only the locator. Actions and expected result values were preserved. Record a fresh preview to verify:\n'
-          '  reshoot preview ' + shlex.quote(str(data['config'])))
+    print(f"Changed only which control step {failure['beat']!r} uses; its actions and result checks are as they were. "
+          'Record a preview to check it:\n  reshoot preview ' + shlex.quote(run.shown(data['config'])))
     return 0

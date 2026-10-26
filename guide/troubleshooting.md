@@ -16,8 +16,8 @@ recording before it. Find the message below, or the section that matches.
 | `the app didn't answer at URL within N s` | Startup was slow or failed quietly | Read `app.log`; raise `[app] timeout`; [the app](#the-app-will-not-start) |
 | `the app stopped before it answered` | The `[app] run` command failed | Read `app.log`; [the app](#the-app-will-not-start) |
 | `demo data reset failed` | The `[app] reset` command failed | Run it by hand from the `reshoot.toml` folder |
-| `click target {css = '#q'} matched 0 elements` | The control is gone or renamed | Fix the target; [a beat fails](#an-action-or-result-check-fails) |
-| `... matched 2 elements; it must match exactly one` | The target is ambiguous | Add `name` or `text`, or use a test ID |
+| `couldn't find the control matching #q` | The control is gone or renamed | Use the control it suggests, or fix the target; [a beat fails](#an-action-or-result-check-fails) |
+| `found more than one control that could be` | The target is ambiguous | Add `name` or `text`, or use a test ID |
 | `The storyboard changed since this failure` / `Project settings changed since this failure` | Repair evidence belongs to older source | Record a new preview, then repair its failed run |
 | `The suggested control changed or is ambiguous` | The current app no longer supports the recorded suggestion | Choose the replacement in the studio or with `reshoot repair RUN --pick` |
 | `This run has no repairable control diagnosis` | The failure is not a missing or ambiguous control | Fix the app state, demo data or failing result; retain its expected values |

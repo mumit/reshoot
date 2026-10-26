@@ -167,19 +167,26 @@ PY
 In the studio, choose **Update preview**. The recording stops on the search
 step, because the storyboard still looks for `#q`. This is the failure you
 want: the demo stops where the app changed, instead of recording the wrong
-thing. The studio keeps your last good video and shows the **Failure frame**.
+thing. The studio keeps your last good video and says what happened:
 
-Choose **Choose replacement in app**. A browser opens at the search step.
-Click the search box and confirm it; clicking it there doesn't type into it.
-The studio changes only how the step finds the box. The search word and the
-expected result stay the same. Choose **Update preview**, and all three result
-checks pass again.
+```text
+Step 'search' stopped: it couldn't find the control matching #q. It's probably
+"Search notes" now: that one is where it was.
+```
 
-**From the terminal:** the failed preview prints the run folder and a repair
-command:
+Choose **Use "Search notes"**. The studio checks the box on the current app,
+then changes only how the step finds it. The search word and the expected
+result stay the same. Choose **Update preview**, and all three result checks
+pass again. If the suggestion is wrong, choose **Choose replacement in app**
+instead: a browser opens at the search step, and clicking the box there
+doesn't type into it.
+
+**From the terminal:** the failed preview prints the suggestion and the
+commands:
 
 ```bash
-reshoot repair demo/takes/runs/RUN_ID --pick   # choose the box in a browser
+reshoot repair demo/takes/runs/RUN_ID --apply  # use the suggested control
+reshoot repair demo/takes/runs/RUN_ID --pick   # or choose the box in a browser
 ```
 
 Or change the step yourself in `demo/storyboard.toml`, leaving the rest of it
@@ -207,8 +214,7 @@ only the earlier run; `demo/accepted` now records the update. Choose
 reshoot run demo/reshoot.toml --full
 reshoot compare demo/accepted demo/latest --out demo/comparison.json
 reshoot review demo/latest --previous demo/accepted
-reshoot accept demo/latest
-reshoot export demo/accepted --directory docs/demo
+reshoot accept demo/latest --export docs/demo
 ```
 
 `compare` lists which steps matched and which changed:

@@ -70,7 +70,7 @@ request, without a comparison. Merging it starts the record.
 
 When a change breaks the story, such as a renamed input, the run fails on that
 beat and opens no pull request. The job's summary page names the beat and its
-target, for example `type target {css = '#q'} matched 0 elements`, and the
+target, for example `step 'search' stopped: it couldn't find the control matching #q`, and the
 artifact holds a screenshot of the failure. Repair the story locally or with
 the [refresh skill](../skills/reshoot-refresh/SKILL.md), push, and the next run
 opens the pull request. The workflow never repairs a story itself.

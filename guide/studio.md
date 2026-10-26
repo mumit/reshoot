@@ -198,9 +198,12 @@ captions or the edit, so watch the exports too.
 When the app changes and a step can't find its control, the studio keeps the
 last working video and shows the **Failure frame**.
 
-- **Use suggested control** appears when the alternatives saved while recording
-  agree on one replacement. It replays the earlier steps and checks the
-  control before changing the step.
+- **Use "Report a problem"**, named after the control it found, appears when
+  reshoot can tell what the control became: one that goes to the same place,
+  has the same id, or sits where the old one was in the last recording that
+  worked. It replays the earlier steps and checks the control before changing
+  the step. When it can't tell, the message lists the controls of that kind
+  the page has now.
 - **Choose replacement in app** opens a fresh browser at the broken step. Click
   the control, then confirm it. Clicking it there doesn't press it.
 

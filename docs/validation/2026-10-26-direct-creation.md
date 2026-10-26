@@ -82,7 +82,58 @@ A fresh CLI Release update also produced MP4/GIF exports with all three task
 checks passing. Its opening card was extracted and inspected; review remained
 pending. The recipe targets are pacing guides, not guaranteed final lengths.
 
-## Following stage
+## Reviewed step demonstrations
 
-Reviewed step demonstrations are the final stage in the plan. Outside-user
-testing remains deferred.
+The selected inspector can replace actions or insert a step. A fresh browser
+replays setup and the earlier task/checks before enabling the recorder. Done
+saves a separate private draft, not the story. Review leads with readable
+current/proposed action lists; the full file diff is available underneath.
+Using the draft groups the source edit for Undo/Redo and requires fresh
+recording before final acceptance. The previous video remains associated
+with its run while source changes wait for verification.
+
+Replacements retain identity, words, timing and all original result checks.
+Insertions retain every existing step. Explicit new checks may be added;
+inferred intermediate checks do not replace the original task requirements.
+The usual ending inserts before the end marker to stay within the default
+cut. Custom cuts may need an updated range. Unsupported frame/popup/drop/file
+actions, password placeholders and new privacy blurs cannot silently produce
+an applicable action draft.
+
+Drafts record the original source hashes, and applications check both the
+current sources and the exact proposal reviewed by the studio. Concurrent
+edits, changed proposals and interrupted recording keep the current files.
+Grouped saves roll back their own writes on a later write failure. Source
+copies and sanitized recorder output stay in ignored `takes/demonstrations/`;
+raw recorder events are not saved. Capture has a time limit and bounded event
+count/size. Only the owned browser and configured demo app are closed.
+
+Verification: nine focused fast tests cover replacement and both insertion
+positions, nested action tables, retained comments/checks, explicit checks,
+changed sources/drafts, missing review tokens, failed group writes and Studio
+job routing. Three browser journeys passed: both insertion prefixes, and a
+replacement through draft review, Undo/Redo and Update preview with all three
+original checks passing. The displayed video's URL stayed unchanged until
+that fresh recording. Cancelling by closing Chrome kept the story. Two
+original creation-recorder browser regressions also passed.
+
+Ten further browser regressions passed across keyboard editing, caption
+re-cutting, failed-check recovery, first creation through final review,
+navigation/downloads, layout stills, export framing, persistent history and
+starting recipes. This gives 15 browser journeys across the final recorder
+and Studio verification, without accepting any output on the owner's behalf.
+
+Desktop and 390 px review panels were inspected using synthetic notes. The
+full fast suite passed with 325 tests. Python 3.11 parsing, JavaScript syntax,
+local documentation links and an offline wheel containing the exact new
+modules, scripts and bundled skill were checked. Plugin validation passed
+with its existing root-context and missing-icon warnings.
+
+A final headless demonstration against the Release update notes project also
+kept every source unchanged, reported no page errors or mobile overflow, and
+left the draft unapplied. Its screenshots and results are in ignored
+`takes/direct-20261026/demonstration-review/`; the trial script is alongside
+that folder. Logs for this stage are `/tmp/reshoot-direct-*.log`.
+
+All four implementation stages are complete. Outside-user testing remains
+deferred; these checks do not establish that new users find the product joyful.

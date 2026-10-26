@@ -39,6 +39,12 @@ describes the choices. Never treat a recipe as a verified result or acceptance.
 
 For combined web and VHS edits, give both takes the same dimensions.
 
+Offer `reshoot step record BEAT --project demo` for an owner to demonstrate a
+replacement; `--mode before|after` adds a step. It waits for a person: do not
+start it autonomously. Review with `step show DRAFT --project demo`, then
+explicitly apply or discard. Existing checks stay. Record a fresh preview
+after applying. See [step demonstrations](https://github.com/mumit/reshoot/blob/main/guide/studio.md#show-a-changed-step).
+
 ## Write a native macOS project
 
 Save a brief, a capture recipe and an edit script in a demo folder. `reshoot window --list` finds the exact demo window; `reshoot window APP NEW_TAKE.mov --id ID -s SECONDS` records it. Check Screen Recording permission for the command's host. The window command does not operate controls: drive the app with app-specific automation or the owner's hands. Look up the ID each take and use new output paths. Versioned projects support web and VHS only, so do not invent a run manifest, overlay or result checks. Export with `reshoot edit EDIT.toml NEW_TAKE.mov`, using numeric cuts and a GIF export profile, or a Python edit. This route needs no supporting plugin skills.

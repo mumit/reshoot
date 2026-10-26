@@ -41,6 +41,11 @@ newest successful run or `accepted` for the newest accepted run, such as
 | Command | What it does |
 |---|---|
 | `reshoot studio PROJECT` | Opens the latest recording to edit captions and holds, undo/redo, update the preview, compare checked revision frames, make a final, inspect scan sheets and accept the displayed run; saved history offers explicit recovery after restart; runs until Ctrl-C |
+| `reshoot step record BEAT --project demo` | Replays to the step in a fresh browser, then records replacement actions into a separate draft when you choose Done; `--mode before` or `--mode after` adds a step. Existing checks stay |
+| `reshoot step list --project demo` | Shows the newest pending demonstration |
+| `reshoot step show DRAFT --project demo` | Shows proposed action changes without saving them to the story |
+| `reshoot step apply DRAFT --project demo` | Saves the reviewed actions only if the project's files still match; record a fresh preview to verify the task |
+| `reshoot step discard DRAFT --project demo` | Discards the draft and keeps the current story |
 | `reshoot recut RUN` | Edits and scans that run's takes again into a new run, after a change to `edit.toml` or the captions; nothing is recorded |
 | `reshoot style list --project demo` | Lists Focus, Midnight, Paper and the project's saved visual styles |
 | `reshoot style apply STYLE --project demo` | Applies a listed style key or portable TOML file to captions, title-card colours and framing; update the preview afterwards |

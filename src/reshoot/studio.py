@@ -374,6 +374,8 @@ def view(folder, take, config, run=None):
     data['setup'] = tools if not tools['ok'] or pending_creation or not run and not current(folder) else None
     data['creation_pending'] = bool(pending_creation)
     data['needs_demonstration'] = bool(creation and creation['stage'] == 'record')
+    from reshoot import demonstration
+    data['demonstration'] = demonstration.latest(config)
     data['resume_command'] = create.resume_command(folder) if pending_creation else ''
     from reshoot import comparison
     data['comparison'] = comparison.choices(folder, run or current(folder))
@@ -783,7 +785,7 @@ def server(a):
                     return
                 except (ValueError, OSError, KeyError, TypeError) as error:
                     return review.reply(self, 409, str(error).encode(), 'text/plain')
-            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'recipe', 'job', 'accept', 'undo', 'redo', 'cancel', 'session'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'recipe', 'demonstration', 'job', 'accept', 'undo', 'redo', 'cancel', 'session'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -864,6 +866,17 @@ def server(a):
                     tours.apply(config, body.get('change'), expected=before)
                     history.remember(before, history.snapshot())
                     out = {'ok': True}
+                elif action == 'demonstration':
+                    from reshoot import demonstration
+                    if body.get('operation') == 'apply':
+                        before = history.snapshot()
+                        demonstration.apply(config, body.get('id'), body.get('draft_binding'))
+                        history.remember(before, history.snapshot())
+                    elif body.get('operation') == 'discard':
+                        demonstration.discard(config, body.get('id'), body.get('draft_binding'))
+                    else:
+                        raise ValueError('Use the reviewed actions or discard the draft.')
+                    out = {'ok': True}
                 elif action == 'recipe':
                     from reshoot import recipes
                     before = history.snapshot()
@@ -918,11 +931,25 @@ def server(a):
                         if not creation or creation['stage'] == 'done':
                             raise ValueError('No paused creation here. Use Update preview to refresh this project.')
                         commands['create'] = [*cli, 'create', '--resume', '--directory', str(folder), '--no-studio']
-                    if kind in ('preview', 'run', 'from', 'recut', 'repair'):
+                    if kind in ('preview', 'run', 'from', 'recut', 'repair', 'demonstrate'):
                         from reshoot import setup
                         if not setup.current(config)['ok']:
                             raise ValueError('Recording tools need attention. Open Recording tools and choose Check again before updating.')
                     on_done, result = None, None
+                    if kind == 'demonstrate':
+                        import uuid
+                        from reshoot import demonstration, story
+                        if demonstration.latest(config):
+                            raise ValueError('Review or discard the saved demonstration before recording another.')
+                        if beat not in [row['id'] for row in story.load(folder / take['web'])['beat']]:
+                            raise ValueError('Choose an existing story step.')
+                        mode = body.get('mode')
+                        if mode not in ('replace', 'before', 'after'):
+                            raise ValueError('Choose replace, before or after.')
+                        ident = uuid.uuid4().hex
+                        commands['demonstrate'] = [*cli, 'step', 'record', beat, '--mode', mode, '--project', str(config),
+                                                   '--draft-id', ident, '--expected-revision', history.revision()]
+                        result = {'draft':ident}
                     if kind == 'audition':
                         from reshoot import audio
                         spec = audio.audition_spec(config, beat)
@@ -1063,7 +1090,21 @@ def page(data, accept, seen=0):
     pending = '<p class="pending"{}>Saved. Update preview to see this change.</p>'
     beats = []
     shot_beats = {beat['id'] for beat in data.get('screenshot_beats', [])}
+    demonstration_box = ''
+    draft = data.get('demonstration')
+    if draft:
+        previous_actions = ''.join(f'<li>{e(words)}</li>' for words in draft['previous_actions'])
+        proposed_actions = ''.join(f'<li>{e(words)}</li>' for words in draft['proposed_actions'])
+        demonstration_box = f'''<section id="demonstration-panel" tabindex="-1"><h2>Review demonstrated actions</h2>
+<p>{e(draft['message'] or 'The recording did not finish. Your story is kept; discard this draft before trying again.')}</p>
+<p class="hint">Step: {e(draft['beat'])}. Change: {e(draft['mode'])}. Existing steps and result checks stay. Using these actions saves the story; Update preview verifies the complete task. Undo restores the previous actions.</p>
+{f'<h3>Current actions</h3><ol>{previous_actions}</ol>' if previous_actions else ''}
+{f'<h3>Proposed actions</h3><ol>{proposed_actions}</ol>' if proposed_actions else ''}
+{f'<details><summary>See story file changes</summary><pre class="draft-diff">{e(draft["diff"])}</pre></details>' if draft['diff'] else ''}
+<button type="button" data-demonstration="apply" data-draft="{e(draft['id'])}" data-draft-binding="{e(draft['binding'])}"{'' if draft['can_apply'] else ' disabled'}>Use these actions</button>
+<button type="button" data-demonstration="discard" data-draft="{e(draft['id'])}" data-draft-binding="{e(draft['binding'])}">Discard draft</button></section>'''
     for n, beat in enumerate(data['beats']):
+        insertion = 'before' if n == len(data['beats']) - 1 and not beat.get('expects') and beat['id'] == 'end' else 'after'
         checks = beat.get('checks') or []
         passed = sum(c == 'passed' for c in checks)
         check_state = 'failed' if 'failed' in checks else 'passed' if checks else 'unverified'
@@ -1081,6 +1122,10 @@ def page(data, accept, seen=0):
     {f'<p class="purpose">{e(beat["purpose"])}</p>' if beat.get('purpose') else ''}
     <p class="checks">{f'{passed} of {len(checks)} result checks passed' if checks else
                        f'{beat["expects"]} result check{"" if beat["expects"] == 1 else "s"}, not run yet' if beat.get('expects') else 'No result checks'}</p>
+    <details class="demonstrate-controls"><summary>Change actions by showing them</summary>
+    <p class="hint">Chrome replays to this step in a fresh profile. Use demo data, show the new actions, then choose Done. Review the separate draft before changing your story. Existing result checks stay.</p>
+    <button type="button" data-demonstrate="{e(beat['id'])}" data-mode="replace"{' disabled' if draft else ''}>Replace this step’s actions</button>
+    <button type="button" data-demonstrate="{e(beat['id'])}" data-mode="{insertion}"{' disabled' if draft else ''}>{'Add step before ending' if insertion == 'before' else 'Add step after this'}</button></details>
     {f'<button type="button" data-shot-beat="{e(beat["id"])}">Use for docs</button>' if beat['id'] in shot_beats and run else ''}
     <label>Caption <input name="caption" value="{e(beat['caption'])}" placeholder="No caption"></label>
     <label>Second line <input name="sub" value="{e(beat['sub'])}" placeholder="None"></label>
@@ -1457,6 +1502,7 @@ def page(data, accept, seen=0):
 <a href="#review-panel" data-jump="review-panel" id="journey-review"{'' if state['next'] == 'review' else ' hidden'}>Review this final</a>
 <a href="#download-panel" data-jump="download-panel" id="journey-files"{'' if state['next'] == 'download' else ' hidden'}>Get your files</a></section>
 <p id="save-error" class="error" role="alert" hidden></p>
+{('<p class="journey"><strong>A step demonstration is waiting.</strong> <a href="#demonstration-panel" data-jump="demonstration-panel">Review the changes</a> before recording another.</p>') if draft else ''}
 <section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><audio id="audition-player" controls hidden></audio><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
 <main><section class="watch" id="preview-panel" tabindex="-1">{failure_box}
 <div id="selected-step" hidden><div class="selected-head"><strong id="selected-step-title"></strong><span>
@@ -1471,7 +1517,7 @@ def page(data, accept, seen=0):
 {f'<div class="found"><h3>What the scan found</h3><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>{downloads}</section>
-<fieldset class="side" aria-label="Demo editing"{locked}><div class="beats" id="story-panel" tabindex="-1"><h2>Selected step</h2><p class="hint">Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+<fieldset class="side" aria-label="Demo editing"{locked}>{demonstration_box}<div class="beats" id="story-panel" tabindex="-1"><h2>Selected step</h2><p class="hint">Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
 {recipe_box}
 {audio_box}
 {screenshot_box}
@@ -1562,6 +1608,8 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .beat.selected { box-shadow:0 0 0 2px var(--accent) } #selected-step a { display:inline-block; margin-left:12px; color:var(--accent) }
 .selected-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between }
 .selected-head button, .selected-head a { font-size:13px } #selected-step .hint { font-size:13px }
+.draft-diff { white-space:pre-wrap; overflow-wrap:anywhere; max-height:22rem; overflow:auto; font-size:12px }
+#demonstration-panel { background:var(--panel); padding:14px; border:2px solid var(--line); border-radius:12px }
 .recipe-controls { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
 .recipe-choice { display:flex; align-items:start; gap:10px; border:1px solid var(--line); border-radius:8px; padding:10px }
 .recipe-choice > span { display:grid; gap:4px; color:var(--ink) } .recipe-choice small { color:var(--muted) }
@@ -1754,7 +1802,7 @@ SCRIPT = '''(() => {
       const editingCheck = what === 'edit' && body.update_expect != null ? document.querySelector('.check-correction') : null;
       const savingForm = ownForm || editingCheck;
       const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !savingForm || !savingForm.contains(input));
-      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'recipe'].includes(what)) && unsaved) {
+      if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'recipe', 'demonstration'].includes(what)) && unsaved) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
       }
@@ -1800,6 +1848,12 @@ SCRIPT = '''(() => {
   });
   const styleChange = body => post('style', body, true).then(out => { if (out.ok) { document.dispatchEvent(new CustomEvent('reshoot:prefer-still')); location.reload(); } });
   const recipeForm = document.getElementById('apply-recipe');
+  document.querySelectorAll('[data-demonstration]').forEach(button => button.onclick = () =>
+    post('demonstration', {operation:button.dataset.demonstration, id:button.dataset.draft, draft_binding:button.dataset.draftBinding}, true)
+      .then(out => { if (out.ok) location.reload(); }));
+  document.querySelectorAll('[data-demonstrate]').forEach(button => button.onclick = () =>
+    post('job', {kind:'demonstrate', beat:button.dataset.demonstrate, mode:button.dataset.mode}, true)
+      .then(out => { if (out.ok) { box.scrollIntoView({behavior:'smooth'}); watch(); } }));
   if (recipeForm) recipeForm.onsubmit = event => {
     event.preventDefault(); post('recipe', {recipe:recipeForm.elements.recipe.value, title:recipeForm.elements.title.value}, true)
       .then(out => { if (out.ok) { document.dispatchEvent(new CustomEvent('reshoot:prefer-still')); location.reload(); } });
@@ -2121,7 +2175,7 @@ SCRIPT = '''(() => {
   const auditionPlayer = document.getElementById('audition-player');
   auditionPlayer.addEventListener('play', () => { if (video) video.pause(); });
   if (video) video.addEventListener('play', () => auditionPlayer.pause());
-  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat', repair: 'Repairing control', audition: 'Preparing narration', setup:'Checking recording tools', create:'Continuing creation'};
+  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat', repair: 'Repairing control', audition: 'Preparing narration', setup:'Checking recording tools', create:'Continuing creation', demonstrate:'Demonstrating new actions in Chrome; choose Done to save a draft'};
   const watch = () => fetch('job.json').then(r => r.json()).then(job => {
     if (!job.kind) return;
     document.body.dataset.jobRunning = job.running ? '1' : '';
@@ -2155,6 +2209,11 @@ SCRIPT = '''(() => {
     if (job.kind === 'setup') {
       title.textContent = job.cancelled ? 'Tool check cancelled. Your project is kept.' : job.code === 0 ? 'Tool check passed. Loading the project...' : 'Tool check needs attention. Loading the fixes...';
       if (!job.cancelled && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
+      return;
+    }
+    if (job.kind === 'demonstrate') {
+      title.textContent = job.cancelled ? 'Demonstration cancelled. Your story is kept.' : job.code === 0 ? 'Demonstration saved. Loading its changes for review...' : 'Demonstration did not finish. Loading the draft details...';
+      if (job.n > +document.body.dataset.seen) setTimeout(() => { location.hash = 'demonstration-panel'; location.reload(); }, 600);
       return;
     }
     title.textContent = job.cancelled ? 'Update cancelled. Your previous recording is kept.' : job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed. Loading the step that needs attention...';

@@ -16,7 +16,7 @@ review associated with the selected run, and use synthetic data for every trial.
 - [x] Offer feature-highlight, task-walkthrough and release-update recipes
   with purposeful pacing, look and export choices. Preserve task actions and
   checks; support Undo and resume creation after failures.
-- [ ] Let an author add or replace a step by demonstrating it after replaying
+- [x] Let an author add or replace a step by demonstrating it after replaying
   the prefix. Keep a separate draft, review the proposed action changes,
   preserve existing result checks by default, guard concurrent edits and
   require a fresh preview before final review.

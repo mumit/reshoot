@@ -8,6 +8,10 @@ change project files or commands.
 
 ### Added
 
+- Demonstrate replacement actions or an added step from the studio or
+  `reshoot step record`. Earlier actions replay first; Done saves a separate
+  draft for review. Applying retains existing result checks, supports studio
+  Undo and requires a fresh preview before final review.
 - A keyboard-accessible story filmstrip selects one step inspector beside the
   preview, keeping other steps' forms out of the way while retaining edits.
 - Layout stills show caption, window and crop changes as you edit, using the

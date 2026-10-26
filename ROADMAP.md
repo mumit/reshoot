@@ -18,9 +18,10 @@ repair, visual styles, beat cuts, destination framing, audio and documentation
 screenshots and offline tours now share that workflow. The
 [creation and revision plan](docs/plans/ux-plan.md) defines implementation and acceptance.
 
-1. **Direct creation and editing.** A focused step workspace, fast faithful
-    still feedback, useful starting recipes and demonstrated step changes.
-    See the [execution plan](docs/plans/2026-10-26-direct-creation.md).
+1. **Direct creation and editing, implemented.** A focused step workspace,
+    fast representative stills, useful starting recipes and reviewed
+    demonstrated step changes. See the [execution plan](docs/plans/2026-10-26-direct-creation.md)
+    and [validation](docs/validation/2026-10-26-direct-creation.md).
 2. **Outside users.** Deferred by the owner. Three people who are not the maintainer, each starting from the
     first-demo prompt, and later from the studio. Why: a UI is where real users will surprise us most.
 

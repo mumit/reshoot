@@ -80,8 +80,33 @@ it. **Editing step** above the preview keeps that step named while you work.
 Saved changes say when an update is still needed. The shown video keeps its
 recorded words until you update it.
 
-To change how a step is done, edit its actions in `storyboard.toml`, or record
-the task again.
+### Show a changed step
+
+Open **Change actions by showing them** in the selected step. Choose
+**Replace this step’s actions**, or **Add step after this**. The ending offers
+**Add step before ending** so the new action appears inside the usual cut.
+
+Chrome opens with a fresh profile and replays the earlier actions and checks.
+For an added step it also replays the selected step. Show just the new actions
+using demo data, then choose **Done** in the recording toolbar. Closing Chrome
+or cancelling keeps the story unchanged.
+
+The studio shows a separate draft with the proposed changes. Replacing keeps
+the step's words, timing and every existing result check; adding keeps all
+existing steps. **Check result** adds an explicit check for the demonstrated
+result. Review the changes, then choose **Use these actions** or **Discard
+draft**. **Undo** restores an applied edit. Drafts stay under the project's
+ignored `takes/demonstrations/` folder.
+
+**Update preview** records the complete task to verify the saved actions before
+final review. The previous video stays available. If the project changed during
+the demonstration, keep those files and record again. If an earlier check fails,
+fix that step first. For a paused creation, choose **Continue creation** after
+applying the draft.
+
+Step demonstrations support the recorder's simple page actions. Change iframe,
+popup, file-selection, drop, password and privacy-blur settings in the story
+file. A custom cut can leave out a newly added step; include it under **Your cut**.
 
 ### See layout changes as you edit
 
@@ -323,6 +348,7 @@ demo/reshoot.toml` to record again.
 | Screenshots | `reshoot screenshot set search-result --beat search --alt '...'` |
 | Clickable tour | `reshoot tour create --title '...'`, `reshoot tour set 1 --text '...'` |
 | Repair | `reshoot repair RUN`, then `--apply` or `--pick` |
+| Demonstrate a step | `reshoot step record search`, then `reshoot step show DRAFT` and `reshoot step apply DRAFT` |
 | Accept | `reshoot accept demo/latest` |
 | Copy the exports | `reshoot export demo/latest --directory docs/demo` |
 

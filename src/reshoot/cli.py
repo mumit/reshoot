@@ -250,6 +250,28 @@ def main(argv=None):
             command.add_argument('--replace', action='store_true', help='replace an existing saved style or export file')
         command.set_defaults(run=styles.main)
 
+    from reshoot import demonstrate
+    p = sub.add_parser('step', help='demonstrate and review an added or replaced story step',
+                       description='Replay to a step in a fresh browser, then show new demo actions. Choose Done to save a separate draft. '
+                       'Review before applying. Replacements keep existing result checks, words and timing. A fresh preview verifies the whole task.')
+    operations = p.add_subparsers(dest='operation', required=True)
+    step_help = {'record':'replay to a step, then demonstrate actions; Done saves a separate draft',
+                 'list':'show the newest pending demonstration', 'show':'review the proposed story changes',
+                 'apply':'save reviewed actions and retain existing checks; then record a fresh preview',
+                 'discard':'discard a draft and keep the current story'}
+    for operation, description in step_help.items():
+        command = operations.add_parser(operation, help=description, description=description.capitalize() + '.')
+        command.add_argument('--project', default='demo')
+        if operation == 'record':
+            command.add_argument('beat', metavar='BEAT')
+            command.add_argument('--mode', choices=['replace', 'before', 'after'], default='replace',
+                                 help='replace actions, or insert before or after the chosen step (default: replace)')
+            command.add_argument('--draft-id', help=argparse.SUPPRESS)
+            command.add_argument('--expected-revision', help=argparse.SUPPRESS)
+        elif operation != 'list':
+            command.add_argument('draft')
+        command.set_defaults(run=demonstrate.main)
+
     from reshoot import recipes
     p = sub.add_parser('recipe', help='start with a useful pace, look and export choice',
                        description='Starting recipes preserve task actions and result checks, set holds and appearance, '

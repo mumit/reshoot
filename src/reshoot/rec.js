@@ -173,11 +173,13 @@
     clearTimeout(settle);
     settle = setTimeout(() => { if (!paused && !picking && Math.abs(y - scrolled) > 40) send({ kind: "scroll", dy: Math.round(y - scrolled) }); scrolled = y; }, 300);
   }, { passive: true });
-  addEventListener("DOMContentLoaded", () => {
+  const ready = () => {
     scrolled = document.scrollingElement ? document.scrollingElement.scrollTop : 0;
     report({ kind: "page", href: location.href });  // a new page: the action before it may have opened it
     if (window.__reshootToolbar && window === window.top) mountToolbar();
-  });
+  };
+  if (document.readyState === 'loading') addEventListener('DOMContentLoaded', ready, {once:true});
+  else ready();
 
   function label(e) {
     if (e.type === 'password') return 'Demo login';
@@ -205,6 +207,12 @@
       <p role="status">Recording your task. Use demo data. These controls will not appear in the video.</p></div>`;
     document.body.append(toolbarHost);
     const status = text => { toolbarRoot.querySelector('[role=status]').textContent = text; };
+    if (window.__reshootStepMode) {
+      toolbarRoot.querySelector('[data-do=blur]').hidden = true;
+      toolbarRoot.querySelector('[data-do=caption]').hidden = window.__reshootStepMode === 'replace';
+      toolbarRoot.querySelector('[data-do=undo]').textContent = 'Remove last action';
+      status('Show the new actions using demo data. Done saves a separate draft for review. Existing result checks stay.');
+    }
     toolbarRoot.addEventListener('click', ev => {
       const button = ev.target.closest('[data-do]');
       if (!button) return;

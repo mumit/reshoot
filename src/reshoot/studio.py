@@ -660,6 +660,13 @@ def server(a):
                     return review.reply(self, 200, comparison.frame(folder, *m.groups()), 'image/png')
                 except (ValueError, OSError, TypeError, KeyError) as error:
                     return review.reply(self, 409, str(error).encode(), 'text/plain')
+            if m := re.fullmatch(r'comparison-media/([0-9a-f]{32})/([0-9a-f]{64})/(.+)', name):
+                try:
+                    from reshoot import playback
+                    root, expected = playback.media(folder, m[1], m[2], m[3])
+                    return review.send_file(self, root, m[3], expected_sha256=expected)
+                except (ValueError, OSError, TypeError, KeyError) as error:
+                    return review.reply(self, 409, str(error).encode(), 'text/plain')
             if m := re.fullmatch(r'comparison-review/([0-9a-f]{32})/([0-9a-f]{64})/(.+)', name):
                 try:
                     from reshoot import comparison
@@ -971,6 +978,8 @@ def page(data, accept, seen=0):
     e = lambda v: html.escape(str(v if v is not None else ''), quote=True)
     run = data['run']
     failure = data.get('failure')
+    editing_blocked = bool(data.get('session') or data.get('needs_demonstration'))
+    locked = ' disabled' if editing_blocked else ''
     state = journey.workflow(data.get('journey', {'title': 'Shape your demo', 'detail': '', 'pending': False,
                              'phase': 'unknown', 'next': 'update', 'changes': [], 'update_detail': ''}),
                              creating=data.get('creation_pending', False), tools=data.get('setup'),
@@ -990,19 +999,19 @@ def page(data, accept, seen=0):
             check = failure['check']
             message = (check['message'] + ' If that is the result you meant to show, fix the app or its demo data. If '
                        f'the check is wrong, correct its expected result below, then choose {again}.')
-            correction = expectations.form(check)
+            correction = expectations.form(check, disabled=editing_blocked)
             if not correction:
                 message = check['message'] + f' Fix the app or the check in the storyboard, then choose {again}.'
             buttons = (correction + '<details><summary>Remove a check that is not needed</summary>'
                        '<p>This removes this proof of the task. The next recording still has to pass its remaining checks. Undo restores it.</p>'
                        f'<button type="button" data-remove-check data-beat="{e(check["beat"])}" data-index="{check["index"]}" '
-                       f'data-expect="{e(json.dumps(check["expect"]))}">Remove this check</button></details>')
+                       f'data-expect="{e(json.dumps(check["expect"]))}"{locked}>Remove this check</button></details>')
         else:
             message = failure['message'][:1].upper() + failure['message'][1:]
             label = (failure.get('candidate_labels') or [None])[0]
             use = f'Use "{label}"' if label else 'Use suggested control'
-            buttons = (f'<button type="button" data-repair="apply">{e(use)}</button> '
-                       if failure.get('candidates') else '') + ('<button type="button" data-repair="pick">Choose replacement in app</button>'
+            buttons = (f'<button type="button" data-repair="apply"{locked}>{e(use)}</button> '
+                       if failure.get('candidates') else '') + (f'<button type="button" data-repair="pick"{locked}>Choose replacement in app</button>'
                                                                if failure.get('repairable') and failure.get('visual_repair', True) else '')
         labels = failure.get('candidate_labels', [])
         suggestions = ''.join((f'<p>Suggested control: <strong>{e(labels[i] if i < len(labels) else "Replacement control")}</strong></p>'
@@ -1349,7 +1358,7 @@ def page(data, accept, seen=0):
                       for row in comparison['choices'])
     compare_box = f'''<details id="compare-panel" class="compare-panel"><summary>Compare revisions</summary>
 <p>{e(comparison['note'])}</p>
-{f'<label>Earlier recording <select id="comparison-source">{comparison_options}</select></label><button type="button" id="compare-refresh">Compare frames</button>' if comparison_options and run else ''}
+{f'<label>Earlier recording <select id="comparison-source">{comparison_options}</select></label><button type="button" id="compare-refresh">Compare recordings</button>' if comparison_options and run else ''}
 <p class="hint">Both sides stay tied to the chosen recordings. Comparing does not change the story or accept either run.</p>
 <p id="comparison-status" role="status"></p><div id="comparison-results" aria-busy="false"></div></details>'''
     nav = [*([('setup-panel', 'Tools')] if tools else []), ('preview-panel', 'Preview'), ('story-panel', 'Story'), ('compare-panel', 'Compare'), *([('cut-panel', 'Cut')] if data.get('edit') else []),
@@ -1406,7 +1415,7 @@ def page(data, accept, seen=0):
 {f'<div class="found"><h3>What the scan found</h3><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>{downloads}</section>
-<fieldset class="side" aria-label="Demo editing"{(' disabled' if session or data.get('needs_demonstration') else '')}><div class="beats" id="story-panel" tabindex="-1"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+<fieldset class="side" aria-label="Demo editing"{locked}><div class="beats" id="story-panel" tabindex="-1"><h2>Your story</h2><p class="hint">Choose a step to play it. Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
 {audio_box}
 {screenshot_box}
 {tour_box}
@@ -1420,7 +1429,7 @@ def page(data, accept, seen=0):
 </details></fieldset></main>
 <p id="toast" role="status"></p>
 <dialog id="export-inspector"><form method="dialog"><button>Close</button></form><h2>Inspect the rendered export</h2><p id="inspector-size"></p><div class="inspection-rail"></div></dialog>
-<script>{SCRIPT}</script><script>{Path(__file__).with_name('comparison.js').read_text()}</script></body></html>'''
+<script>{SCRIPT}</script><script>{Path(__file__).with_name('playback.js').read_text()}</script><script>{Path(__file__).with_name('comparison.js').read_text()}</script></body></html>'''
     if run:
         document = document.replace('run/', f'runs/{run["id"]}/')
     return document.replace('data-seen="', f'data-revision="{e(data.get("revision", ""))}" '
@@ -1458,9 +1467,12 @@ fieldset.actions, fieldset.side { border:0; padding:0; min-width:0 } fieldset.si
 .compare-run-links { display:grid; grid-template-columns:1fr 1fr; gap:14px; overflow-wrap:anywhere }
 .compare-pair { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px }
 .compare-pair figure { margin:0; min-width:0 } .compare-pair img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:6px }
+.compare-playback video { max-height:340px; object-fit:contain } .compare-playback video[hidden] { display:none }
+.playback-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px }
+.playback-buttons { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px } .playback-controls select { margin:0 }
 .compare-pair figcaption { font-size:13px; margin:6px 0 } .compare-beat { border-top:1px solid var(--line); padding:12px 0 }
 .compare-beat h3, #comparison-status { overflow-wrap:anywhere } .compare-beat h3 { text-transform:none; letter-spacing:normal; color:var(--ink) }
-@media(max-width:600px) { .compare-pair, .compare-run-links { grid-template-columns:1fr } }
+@media(max-width:600px) { .compare-pair, .compare-run-links, .playback-controls { grid-template-columns:1fr } }
 .downloads ul { padding-left:20px; overflow-wrap:anywhere } .downloads li { margin:7px 0 } .downloads a { color:var(--accent) }
 .download-all { display:inline-block; font-weight:600; border:1px solid var(--accent); border-radius:8px; padding:8px 12px; margin:4px 0; text-decoration:none }
 .side > .section-anchor:empty { display:none } :focus-visible { outline:2px solid var(--accent); outline-offset:3px }
@@ -1491,6 +1503,7 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .beat.passed { border-left-color:var(--ok) } .beat.failed { border-left-color:var(--bad) } .beat.now { outline:2px solid var(--accent) }
 .beat.selected { box-shadow:0 0 0 2px var(--accent) } #selected-step a { display:inline-block; margin-left:12px; color:var(--accent) }
 .check-correction { margin:12px 0; padding:12px; border:1px solid var(--line); border-radius:8px }
+.check-correction fieldset { border:0; padding:0; margin:0; min-width:0 }
 .check-correction textarea { width:100%; box-sizing:border-box; font:inherit; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:7px; padding:6px 8px }
 @media (max-width:520px) { .beat { grid-template-columns:1fr } }
 .play { position:relative; padding:0; overflow:hidden; aspect-ratio:16/9; align-self:start; background:var(--bg) }
@@ -1619,6 +1632,8 @@ SCRIPT = '''(() => {
     event.preventDefault(); const target = document.getElementById(link.dataset.jump); if (!target) return;
     if (target.tagName === 'DETAILS') target.open = true;
     if (target.id === 'review-panel') { const scan = target.querySelector('details.scan'); if (scan) scan.open = true; }
+    const menu = link.closest('.more-tools');
+    if (menu) { menu.open = false; sizeHeader(); }
     target.scrollIntoView({block:'start'});
     const focus = target.tagName === 'DETAILS' ? target.querySelector('summary') : target;
     focus.tabIndex = -1; focus.focus({preventScroll:true});

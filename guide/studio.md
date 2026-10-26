@@ -110,8 +110,8 @@ You or an agent can edit the files while the studio is open. When you come
 back to the page, it offers **Reload project**. If a field won't save, fix it or
 choose **Reset unsaved edits** to reload the saved project.
 
-If the files changed while the studio was closed, it lists them and keeps
-them. **Download saved source copy** gives you the files as the studio last
+If your files differ from saved editing history, the studio lists the changed
+files and keeps them. **Download saved source copy** gives you the files as the studio last
 saved them, so you can compare and copy over what you want by hand.
 Choose **Start with current files** to begin a new history with those files.
 The previous history stays in a local archive.
@@ -209,11 +209,22 @@ navigation. It's made again on every run and scanned with the video.
 
 ## Compare with an earlier recording
 
-**Compare** shows the result frames of an earlier recording beside the current
-ones, step by step. Choose **Earlier recording** to change which one; an
-accepted run is offered first. Added and removed steps are shown, and each
-side links to its own review. The frames are the recorded pages, without
-captions or the edit, so watch the exports too.
+Open **More tools**, then **Compare**. Choose **Earlier recording**; an accepted
+run is offered first. Each side names its recording and links to its own review.
+
+**Watch the exports** shows an exported MP4 or MOV from each recording. Choose
+an export on each side, then **Play both** or **Pause both**. **Listen to**
+chooses one side's audio or mutes both. The videos start together and keep
+their own timing.
+
+Choose **Step in the cut** to seek to that step on both sides. **Play step**
+plays each appearance to its own end. Repeated appearances are paired by their
+order in each cut; a side says when an appearance is absent. Older recordings
+without saved cut timing still play with the video controls.
+
+Below the videos, checked result frames show added, removed and changed steps.
+These are the captured pages before later captions or edits. Comparing neither
+accepts a recording nor switches the current recording when a newer one arrives.
 
 ## Repair a step that broke
 
@@ -229,13 +240,7 @@ last working video and shows the **Failure frame**.
 - **Choose replacement in app** opens a fresh browser at the broken step. Click
   the control, then confirm it. Clicking it there doesn't press it.
 
-When a step's **result check** fails instead, the studio says what it
-expected and what the page showed, such as "Step 5 expected no elements
-matching `#hero > div`, but the page had 4." If the check is right, the app or
-its demo data needs fixing. If the check is wrong, as a suggested one can be,
-choose **Remove this check**, then **Update preview**, or **Continue
-creation** if no preview has worked yet. Undo puts it back. To
-change a check rather than remove it, edit it in `storyboard.toml`.
+For a failed **result check**, [review and correct its expected result](#correct-a-failed-result-check).
 
 A repair changes only how the step finds its control. Its action and expected
 result stay the same. Choose **Update preview** to check the whole task again.

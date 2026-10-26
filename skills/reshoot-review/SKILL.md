@@ -5,11 +5,12 @@ description: Inspect a reshoot recording and its check report for failed actions
 
 # Review a recording
 
-When the owner uses the studio, its Compare section shows the checked result
-frames of the run on the page beside an earlier run, step by step, and its
-Review and Download sections refer to that run too. The frames are the
-recorded pages, without captions, zoom, framing, cards or cuts: inspect the
-actual exports as well. A matching file hash, a comparison or a downloaded ZIP
+When the owner uses the studio, Compare shows paired exported videos and
+checked result frames from the run on the page beside an earlier run. Review
+and Download refer to that run too. Result frames show the captured pages
+before later captions or edits: inspect the exported videos as well. The
+[studio guide](https://github.com/mumit/reshoot/blob/main/guide/studio.md#compare-with-an-earlier-recording)
+describes playback and step seeking. A matching file hash, a comparison or a downloaded ZIP
 is not the owner's acceptance. The studio accepts only once every saved change
 is in the run.
 

@@ -12,6 +12,9 @@ change project files or commands.
   state in the studio, with Undo, before recording a preview to verify it.
 - A selected-step bar keeps the step being edited beside the preview, with
   playback and a way back to its fields.
+- Compare two recordings' exported videos in the studio, choose which side
+  to hear, and play matching steps with each cut's timing and repeated
+  appearances. Both players keep their chosen recordings as newer runs arrive.
 
 ### Changed
 
@@ -33,6 +36,8 @@ change project files or commands.
   recording after a newer one is made.
 - After fixing a first preview, the studio names the available continuation.
 - Repair can find the last working recording after several failed attempts.
+- Failed-check correction and control repair wait for saved-history recovery
+  just like the rest of the editor.
 
 ## 0.3.9 (2026-10-25)
 

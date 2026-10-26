@@ -200,9 +200,11 @@ Then record a preview with `reshoot preview demo/reshoot.toml`.
 
 ## 7. Compare, accept and copy the update
 
-Choose **Make final**. Then choose **Compare**: it shows the accepted run's
-result frames beside the new ones, step by step. The caption and the search
-step changed; the task and its result didn't.
+Choose **Make final**. Open **More tools**, then **Compare**. **Play both**
+shows the accepted export beside the new one; the checked frames below show
+the task's results. The caption and the search step changed; the task and its
+result didn't. [Comparison controls](studio.md#compare-with-an-earlier-recording)
+let you inspect a step or choose another export.
 
 Review and accept the new final as in step 5. The earlier acceptance covers
 only the earlier run; `demo/accepted` now records the update. Choose

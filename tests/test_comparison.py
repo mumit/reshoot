@@ -161,10 +161,14 @@ def test_studio_compares_two_captures_with_mobile_layout_and_pinned_current_run(
     from playwright.sync_api import sync_playwright, expect
     from reshoot import web
     from reshoot.cli import main
+    from test_reshoot import free_port
     import shutil
     project.init(SimpleNamespace(directory=str(tmp_path), url=None, quiet=True))
     config = tmp_path / 'reshoot.toml'
-    config.write_text(config.read_text().replace('scan = true', 'scan = false'))
+    port = free_port()
+    config.write_text(config.read_text().replace('8765', str(port)).replace('scan = true', 'scan = false'))
+    board = tmp_path / 'storyboard.toml'
+    board.write_text(board.read_text().replace('8765', str(port)))
     def preview():
         with pytest.raises(SystemExit) as result:
             main(['preview', str(config)])
@@ -189,6 +193,24 @@ def test_studio_compares_two_captures_with_mobile_layout_and_pinned_current_run(
             page.locator('.section-nav [data-jump=compare-panel]').click()
             expect(page.locator('#comparison-status')).to_have_text('Compared 2 result-check steps.')
             expect(page.locator('.compare-pair img')).to_have_count(4)
+            players = page.locator('.compare-playback video')
+            expect(players).to_have_count(2)
+            expect(page.get_by_role('button', name='Play both', exact=True)).to_be_enabled()
+            page.get_by_role('button', name='Play both', exact=True).click()
+            page.wait_for_function('[...document.querySelectorAll(".compare-playback video")].every(video => !video.paused)')
+            page.get_by_role('button', name='Pause both', exact=True).click()
+            assert players.evaluate_all('videos => videos.every(video => video.paused)')
+            page.get_by_label('Listen to', exact=True).select_option('previous')
+            assert players.evaluate_all('videos => !videos[0].muted && videos[1].muted')
+            page.locator('.playback-step').select_option(label='notes/add')
+            pair = model(tmp_path, old, current)
+            starts = [pair[side]['videos'][0]['beats']['notes/add'][0][0] for side in ('previous', 'current')]
+            page.wait_for_function('starts => [...document.querySelectorAll(".compare-playback video")].every((video, i) => Math.abs(video.currentTime - starts[i]) < .1)', arg=starts)
+            page.get_by_role('button', name='Play step', exact=True).click()
+            page.wait_for_function('[...document.querySelectorAll(".compare-playback video")].every(video => video.paused)', timeout=15000)
+            ends = [pair[side]['videos'][0]['beats']['notes/add'][0][1] for side in ('previous', 'current')]
+            assert players.evaluate_all('(videos, ends) => videos.every((video, i) => video.currentTime >= ends[i] - .1 && video.currentTime <= ends[i] + .5)', ends)
+            assert players.evaluate_all('videos => videos.every(video => !video.ended && video.currentTime < video.duration - 1)')
             assert page.locator('#comparison-source').input_value() == old[1]['id']
             assert all(old[1]['id'] in src or current[1]['id'] in src for src in page.locator('.compare-pair img').evaluate_all('els => els.map(el => el.src)'))
             # A new successful run must not change the two revisions on this page.
@@ -201,7 +223,13 @@ def test_studio_compares_two_captures_with_mobile_layout_and_pinned_current_run(
             expect(page.locator('#comparison-results')).to_have_attribute('aria-busy', 'false')
             assert page.locator('body').get_attribute('data-run') == current[1]['id']
             assert later.name not in page.locator('#comparison-results').inner_text()
+            assert all(later.name not in src for src in players.evaluate_all('videos => videos.map(video => video.src)'))
+            expect(page.get_by_role('button', name='Play both', exact=True)).to_be_enabled()
+            page.get_by_role('button', name='Play both', exact=True).click()
+            page.locator('#compare-panel > summary').click()
+            page.wait_for_function('[...document.querySelectorAll(".compare-playback video")].every(video => video.paused)', timeout=3000)
             page.set_viewport_size({'width': 390, 'height': 844})
+            page.locator('.more-tools > summary').click()
             page.locator('.section-nav [data-jump=compare-panel]').click()
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
             page.screenshot(path=str(tmp_path / 'comparison-mobile.png'))

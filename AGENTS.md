@@ -35,6 +35,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/studio.py` | `reshoot studio`: a local page for the latest run: its beats, captions, edit, exports and acceptance |
 | `src/reshoot/journey.py`, `delivery.py` | Saved/rendered/captured source state and exact-run local export bundles |
 | `src/reshoot/comparison.py`, `comparison.js` | Read-only studio comparison of checked frames and evidence from two exact runs |
+| `src/reshoot/playback.py`, `playback.js` | Paired export videos and per-cut step seeking for those same two runs |
 | `src/reshoot/voice.py` | The voiceover: each line spoken before recording, so beats can wait for it |
 | `src/reshoot/audio.py` | Narration auditions and validated voice/music balance shared by the CLI and studio |
 | `src/reshoot/screenshots.py` | Documentation PNGs from checked result frames, with stable names and bound provenance |

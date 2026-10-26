@@ -5,7 +5,7 @@
   const results = document.getElementById('comparison-results');
   const status = document.getElementById('comparison-status');
   const current = document.body.dataset.run, binding = document.body.dataset.binding;
-  let request = 0, loaded = false;
+  let request = 0, loaded = false, stopPlayback = () => {};
   const node = (tag, text, className) => {
     const element = document.createElement(tag);
     if (text != null) element.textContent = text;
@@ -20,6 +20,7 @@
   const load = async () => {
     const sequence = ++request, previous = select.value;
     const previousBinding = select.selectedOptions[0].dataset.binding;
+    stopPlayback(); stopPlayback = () => {};
     results.replaceChildren(); results.setAttribute('aria-busy', 'true');
     status.textContent = 'Loading the two chosen recordings…';
     loaded = true;
@@ -37,6 +38,8 @@
         headers.append(box);
       }
       results.append(headers, node('p', data.note, 'hint'));
+      const playback = node('div'); results.append(playback);
+      stopPlayback = window.reshootPlayback(playback, data);
       for (const row of data.beats) {
         const article = node('article', null, 'compare-beat'); article.dataset.beat = row.beat;
         article.append(node('h3', row.beat));

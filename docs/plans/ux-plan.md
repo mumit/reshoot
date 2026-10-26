@@ -235,8 +235,10 @@ order for the next improvements:
   recovery for changed files and unreadable history.
 - [x] Correct failed result checks in the studio, keep the selected step and
   its preview together, and put optional tools behind a deliberate entry.
-- [ ] Compare the paired exports through video playback in the studio,
+- [x] Compare the paired exports through video playback in the studio,
   including beat-aware seeking while retaining selected run/review bindings.
+
+See [the implementation and validation record](../validation/2026-10-26-joyful-creation.md).
 
 Outside-user testing remains deferred by the owner. Synthetic and maintainer
 verification do not establish novice usability or professional creative quality.

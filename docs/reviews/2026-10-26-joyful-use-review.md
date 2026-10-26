@@ -163,3 +163,6 @@ in this review. Outside-user testing remains deferred under the existing plan.
 
 No production source was changed during this review. The findings describe
 the merged checkout; the recommendations have not been implemented.
+
+Follow-up: [implementation and validation](../validation/2026-10-26-joyful-creation.md)
+records the subsequent work on this plan.

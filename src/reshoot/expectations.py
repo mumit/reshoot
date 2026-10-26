@@ -49,7 +49,7 @@ def update_check(lines, beat, index, expected, value):
     return lines
 
 
-def form(check):
+def form(check, disabled=False):
     """Offer a correction without guessing that the current app result is the intended one."""
     e = lambda value: html.escape(str(value), quote=True)
     entry = check['expect']
@@ -68,9 +68,10 @@ def form(check):
         field = f'<label>{label} <textarea name="value" maxlength="4000" rows="2"{" required" if key == "contains" else ""}>{e(value)}</textarea></label>'
     return (f'<form class="check-correction" data-beat="{e(check["beat"])}" data-index="{check["index"]}" '
             f'data-expect="{e(json.dumps(entry))}" data-kind="{entry["type"]}">'
+            f'<fieldset{" disabled" if disabled else ""}>'
             '<p>Keep this check if it proves the task worked. Change its expected result only when the story should show something different.</p>'
             f'{field}<p class="hint">The control and the other result checks stay the same. A new preview must verify this result.</p>'
-            '<button type="submit">Save expected result</button> <button type="reset">Reset</button></form>')
+            '<button type="submit">Save expected result</button> <button type="reset">Reset</button></fieldset></form>')
 
 
 def explain(n, beat, entry, error):

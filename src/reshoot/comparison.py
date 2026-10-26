@@ -101,6 +101,7 @@ def evidence(run):
             raise ValueError('Take evidence changed while loading. Reload before comparing.')
         data = json.loads(raw)
         prefix = data.get('story_id') or path.stem
+        source = path.with_suffix('').with_suffix('.mp4')
         for beat in data.get('beats', []):
             key = str(prefix) + '/' + beat['id']
             if key in result:
@@ -110,7 +111,6 @@ def evidence(run):
             checked = (data.get('status') == 'completed' and data.get('mode') != 'partial'
                        and beat.get('status') == 'passed' and checks and all(row.get('status') == 'passed' for row in checks))
             if checked:
-                source = path.with_suffix('').with_suffix('.mp4')
                 expected = source.with_suffix('.evidence') / (beat['id'] + '.png')
                 shot = (path.parent / beat.get('screenshot', '')).resolve()
                 if shot == expected.resolve() and shot.is_relative_to(root) and str(shot.relative_to(root)) in named:
@@ -122,6 +122,7 @@ def evidence(run):
             result[key] = {'id': beat['id'], 'purpose': beat.get('purpose') or beat['id'],
                            'status': beat.get('status', 'unverified'), 'frame': frame, 'reason': reason,
                            'definition': beat.get('definition_sha256'), 'start': beat.get('start'), 'end': beat.get('end'),
+                           'source': str(source.resolve()),
                            'results': [{k: value for k, value in row.items() if k != 'at'} for row in checks]}
     return result
 
@@ -141,6 +142,9 @@ def model(project, current_id, current_binding, previous_id, previous_binding):
     previous = read(project, previous_id, previous_binding)
     before, after = evidence(previous), evidence(current)
     identities = {'previous': identity(previous), 'current': identity(current)}
+    from reshoot import playback
+    identities['previous']['videos'] = playback.exports(previous, before)
+    identities['current']['videos'] = playback.exports(current, after)
     if identities['previous']['binding'] != previous_binding or identities['current']['binding'] != current_binding:
         raise ValueError('The scan changed while loading. Reload before comparing.')
     rows = []
@@ -165,7 +169,7 @@ def model(project, current_id, current_binding, previous_id, previous_binding):
                      'frame_changed': old['frame']['sha256'] != new['frame']['sha256'] if frames else None,
                      'definition_changed': old['definition'] != new['definition'] if old and new and old['definition'] and new['definition'] else None,
                      'results_changed': old['results'] != new['results'] if old and new else None})
-    return {**identities, 'beats': rows, 'note': 'Captured result frames retain privacy masks. They do not include later captions, zoom, framing, cards or cuts. Inspect the exports and scan evidence in both review pages.'}
+    return {**identities, 'beats': rows, 'note': 'The paired videos show the rendered exports. The result frames below retain privacy masks and show the captured page before later captions, zoom, framing, cards or cuts. Inspect scan evidence in both review pages.'}
 
 
 def frame(project, run_id, binding, sha256):

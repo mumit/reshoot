@@ -10,6 +10,9 @@ change project files or commands.
 
 - On a slow machine, the start of a browser take is no longer cut from the
   video: recording waits for Chrome's first frame before the first step.
+- A Chrome call that stalls during a take fails within 30 s and says what it
+  was, and a take that runs over its timeout says which step it was on,
+  instead of waiting 10 minutes and printing only `TimeoutError`.
 
 ## 0.3.8 (2026-10-25)
 

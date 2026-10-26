@@ -427,3 +427,14 @@ const g = c.getContext('2d'); g.fillStyle = '#fff'; for (let x = 0; x < c.width;
     image = Image.open(frame).convert('L')
     assert image.size == (1280, 720)
     assert ImageStat.Stat(image.crop((40, 40, 600, 320))).stddev[0] > 60  # stripes, not an even grey
+
+
+@pytest.mark.browser
+def test_a_take_that_runs_over_its_timeout_says_where(tmp_path, native_page):
+    p = board(tmp_path / 'slow.toml', native_page)
+    p.write_text(p.read_text().replace('schema_version = 1\n', 'schema_version = 1\ntimeout = 4\n').replace('hold = 0.3', 'hold = 20'))
+    with pytest.raises(SystemExit) as result:
+        main(['web', str(p), str(tmp_path / 'slow.mp4')])
+    assert result.value.code == 2
+    error = json.loads((tmp_path / 'slow.take.json').read_text())['error']
+    assert error.startswith("the take ran over its 4 s timeout while recording beat 'result'"), error

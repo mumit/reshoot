@@ -149,6 +149,15 @@ async def layout(page, beat):
         return {'schema_version': 1, 'unavailable': True}
 
 
+async def bounded(awaitable, what, seconds=30):
+    """Chrome calls Playwright doesn't time out itself. One that stalled on a slow CI runner held the take for its whole
+    10-minute timeout and then said only TimeoutError."""
+    try:
+        return await asyncio.wait_for(awaitable, seconds)
+    except asyncio.TimeoutError:
+        raise RuntimeError(f'Chrome did not respond to {what} within {seconds} s') from None
+
+
 async def capture(board, a, frames, out, metadata, spoken):
     from playwright.async_api import async_playwright
     w, h, dpr = web.parse_size(a.size or board.get('size', '1280x720@1'))
@@ -218,9 +227,10 @@ async def capture(board, a, frames, out, metadata, spoken):
         cdp = await context.new_cdp_session(page)
         # Playwright's virtual viewport can exceed Chrome's visible capture surface.
         # CDP screencasting needs both sizes, rather than stretching a clipped frame.
-        await cdp.send('Emulation.setDeviceMetricsOverride', {'width': w, 'height': h, 'deviceScaleFactor': cap_dpr,
+        metadata['stage'] = 'setting the page size'
+        await bounded(cdp.send('Emulation.setDeviceMetricsOverride', {'width': w, 'height': h, 'deviceScaleFactor': cap_dpr,
                        'mobile': bool(a.mobile or board.get('mobile')), 'screenWidth': w, 'screenHeight': h,
-                       'dontSetVisibleSize': False})
+                       'dontSetVisibleSize': False}), 'setting the page size')
         async def frame(event):
             # Chrome stamps each frame with the wall-clock time it was painted. Map that onto the beats' clock with
             # an offset measured directly, not from when a frame arrives: large frames arrive late, and an offset
@@ -229,7 +239,7 @@ async def capture(board, a, frames, out, metadata, spoken):
             painted = timestamp + clock if timestamp else time.monotonic()
             frames.append((painted, base64.b64decode(event['data'])))
             started.set()
-            await cdp.send('Page.screencastFrameAck', {'sessionId': event['sessionId']})
+            await bounded(cdp.send('Page.screencastFrameAck', {'sessionId': event['sessionId']}), 'taking a frame')
         started = asyncio.Event()
         frame_tasks = []
         frame_handler = lambda event: frame_tasks.append(asyncio.create_task(frame(event)))
@@ -246,7 +256,8 @@ async def capture(board, a, frames, out, metadata, spoken):
                 raise
         try:
             await page.goto(a.url or board.get('url', 'http://localhost:8000/'), wait_until='load', timeout=30000)
-            await page.evaluate('document.fonts.ready')
+            metadata['stage'] = 'loading the page'
+            await bounded(page.evaluate('document.fonts.ready'), 'waiting for fonts')
             for index, entry in enumerate(board.get('setup', []), 1):
                 await perform(entry, 'setup', index, ids[0])
             for previous in board['beat'][:split]:
@@ -260,10 +271,11 @@ async def capture(board, a, frames, out, metadata, spoken):
             # Force the first composition before capture starts. Without this Chrome can begin the take with a
             # blank frame even though the DOM and fonts are ready. Screenshots remain off camera; during capture
             # evidence must continue to come from the screencast itself.
+            metadata['stage'] = 'starting the recording'
             await page.screenshot()
             events.clear()
             clock = time.monotonic() - time.time()
-            await cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': int(w*cap_dpr), 'maxHeight': int(h*cap_dpr)})
+            await bounded(cdp.send('Page.startScreencast', {'format': 'jpeg', 'quality': 92, 'maxWidth': int(w*cap_dpr), 'maxHeight': int(h*cap_dpr)}), 'starting the screencast')
             # The video starts at the first frame, so wait for it before the first beat: on a slow machine it came
             # a third of a second late, and the start of the take was cut from the video.
             try:
@@ -272,6 +284,7 @@ async def capture(board, a, frames, out, metadata, spoken):
                 pass  # a page that never paints still records; the first frame then starts the video, as before
             for beat in board['beat'][split:]:
                 current = beat['id']
+                metadata['stage'] = f'recording beat {current!r}'
                 if beat.get('recording_issue'):
                     raise ValueError(f'Unresolved step {current}: {beat["recording_issue"]}. Repair it in the storyboard before recording.')
                 start = beats[current] = time.monotonic()
@@ -279,7 +292,7 @@ async def capture(board, a, frames, out, metadata, spoken):
                           'definition_sha256': __import__('hashlib').sha256(json.dumps(beat, sort_keys=True).encode()).hexdigest(),
                           'status': 'running', 'expectations': []}
                 metadata['beats'].append(result)
-                await page.evaluate('p => __demo.caption(p[0], p[1])', [beat.get('caption'), beat.get('sub')])
+                await bounded(page.evaluate('p => __demo.caption(p[0], p[1])', [beat.get('caption'), beat.get('sub')]), 'showing the caption')
                 for index, entry in enumerate(beat.get('action', []), 1):
                     await perform(entry, 'action', index, current, hand)
                 for index, entry in enumerate(beat.get('expect', []), 1):
@@ -296,11 +309,12 @@ async def capture(board, a, frames, out, metadata, spoken):
                 shot.parent.mkdir(exist_ok=True)
                 result.update(status='passed' if beat.get('expect') else 'unverified', screenshot=str(shot.relative_to(out.parent)), start=start)
                 await asyncio.sleep(max(beat.get('hold', 1), beat.get('min_reading', 0), board.get('caption', {}).get('min_seconds', 0) if beat.get('caption') else 0, spoken.get(current, ('', 0))[1] + .3 - (time.monotonic() - start)))
-                result['layout'] = await layout(page, beat)
+                result['layout'] = await bounded(layout(page, beat), 'measuring the page')
                 result['end'] = time.monotonic()
                 await evidence(page, frames, shot)
             stop = time.monotonic()
-            await cdp.send('Page.stopScreencast')
+            metadata['stage'] = 'stopping the recording'
+            await bounded(cdp.send('Page.stopScreencast'), 'stopping the screencast')
             cdp.remove_listener('Page.screencastFrame', frame_handler)
             page.remove_listener('response', resource_handler)
             if frame_tasks:
@@ -333,8 +347,11 @@ async def capture(board, a, frames, out, metadata, spoken):
                 await asyncio.gather(*frame_tasks, return_exceptions=True)
             if pending:
                 await asyncio.gather(*pending, return_exceptions=True)
-            await context.close()
-            await browser.close()
+            for closing in (context.close, browser.close):  # the stage stays where the take stopped
+                try:
+                    await asyncio.wait_for(closing(), 30)
+                except Exception:
+                    pass  # the take is already saved or failed; a Chrome that won't close mustn't hold it
             metadata['resources'] = resources
     if not len(frames):
         raise ValueError('no frames captured')
@@ -386,6 +403,9 @@ def main(a):
         with Frames() as frames:
             asyncio.run(asyncio.wait_for(capture(board, a, frames, out, metadata, spoken), board.get('timeout', 600)))
     except (Exception, KeyboardInterrupt) as e:
+        if isinstance(e, asyncio.TimeoutError):  # the whole take ran over: say where it was
+            e = RuntimeError(f'the take ran over its {board.get("timeout", 600)} s timeout while '
+                             f'{metadata.get("stage", "starting Chrome")}; raise timeout in the storyboard if it needs longer')
         metadata['error'] = redact(str(e)) or type(e).__name__
         raise ValueError(metadata['error']) from None
     finally:

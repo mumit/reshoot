@@ -169,3 +169,11 @@ def test_a_vision_failure_names_an_agent_sandbox_as_the_usual_cause(monkeypatch)
     monkeypatch.setattr(scan, '_text', lambda im, level: (_ for _ in ()).throw(RuntimeError('Vision failed (com.apple.Vision 8)')))
     with pytest.raises(RuntimeError, match="com.apple.Vision 8.*agent's sandbox"):
         scan.vision_level()
+
+
+def test_a_stalled_chrome_call_fails_quickly_and_says_what_it_was(monkeypatch):
+    from reshoot import browser
+    async def stalls():
+        await asyncio.sleep(10)
+    with pytest.raises(RuntimeError, match='Chrome did not respond to showing the caption within 0.05 s'):
+        asyncio.run(browser.bounded(stalls(), 'showing the caption', 0.05))

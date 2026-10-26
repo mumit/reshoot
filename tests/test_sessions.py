@@ -79,6 +79,21 @@ def test_external_changes_offer_copy_and_fresh_start_without_replacing_files(tmp
     assert paths[1].read_bytes() == actual
 
 
+def test_empty_history_does_not_interrupt_external_edits(tmp_path):
+    config, paths = files(tmp_path)
+    session = Session(config, paths)
+    with session.transaction():
+        session.checkpoint()
+    paths[1].write_text(paths[1].read_text() + '# external editor, no history to recover\n')
+    actual = paths[1].read_bytes()
+    restarted = Session(config, paths)
+    assert restarted.info() is None and not restarted.undo and not restarted.redo
+    change(restarted, lambda: paths[1].write_text(paths[1].read_text() + '# new change\n'))
+    with restarted.transaction():
+        restarted.move('undo')
+    assert paths[1].read_bytes() == actual
+
+
 @pytest.mark.parametrize('raw', [b'{"schema_version":999}', b'{truncated', b'[]'])
 def test_bad_checkpoints_require_explicit_start_and_preserve_original(tmp_path, raw):
     config, paths = files(tmp_path)

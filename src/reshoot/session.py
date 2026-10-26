@@ -121,7 +121,8 @@ class Session(History):
             self.saved = None
             self.pending = False
         else:
-            self.pending = True
+            # There is no Undo/Redo to recover after an empty checkpoint.
+            self.pending = bool(self.problem or self.saved['undo'] or self.saved['redo'])
 
     def restore_history(self):
         """Attach matching history without changing files or writing a new checkpoint."""

@@ -1,19 +1,34 @@
 """Edit maps connect source times to exports, subtitles, and review links."""
 import json
 import math
+import os
 from pathlib import Path
+
+
+def _found(source, folder):
+    """A segment's source as a full path. New maps store it beside the map; older ones stored the full path from the
+    machine that made them, so a moved project or a run made in CI looks for the same file name beside the map."""
+    path = folder / source
+    if not path.exists() and Path(source).is_absolute() and (folder / Path(source).name).exists():
+        path = folder / Path(source).name
+    return str(path.resolve())
 
 
 def read(video):
     p = Path(video).with_suffix('.timeline.json')
     if p.exists():
-        return json.loads(p.read_text())
+        data = json.loads(p.read_text())
+        for row in data['segments']:
+            row['source'] = _found(row['source'], p.parent)
+        return data
     from reshoot.cut import duration
     d = duration(video)
     return {'schema_version': 1, 'duration': d, 'segments': [{'source': str(Path(video).resolve()), 'source_start': 0, 'source_end': d, 'start': 0, 'end': d}]}
 
 
 def write(video, segments, duration, parts=None):
+    folder = Path(video).resolve().parent
+    segments = [{**row, 'source': os.path.relpath(Path(row['source']).resolve(), folder)} for row in segments]
     data = {'schema_version': 1, 'duration': duration, 'segments': segments}
     if parts is not None:
         data['parts'] = parts

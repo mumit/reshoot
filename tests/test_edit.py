@@ -154,3 +154,19 @@ def test_caption_timing_needs_one_caption_event_for_each_beat():
     assert captions.timing(events, ['a', 'b']) == [{'beat': 'a', 'start': 0.2, 'end': 2.5}, {'beat': 'b', 'start': 2.5, 'end': None}]
     with pytest.raises(ValueError):
         captions.timing(events, ['a'])
+
+
+def test_an_edit_map_still_finds_its_take_after_the_project_moves(tmp_path):
+    old = tmp_path / 'old' / 'takes'
+    old.mkdir(parents=True)
+    (old / 'demo.mp4').write_bytes(b'')
+    timeline.write(old / 'demo-final.mp4', [{'source': str(old / 'demo.mp4'), 'source_start': 0, 'source_end': 2,
+                                             'start': 0, 'end': 2}], 2)
+    assert json.loads((old / 'demo-final.timeline.json').read_text())['segments'][0]['source'] == 'demo.mp4'
+    moved = tmp_path / 'moved' / 'takes'
+    (tmp_path / 'old').rename(tmp_path / 'moved')
+    assert timeline.read(moved / 'demo-final.mp4')['segments'][0]['source'] == str((moved / 'demo.mp4').resolve())
+    # A map written before 0.3.9 holds the full path from where it was made
+    (moved / 'demo-final.timeline.json').write_text(json.dumps({'schema_version': 1, 'duration': 2, 'segments': [
+        {'source': '/elsewhere/runs/abc/takes/demo.mp4', 'source_start': 0, 'source_end': 2, 'start': 0, 'end': 2}]}))
+    assert timeline.read(moved / 'demo-final.mp4')['segments'][0]['source'] == str((moved / 'demo.mp4').resolve())

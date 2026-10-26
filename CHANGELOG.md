@@ -6,6 +6,13 @@ change project files or commands.
 
 ## Unreleased
 
+### Added
+
+- Correct a failed check's expected count, text, address, field value or ticked
+  state in the studio, with Undo, before recording a preview to verify it.
+- A selected-step bar keeps the step being edited beside the preview, with
+  playback and a way back to its fields.
+
 ### Changed
 
 - The studio resumes Undo and Redo automatically when the project still
@@ -13,6 +20,10 @@ change project files or commands.
   recovery choices and a saved source copy when available.
 - Recording controls and recovery messages use the same next step, including
   tool setup, first creation and a stopped preview.
+- Optional comparison, audio, screenshot and tour tools sit under **More
+  tools**. Removing a failed check takes a deliberate choice after correction.
+- A failed studio update opens its failure details while retaining the last
+  successful recording.
 
 ### Fixed
 

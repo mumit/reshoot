@@ -233,7 +233,7 @@ order for the next improvements:
 - [x] Share the next-action decision between recording controls and recovery
   messages. Resume matching Undo/Redo history automatically; retain explicit
   recovery for changed files and unreadable history.
-- [ ] Correct failed result checks in the studio, keep the selected step and
+- [x] Correct failed result checks in the studio, keep the selected step and
   its preview together, and put optional tools behind a deliberate entry.
 - [ ] Compare the paired exports through video playback in the studio,
   including beat-aware seeking while retaining selected run/review bindings.

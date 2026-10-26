@@ -185,6 +185,7 @@ def test_studio_compares_two_captures_with_mobile_layout_and_pinned_current_run(
             page = browser.new_page(viewport={'width': 1280, 'height': 900})
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(url)
+            page.locator('.more-tools > summary').click()
             page.locator('.section-nav [data-jump=compare-panel]').click()
             expect(page.locator('#comparison-status')).to_have_text('Compared 2 result-check steps.')
             expect(page.locator('.compare-pair img')).to_have_count(4)

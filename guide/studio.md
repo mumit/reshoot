@@ -1,11 +1,12 @@
 # The studio
 
-The studio is a page on your computer for shaping a demo that already has a
-recording. It shows the latest one, lets you change its story and look by
-pointing, and is where you review and accept the final. Your project files stay
-the source of truth: everything you change in the studio is saved to them.
+The studio is a page on your computer for shaping a demo. It shows the latest
+recording, lets you change its story and look by pointing, and is where you
+review and accept the final. If first creation stops, it helps you correct the
+story and continue. Your project files stay the source of truth: everything
+you change in the studio is saved to them.
 
-**You need a working recording first.** The studio doesn't write a story or
+**Start with a story.** The studio doesn't write a story or
 choose what to show. To make the first one, ask your
 [agent](agent-quickstart.md), try the made-up notes app with `reshoot create`,
 or [show the task yourself](your-app.md#show-the-task) in a simple web app.
@@ -34,9 +35,10 @@ The line above the preview says where you are: unsaved fields, saved changes
 not in the video yet, a current preview, or a final ready to review. It
 highlights the next thing to do.
 
-The links under it jump to each part of the page: **Preview**, **Story**,
-**Compare**, **Cut**, **Look**, **Audio**, **Screenshots**, **Tour**, **Review**
-and **Download**.
+The links under it jump to **Preview**, **Story**, **Cut**, **Look**, **Review**
+and **Download**. **More tools** holds **Compare**, **Audio**, **Screenshots**
+and **Tour**. Before the first recording, only the story and creation tools
+are shown.
 
 ## Change the story
 
@@ -51,8 +53,27 @@ caption, second line and hold.
   **Save narration**. **Audition saved line** plays it without starting the
   app. Clear the words and save to remove the line.
 
-Actions and result checks are changed in `storyboard.toml` itself. To change
-how a step is done, edit its actions there, or record the task again.
+Choose a step's frame, a mark on the timeline or one of its fields to select
+it. **Editing step** above the preview keeps that step named while you work.
+**Play selected step** plays it; **Back to this step** returns to its fields.
+Saved changes say when an update is still needed. The shown video keeps its
+recorded words until you update it.
+
+To change how a step is done, edit its actions in `storyboard.toml`, or record
+the task again.
+
+### Correct a failed result check
+
+When a check fails, the studio explains what it expected and what appeared.
+If the expected result is right, fix the app or its demo data. If the expected
+result is wrong, change the expected count, text, field value, address or
+ticked state and choose **Save expected result**. The control and neighboring
+checks stay the same. Choose the continuation named on the page to verify it.
+Change a check's target or kind in `storyboard.toml`.
+
+If the check does not prove anything useful, open **Remove a check that is
+not needed**, then choose **Remove this check**. **Undo** restores a correction
+or removal. A saved correction still needs a new preview to pass.
 
 ## Update the preview, then make the final
 

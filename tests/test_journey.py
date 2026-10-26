@@ -238,6 +238,7 @@ def test_creation_journey_shows_saved_state_navigates_and_downloads_bound_export
             current, current_report = review.read(tmp_path / 'latest')
             assert current_report['recut_from'] == baseline.name and digest(current / 'takes/demo.clean.mp4') == clean
             assert page.locator('#journey').get_attribute('data-phase') == 'preview'
+            page.locator('.more-tools > summary').click()
             page.locator('.section-nav [data-jump=tour-panel]').click()
             assert page.locator('.tour-controls').evaluate('el => el.open')
             # Returning from an editor detects external changes without advancing this tab's revision.

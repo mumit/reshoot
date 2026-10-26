@@ -15,6 +15,7 @@ import hashlib, html, json, math, os, re, signal, subprocess, sys, threading, to
 from pathlib import Path
 from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save
 from reshoot.sequence import outputs, check_cut
+from reshoot.expectations import without_check, update_check, explain
 
 AUDIO = ('.mp3', '.m4a', '.aac', '.wav', '.ogg', '.flac')
 
@@ -61,6 +62,10 @@ def edit(board, change):
                     after='id' if key == 'caption' else 'caption')
     if 'remove_expect' in change:
         lines = without_check(lines, change.get('beat'), change['remove_expect'], change.get('expect'))
+    if 'update_expect' in change:
+        if 'remove_expect' in change:
+            raise ValueError('Choose whether to correct or remove the check.')
+        lines = update_check(lines, change.get('beat'), change['update_expect'], change.get('expect'), change.get('value'))
     if 'look' in change:
         for key, value in change['look'].items():
             if key not in ('position', 'background', 'foreground'):
@@ -76,53 +81,6 @@ def edit(board, change):
             if span:
                 put(lines, span, key, value or None)
     save(board, lines, story.load)
-
-
-def without_check(lines, beat, index, expected):
-    """The storyboard lines without one beat's result check, the index-th [[beat.expect]] under it. The check must still
-    be the one the page showed, so a check edited since is never removed by mistake."""
-    heads = [head for head, _, _ in tables(lines, '[[beat]]')]
-    found = next((n for n, head in enumerate(heads) if tomllib.loads(''.join(lines[head + 1:tables(lines, '[[beat]]')[n][2]])).get('id') == beat), None)
-    if found is None:
-        raise ValueError(f'no beat {beat!r} in the storyboard')
-    end = heads[found + 1] if found + 1 < len(heads) else len(lines)
-    checks = [(head, stop) for head, _, stop in tables(lines, '[[beat.expect]]') if heads[found] < head < end]
-    if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < len(checks):
-        raise ValueError('That result check is no longer in the storyboard. Reload the project.')
-    head, stop = checks[index]
-    if tomllib.loads(''.join(lines[head + 1:stop])) != expected:
-        raise ValueError('That result check changed since the page loaded. Reload the project.')
-    while stop > head + 1 and not lines[stop - 1].strip():
-        stop -= 1  # keep the blank line that ends the beat
-    return lines[:head] + lines[stop:]
-
-
-def explain(n, beat, entry, error):
-    """A failed result check in plain words, such as: Step 5 (action-5) expected no elements matching #hero > div,
-    but the page had 4."""
-    target = entry.get('target') or {}
-    where = (f'`{target["css"]}`' if 'css' in target else f'test id "{target["test_id"]}"' if 'test_id' in target
-             else f'the {target.get("role")} "{target.get("name", "")}"' if 'role' in target else 'the page')
-    actual = re.search(r'Actual value: (.+)', error or '')
-    actual = actual[1].strip().strip('"') if actual else None
-    step = f'Step {n} ({beat})'
-    kind = entry.get('type')
-    if kind == 'count':
-        want = entry.get('count')
-        what = 'no elements' if want == 0 else f'{want} element{"" if want == 1 else "s"}'
-        return f'{step} expected {what} matching {where}' + (f', but the page had {actual}.' if actual else ', but the count was different.')
-    if kind == 'text':
-        shown = f', but it showed "{actual[:80]}"' if actual else ", but it didn't"
-        return f'{step} expected {where} to contain "{entry.get("contains")}"{shown}.'
-    if kind == 'visible':
-        return f"{step} expected {where} to be visible, but it wasn't."
-    if kind == 'url':
-        return f'{step} expected the address to contain "{entry.get("contains")}"' + (f', but it was {actual}.' if actual else ", but it didn't.")
-    if kind == 'value':
-        return f'{step} expected {where} to hold "{entry.get("value")}"' + (f', but it held "{actual}".' if actual else '.')
-    if kind == 'checked':
-        return f'{step} expected {where} to be {"ticked" if entry.get("checked", True) else "not ticked"}.'
-    return f"{step}'s result check didn't pass."
 
 
 def edit_cut(path, config, change):
@@ -1009,7 +967,7 @@ def serve(a):
 
 
 def page(data, accept, seen=0):
-    from reshoot import journey, timeline
+    from reshoot import expectations, journey, timeline
     e = lambda v: html.escape(str(v if v is not None else ''), quote=True)
     run = data['run']
     failure = data.get('failure')
@@ -1031,9 +989,14 @@ def page(data, accept, seen=0):
         elif failure.get('check'):
             check = failure['check']
             message = (check['message'] + ' If that is the result you meant to show, fix the app or its demo data. If '
-                       f'the check is wrong, remove it, then choose {again}.')
-            buttons = (f'<button type="button" data-remove-check data-beat="{e(check["beat"])}" data-index="{check["index"]}" '
-                       f'data-expect="{e(json.dumps(check["expect"]))}">Remove this check</button>')
+                       f'the check is wrong, correct its expected result below, then choose {again}.')
+            correction = expectations.form(check)
+            if not correction:
+                message = check['message'] + f' Fix the app or the check in the storyboard, then choose {again}.'
+            buttons = (correction + '<details><summary>Remove a check that is not needed</summary>'
+                       '<p>This removes this proof of the task. The next recording still has to pass its remaining checks. Undo restores it.</p>'
+                       f'<button type="button" data-remove-check data-beat="{e(check["beat"])}" data-index="{check["index"]}" '
+                       f'data-expect="{e(json.dumps(check["expect"]))}">Remove this check</button></details>')
         else:
             message = failure['message'][:1].upper() + failure['message'][1:]
             label = (failure.get('candidate_labels') or [None])[0]
@@ -1050,7 +1013,7 @@ def page(data, accept, seen=0):
                   if failure.get('check') and not failure['stale'] else '')
         failure_box = (f'<div class="failure" data-failure="{e(failure["id"])}" data-binding="{e(failure["binding"])}">'
                        f'<h2>{"Repair ready to verify" if failure["repaired"] else "Recording needs attention"}</h2>'
-                       f'<p>{e(message)}</p>{suggestions}<p>{buttons}</p>{detail}{image}</div>')
+                       f'<p>{e(message)}</p>{suggestions}{buttons}{detail}{image}</div>')
     seconds = lambda t: f'{t:.1f} s'
     pending = '<p class="pending"{}>Saved. Update preview to see this change.</p>'
     beats = []
@@ -1394,7 +1357,12 @@ def page(data, accept, seen=0):
            ('screenshots-panel', 'Screenshots'), ('tour-panel', 'Tour'), ('review-panel', 'Review'), ('download-panel', 'Download')]
     if not run:  # before a first working recording, only the story and its preview can do anything
         nav = [row for row in nav if row[0] in ('setup-panel', 'preview-panel', 'story-panel')]
-    navigation = ''.join(f'<a href="#{target}" data-jump="{target}">{label}</a>' for target, label in nav)
+    optional = {'compare-panel', 'audio-panel', 'screenshots-panel', 'tour-panel'}
+    nav_link = lambda target, label: f'<a href="#{target}" data-jump="{target}">{label}</a>'
+    navigation = ''.join(nav_link(target, label) for target, label in nav if target not in optional)
+    extra = ''.join(nav_link(target, label) for target, label in nav if target in optional)
+    if extra:
+        navigation += f'<details class="more-tools"><summary>More tools</summary><div>{extra}</div></details>'
     download_rows = ''.join(f'<li><a href="run/{e(item["source"])}" download="{e(item["name"])}">{e(item["name"])}</a></li>' for item in data.get('downloads', []))
     downloads = (f'''<section id="download-panel" class="downloads" tabindex="-1"><h2>Your files</h2>
 <p>{'Preview' if run['mode'] != 'final' else 'Final'} exports from recording {e(run['id'][:8])}. Saved edits appear after you update the recording.</p>
@@ -1426,7 +1394,9 @@ def page(data, accept, seen=0):
 <a href="#download-panel" data-jump="download-panel" id="journey-files"{'' if state['next'] == 'download' else ' hidden'}>Get your files</a></section>
 <p id="save-error" class="error" role="alert" hidden></p>
 <section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><audio id="audition-player" controls hidden></audio><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
-<main><section class="watch" id="preview-panel" tabindex="-1">{failure_box}{top}
+<main><section class="watch" id="preview-panel" tabindex="-1">{failure_box}
+<div id="selected-step" hidden><strong id="selected-step-title"></strong><p class="hint" id="selected-step-status"></p>
+<button type="button" id="play-selected">Play selected step</button><a href="#story-panel" id="edit-selected">Back to this step</a></div>{top}
 {f'<div class="shapes"><h2>Exports</h2><p class="hint">Measurements describe this rendered run. Update preview to measure saved changes.</p><div class="grid">{"".join(shapes)}</div></div>' if shapes else ''}
 {f'<div class="docs-shots"><h2>Documentation screenshots</h2><p class="hint">From this displayed run. Update preview to render saved changes. Inspect each PNG before sharing.</p><div class="grid">{shot_images}</div></div>' if shot_images else ''}
 {f'<div class="tour-previews"><h2>Clickable tour</h2><p class="hint">From this displayed run. Inspect every step, explanation and click marker before sharing.</p>{tour_previews}</div>' if tour_previews else ''}
@@ -1472,9 +1442,11 @@ header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:14p
 h1 { font-size:17px; margin:0 } h2 { font-size:15px; margin:0 0 8px } h3 { font-size:13px; margin:14px 0 4px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em }
 .story { color:var(--muted) } .actions { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap }
 fieldset.actions, fieldset.side { border:0; padding:0; min-width:0 } fieldset.side { margin:0 }
-.section-nav { width:100%; display:flex; gap:6px; overflow-x:auto; padding:2px 0 5px; white-space:nowrap }
+.section-nav { width:100%; display:flex; flex-wrap:wrap; gap:6px; padding:2px 0 5px }
 .section-nav a { color:var(--muted); font-size:13px; text-decoration:none; border:1px solid transparent; border-radius:6px; padding:5px 8px }
 .section-nav a:hover, .section-nav a[aria-current] { color:var(--ink); border-color:var(--accent) }
+.more-tools { flex-shrink:0; font-size:13px; padding:5px 8px }
+.more-tools[open] > div { display:flex; flex-wrap:wrap; white-space:normal; padding-top:6px }
 [id$="-panel"] { scroll-margin-top:calc(var(--header-height) + 16px) }
 .journey { max-width:1460px; margin:14px auto 0; padding:12px 16px; border:1px solid var(--line); border-left:4px solid var(--ok); border-radius:10px; background:var(--panel) }
 .journey p { margin:4px 0 } .journey[data-phase=pending], .journey[data-phase=draft], .journey[data-phase=external] { border-left-color:var(--accent) } .journey[data-phase=stopped] { border-left-color:var(--bad) }
@@ -1515,8 +1487,11 @@ input:not([type=radio]):not([type=checkbox]), select { display:block; width:100%
 .card, .export { display:flex; gap:8px; align-items:end; flex-wrap:wrap } .card > label:first-child, .export > label { flex:1 1 200px }
 .card .short { flex:0 0 90px } .card .remove, .export .remove { margin-bottom:1px }
 .beats ol { list-style:none; margin:0; padding:0; display:grid; gap:12px }
-.beat { display:grid; grid-template-columns:150px 1fr; gap:12px; background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--idle); border-radius:12px; padding:12px }
+.beat { display:grid; grid-template-columns:150px 1fr; gap:12px; background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--idle); border-radius:12px; padding:12px; scroll-margin-top:calc(var(--header-height) + 16px) }
 .beat.passed { border-left-color:var(--ok) } .beat.failed { border-left-color:var(--bad) } .beat.now { outline:2px solid var(--accent) }
+.beat.selected { box-shadow:0 0 0 2px var(--accent) } #selected-step a { display:inline-block; margin-left:12px; color:var(--accent) }
+.check-correction { margin:12px 0; padding:12px; border:1px solid var(--line); border-radius:8px }
+.check-correction textarea { width:100%; box-sizing:border-box; font:inherit; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:7px; padding:6px 8px }
 @media (max-width:520px) { .beat { grid-template-columns:1fr } }
 .play { position:relative; padding:0; overflow:hidden; aspect-ratio:16/9; align-self:start; background:var(--bg) }
 .play img { width:100%; height:100%; object-fit:cover; display:block } .play span { position:absolute; inset:auto 6px 6px auto; background:#000a; color:#fff; border-radius:50%; width:26px; height:26px; display:grid; place-items:center; font-size:11px }
@@ -1591,7 +1566,7 @@ summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screensh
 '''
 
 SCRIPT = '''(() => {
-  document.querySelectorAll('details.styling, details.advanced, details.narration, details.audio-controls, details.screenshots-controls, details.tour-controls').forEach(box => {
+  document.querySelectorAll('details.styling, details.advanced, details.more-tools, details.narration, details.audio-controls, details.screenshots-controls, details.tour-controls').forEach(box => {
     const key = location.pathname + ':' + box.className + ':' + (box.closest('.beat')?.dataset.beat || '');
     box.open = sessionStorage.getItem(key) === 'open';
     box.addEventListener('toggle', () => sessionStorage.setItem(key, box.open ? 'open' : 'closed'));
@@ -1682,7 +1657,9 @@ SCRIPT = '''(() => {
         : what === 'screenshot' && body.operation === 'set' ? document.querySelector(`.screenshot-form[data-name="${CSS.escape(body.name)}"]`)
         : what === 'tour' && body.change.operation === 'set' ? document.querySelector(`.tour-form[data-step="${body.change.step}"]`)
         : what === 'tour' ? document.querySelector(`.tour-form[data-operation="${CSS.escape(body.change.operation)}"]`) : null;
-      const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !ownForm || !ownForm.contains(input));
+      const editingCheck = what === 'edit' && body.update_expect != null ? document.querySelector('.check-correction') : null;
+      const savingForm = ownForm || editingCheck;
+      const unsaved = [...document.querySelectorAll('[data-unsaved]')].some(input => !savingForm || !savingForm.contains(input));
       if ((requireSaved || ['job', 'undo', 'redo', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour'].includes(what)) && unsaved) {
         const message = 'Fix the unsaved field before updating, undoing or changing the layout.';
         error(message); return {ok: false, error: message};
@@ -1715,6 +1692,17 @@ SCRIPT = '''(() => {
     post('edit', {beat: button.dataset.beat, remove_expect: Number(button.dataset.index), expect: JSON.parse(button.dataset.expect)}, true)
       .then(out => { if (out.ok) location.reload(); });
   });
+  document.querySelectorAll('.check-correction').forEach(form => {
+    form.elements.value.addEventListener('input', () => form.elements.value.dataset.unsaved = '1');
+    form.onreset = () => { delete form.elements.value.dataset.unsaved; if (!document.querySelector('[data-unsaved]')) error(''); };
+    form.onsubmit = event => {
+      event.preventDefault();
+      const raw = form.elements.value.value;
+      const value = form.dataset.kind === 'count' ? Number(raw) : form.dataset.kind === 'checked' ? raw === 'true' : raw;
+      post('edit', {beat:form.dataset.beat, update_expect:Number(form.dataset.index), expect:JSON.parse(form.dataset.expect), value}, true)
+        .then(out => { if (out.ok) location.reload(); });
+    };
+  });
   const styleChange = body => post('style', body, true).then(out => { if (out.ok) location.reload(); });
   const customStyle = () => {
     const label = document.getElementById('current-style'); if (label) label.textContent = 'Current: Custom look';
@@ -1743,8 +1731,32 @@ SCRIPT = '''(() => {
     document.querySelectorAll('.beat').forEach(b => b.classList.toggle('now', JSON.parse(b.dataset.appearances || '[]').some(([start, end]) => video.currentTime >= start && video.currentTime < end)));
   });
   const beat = id => document.querySelector(`.beat[data-beat="${CSS.escape(id)}"]`);
-  document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); play(+li.dataset.start, +li.dataset.end); });
-  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
+  let selected = null;
+  const selectionKey = location.pathname + ':selected-step';
+  const selectBeat = (li, seek = false) => {
+    if (!li) return;
+    selected = li; sessionStorage.setItem(selectionKey, li.dataset.beat);
+    document.querySelectorAll('.beat').forEach(item => {
+      item.classList.toggle('selected', item === li);
+      if (item === li) item.setAttribute('aria-current', 'step'); else item.removeAttribute('aria-current');
+    });
+    document.getElementById('selected-step').hidden = false;
+    textFor('selected-step-title', 'Editing step: ' + li.dataset.beat);
+    const changed = !li.querySelector('.pending').hidden;
+    textFor('selected-step-status', !video ? 'Finish the first preview to see this step.' : changed ? 'Saved changes are not shown yet. Update preview to see them.' :
+      'Showing the recorded version. Captions and timing save as you leave a field.');
+    document.getElementById('play-selected').disabled = !video || li.dataset.start === '';
+    if (seek && video && li.dataset.start !== '') { stopAt = null; video.pause(); video.currentTime = +li.dataset.start; }
+  };
+  document.querySelectorAll('.beat').forEach(li => li.addEventListener('focusin', () => { if (selected !== li) selectBeat(li, true); }));
+  selectBeat(beat(sessionStorage.getItem(selectionKey) || ''));
+  document.getElementById('play-selected').onclick = () => { if (selected) play(+selected.dataset.start, +selected.dataset.end); };
+  document.getElementById('edit-selected').onclick = event => {
+    event.preventDefault(); if (!selected) return;
+    selected.scrollIntoView({block:'start'}); selected.querySelector('input[name=caption]').focus({preventScroll:true});
+  };
+  document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); selectBeat(li); play(+li.dataset.start, +li.dataset.end); });
+  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); selectBeat(li); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   document.querySelectorAll('[data-part-play]').forEach(button => button.onclick = () => play(+button.dataset.start, +button.dataset.end));
   const inspector = document.getElementById('export-inspector');
   document.querySelectorAll('[data-inspect]').forEach(button => button.onclick = () => {
@@ -1848,7 +1860,8 @@ SCRIPT = '''(() => {
   };
   document.querySelectorAll('.seek').forEach(s => s.onclick = () => { if (video) { stopAt = null; video.currentTime = +s.dataset.t; video.pause(); } });
   const saved = (out, where, input) => { if (!out.ok) return toast(out.error); if (input) delete input.dataset.unsaved;
-    if (!document.querySelector('[data-unsaved]')) error(''); toast('Saved'); const p = where.querySelector('.pending'); if (p) p.hidden = false; };
+    if (!document.querySelector('[data-unsaved]')) error(''); toast('Saved'); const p = where.querySelector('.pending'); if (p) p.hidden = false;
+    if (where.classList.contains('beat')) selectBeat(where); };
   document.querySelectorAll('.beat input').forEach(input => input.addEventListener('change', () => {
     const li = input.closest('.beat');
     input.dataset.unsaved = '1';
@@ -2005,7 +2018,7 @@ SCRIPT = '''(() => {
     document.body.dataset.jobRunning = job.running ? '1' : '';
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
     document.getElementById('cancel').hidden = !job.running;
-    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .side input, .side textarea, .side select, .side button, [data-history]').forEach(button => {
+    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .check-correction input, .check-correction textarea, .check-correction select, .check-correction button, .side input, .side textarea, .side select, .side button, [data-history]').forEach(button => {
       if (job.running) {
         if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = button.disabled ? '1' : '';
         button.disabled = true;
@@ -2035,8 +2048,8 @@ SCRIPT = '''(() => {
       if (!job.cancelled && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
       return;
     }
-    title.textContent = job.cancelled ? 'Update cancelled. Your previous recording is kept.' : job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed; the page still shows the last run that worked.';
-    if (job.code === 0 && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
+    title.textContent = job.cancelled ? 'Update cancelled. Your previous recording is kept.' : job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed. Loading the step that needs attention...';
+    if (!job.cancelled && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
   });
   document.getElementById('cancel').onclick = () => post('cancel', {}).then(watch);
   document.querySelectorAll('[data-audition]').forEach(button => button.onclick = () => post('job', {kind: 'audition', beat: button.dataset.audition}).then(out => {

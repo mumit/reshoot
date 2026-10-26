@@ -325,6 +325,7 @@ def test_a_first_preview_that_stopped_on_a_wrong_check_can_be_fixed_in_the_studi
             assert not page.locator('#review-panel').is_visible() and not page.locator('#look-panel').is_visible()
             assert 'expected no elements matching' in page.locator('.failure').inner_text()
             assert page.locator('.beat[data-beat=search] .checks').inner_text().endswith('not run yet')
+            page.get_by_text('Remove a check that is not needed', exact=True).click()
             page.locator('[data-remove-check]').click()
             page.wait_for_load_state('load')
             page.wait_for_function('!document.querySelector("[data-remove-check]")')
@@ -339,3 +340,71 @@ def test_a_first_preview_that_stopped_on_a_wrong_check_can_be_fixed_in_the_studi
     with pytest.raises(SystemExit) as result:
         main(['preview', str(config)])
     assert result.value.code == 0
+
+
+@pytest.mark.browser
+def test_correct_a_first_check_then_refine_resume_and_review_the_same_final(tmp_path):
+    from playwright.sync_api import sync_playwright, expect
+    from test_reshoot import free_port
+    from reshoot import create, review, story, web
+    from reshoot.artifacts import digest
+    from reshoot.cli import main
+    project.init(SimpleNamespace(directory=str(tmp_path), url=None, quiet=True))
+    config, board = tmp_path / 'reshoot.toml', tmp_path / 'storyboard.toml'
+    port = free_port()
+    config.write_text(config.read_text().replace('8765', str(port)).replace('scan = true', 'scan = false'))
+    board.write_text(board.read_text().replace('8765', str(port)).replace('count = 1', 'count = 0', 1))
+    create.save(tmp_path, {'schema_version': 1, 'stage': 'preview', 'url': None, 'size': '960x540@1.5'})
+    with pytest.raises(SystemExit) as result:
+        main(['preview', str(config)])
+    assert result.value.code != 0
+    task = [b.get('action', []) for b in story.load(board)['beat']]
+    httpd, url, _ = studio.server(SimpleNamespace(project=str(tmp_path), port=None))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    errors = []
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(executable_path=web.find_chrome(), headless=True)
+            page = browser.new_page(viewport={'width': 1280, 'height': 900})
+            page.on('pageerror', lambda error: errors.append(str(error)))
+            page.goto(url)
+            form = page.locator('.check-correction')
+            form.locator('input[name=value]').fill('1')
+            with page.expect_navigation():
+                form.get_by_role('button', name='Save expected result').click()
+            expect(page.locator('.failure')).to_contain_text('Continue creation')
+            with page.expect_navigation(timeout=120000):
+                page.get_by_role('button', name='Continue creation', exact=True).click()
+            expect(page.locator('.failure')).to_have_count(0)
+            first = review.read(tmp_path / 'latest')
+            assert first[1]['expectations_count'] == 3 and first[1]['expectations_status'] == 'passed'
+            clean_hash = digest(first[0] / 'takes/demo.clean.mp4')
+            caption = page.locator('.beat[data-beat=search] input[name=caption]')
+            caption.fill('A note found in a moment'); caption.press('Tab')
+            page.wait_for_function('!document.querySelector("[data-unsaved]")')
+            expect(page.locator('#selected-step-title')).to_have_text('Editing step: search')
+            expect(page.locator('#selected-step-status')).to_contain_text('not shown yet')
+            assert 'existing recording' in page.locator('#journey-plan').inner_text()
+            assert not page.locator('.more-tools').evaluate('el => el.open')
+            with page.expect_navigation(timeout=120000):
+                page.locator('[data-job=update]').click()
+            recut = review.read(tmp_path / 'latest')
+            assert recut[1]['recut_from'] == first[1]['id'] and digest(recut[0] / 'takes/demo.clean.mp4') == clean_hash
+            httpd.shutdown(); httpd.server_close()
+            httpd, url, _ = studio.server(SimpleNamespace(project=str(tmp_path), port=None))
+            threading.Thread(target=httpd.serve_forever, daemon=True).start()
+            page.goto(url)
+            expect(page.locator('#session-recovery')).to_have_count(0)
+            expect(page.locator('[data-history=undo]')).to_be_enabled()
+            with page.expect_navigation(timeout=120000):
+                page.locator('[data-job=run]').click()
+            final = review.read(tmp_path / 'latest')
+            assert final[1]['mode'] == 'final' and page.locator('body').get_attribute('data-run') == final[1]['id']
+            expect(page.locator('#journey-review')).to_be_visible()
+            assert final[1]['review_status'] == 'pending'
+            assert [b.get('action', []) for b in story.load(board)['beat']] == task
+            assert sum(len(b.get('expect', [])) for b in story.load(board)['beat']) == 3
+            assert not errors
+            browser.close()
+    finally:
+        httpd.shutdown(); httpd.server_close()

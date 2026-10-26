@@ -28,6 +28,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/sequence.py` | Beat ranges and video-part ordering shared by the CLI and studio |
 | `src/reshoot/framing.py`, `readability.py`, `layout.js` | Shared export geometry and measured text/crop feedback |
 | `src/reshoot/repair.py`, `repair.js`, `targets.js` | Explicit locator repair and shared control discovery |
+| `src/reshoot/expectations.py` | Failed result explanations and corrections that preserve the control and neighboring checks |
 | `src/reshoot/rec.py`, `rec.js` | `reshoot rec`: a storyboard written by watching someone use the app |
 | `src/reshoot/zoom.py` | Zoom on clicks, and captions drawn after the zoom |
 | `src/reshoot/captions.py` | TOML storyboard captions, drawn on a take after recording and again on a re-cut |

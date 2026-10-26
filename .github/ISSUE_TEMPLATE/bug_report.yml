@@ -11,7 +11,7 @@ body:
     attributes:
       label: Environment
       description: Include OS and CPU, reshoot version and install revision if known, browser, ffmpeg and OCR backend. reshoot doctor --json can help.
-      placeholder: "macOS Apple Silicon; reshoot 0.3.8 at commit …; Chrome …; ffmpeg …; Vision"
+      placeholder: "macOS Apple Silicon; reshoot 0.3.9 at commit …; Chrome …; ffmpeg …; Vision"
     validations:
       required: true
   - type: textarea

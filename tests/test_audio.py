@@ -199,6 +199,7 @@ def test_studio_narration_audition_capture_and_mix_recut(tmp_path):
             assert 'Find the matching note.' in (narrated / 'takes/demo-final.srt').read_text()
             assert search.locator('.narration-pending').count() == 0
             clean_hash = digest(narrated / 'takes/demo.clean.mp4')
+            page.click('#video-tab')
             page.locator('.audio-controls > summary').click()
             mix = page.locator('.audio-mix')
             mix.locator('[name=voice_volume]').fill('50')
@@ -220,6 +221,7 @@ def test_studio_narration_audition_capture_and_mix_recut(tmp_path):
             page.reload()
             with page.expect_navigation():
                 page.locator('[data-session=fresh]').click()
+            page.click('#step-tab')
             search.locator('[data-audition]').click()
             page.wait_for_function("document.getElementById('job-title').textContent.includes('audition failed')", timeout=30000)
             assert page.locator('body').get_attribute('data-run') == mixed.name

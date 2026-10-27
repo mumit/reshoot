@@ -251,6 +251,7 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             with page.expect_navigation():
                 page.click('[data-history=redo]')
             assert 'A caption from the studio' in board.read_text()
+            page.click('#video-tab')
             page.locator('.styling > summary').click()
             page.locator('.look input[name=background]').fill('blue')
             page.locator('.look input[name=background]').press('Tab')
@@ -261,6 +262,7 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             page.locator('.look input[name=background]').fill('#1d4ed8')
             page.locator('.look input[name=background]').press('Tab')
             page.wait_for_function("!document.querySelector('[data-unsaved]')")
+            page.click('#step-tab')
             search.locator('.play').click()  # plays the beat, from its place in the video
             page.wait_for_function("!document.getElementById('video').paused")
             start = float(search.get_attribute('data-start'))
@@ -268,6 +270,7 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             assert page.locator('.shape').count() == 2  # the MP4 and the README GIF, with the GIF's limits
             assert 'GitHub takes up to 10 MB' in page.locator('.shape').nth(1).inner_text()
             assert page.locator('.redo.changed').count() == 0  # a new caption needs a re-cut, not a recording
+            page.click('#video-tab')
             with page.expect_navigation():
                 page.click('[data-add-card=start]')
             page.locator('.card input[name=text]').fill('Notes, found fast')
@@ -281,6 +284,7 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             assert page.locator('.beat[data-beat=search] .pending').is_hidden()
             assert page.locator('.cut .pending').is_hidden()
             assert page.locator('#to-accept').count() == 1
+            page.click('#step-tab')
             hold = page.locator('.beat[data-beat=search] input[name=hold]')
             hold.fill('2.5')
             hold.press('Tab')

@@ -1522,7 +1522,11 @@ def page(data, accept, seen=0):
 {f'<div class="found"><h3>What the scan found</h3><ul>{findings}</ul></div>' if findings else ''}
 {evidence}
 <div class="accept">{accept}</div></section>{downloads}</section>
-<fieldset class="side" aria-label="Demo editing"{locked}>{demonstration_box}<div class="beats" id="story-panel" tabindex="-1"><h2>Selected step</h2><p class="hint">Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div>
+<div class="side"><div class="side-tabs" role="tablist" aria-label="What to edit">
+<button type="button" role="tab" id="step-tab" aria-controls="step-side" aria-selected="true">This step</button>
+<button type="button" role="tab" id="video-tab" aria-controls="video-side" aria-selected="false" tabindex="-1">Whole video</button></div><fieldset class="side-fields" aria-label="Demo editing"{locked}>
+<div class="side-panel" id="step-side" role="tabpanel" aria-labelledby="step-tab">{demonstration_box}<div class="beats" id="story-panel" tabindex="-1"><h2>Selected step</h2><p class="hint">Captions and timing save as you leave a field.</p><ol>{''.join(beats)}</ol></div></div>
+<div class="side-panel" id="video-side" role="tabpanel" aria-labelledby="video-tab" hidden><p class="hint">These settings apply to every step.</p>
 {recipe_box}
 {audio_box}
 {screenshot_box}
@@ -1534,7 +1538,7 @@ def page(data, accept, seen=0):
 <label>Text <input name="foreground" value="{e(look.get('foreground', ''))}" placeholder="#ffffff"></label>
 {pending.format('' if data['look_pending'] else ' hidden')}</div>
 {edit_box}
-</details></fieldset></main>
+</details></div></fieldset></div></main>
 <p id="toast" role="status"></p>
 <dialog id="export-inspector"><form method="dialog"><button>Close</button></form><h2>Inspect the rendered export</h2><p id="inspector-size"></p><div class="inspection-rail"></div></dialog>
 <script>{SCRIPT}</script><script>{Path(__file__).with_name('editor.js').read_text()}</script><script>{Path(__file__).with_name('stills.js').read_text()}</script><script>{Path(__file__).with_name('playback.js').read_text()}</script><script>{Path(__file__).with_name('comparison.js').read_text()}</script></body></html>'''
@@ -1558,7 +1562,7 @@ body[data-first] .beat .redo { display:none }
 header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:14px 20px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:2 }
 h1 { font-size:17px; margin:0 } h2 { font-size:15px; margin:0 0 8px } h3 { font-size:13px; margin:14px 0 4px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em }
 .story { color:var(--muted) } .actions { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap }
-fieldset.actions, fieldset.side { border:0; padding:0; min-width:0 } fieldset.side { margin:0 }
+fieldset.actions, fieldset.side-fields { border:0; padding:0; min-width:0 } fieldset.side-fields { margin:0 } .side { min-width:0 }
 .section-nav { width:100%; display:flex; flex-wrap:wrap; gap:6px; padding:2px 0 5px }
 .section-nav a { color:var(--muted); font-size:13px; text-decoration:none; border:1px solid transparent; border-radius:6px; padding:5px 8px }
 .section-nav a:hover, .section-nav a[aria-current] { color:var(--ink); border-color:var(--accent) }
@@ -1583,7 +1587,7 @@ fieldset.actions, fieldset.side { border:0; padding:0; min-width:0 } fieldset.si
 @media(max-width:600px) { .compare-pair, .compare-run-links, .playback-controls { grid-template-columns:1fr } }
 .downloads ul { padding-left:20px; overflow-wrap:anywhere } .downloads li { margin:7px 0 } .downloads a { color:var(--accent) }
 .download-all { display:inline-block; font-weight:600; border:1px solid var(--accent); border-radius:8px; padding:8px 12px; margin:4px 0; text-decoration:none }
-.side > .section-anchor:empty { display:none } :focus-visible { outline:2px solid var(--accent); outline-offset:3px }
+.side-panel > .section-anchor:empty { display:none } :focus-visible { outline:2px solid var(--accent); outline-offset:3px }
 @media(max-width:600px) { .journey { margin:12px 16px 0 } header { gap:8px; padding:10px 16px } .actions { gap:5px } .actions button { font-size:13px; padding:6px 8px } }
 button { font:inherit; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:8px; padding:6px 12px; cursor:pointer }
 button:hover:not(:disabled) { border-color:var(--accent) } button:disabled { opacity:.5; cursor:default }
@@ -1593,8 +1597,12 @@ main { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr); ga
   .watch { position:sticky; top:calc(var(--header-height) + 16px); align-self:start; max-height:calc(100dvh - var(--header-height) - 32px); overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior:contain }
   body[data-focused] #video, body[data-focused] #still-image { max-height:calc(100dvh - var(--header-height) - 450px); min-height:180px; object-fit:contain }
 }
-.watch > * + *, .side > * + * { margin-top:16px }
-.watch > div, .side > div:not(.beats) { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px }
+.watch > * + *, .side-panel > * + * { margin-top:16px }
+.side-tabs { display:flex; gap:4px; margin-bottom:16px; border-bottom:1px solid var(--line) }
+.side-tabs button { border:0; border-bottom:2px solid transparent; border-radius:0; background:none; color:var(--muted); padding:8px 12px; margin-bottom:-1px }
+.side-tabs button[aria-selected=true] { color:var(--ink); border-bottom-color:var(--accent); font-weight:600 }
+.side-panel[hidden] { display:none } #video-side > .hint:first-child { margin-top:0 }
+.watch > div, .side-panel > div:not(.beats) { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px }
 video { width:100%; border-radius:10px; background:#000; display:block }
 .timeline { position:relative; height:34px; background:var(--panel); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin-top:8px }
 .seg { position:absolute; top:4px; bottom:4px; border-radius:5px; padding:0 6px; border:0; overflow:hidden; text-align:left; font-size:12px; color:var(--seg-ink); white-space:nowrap }
@@ -1717,6 +1725,26 @@ SCRIPT = '''(() => {
     box.open = sessionStorage.getItem(key) === 'open';
     box.addEventListener('toggle', () => sessionStorage.setItem(key, box.open ? 'open' : 'closed'));
   });
+  const sideKey = location.pathname + ':side';
+  const showSide = name => {
+    document.querySelectorAll('.side-tabs [role=tab]').forEach(tab => {
+      const on = tab.id === name + '-tab';
+      tab.setAttribute('aria-selected', String(on)); tab.tabIndex = on ? 0 : -1;
+      document.getElementById(tab.getAttribute('aria-controls')).hidden = !on;
+    });
+    sessionStorage.setItem(sideKey, name);
+  };
+  // A link to a panel opens the tab that holds it.
+  const sideFor = target => target.closest('#video-side') ? 'video' : target.closest('#step-side') ? 'step' : null;
+  document.querySelectorAll('.side-tabs [role=tab]').forEach(tab => {
+    const name = tab.id.replace('-tab', ''), other = name === 'step' ? 'video' : 'step';
+    tab.onclick = () => showSide(name);
+    tab.onkeydown = event => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault(); showSide(other); document.getElementById(other + '-tab').focus();
+    };
+  });
+  if (sessionStorage.getItem(sideKey) === 'video') showSide('video');
   const video = document.getElementById('video'), head = document.getElementById('head');
   const toast = text => { const t = document.getElementById('toast'); t.textContent = text; t.classList.add('on'); clearTimeout(t.timer); t.timer = setTimeout(() => t.classList.remove('on'), 2600); };
   const error = text => { const box = document.getElementById('save-error'); box.textContent = text; box.hidden = !text; };
@@ -1763,6 +1791,7 @@ SCRIPT = '''(() => {
   new ResizeObserver(sizeHeader).observe(header); sizeHeader();
   document.querySelectorAll('[data-jump]').forEach(link => link.onclick = event => {
     event.preventDefault(); const target = document.getElementById(link.dataset.jump); if (!target) return;
+    const side = sideFor(target); if (side) showSide(side);
     if (target.tagName === 'DETAILS') target.open = true;
     if (target.id === 'review-panel') { const scan = target.querySelector('details.scan'); if (scan) scan.open = true; }
     const menu = link.closest('.more-tools');
@@ -1911,6 +1940,7 @@ SCRIPT = '''(() => {
   };
   document.addEventListener('reshoot:select-step', event => queue.then(() => {
     const target = beat(event.detail.id);
+    if (event.detail.seek) showSide('step');
     if (target !== selected && selected?.querySelector('[data-unsaved]')) {
       error('Save or reset the unsaved step before choosing another.');
       selected.querySelector('[data-unsaved]').focus(); return;
@@ -1922,10 +1952,10 @@ SCRIPT = '''(() => {
   document.getElementById('play-selected').onclick = () => { if (selected) play(+selected.dataset.start, +selected.dataset.end); };
   document.getElementById('edit-selected').onclick = event => {
     event.preventDefault(); if (!selected) return;
-    selected.scrollIntoView({block:'start'}); selected.querySelector('input[name=caption]').focus({preventScroll:true});
+    showSide('step'); selected.scrollIntoView({block:'start'}); selected.querySelector('input[name=caption]').focus({preventScroll:true});
   };
   document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); selectBeat(li); play(+li.dataset.start, +li.dataset.end); });
-  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); selectBeat(li); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
+  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); showSide('step'); selectBeat(li); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   document.querySelectorAll('[data-part-play]').forEach(button => button.onclick = () => play(+button.dataset.start, +button.dataset.end));
   const inspector = document.getElementById('export-inspector');
   document.querySelectorAll('[data-inspect]').forEach(button => button.onclick = () => {
@@ -2019,7 +2049,7 @@ SCRIPT = '''(() => {
       start: addClip.elements.start.value, through: addClip.elements.through.value}); };
   }
   document.querySelectorAll('[data-edit-card]').forEach(button => button.onclick = () => {
-    document.querySelector('.styling').open = true;
+    showSide('video'); document.querySelector('.styling').open = true;
     const input = document.querySelector(`.cut .card[data-part="${button.dataset.editCard}"] input[name=text]`);
     if (input) { input.scrollIntoView({block: 'center'}); input.focus(); }
   });
@@ -2124,7 +2154,7 @@ SCRIPT = '''(() => {
   });
   document.querySelectorAll('[data-remove-shot]').forEach(button => button.onclick = () => post('screenshot', {operation: 'remove', name: button.dataset.removeShot}).then(out => { if (out.ok) location.reload(); }));
   document.querySelectorAll('[data-shot-beat]').forEach(button => button.onclick = () => {
-    const panel = document.querySelector('.screenshots-controls'); panel.open = true;
+    showSide('video'); const panel = document.querySelector('.screenshots-controls'); panel.open = true;
     const form = document.getElementById('add-screenshot'); if (!form) return;
     if (form.querySelector('[data-unsaved]')) { error('Save or reset the screenshot draft before choosing another step.'); return; }
     const existing = panel.querySelector(`.screenshot-form[data-take="${form.dataset.take}"][data-beat="${CSS.escape(button.dataset.shotBeat)}"]`);
@@ -2187,7 +2217,7 @@ SCRIPT = '''(() => {
     document.body.dataset.jobRunning = job.running ? '1' : '';
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
     document.getElementById('cancel').hidden = !job.running;
-    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .check-correction input, .check-correction textarea, .check-correction select, .check-correction button, .side input, .side textarea, .side select, .side button, [data-history]').forEach(button => {
+    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .check-correction input, .check-correction textarea, .check-correction select, .check-correction button, .side-fields input, .side-fields textarea, .side-fields select, .side-fields button, [data-history]').forEach(button => {
       if (job.running) {
         if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = button.disabled ? '1' : '';
         button.disabled = true;

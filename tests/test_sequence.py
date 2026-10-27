@@ -186,6 +186,7 @@ def test_studio_trims_repeats_reorders_and_undoes_without_changing_the_task(tmp_
             page.goto(url)
             stale = browser.new_page()
             stale.goto(url)
+            page.click('#video-tab')
             form = page.locator('.sequence-part[data-part="0"] .range-form')
             form.locator('[name=start]').select_option('search')
             page.click('[data-job=update]')
@@ -194,6 +195,7 @@ def test_studio_trims_repeats_reorders_and_undoes_without_changing_the_task(tmp_
             with page.expect_navigation():
                 form.locator('button[type=submit]').click()
             assert tomllib.loads(edit.read_text())['part'][0]['through'] == 'search'
+            stale.click('#video-tab')
             stale.click('[data-sequence=duplicate]')
             stale.wait_for_function("document.getElementById('save-error').textContent.includes('another tab')")
             with page.expect_navigation():
@@ -228,6 +230,7 @@ def test_studio_trims_repeats_reorders_and_undoes_without_changing_the_task(tmp_
             second = page.locator('.seg[data-beat=search]').nth(1)
             second.click()
             page.wait_for_function("document.getElementById('video').currentTime > 4")
+            page.click('#video-tab')
             page.locator('.sequence').scroll_into_view_if_needed()
             page.screenshot(path=str(tmp_path / 'sequence-studio.png'))
             assert not errors

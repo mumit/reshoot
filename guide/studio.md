@@ -40,6 +40,11 @@ and **Download**. **More tools** holds **Compare**, **Audio**, **Screenshots**,
 **Tour** and **Recipes**. Before the first recording, only the story and creation tools
 are shown.
 
+Beside the preview, **This step** edits the step you chose, and **Whole video**
+holds the settings for every step: recipes, audio, screenshots, the tour,
+**Your cut** and **Style and exports**. The links open the right one, and
+choosing a step goes back to **This step**.
+
 ## Choose a starting recipe
 
 Open **More tools**, then **Recipes**, to choose a useful starting pace and look.

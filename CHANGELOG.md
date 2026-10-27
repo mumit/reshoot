@@ -47,6 +47,9 @@ change project files or commands.
   placeholder "Search notes" records as `type-search-notes`, not `type-q`. The
   studio shows step names as words ("Type search notes"), and a missing
   control is named by its words: `couldn't find the field "Search notes"`.
+- The studio's editing column has two tabs. **This step** holds the selected
+  step's inspector; **Whole video** holds recipes, audio, screenshots, the
+  tour, **Your cut** and **Style and exports**, which used to sit below it.
 - The studio header has one way to record again: **Record app again**, for
   changes the studio can't see, such as a running app's page. It replaces
   the **More** menu's **Re-cut** and **Record a preview**; **Update preview**

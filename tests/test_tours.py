@@ -190,6 +190,7 @@ def test_studio_builds_edits_and_recuts_checked_tour(tmp_path):
             page = browser.new_page()
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(url)
+            page.click('#video-tab')
             page.locator('.tour-controls > summary').click()
             page.locator('#tour-create [name=title]').fill(SPEC['title'])
             page.click('[data-job=update]')

@@ -214,6 +214,7 @@ def test_studio_selects_checked_docs_frame_and_recuts_with_scan_and_review(tmp_p
             assert 'runs/' + current.name + '/screenshots/search-result.png' in page.locator('.docs-shots img').get_attribute('src')
             row = screenshots.listing(current, current_report)[0]
             assert row['pixels'][0] == 640 and row['result_checks'] == 2
+            page.click('#step-tab')
             page.locator('[data-shot-beat=search]').click()
             assert page.locator('#add-screenshot [name=name]').input_value() == ''
             assert page.locator('.screenshot-form[data-name=search-result] [name=alt]').evaluate('el => el === document.activeElement')

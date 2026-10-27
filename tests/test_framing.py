@@ -164,6 +164,7 @@ def test_studio_destination_crop_undo_inspection_and_bound_measurements(tmp_path
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(url)
+            page.click('#video-tab')
             page.locator('.styling > summary').click()
             with page.expect_navigation():
                 page.select_option('.cut [name=add_export]', 'x-portrait')

@@ -153,6 +153,7 @@ def test_studio_styles_save_import_undo_and_recut_the_verified_recording(tmp_pat
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(url)
+            page.click('#video-tab')
             page.locator('.styling > summary').click()
             stale = browser.new_page()
             stale.goto(url)
@@ -160,6 +161,7 @@ def test_studio_styles_save_import_undo_and_recut_the_verified_recording(tmp_pat
                 page.click('[data-style=midnight]')
             assert page.locator('[data-style=midnight]').get_attribute('aria-pressed') == 'true'
             assert story.load(board)['beat'] == tomllib.loads(original_board.decode())['beat']
+            stale.click('#video-tab')
             stale.locator('.styling > summary').click()
             stale.click('[data-style=paper]')
             stale.wait_for_function("document.getElementById('save-error').textContent.includes('another tab')")

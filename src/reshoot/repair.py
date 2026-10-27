@@ -2,6 +2,7 @@
 import asyncio
 import hashlib
 import json
+import re
 import shlex
 import tempfile
 from pathlib import Path
@@ -101,12 +102,32 @@ def earlier(out):
     return []
 
 
+LABELLED = re.compile(r'\[(?:aria-label|placeholder|title|name)="((?:[^"\\]|\\.)*)"\]')
+TAGS = {'input': 'field', 'textarea': 'field', 'select': 'list', 'button': 'button', 'a': 'link'}
+
+
+def words(fallbacks):
+    """A control's own words from its saved alternatives, such as "Search notes" from its placeholder."""
+    for alt in fallbacks or []:
+        if not isinstance(alt, dict):
+            continue
+        found = alt.get('name') or (m := LABELLED.search(alt.get('css') or '')) and re.sub(r'\\(.)', r'\1', m.group(1))
+        if found:
+            return found
+    return next((alt['text'] for alt in fallbacks or [] if isinstance(alt, dict) and alt.get('text')), None)
+
+
 def plain(entry, failure, present=()):
     """What a missing or ambiguous control means, in a person's words."""
     target = entry['target']
     kind = KINDS.get(target.get('role'), target.get('role') or 'control')
+    label = words(entry.get('fallbacks'))
     if target.get('name'):
         named = f'the {kind} "{target["name"]}"'
+    elif label and not target.get('role'):
+        tag = re.match(r'[a-z]+', target.get('css') or '') or re.match(r'[a-z]+', next(
+            (alt.get('css') or '' for alt in entry['fallbacks'] if isinstance(alt, dict) and alt.get('css')), ''))
+        named = f'the {TAGS.get(tag and tag.group(), "control")} "{label}"'
     elif target.get('role'):
         named = f'the {kind}'
     elif target.get('test_id'):
@@ -116,7 +137,10 @@ def plain(entry, failure, present=()):
     if failure['kind'] == 'ambiguous-target':
         return f'found more than one control that could be {named}. Give the target something that tells them apart, such as a name or a test id.'
     if failure.get('candidate_labels') and failure.get('reason'):
-        return f"couldn't find {named}. It's probably \"{failure['candidate_labels'][0]}\" now: that one {failure['reason']}."
+        guess = failure['candidate_labels'][0]
+        if guess == label:  # the same words, found another way: say so rather than repeat the name as news
+            return f"couldn't find {named} as it was saved. It's probably still \"{guess}\": that one {failure['reason']}."
+        return f"couldn't find {named}. It's probably \"{guess}\" now: that one {failure['reason']}."
     message = f"couldn't find {named}."
     if present:
         message += f' The {kind}s on the page now: ' + ', '.join(f'"{label}"' for label in present) + '.'

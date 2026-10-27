@@ -60,7 +60,7 @@ handles for you are listed in the [CHANGELOG](../CHANGELOG.md).
   the hold only for reading time.
 - **The studio can't see a remote app.** Update preview knows when the project
   files or declared `inputs` changed, not a remote app or its database. After
-  those change, use **More > Record a preview**.
+  those change, use **Record app again**.
 - **Don't fix a wrong result by changing the target.** A repair changes how a
   step finds its control. If the result is wrong, fix the app, the demo data
   or the story, and keep the check.

@@ -154,7 +154,8 @@ def main(a):
             state['stage'] = 'done'
             if persist:
                 save(root, state)
-    print('Continue with: ' + (continuation if code else 'reshoot studio ' + shlex.quote(str(root))), flush=True)
+    if code or a.no_studio:
+        print('Continue with: ' + (continuation if code else 'reshoot studio ' + shlex.quote(str(root))), flush=True)
     if a.no_studio:
         return code
     return studio.serve(SimpleNamespace(project=str(root), port=None, no_open=a.no_open))

@@ -230,16 +230,16 @@ def suggest(step, typed):
 
 
 def step_id(step):
-    """A beat ID that says what the step did, such as click-albums or type-q: the control's words when the recorder
-    saved them, otherwise the last plain word of its selector. """
+    """A beat ID that says what the step did, such as click-albums or type-search-notes: the control's words when the
+    recorder saved them, otherwise the last plain word of its selector. """
     verb = step['verb']
     if verb == 'key':
         return 'press-' + re.sub(r'[^a-z0-9]+', '-', str(step.get('key', 'key')).lower()).strip('-')
     if not step.get('where'):
         return {'note': 'note', 'issue': 'needs-repair'}.get(verb, verb)
+    from reshoot.repair import words as own_words
     kind, value = step['where']
-    words = next((alt.get('name') or alt.get('text') for alt in step.get('fallbacks', [])
-                  if isinstance(alt, dict) and (alt.get('name') or alt.get('text'))), None)
+    words = step.get('label') or own_words(step.get('fallbacks'))
     if kind == 'text':
         words = value[1]
     if not words:  # #tabs > a:nth-of-type(2) says only "tabs"

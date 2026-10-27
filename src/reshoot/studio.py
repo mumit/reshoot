@@ -1036,6 +1036,12 @@ def serve(a):
     return 0
 
 
+def step_name(beat_id):
+    """A step ID as words: type-search-notes reads "Type search notes"."""
+    words = str(beat_id).replace('-', ' ').replace('_', ' ').strip()
+    return words[:1].upper() + words[1:]
+
+
 def page(data, accept, seen=0):
     from reshoot import expectations, journey, timeline
     e = lambda v: html.escape(str(v if v is not None else ''), quote=True)
@@ -1113,12 +1119,12 @@ def page(data, accept, seen=0):
                 else 'not in this cut' if run and 'status' in beat else 'not recorded yet')
         if len(beat.get('appearances', [])) > 1:
             when += f' · {len(beat["appearances"])} appearances'
-        frame = f'<img src="run/{e(beat["frame"])}" alt="The last frame of {e(beat["id"])}" loading="lazy">' if beat.get('frame') else '<div class="noframe">No frame yet</div>'
+        frame = f'<img src="run/{e(beat["frame"])}" alt="The last frame of {e(step_name(beat["id"]))}" loading="lazy">' if beat.get('frame') else '<div class="noframe">No frame yet</div>'
         changed = beat.get('changed')
-        beats.append(f'''<li class="beat {check_state}" data-beat="{e(beat['id'])}" data-start="{e(beat.get('start'))}" data-end="{e(beat.get('end'))}" data-appearances="{e(json.dumps(beat.get('appearances', [])))}">
+        beats.append(f'''<li class="beat {check_state}" data-beat="{e(beat['id'])}" data-name="{e(step_name(beat['id']))}" data-start="{e(beat.get('start'))}" data-end="{e(beat.get('end'))}" data-appearances="{e(json.dumps(beat.get('appearances', [])))}">
   <button class="play" type="button" title="Play this beat"{'' if beat.get('start') is not None else ' disabled'}>{frame}<span>&#9654;</span></button>
   <div class="body">
-    <div class="head"><strong>{n + 1}. {e(beat['id'])}</strong><span class="when">{when}</span></div>
+    <div class="head"><strong>{n + 1}. {e(step_name(beat['id']))}</strong><span class="when">{when}</span></div>
     {f'<p class="purpose">{e(beat["purpose"])}</p>' if beat.get('purpose') else ''}
     <p class="checks">{f'{passed} of {len(checks)} result checks passed' if checks else
                        f'{beat["expects"]} result check{"" if beat["expects"] == 1 else "s"}, not run yet' if beat.get('expects') else 'No result checks'}</p>
@@ -1128,7 +1134,7 @@ def page(data, accept, seen=0):
     <button type="button" data-demonstrate="{e(beat['id'])}" data-mode="{insertion}"{' disabled' if draft else ''}>{'Add step before ending' if insertion == 'before' else 'Add step after this'}</button></details>
     {f'<button type="button" data-shot-beat="{e(beat["id"])}">Use for docs</button>' if beat['id'] in shot_beats and run else ''}
     <label>Caption <input name="caption" value="{e(beat['caption'])}" placeholder="No caption"></label>
-    <label>Second line <input name="sub" value="{e(beat['sub'])}" placeholder="None"></label>
+    <label>Second line <input name="sub" value="{e(beat['sub'])}" placeholder="Optional"></label>
     <label>Hold result (seconds) <input name="hold" type="number" min="0" step="0.5" value="{e(beat['hold'])}"></label>
     <details class="narration"><summary>Narration{': update needed' if beat.get('narration_pending') else ': added' if beat.get('narration') else ''}</summary>
     <form class="narration-form"><label>Spoken words <textarea name="text" maxlength="4000" rows="3" placeholder="Optional voiceover for this step">{e(beat.get('narration', ''))}</textarea></label>
@@ -1138,7 +1144,7 @@ def page(data, accept, seen=0):
     <button type="button" data-audition="{e(beat['id'])}"{'' if beat.get('narration') else ' disabled'}>Audition saved line</button></form></details>
     {f'<p class="error">{e(beat["issue"])}</p>' if beat.get('issue') else ''}
     {pending.format('' if beat.get('pending') else ' hidden')}
-    <p class="redo{' changed' if changed else ''}">{'Its actions, checks or hold changed since this recording. ' if changed else ''}<button type="button" data-from="{e(beat['id'])}" title="Start the app, replay the beats before this one off camera, and record from here">Record from here</button></p>
+    <p class="redo{' changed' if changed else ''}">{'Changed since this recording. ' if changed else ''}<button type="button" data-from="{e(beat['id'])}" title="Start the app, replay the beats before this one off camera, and record from here">Record from here</button></p>
   </div>
 </li>''')
     screenshot_forms = []
@@ -1212,8 +1218,8 @@ def page(data, accept, seen=0):
     if run:
         d = run['duration'] or 1
         marks = ''.join(f'<button class="seg {"failed" if "failed" in (b.get("checks") or []) else "passed" if b.get("checks") else "unverified"}" '
-                        f'style="left:{100 * a / d:.3f}%;width:{max(.5, 100 * (z - a) / d):.3f}%" data-beat="{e(b["id"])}" data-start="{a}" data-end="{z}" title="{e(b["id"])}">'
-                        f'<span>{e(b["id"])}</span></button>' for b in data['beats'] for a, z in b.get('appearances', []) if z > a)
+                        f'style="left:{100 * a / d:.3f}%;width:{max(.5, 100 * (z - a) / d):.3f}%" data-beat="{e(b["id"])}" data-start="{a}" data-end="{z}" title="{e(step_name(b["id"]))}">'
+                        f'<span>{e(step_name(b["id"]))}</span></button>' for b in data['beats'] for a, z in b.get('appearances', []) if z > a)
         marks += ''.join(f'<i class="flag" style="left:{100 * t / d:.3f}%" title="{e(f["name"])}: {e(f["found"])}"></i>'
                          for f in data['findings'] for t in f['times'])
     findings = ''.join(f'<li><strong>{e(f["name"])}</strong> {e(f["found"])}: {f["frames"]} frame{"s" if f["frames"] != 1 else ""}'
@@ -1247,13 +1253,13 @@ def page(data, accept, seen=0):
     if data.get('sequence'):
         sequence = data['sequence']
         def beat_options(names, selected):
-            return ('<option value="">Choose a beat (current boundary is custom)</option>' if selected not in names else '') + ''.join(
-                f'<option value="{e(name)}"{" selected" if name == selected else ""}>{e(name)}</option>' for name in names)
+            return ('<option value="">Choose a step (current boundary is custom)</option>' if selected not in names else '') + ''.join(
+                f'<option value="{e(name)}"{" selected" if name == selected else ""}>{e(step_name(name))}</option>' for name in names)
         part_boxes = []
         for part in sequence['parts']:
             i, playback = part['i'], part['play']
             is_card = part['card'] is not None
-            label = f'Title: {part["card"]}' if is_card else f'Take {part["take"] + 1}: {part.get("file", "unavailable")}'
+            label = f'Title: {part["card"]}' if is_card else (f'Recording {part["take"] + 1}' if 'file' in part else 'Recording unavailable')
             controls = f'''<button type="button" data-part-play data-start="{e((playback or {}).get('start'))}" data-end="{e((playback or {}).get('end'))}"{'' if playback else ' disabled'}>Play part {i + 1}</button>
 <button type="button" data-sequence="move" data-to="{i - 1}" aria-label="Move part {i + 1} earlier"{' disabled' if i == 0 else ''}>Earlier</button>
 <button type="button" data-sequence="move" data-to="{i + 1}" aria-label="Move part {i + 1} later"{' disabled' if i == len(sequence['parts']) - 1 else ''}>Later</button>
@@ -1262,27 +1268,27 @@ def page(data, accept, seen=0):
             ranges = ''
             if not is_card and isinstance(part['take'], int) and 0 <= part['take'] < len(sequence['sources']):
                 names = sequence['sources'][part['take']]['beats']
-                ranges = f'''<form class="range-form"><label>From beat <select name="start">{beat_options(names, part['start'])}</select></label>
-<label>Through beat (included) <select name="through">{beat_options(names, part['through'])}</select></label>
+                ranges = f'''<form class="range-form"><label>From step <select name="start">{beat_options(names, part['start'])}</select></label>
+<label>Through step (included) <select name="through">{beat_options(names, part['through'])}</select></label>
 <button type="submit">Save range</button><button type="reset">Reset</button></form>'''
             elif is_card:
                 ranges = f'<p class="hint">{part["seconds"]:g} seconds. <button type="button" data-edit-card="{i}">Edit title card</button></p>'
             part_boxes.append(f'''<li class="sequence-part" data-part="{i}"><strong>{i + 1}. {e(label)}</strong>
 {ranges}{f'<p class="error">{e(part["error"])}</p>' if part['error'] else ''}<div class="part-actions">{controls}</div></li>''')
         sources = [s for s in sequence['sources'] if s['beats']]
-        source_options = ''.join(f'<option value="{s["i"]}">Take {s["i"] + 1}: {e(s["file"])}</option>' for s in sources)
+        source_options = ''.join(f'<option value="{s["i"]}">Recording {s["i"] + 1}</option>' for s in sources)
         first_names = sources[0]['beats'] if sources else []
-        add = f'''<form id="add-clip"><h3>Add a clip</h3><label>Recorded take <select name="take">{source_options}</select></label>
-<div class="range-form"><label>From beat <select name="start">{beat_options(first_names, first_names[0])}</select></label>
-<label>Through beat (included) <select name="through">{beat_options(first_names, first_names[-1])}</select></label></div>
-<button type="submit">Add clip to end</button> <button type="reset">Reset</button></form>''' if sources else '<p class="hint">Record takes with beat markers to add clips by name.</p>'
+        add = f'''<form id="add-clip"><h3>Add a clip</h3><label>Recording <select name="take">{source_options}</select></label>
+<div class="range-form"><label>From step <select name="start">{beat_options(first_names, first_names[0])}</select></label>
+<label>Through step (included) <select name="through">{beat_options(first_names, first_names[-1])}</select></label></div>
+<button type="submit">Add clip to end</button> <button type="reset">Reset</button></form>''' if sources else '<p class="hint">Record with step markers to add clips by name.</p>'
         sequence_box = f'''<div class="sequence" data-sources="{e(json.dumps(sequence['sources']))}"><h2>Your cut</h2>
 <p class="hint">Choose what appears in the video and its order. Recording still runs the whole task and its result checks.</p>
 <ol class="sequence-parts">{''.join(part_boxes)}</ol>{add}
-<p class="hint">Through includes the beat and its result hold. Update preview to see the saved cut and enable part playback. Undo restores each edit.</p>
+<p class="hint">Through includes the step and its result hold. Update preview to see the saved cut and enable part playback. Undo restores each edit.</p>
 {pending.format('' if sequence['pending'] else ' hidden')}</div>'''
     elif cut:
-        sequence_box = '<div class="sequence"><h2>Your cut</h2><p class="hint">Record a complete preview to choose and arrange its beats.</p>' + (
+        sequence_box = '<div class="sequence"><h2>Your cut</h2><p class="hint">Record a complete preview to choose and arrange its steps.</p>' + (
             f'<p class="error">{e(data["sequence_error"])}</p>' if data.get('sequence_error') else '') + '</div>'
     styles_box = ''
     if data.get('styles'):
@@ -1395,7 +1401,7 @@ def page(data, accept, seen=0):
     else:
         still_controls = ''
         top = ('' if failure else '<p class="status">Your preview will appear here after setup and creation.</p>' if data.get('creation_pending') else
-               '<p class="status">No run has worked yet. Record a preview to see the demo here.</p>')
+               '<p class="status">No run has worked yet. Choose Update preview to see the demo here.</p>')
     sheets = ''.join(f'<a href="run/{e(s)}" target="_blank"><img loading="lazy" src="run/{e(s)}" alt="Scan sheet {i + 1}"></a>'
                      for i, s in enumerate((run or {}).get('sheets', [])))
     evidence = (f'<details class="scan"><summary>Inspect scan sheets</summary><p>Open a sheet at full size to inspect the frames.</p>{sheets}</details>' if sheets else '')
@@ -1490,9 +1496,8 @@ def page(data, accept, seen=0):
 <button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
 <button type="button" class="{'primary' if state['action']['kind'] == 'update' else ''}" data-job="update"{'' if state['actions']['update']['enabled'] else ' disabled'} title="{e(state['actions']['update']['reason'])}">Update preview</button>
 <button type="button" class="{'primary' if state['action']['kind'] == 'run' else ''}" data-job="run"{'' if state['actions']['run']['enabled'] else ' disabled'} title="{e(state['actions']['run']['reason'] or 'Record the full-size video for review')}">Make final</button>
-<details class="advanced"><summary>More</summary><button type="button" data-job="recut"{'' if run else ' disabled'} title="Edit and scan this run's takes again, with the captions and edit as they are now">Re-cut</button>
-<button type="button" data-job="preview" title="Start the app and record a quick preview">Record a preview</button>
-</details></fieldset><nav class="section-nav" aria-label="Studio sections">{navigation}</nav></header>
+<button type="button" data-job="preview" title="Record the whole task again, such as after you change your app outside this project">Record app again</button>
+</fieldset><nav class="section-nav" aria-label="Studio sections">{navigation}</nav></header>
 {recovery}
 {tools_box}
 <section id="journey" class="journey" role="status" aria-live="polite" data-phase="{e(state['phase'])}"><strong id="journey-title">{e(state['title'])}</strong>
@@ -1584,7 +1589,7 @@ button { font:inherit; border:1px solid var(--line); background:var(--panel); co
 button:hover:not(:disabled) { border-color:var(--accent) } button:disabled { opacity:.5; cursor:default }
 main { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr); gap:20px; padding:20px; max-width:1500px; margin:auto }
 @media (max-width:900px) { main { grid-template-columns:1fr; padding:16px } }
-@media (min-width:1100px) and (min-height:700px) {
+@media (min-width:1100px) and (min-height:640px) {
   .watch { position:sticky; top:calc(var(--header-height) + 16px); align-self:start; max-height:calc(100dvh - var(--header-height) - 32px); overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior:contain }
   body[data-focused] #video, body[data-focused] #still-image { max-height:calc(100dvh - var(--header-height) - 450px); min-height:180px; object-fit:contain }
 }
@@ -1639,7 +1644,9 @@ body[data-focused] .beat[hidden] { display:none }
 .head { display:flex; justify-content:space-between; gap:8px } .when, .checks, .purpose { color:var(--muted); font-size:13px; margin:2px 0 }
 .pending { color:var(--accent); font-size:13px; margin:8px 0 0; font-weight:600 }
 .redo { margin:8px 0 0; font-size:13px; color:var(--muted) } .redo button { padding:3px 10px; font-size:13px }
-.redo.changed { color:var(--bad); font-weight:600 } .redo.changed button { border-color:var(--bad) }
+.redo.changed { color:var(--ink); font-weight:600 }
+.color-row { display:flex; gap:6px; align-items:stretch; margin-top:3px } .color-row input:not(.swatch) { flex:1; min-width:0; margin-top:0 }
+.color-row input.swatch { flex:none; width:44px; margin-top:0; padding:2px; cursor:pointer }
 .found li { margin:4px 0 } .seek { padding:1px 8px; font-size:12px }
 .grid { display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end } .shape { margin:0; flex:0 1 auto }
 .shape .media { height:170px; max-width:100%; background:#000; border-radius:8px; overflow:hidden }
@@ -1652,7 +1659,6 @@ body[data-focused] .beat[hidden] { display:none }
 #toast.on { opacity:1 }
 .accept fieldset { border:1px solid var(--line); border-radius:8px; margin:10px 0 } .accept fieldset label { color:var(--ink) }
 .primary { background:var(--accent); color:var(--panel); border-color:var(--accent); font-weight:600 }
-.advanced { position:relative } .advanced[open] { display:flex; gap:6px; align-items:center }
 summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screenshots-controls, .tour-controls { background:var(--panel); padding:14px; border:1px solid var(--line); border-radius:12px }
 .styling > div { margin-top:14px } .error { color:var(--bad); font-weight:600 }
 #save-error { margin:12px 20px; padding:12px; border:1px solid var(--bad); border-radius:8px }
@@ -1706,7 +1712,7 @@ summary { cursor:pointer; font-weight:600 } .styling, .audio-controls, .screensh
 '''
 
 SCRIPT = '''(() => {
-  document.querySelectorAll('details.styling, details.advanced, details.more-tools, details.narration, details.audio-controls, details.screenshots-controls, details.tour-controls').forEach(box => {
+  document.querySelectorAll('details.styling, details.more-tools, details.narration, details.audio-controls, details.screenshots-controls, details.tour-controls').forEach(box => {
     const key = location.pathname + ':' + box.className + ':' + (box.closest('.beat')?.dataset.beat || '');
     box.open = sessionStorage.getItem(key) === 'open';
     box.addEventListener('toggle', () => sessionStorage.setItem(key, box.open ? 'open' : 'closed'));
@@ -1895,7 +1901,7 @@ SCRIPT = '''(() => {
       if (item === li) item.setAttribute('aria-current', 'step'); else item.removeAttribute('aria-current');
     });
     document.getElementById('selected-step').hidden = false;
-    textFor('selected-step-title', 'Editing step: ' + li.dataset.beat);
+    textFor('selected-step-title', 'Editing step: ' + (li.dataset.name || li.dataset.beat));
     const changed = !li.querySelector('.pending').hidden;
     textFor('selected-step-status', !video ? 'Finish the first preview to see this step.' : changed ? 'Saved changes are not shown yet. Update preview to see them.' :
       'Showing the recorded version. Captions and timing save as you leave a field.');
@@ -2003,7 +2009,7 @@ SCRIPT = '''(() => {
     const optionsForTake = () => {
       const names = sources.find(source => source.i === +addClip.elements.take.value).beats;
       ['start', 'through'].forEach(key => {
-        const select = addClip.elements[key]; select.replaceChildren(...names.map(name => new Option(name, name)));
+        const select = addClip.elements[key]; select.replaceChildren(...names.map(name => { const words = name.replace(/[-_]+/g, ' '); return new Option(words.charAt(0).toUpperCase() + words.slice(1), name); }));
         select.value = names[key === 'start' ? 0 : names.length - 1];
       });
     };
@@ -2226,5 +2232,15 @@ SCRIPT = '''(() => {
   document.querySelectorAll('[data-job]').forEach(b => b.onclick = () => post('job', {kind: b.dataset.job}).then(out => { if (out.ok) { if (out.reason) toast(out.reason); watch(); } }));
   document.querySelectorAll('[data-from]').forEach(b => b.onclick = () => post('job', {kind: 'from', beat: b.dataset.from}).then(out => {
     if (!out.ok) return toast(out.error); box.scrollIntoView({behavior: 'smooth'}); watch(); }));
+  // A colour picker beside each hex field; the text keeps any alpha digits and saves as before.
+  document.querySelectorAll('.look [name=background], .look [name=foreground], .cut [name=background], .cut [name=foreground], .cut [name=frame_background], .cut [name=frame_background_end]').forEach(field => {
+    const swatch = document.createElement('input'); swatch.type = 'color'; swatch.className = 'swatch';
+    swatch.setAttribute('aria-label', `Pick ${field.closest('label').firstChild.textContent.trim().toLowerCase()}`);
+    const show = () => { const hex = (field.value || field.placeholder).match(/^#[0-9a-f]{6}/i); swatch.value = hex ? hex[0].toLowerCase() : '#000000'; };
+    show(); swatch.disabled = field.disabled; field.addEventListener('input', show);
+    swatch.addEventListener('input', () => { field.value = swatch.value + (field.value.match(/^#[0-9a-f]{6}([0-9a-f]{2})$/i)?.[1] || ''); field.dataset.unsaved = '1'; });
+    swatch.addEventListener('change', event => { event.stopPropagation(); field.dispatchEvent(new Event('change')); });
+    const row = document.createElement('span'); row.className = 'color-row'; field.replaceWith(row); row.append(field, swatch);
+  });
   watch();
 })();'''

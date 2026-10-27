@@ -44,7 +44,7 @@ source, and add a task if you have one. The agent installs reshoot, reads your
 app, writes the story and the checks that prove it worked, and fixes it until
 it records cleanly. In
 [trials on new apps](docs/validation/2026-10-23-cold-first-demo.md) that took
-2 to 5 minutes in Claude Code and 5 to 9 in Codex. It opens the MP4 and GIF;
+2 to 5 minutes in Claude Code and 4 to 9 in Codex. It opens the MP4 and GIF;
 reply "accept" or ask for changes. Nothing is published. reshoot needs no
 API key: see
 [what your agent needs](guide/agent-quickstart.md#what-your-agent-needs).

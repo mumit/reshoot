@@ -152,13 +152,12 @@ or removal. A saved correction still needs a new preview to pass.
 It says which it did, then shows the new run. **Cancel update** stops it and
 keeps the previous video. Editing waits while an update is running.
 
-Under **More**, **Re-cut** and **Record a preview** do one or the other
-explicitly. Use **Record a preview** after a change the studio can't see, such
-as a change to a remote app or its database.
+**Record app again** always records the whole task. Use it after a change the
+studio can't see, such as a change to a running app or its database.
 
 **Record from here**, on a step, records from that step on, replaying the
 earlier steps without recording them. A step whose actions, checks or hold
-changed since the recording is marked in red.
+changed since the recording says "Changed since this recording."
 
 When the preview looks right, **Make final** records the whole run at full
 size. A preview is for looking at; accept a final.
@@ -237,7 +236,7 @@ command you set in the storyboard, which runs with your permissions.
 
 **Your cut** lists the parts of the video: recorded clips and title cards.
 
-- Choose a clip's **From beat** and **Through beat (included)**, then **Save
+- Choose a clip's **From step** and **Through step (included)**, then **Save
   range**. Through includes that step's result hold.
 - **Earlier** and **Later** move a part, **Duplicate** repeats it, and
   **Remove** leaves it out. **Add clip to end** adds another range.

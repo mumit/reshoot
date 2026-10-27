@@ -431,7 +431,7 @@ def test_correct_a_first_check_then_refine_resume_and_review_the_same_final(tmp_
             page.locator('[data-select-step=search]').click()
             caption.fill('A note found in a moment'); caption.press('Tab')
             page.wait_for_function('!document.querySelector("[data-unsaved]")')
-            expect(page.locator('#selected-step-title')).to_have_text('Editing step: search')
+            expect(page.locator('#selected-step-title')).to_have_text('Editing step: Search')
             expect(page.locator('#selected-step-status')).to_contain_text('not shown yet')
             assert 'existing recording' in page.locator('#journey-plan').inner_text()
             assert not page.locator('.more-tools').evaluate('el => el.open')

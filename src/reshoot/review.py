@@ -676,8 +676,7 @@ def panel(root, report, *, final_action='reshoot run'):
             'inspect the screenshots and every walkthrough step, and look at the scan items, findings first.' + ask + '</p>' + rows + PANEL + '</div>' + PANEL_SCRIPT)
 
 
-PANEL = '''<p><label><input type="checkbox" id="watched"> I watched every video, inspected the screenshots and walkthrough steps, and looked at every scan
-item</label></p><button id="accept" disabled>Accept the run</button><pre id="outcome"></pre>'''
+PANEL = '''<p><label><input type="checkbox" id="watched"> I reviewed everything above</label></p><button id="accept" disabled>Accept the run</button><pre id="outcome"></pre>'''
 
 PANEL_SCRIPT = '''<script>(() => {
   const box = document.getElementById('to-accept'), button = document.getElementById('accept');

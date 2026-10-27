@@ -410,7 +410,7 @@ def main(a):
     change = '  change it    reshoot studio ' + shlex.quote(folder)
     if preview:
         print(f'\nThis is a preview, smaller and quicker than a final. Watch it, then:\n'
-              f'  record final reshoot run {shlex.quote(str(a.config))}\n{change}')
+              f'  record final reshoot run {shlex.quote(shown(a.config))}\n{change}')
         return
     from reshoot.check import load
     from reshoot.check import findings

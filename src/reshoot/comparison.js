@@ -42,14 +42,16 @@
       stopPlayback = window.reshootPlayback(playback, data);
       for (const row of data.beats) {
         const article = node('article', null, 'compare-beat'); article.dataset.beat = row.beat;
-        article.append(node('h3', row.beat));
+        // take/type-search-notes reads "Type search notes"
+        const words = row.beat.split('/').pop().replace(/[-_]+/g, ' ');
+        article.append(node('h3', words.charAt(0).toUpperCase() + words.slice(1)));
         const flags = [];
         if (row.change === 'added') flags.push('Added step');
         if (row.change === 'removed') flags.push('Removed step');
-        if (row.frame_changed === true) flags.push('Frame file changed');
-        if (row.frame_changed === false) flags.push('Same captured frame');
-        if (row.definition_changed) flags.push('Task definition changed');
-        if (row.results_changed) flags.push('Result details changed');
+        if (row.frame_changed === true) flags.push('Looks different');
+        if (row.frame_changed === false) flags.push('Looks the same');
+        if (row.definition_changed) flags.push('Actions or checks changed');
+        if (row.results_changed) flags.push('Results changed');
         article.append(node('p', flags.join(' · ') || 'Checked frame unavailable on one side.', 'hint'));
         const pair = node('div', null, 'compare-pair');
         for (const side of ['previous', 'current']) {

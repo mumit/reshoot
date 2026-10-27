@@ -43,6 +43,26 @@ change project files or commands.
 
 ### Changed
 
+- Recorded steps take the control's own words, so a search box with the
+  placeholder "Search notes" records as `type-search-notes`, not `type-q`. The
+  studio shows step names as words ("Type search notes"), and a missing
+  control is named by its words: `couldn't find the field "Search notes"`.
+- The studio header has one way to record again: **Record app again**, for
+  changes the studio can't see, such as a running app's page. It replaces
+  the **More** menu's **Re-cut** and **Record a preview**; **Update preview**
+  still re-cuts when that's enough, and `reshoot recut` remains.
+- Colour fields in the studio have a colour picker beside them; a typed
+  alpha value stays. A step changed since its recording says so plainly
+  instead of in red, an empty second line reads "Optional", and accepting
+  asks for one short confirmation.
+- `create` ends with one next step, and the setup check leaves out its
+  disclaimer. A preview's "record final" command uses a short path.
+- Choosing a step in the filmstrip brings its inspector into view beside
+  the preview. The preview stays in place on windows 640 px tall or more,
+  down from 700.
+- **Your cut** says "step" and "Recording 1" instead of "beat" and a take's
+  file path, and Compare names steps in words and says "Looks different"
+  rather than "Frame file changed."
 - The studio resumes Undo and Redo automatically when the project still
   matches the saved session. Changed files and unreadable history still offer
   recovery choices and a saved source copy when available.

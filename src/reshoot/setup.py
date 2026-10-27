@@ -201,8 +201,6 @@ def print_report(report):
     if report.get('text_reader'):
         print('Vision text reader: ' + report['text_reader'] +
               ('; the accurate reader failed on this Mac.' if report['text_reader'] == 'fast' else '.'), flush=True)
-    print('Checks use synthetic data. Installed tools alone do not prove capture works. '
-          'A text probe does not validate face/person detection or approve any recording.', flush=True)
 
 
 def check_project(config):

@@ -438,3 +438,13 @@ def test_a_take_that_runs_over_its_timeout_says_where(tmp_path, native_page):
     assert result.value.code == 2
     error = json.loads((tmp_path / 'slow.take.json').read_text())['error']
     assert error.startswith("the take ran over its 4 s timeout while recording beat 'result'"), error
+
+
+def test_recorded_steps_are_named_by_the_controls_own_words():
+    from reshoot import rec, repair
+    placeholder = [{'css': 'input[placeholder="Search\\ notes"]'}]
+    assert rec.step_id({'verb': 'type', 'where': ['css', '#q'], 'fallbacks': placeholder}) == 'type-search-notes'
+    assert rec.step_id({'verb': 'type', 'where': ['css', '#text'], 'label': 'Write a note'}) == 'type-write-a-note'
+    assert rec.step_id({'verb': 'type', 'where': ['css', '#q']}) == 'type-q'
+    message = repair.plain({'target': {'css': '#q'}, 'fallbacks': placeholder}, {'kind': 'missing-target'})
+    assert message == 'couldn\'t find the field "Search notes".'

@@ -167,3 +167,17 @@ def test_filming_camera_keeps_controls_at_the_bottom_of_the_page(tmp_path):
     assert image.size==(1440,810)
     red,green,blue=image.getpixel((10,790))
     assert green>200 and red<50 and blue<50
+
+
+def test_long_cues_break_at_a_comma_that_still_fits(tmp_path, monkeypatch):
+    from reshoot import cut, voice
+    text = 'In this workshop, we turn one task in a web app into a short video, and a GIF you can put in the readme file.'
+    def speak(passage, path, engine):
+        cut.ff('-f','lavfi','-i','anullsrc=r=48000:cl=mono','-t','2',path)
+        words = [{'text':word + ' ', 'start':n*.1, 'end':n*.1+.08} for n, word in enumerate(text.split())]
+        path.with_suffix('.words.json').write_text(json.dumps(words))
+        return 2
+    monkeypatch.setattr(voice, 'speak', speak)
+    cues = media.speech(tmp_path, {'voice':'kokoro','scene':[{'id':'opening','text':text}]})['opening']['cues']
+    assert [cue['text'] for cue in cues] == ['In this workshop, we turn one task in a web app into a short video,',
+                                             'and a GIF you can put in the readme file.']

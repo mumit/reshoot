@@ -84,7 +84,7 @@ def speech(folder, lesson):
     result = {}
     for scene in lesson['scene']:
         target = cache / (scene['id'] + '.wav')
-        signature = hashlib.sha256(('passage-v3\0' + lesson['voice'] + scene['text']).encode()).hexdigest()
+        signature = hashlib.sha256(('passage-v6\0' + lesson['voice'] + scene['text']).encode()).hexdigest()
         info = target.with_suffix('.json')
         if info.exists() and json.loads(info.read_text()).get('signature') == signature and target.exists():
             result[scene['id']] = json.loads(info.read_text()); continue
@@ -100,12 +100,22 @@ def speech(folder, lesson):
             if neural and timing.exists():
                 words = json.loads(timing.read_text())
                 group = []
-                for word in words:
+                for n, word in enumerate(words):
                     group.append(word)
                     text = ''.join(item['text'] for item in group).strip()
-                    if (len(text) >= 55 and word['text'][-1:].isspace()) or re.search(r'[.!?]$', text):
+                    if re.search(r'[.!?]$', text):
                         cues.append({'start':at+group[0]['start'], 'end':at+group[-1]['end'], 'text':text})
                         group = []
+                    elif (len(text) >= 55 and word['text'][-1:].isspace()) or (len(text) >= 30 and text.endswith(',')):
+                        # Run on to a comma or full stop that still fits, so a phrase stays on one card.
+                        ahead = text
+                        for later in words[n+1:]:
+                            ahead += later['text']
+                            if len(ahead.strip()) > 84: break
+                            if re.search(r'[,.!?]$', ahead.strip()): break
+                        if text.endswith(',') or len(ahead.strip()) > 84 or n+1 == len(words):
+                            cues.append({'start':at+group[0]['start'], 'end':at+group[-1]['end'], 'text':text})
+                            group = []
                 if group:
                     cues.append({'start':at+group[0]['start'], 'end':at+group[-1]['end'],
                                  'text':''.join(item['text'] for item in group).strip()})

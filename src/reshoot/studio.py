@@ -1522,24 +1522,28 @@ def page(data, accept, seen=0):
     extra = ''.join(nav_link(target, label) for target, label in nav if target in optional)
     if extra:
         navigation += f'<details class="more-tools"><summary>More tools</summary><div>{extra}</div></details>'
+    video_file = next((item for item in data.get('downloads', []) if item['name'].endswith('.mp4')), None)
+    gif_file = next((item for item in data.get('downloads', []) if item['name'].endswith('.gif')), None)
     download_rows = ''.join(f'<li><a href="run/{e(item["source"])}" download="{e(item["name"])}">{e(item["name"])}</a></li>' for item in data.get('downloads', []))
     downloads = (f'''<section id="download-panel" class="downloads" tabindex="-1"><h2>Your files</h2>
 <p>{'Preview' if run['mode'] != 'final' else 'Final'} exports from recording {e(run['id'][:8])}. Saved edits appear after you update the recording.</p>
-<a class="download-all" data-bundle href="download/{run['id']}/{run['binding']}/exports.zip">Download all exports (.zip)</a>
+<a class="download-all" data-bundle href="download/{run['id']}/{run['binding']}/exports.zip">Download all exports (.zip)</a>{f""" <button type="button" data-copy="![Demo]({e(gif_file['name'])})">Copy readme Markdown</button>""" if gif_file else ""}
 <p class="hint">Includes the rendered exports, video subtitles, image Markdown and a file manifest. Downloading does not accept or publish them.</p>
 <details><summary>Download individual files</summary><ul>{download_rows}</ul></details></section>'''
                  if run and download_rows else '<section id="download-panel" class="downloads" tabindex="-1"><h2>Your files</h2><p>Record a complete preview to download its exports here.</p></section>')
-    video_file = next((item for item in data.get('downloads', []) if item['name'].endswith('.mp4')), None)
-    gif_file = next((item for item in data.get('downloads', []) if item['name'].endswith('.gif')), None)
     first_files = ''
+    offer = ('<p class="trial">Want to see what happens when your app changes? <button type="button" data-trial="apply">'
+             'Change the notes app and record again</button></p>' if data.get('trial') == 'original' else '')
     if state.get('first') and (video_file or gif_file):
         link = lambda item, label: f'<a class="download-all" href="run/{e(item["source"])}" download="{e(item["name"])}">{label}</a>' if item else ''
         first_files = (f'<div id="journey-first">{f"""<img src="run/{e(gif_file['source'])}" alt="The README GIF">""" if gif_file else ""}<p>'
                        f'{link(video_file, "Download the video")} {link(gif_file, "Download the GIF")}'
                        + (f' <button type="button" data-copy="![Demo]({e(gif_file["name"])})">Copy readme Markdown</button>' if gif_file else '')
                        + '</p><p class="hint">Put the GIF beside your README, and paste the Markdown where it should show.</p>'
-                       + ('<p class="trial">Want to see what happens when your app changes? <button type="button" data-trial="apply">'
-                          'Change the notes app and record again</button></p>' if data.get('trial') == 'original' else '') + '</div>')
+                       + offer + '</div>')
+    elif offer and run and state['phase'] in ('preview', 'review', 'pending'):
+        # The offer stays after the first preview, until the notes app changes or a recording is accepted.
+        first_files = offer
     if data.get('trial') == 'changed':
         passed = run and not data.get('failure') and not state['pending'] and state['phase'] in ('preview', 'review')
         first_files += ('<p id="trial-changed" class="hint">' + (

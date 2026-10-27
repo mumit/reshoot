@@ -227,6 +227,7 @@ private, reject the run, fix the data or story, and record again.
 
 **Download all exports** gives a ZIP of the run's videos, GIFs, screenshots,
 tour, subtitles and Markdown. **Download individual files** offers each alone.
+**Copy readme Markdown** copies the line that shows the GIF in a README.
 
 ## The same work from the terminal
 

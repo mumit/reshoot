@@ -16,6 +16,8 @@ change project files or commands.
 - In the made-up notes app, **Change the notes app and record again** gives the
   search box a new id, so you can watch the step stop and repair it. **Put the
   app and story back** returns both.
+  The offer stays after the first preview until a recording is accepted.
+- **Your files** has **Copy readme Markdown** for every recording with a GIF.
 
 - Optional local Kokoro English narration, selectable in Studio or with
   `reshoot audio set --engine 'kokoro --voice af_heart'`. Auditions share the

@@ -182,7 +182,7 @@ id = "audition"
 chapter = "Add useful polish"
 title = "Audition before recording"
 takeaway = "Listen to the wording before rebuilding the demo."
-text = "Choose Audition saved line to prepare a small audio preview. In your own session, listen for pronunciation, pace, and unnecessary words. The workshop uses the installed local synthetic voice, which is also used for this narration. The tutorial audio continues here so the two voices do not compete. A new preview will bring the spoken line into the actual demo."
+text = "Choose Audition saved line to prepare a small audio preview. Listen for pronunciation, pace, and unnecessary words. This workshop is narrated with Kokoro Heart. Your demo uses the voice saved in its own project. The tutorial narration continues here so the two voices do not compete. Update the preview to bring your saved spoken line into the demo."
 
 [[scene]]
 id = "card"

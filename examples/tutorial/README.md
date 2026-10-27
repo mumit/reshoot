@@ -25,6 +25,19 @@ Repeat `--voice ID` to choose other English voices. The clips are listening
 samples, not accepted workshop exports. Open the page through a local server
 for caption tracks, or play its MP4 files directly.
 
+The workshop uses Heart (`af_heart`) at its normal speed. To replace narration
+on an existing workshop without capturing the app again:
+
+```bash
+uv run python examples/tutorial/build.py renarrate --attempt takes/tutorial/attempt-ID
+```
+
+It creates a new attempt with copied original footage, native demo evidence
+and downloadable demo files, then generates speech from the current lesson
+and composes both edits. Scene IDs and order must match the original capture.
+The new attempt prints its own path; audit and serve that path as shown below.
+Original recordings and the audio in the demonstrated demo files are retained.
+
 From the repository root, install the browser development environment and
 the [platform tools](../../guide/install.md). The narration uses optional
 [local Kokoro speech](../../guide/install.md#local-neural-narration) on macOS
@@ -82,6 +95,7 @@ Ctrl-C stops the server. It listens only on `127.0.0.1` and does not publish.
   subtitle cues use its model word timings. Subtitles are
   available as SRT, VTT and an embedded MP4 subtitle track. Browser audio is
   not mixed over the workshop voice; the native demo exports retain their audio.
+  Workshop and excerpt audio are normalized to -18 LUFS for consistent playback.
 - Every native recording and the workshop remain pending owner review. The
   build never clicks acceptance controls, publishes, or overwrites `docs/demo/`.
 

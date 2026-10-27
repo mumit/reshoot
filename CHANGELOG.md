@@ -15,6 +15,8 @@ change project files or commands.
 - A local narrated web-app workshop recipe, first-demo excerpt, chapter
   player, subtitles and written companion using only synthetic notes data.
   The recipe preserves original page footage and leaves owner review pending.
+  Its `renarrate` operation makes a separate narration edition from existing
+  footage; the workshop uses Kokoro Heart with consistent playback loudness.
 - Demonstrate replacement actions or an added step from the studio or
   `reshoot step record`. Earlier actions replay first; Done saves a separate
   draft for review. Applying retains existing result checks, supports studio

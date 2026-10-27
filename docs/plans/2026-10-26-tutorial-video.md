@@ -15,6 +15,9 @@ Keep the media pending owner review; never publish or replace accepted media.
   first-demo excerpt from the same captured work.
 - [x] Inspect encoded frames across every chapter, verify audio/video/caption
   timing, scan the exports with stated coverage, and preserve validation.
+- [x] Audition local neural voices and select Kokoro Heart from owner feedback.
+- [x] Rebuild both workshop edits with Heart, normalize playback loudness,
+  regenerate captions and chapters, and audit the new edition.
 
 Command graphics are instructions rather than simulated terminal output.
 Every shortened recording wait is labeled; UI actions retain their speed.

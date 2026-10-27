@@ -18,7 +18,7 @@ import urllib.request
 import uuid
 
 from reshoot import create, demonstrate, rec, review, story, studio, web
-from media import CURSOR, Shoot, compose, save, speech
+from media import CURSOR, Shoot, compose, renarrate, save, speech
 
 BASE = Path(__file__).resolve().parent
 ROOT = BASE.parents[1]
@@ -402,7 +402,7 @@ def record(folder, lesson, rehearse=False):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation',choices=['record','compose','audit','serve','demonstrate'])
+    parser.add_argument('operation',choices=['record','renarrate','compose','audit','serve','demonstrate'])
     parser.add_argument('--attempt',type=Path)
     parser.add_argument('--reuse-speech',type=Path,help='reuse local cached speech from an earlier tutorial attempt')
     parser.add_argument('--rehearse',action='store_true',help='exercise the real workflow quickly; not a candidate video')
@@ -410,7 +410,16 @@ def main():
     parser.add_argument('--project');parser.add_argument('--beat');parser.add_argument('--draft-id');parser.add_argument('--expected-revision')
     args=parser.parse_args()
     lesson=tomllib.loads((BASE/'lesson.toml').read_text())
-    if args.attempt:
+    if args.operation=='renarrate':
+        if not args.attempt:parser.error('renarrate requires --attempt with the original recording')
+        source=args.attempt.resolve()
+        if not source.is_relative_to((ROOT/'takes/tutorial').resolve()):raise ValueError('Use an attempt under takes/tutorial/.')
+        folder=ROOT/'takes/tutorial'/('attempt-'+uuid.uuid4().hex[:12])
+        lesson=renarrate(source,folder,lesson)
+        sources=folder/'source';sources.mkdir()
+        for path in BASE.glob('*'):
+            if path.is_file():shutil.copy2(path,sources/path.name)
+    elif args.attempt:
         folder=args.attempt.resolve()
         if not folder.is_relative_to((ROOT/'takes/tutorial').resolve()):raise ValueError('Use an attempt under takes/tutorial/.')
     else:
@@ -438,6 +447,7 @@ def main():
     log=(invocation/'process.log').open('w',buffering=1)
     sys.stdout=Tee(sys.stdout,log);sys.stderr=Tee(sys.stderr,log)
     if args.operation=='record':record(folder,lesson,args.rehearse)
+    elif args.operation=='renarrate':compose(folder,lesson,speech(folder,lesson))
     elif args.operation=='compose':compose(folder,read(folder/'lesson.json'),read(folder/'speech.json'))
     elif args.operation=='serve':
         from serve import serve

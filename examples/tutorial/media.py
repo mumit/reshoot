@@ -6,6 +6,8 @@ import json
 import math
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import textwrap
 import time
 
@@ -41,6 +43,28 @@ def stamp(seconds, comma=False):
     minutes, value = divmod(value, 60000)
     seconds, millis = divmod(value, 1000)
     return f'{hours:02}:{minutes:02}:{seconds:02}{"," if comma else "."}{millis:03}'
+
+
+def renarrate(source, target, lesson):
+    """Start a separate narration edition, preserving the recorded inputs and evidence."""
+    original = json.loads((source/'lesson.json').read_text())
+    recording = json.loads((source/'recording.json').read_text())
+    if recording.get('status') != 'recorded' or recording.get('mode') == 'rehearsal':
+        raise ValueError('Use a completed, non-rehearsal tutorial recording.')
+    if [s['id'] for s in original['scene']] != [s['id'] for s in lesson['scene']]:
+        raise ValueError('Scene order changed; record fresh footage for the new lesson.')
+    # Preserve commands and geometry from the captured version, including its app port.
+    edition = {**original, 'voice':lesson['voice'],
+               'scene':[{**old, 'text':new['text']} for old,new in zip(original['scene'],lesson['scene'])]}
+    target.mkdir(parents=True)
+    for name in ('raw','demo','app','before-app-change'):
+        if (source/name).exists():shutil.copytree(source/name,target/name)
+    (target/'exports').mkdir()
+    shutil.copy2(source/'exports/notes-demo-exports.zip',target/'exports/notes-demo-exports.zip')
+    save(target/'lesson.json',edition)
+    save(target/'recording.json',{**recording,'renarrated_from':str(source),
+         'narration_voice':edition['voice'],'narration_created_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())})
+    return edition
 
 
 def speech(folder, lesson):
@@ -338,9 +362,21 @@ def export(folder, lesson, timeline, cues, name, selected):
     srt.write_text('\n\n'.join(f'{i}\n{stamp(c["start"],True)} --> {stamp(c["end"],True)}\n'+
                               '\n'.join(textwrap.wrap(c['text'],68)) for i,c in enumerate(mapped,1))+'\n')
     (folder/'exports'/(name+'.vtt')).write_text('WEBVTT\n\n'+re.sub(r'(\d{2}:\d{2}:\d{2}),(\d{3})',r'\1.\2',srt.read_text()))
+    audio_filter='aresample=async=1:first_pts=0'
+    # Measure the exact edit, then normalize speech without changing its timing.
+    normalizer='loudnorm=I=-18:TP=-2:LRA=11'
+    measured=subprocess.run(['ffmpeg','-nostdin','-v','info','-f','concat','-safe','0','-i',str(listing),
+                            '-vn','-af',normalizer+':print_format=json','-f','null','-'],
+                            capture_output=True,text=True,check=True)
+    levels=json.loads(re.search(r'\{\s*"input_i".*?\}',measured.stderr,re.S)[0])
+    if math.isfinite(float(levels['input_i'])):
+        fields={'measured_I':'input_i','measured_TP':'input_tp','measured_LRA':'input_lra',
+                'measured_thresh':'input_thresh','offset':'target_offset'}
+        audio_filter+=','+normalizer+':'+':'.join(key+'='+levels[value] for key,value in fields.items())
+        save(folder/'exports'/(name+'-loudness.json'),{'target_lufs':-18,'true_peak_limit_db':-2,'measured':levels})
     cut.ff('-f','concat','-safe','0','-i',listing,'-i',meta,'-i',srt,'-map','0:v','-map','0:a','-map','2:0',
            '-map_metadata','1','-map_chapters','1','-c:v','copy','-c:a','aac','-b:a','160k',
-           '-af','aresample=async=1:first_pts=0','-c:s','mov_text','-movie_timescale','1000',
+           '-af',audio_filter,'-ar','48000','-c:s','mov_text','-movie_timescale','1000',
            '-movflags','+faststart',folder/'exports'/(name+'.mp4'))
     save(folder/'exports'/(name+'-chapters.json'),chapters)
     save(folder/'exports'/(name+'-captions.json'),mapped)

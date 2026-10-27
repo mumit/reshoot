@@ -163,7 +163,7 @@ def state(project, run):
                 'detail': 'Fix the story or demo data, then record again.', 'changes': [], 'next': 'update'}
     if mode == 'preview' and not accepted and not report.get('recut_from') and len(list(run[0].parent.glob('*/run.json'))) == 1:
         checks = report.get('expectations_count', 0)
-        passed = f', and {"its result check" if checks == 1 else f"all {checks} result checks"} passed' if checks else ''
+        passed = f', and {"its result check" if checks == 1 else "both result checks" if checks == 2 else f"all {checks} result checks"} passed' if checks else ''
         return {'known': True, 'pending': False, 'phase': 'preview', 'first': True, 'title': 'Your first demo is ready',
                 'detail': f'Recorded in {round(report.get("seconds", 0))} seconds{passed}. Watch it, try a new caption, '
                           'or choose Make final when it looks right.', 'changes': [], 'next': 'run'}

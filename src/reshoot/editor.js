@@ -52,7 +52,7 @@
     reveal = false;
   });
   const initial = panels.find(panel => panel.classList.contains('selected'))?.dataset.beat ||
-    document.querySelector('.failure [data-beat]')?.dataset.beat ||
+    panels.find(panel => panel.classList.contains('failed'))?.dataset.beat ||
     (panels.find(panel => panel.classList.contains('passed') && panel.querySelector('input[name=caption]')?.value) ||
      panels.find(panel => panel.classList.contains('passed')) || panels[0]).dataset.beat;
   document.dispatchEvent(new CustomEvent('reshoot:select-step', {detail:{id:initial, seek:false}}));

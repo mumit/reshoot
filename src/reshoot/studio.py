@@ -1166,7 +1166,7 @@ def page(data, accept, seen=0):
         frame = f'<img src="run/{e(beat["frame"])}" alt="The last frame of {e(step_name(beat["id"]))}" loading="lazy">' if beat.get('frame') else '<div class="noframe">No frame yet</div>'
         changed = beat.get('changed')
         beats.append(f'''<li class="beat {check_state}" data-beat="{e(beat['id'])}" data-name="{e(step_name(beat['id']))}" data-start="{e(beat.get('start'))}" data-end="{e(beat.get('end'))}" data-appearances="{e(json.dumps(beat.get('appearances', [])))}">
-  <button class="play" type="button" title="Play this beat"{'' if beat.get('start') is not None else ' disabled'}>{frame}<span>&#9654;</span></button>
+  <button class="play" type="button" title="Play this step"{'' if beat.get('start') is not None else ' disabled'}>{frame}<span>&#9654;</span></button>
   <div class="body">
     <div class="head"><strong>{n + 1}. {e(step_name(beat['id']))}</strong><span class="when">{when}</span></div>
     {f'<p class="purpose">{e(beat["purpose"])}</p>' if beat.get('purpose') else ''}
@@ -1182,13 +1182,13 @@ def page(data, accept, seen=0):
     <label>Hold result (seconds) <input name="hold" type="number" min="0" step="0.5" value="{e(beat['hold'])}"></label>
     <details class="narration"><summary>Narration{': update needed' if beat.get('narration_pending') else ': added' if beat.get('narration') else ''}</summary>
     <form class="narration-form"><label>Spoken words <textarea name="text" maxlength="4000" rows="3" placeholder="Optional voiceover for this step">{e(beat.get('narration', ''))}</textarea></label>
-    <p class="hint">The beat waits for this line. Save, then audition it before recording. Empty words remove the line.</p>
+    <p class="hint">The step waits for this line. Save, then audition it before recording. Empty words remove the line.</p>
     {('<p class="narration-pending">Narration changed. Update preview records the task again to use these words and this voice.</p>') if beat.get('narration_pending') else ''}
     <button type="submit">Save narration</button> <button type="reset">Reset</button>
     <button type="button" data-audition="{e(beat['id'])}"{'' if beat.get('narration') else ' disabled'}>Audition saved line</button></form></details>
     {f'<p class="error">{e(beat["issue"])}</p>' if beat.get('issue') else ''}
     {pending.format('' if beat.get('pending') else ' hidden')}
-    <p class="redo{' changed' if changed else ''}">{'Changed since this recording. ' if changed else ''}<button type="button" data-from="{e(beat['id'])}" title="Start the app, replay the beats before this one off camera, and record from here">Record from here</button></p>
+    <p class="redo{' changed' if changed else ''}">{'Changed since this recording. ' if changed else ''}<button type="button" data-from="{e(beat['id'])}" title="Start the app, replay the steps before this one off camera, and record from here">Record from here</button></p>
   </div>
 </li>''')
     screenshot_forms = []
@@ -1437,7 +1437,7 @@ def page(data, accept, seen=0):
                f': {e(run["status"])}.</p><div class="preview-stage"><video id="video" src="run/{e(run["video"])}"' +
                (f' poster="run/{e(run["poster"])}"' if run.get('poster') else '') + ' controls preload="auto"></video>'
                '<img id="still-image" alt="Representative layout still from this recording" hidden></div>'
-               f'<div class="timeline" aria-label="Beats in the video"{"" if marks else " hidden"}>{marks}<b id="head"></b></div>')
+               f'<div class="timeline" aria-label="Steps in the video"{"" if marks else " hidden"}>{marks}<b id="head"></b></div>')
         if not run['captions_drawn']:
             top += '<p class="note">This run was recorded with its captions in the page, so a re-cut keeps them: record again to change them.</p>'
         if failure:
@@ -1811,7 +1811,9 @@ SCRIPT = '''(() => {
       event.preventDefault(); showSide(other); document.getElementById(other + '-tab').focus();
     };
   });
-  if (sessionStorage.getItem(sideKey) === 'video') showSide('video');
+  // A recording that stopped at a step opens that step, whichever tab was last used.
+  if (document.querySelector('.failure')) showSide('step');
+  else if (sessionStorage.getItem(sideKey) === 'video') showSide('video');
   const video = document.getElementById('video'), head = document.getElementById('head');
   const toast = text => { const t = document.getElementById('toast'); t.textContent = text; t.classList.add('on'); clearTimeout(t.timer); t.timer = setTimeout(() => t.classList.remove('on'), 2600); };
   const error = text => { const box = document.getElementById('save-error'); box.textContent = text; box.hidden = !text; };
@@ -2285,7 +2287,7 @@ SCRIPT = '''(() => {
   const auditionPlayer = document.getElementById('audition-player');
   auditionPlayer.addEventListener('play', () => { if (video) video.pause(); });
   if (video) video.addEventListener('play', () => auditionPlayer.pause());
-  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a beat', repair: 'Repairing control', audition: 'Preparing narration', setup:'Checking recording tools', create:'Continuing creation', demonstrate:'Demonstrating new actions in Chrome; choose Done to save a draft'};
+  const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a step', repair: 'Repairing control', audition: 'Preparing narration', setup:'Checking recording tools', create:'Continuing creation', demonstrate:'Demonstrating new actions in Chrome; choose Done to save a draft'};
   const watch = () => fetch('job.json').then(r => r.json()).then(job => {
     if (!job.kind) return;
     document.body.dataset.jobRunning = job.running ? '1' : '';

@@ -39,7 +39,7 @@ Legacy shoot files, without schema_version, write into the project instead of a 
 `run = "COMMAND"` takes, `[edit] script = "edit.py"` and `[keep] "takes/final.mp4" = "docs/demo.mp4"` copies. In
 GitHub Actions a run sets the step outputs ok, unchecked, flagged and report.
 """
-import json, os, re, shlex, shutil, signal, subprocess, sys, time, tomllib, urllib.error, urllib.request
+import contextlib, json, os, re, shlex, shutil, signal, subprocess, sys, time, tomllib, urllib.error, urllib.request
 from pathlib import Path
 from reshoot.safety import describe, redact
 
@@ -176,11 +176,12 @@ def earlier(shoot, config):
             'RESHOOT_EARLIER': os.pathsep.join(folders + ([str(accepted)] if accepted.is_dir() else []))}
 
 
-def execute(cmd, timeout, cwd=None, extra=None):
+def execute(cmd, timeout, cwd=None, extra=None, out=None):
     env = {**os.environ, 'RESHOOT_IN_RUN': '1', **(extra or {})}
     if cwd:
         env['RESHOOT_VOICE_CACHE'] = str(Path(cwd) / 'takes' / 'voice-cache')
-    proc = subprocess.Popen(cmd, start_new_session=True, cwd=cwd, env=env)
+    proc = subprocess.Popen(cmd, start_new_session=True, cwd=cwd, env=env,
+                            stdout=out, stderr=subprocess.STDOUT if out else None)
     try:
         return proc.wait(timeout)
     finally:
@@ -266,7 +267,13 @@ def main(a):
                   mode='partial-preview' if os.environ.get('RESHOOT_FROM_BEAT') else 'preview' if os.environ.get('RESHOOT_PREVIEW') else 'final')
     if source:
         report['mode'] = source_report.get('mode', 'final')
+    # Quiet runs keep each stage's output in the run folder and print only the result.
+    quiet, log, muted = getattr(a, 'quiet', False), None, contextlib.ExitStack()
     try:
+        if quiet:
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            log = muted.enter_context((report_path.parent / 'output.log').open('a'))
+            muted.enter_context(contextlib.redirect_stdout(log))
         event_path = report_path.parent / 'events.jsonl'
         event_path.parent.mkdir(parents=True, exist_ok=True)
         def event(kind, **fields):
@@ -289,7 +296,7 @@ def main(a):
             remaining = timeout - (t - t0)
             if remaining <= 0:
                 raise TimeoutError('run exceeded its timeout')
-            code = execute(cmd, remaining, shoot.get('_root'), before)
+            code = execute(cmd, remaining, shoot.get('_root'), before, log)
             report['steps'].append({'step': redact(name), 'ok': code == 0,
                                     'seconds': round(time.monotonic() - t, 1)})
             event('step_end', index=len(report['steps'])-1, exit=code)
@@ -322,7 +329,7 @@ def main(a):
             if (report_path.parent / 'tours.json').is_file():
                 text_paths.append(str(report_path.parent / 'tours.json'))
             cmd += [arg for p in text_paths for arg in ('--text-file', p)]
-            code = execute(cmd, max(0.01, timeout - (time.monotonic() - t0)), shoot.get('_root'))
+            code = execute(cmd, max(0.01, timeout - (time.monotonic() - t0)), shoot.get('_root'), out=log)
             result = json.loads(check_path.read_text()) if check_path.exists() else {}
             report.update(review=str(review), scan_status=result.get('scan', {}).get('status', 'failed'),
                           review_status=result.get('review', 'pending'), unchecked=result.get('unchecked'),
@@ -339,6 +346,7 @@ def main(a):
         report['errors'].append(redact(str(e)) or type(e).__name__)
         failure = 'run failed: ' + report['errors'][-1]
     finally:
+        muted.close()
         stop_app(app)
         report['seconds'] = round(time.monotonic() - t0, 1)
         from datetime import datetime, timezone
@@ -386,12 +394,14 @@ def main(a):
             lines.append('  or in studio   reshoot studio ' + shlex.quote(shown(path.parent)))
         if app is not None and (root / 'app.log').exists():
             lines.append('  app output     ' + shown(root / 'app.log'))
+        if quiet:
+            lines.append('  details        ' + shown(root / 'output.log'))
         raise SystemExit('\n'.join(lines))
     from types import SimpleNamespace
     from reshoot import review
     preview = report.get('mode', 'final') != 'final'
-    print(f"\nDone in {report['seconds']:.0f} s: {review.status(root, report)}.")
-    for name in review.exports(root, report):
+    print(('' if quiet else '\n') + f"Done in {report['seconds']:.0f} s: {review.status(root, report)}.")
+    for name in [] if quiet else review.exports(root, report):
         print(f"  {'tour' if name.endswith('.html') else 'PNG' if name.endswith('.png') else 'GIF' if name.endswith('.gif') else 'video':12} " + shown(root / name))
     if report['review_status'] == 'completed':
         return
@@ -402,7 +412,10 @@ def main(a):
         page = None
     else:
         page = root / 'review.html'
-        print('  review page  ' + shown(page))
+        if not quiet:
+            print('  review page  ' + shown(page))
+    if quiet:
+        return
     if any(file['path'].endswith('.readability.json') for file in report['files']):
         print('  text sizes   reshoot frame check ' + shlex.quote(shown(root)))
     folder = shown(path.parent) or '.'

@@ -93,7 +93,7 @@ def main(a):
                  'config_sha256': digest(config), 'story_sha256': digest(board_path),
                  'recipe': chosen, 'title': title, 'recipe_applied': False}
         save(root, state)
-        print(f'Created {root}. Checking the recording tools…', flush=True)
+        print(f'Created {root}.', flush=True)
     if state['url'] and (urlsplit(state['url']).scheme not in ('http', 'https') or not urlsplit(state['url']).hostname):
         raise ValueError('The saved demo URL must use http:// or https://.')
     web.parse_size(state['size'])
@@ -104,8 +104,8 @@ def main(a):
             print('Continue with: reshoot studio ' + shlex.quote(str(root)))
             return 0
         return studio.serve(SimpleNamespace(project=str(root), port=None, no_open=a.no_open))
-    print('Checking with a temporary made-up page, video and text; your app is not used for these checks.', flush=True)
-    report = setup.check_project(config)
+    print('Checking the recording tools with a made-up page; your app is not used for this…', flush=True)
+    report = setup.check_project(config, brief=True)
     if not report['ok']:
         print('Your project is saved. Run the fixes in a terminal, then continue with:\n  ' + continuation, flush=True)
         if a.no_studio:
@@ -137,7 +137,7 @@ def main(a):
         result = recipes.apply(config, state['recipe'], state.get('title'))
         state.update(recipe_applied=True, config_sha256=digest(config), story_sha256=digest(board_path))
         save(root, state)
-        print(f'Applied {result["recipe"]}. {result["note"]}', flush=True)
+        print(f'Applied {result["recipe"]}.', flush=True)
     board = story.load(board_path)
     problems = [beat for beat in board['beat'] if beat.get('recording_issue')]
     code = 0
@@ -146,7 +146,9 @@ def main(a):
         code = 2
     else:
         try:
-            run.preview(SimpleNamespace(config=str(config), from_beat=None))
+            if not a.no_studio:
+                print('Recording a preview…', flush=True)
+            run.preview(SimpleNamespace(config=str(config), from_beat=None, quiet=not a.no_studio))
         except (ValueError, SystemExit) as error:
             print(f'Your story is saved. The preview needs attention: {error}', flush=True)
             code = 2

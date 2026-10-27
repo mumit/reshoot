@@ -60,7 +60,7 @@ def test_recorder_keeps_incomplete_steps_and_explicit_checks(tmp_path):
 
 
 def test_create_keeps_an_incomplete_story_without_attempting_a_preview(tmp_path, monkeypatch):
-    monkeypatch.setattr('reshoot.setup.check_project', lambda config: {'ok': True})
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
     monkeypatch.setattr(rec, 'main', lambda a: rec.write_toml(a.out, a.url, a.size,
         [(0, {'kind': 'unsupported-drop'})]))
     monkeypatch.setattr('reshoot.run.preview', lambda a: pytest.fail('an incomplete draft must not render'))
@@ -80,7 +80,7 @@ def test_recorded_readable_ids_survive_numbered_and_repeated_names(tmp_path, nam
 
 
 def test_create_applies_the_viewport_to_the_notes_example(tmp_path, monkeypatch):
-    monkeypatch.setattr('reshoot.setup.check_project', lambda config: {'ok': True})
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
     seen = []
     monkeypatch.setattr('reshoot.run.preview', lambda a: seen.append(story.load(tmp_path / 'storyboard.toml')['size']))
     create.main(SimpleNamespace(url=None, directory=str(tmp_path), size='960x540@1.5', no_studio=True, no_open=True))
@@ -258,7 +258,7 @@ def test_create_from_demonstration_replays_toolbar_captions_and_checks(tmp_path,
 
 
 def test_create_opens_an_existing_project_without_recording_or_overwriting(tmp_path, monkeypatch):
-    monkeypatch.setattr('reshoot.setup.check_project', lambda config: {'ok': True})
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
     monkeypatch.setattr(rec, 'main', lambda a: pytest.fail('an existing story must not be recorded over'))
     project.init(SimpleNamespace(directory=str(tmp_path), url=None, quiet=True, size='960x540@1.5'))
     (tmp_path / 'storyboard.toml').write_text((tmp_path / 'storyboard.toml').read_text() + '# kept\n')
@@ -280,3 +280,13 @@ def test_a_url_projects_brief_names_its_app_and_relative_paths(tmp_path, monkeyp
     brief = (tmp_path / 'demo' / 'BRIEF.md').read_text()
     assert 'http://localhost:3000/' in brief and 'notes app' not in brief
     assert str(tmp_path) not in brief and 'reshoot run demo/reshoot.toml' in brief
+
+
+def test_help_lists_every_command_once_by_group(capsys):
+    from reshoot import cli
+    with pytest.raises(SystemExit):
+        cli.main(['--help'])
+    out = capsys.readouterr().out
+    assert out.index('Start here:') < out.index('  create ') < out.index('Lower level:') and 'Other:' not in out
+    listed = [name for _, names in cli.GROUPS for name in names]
+    assert len(listed) == len(set(listed))

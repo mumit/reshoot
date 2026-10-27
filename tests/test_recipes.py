@@ -87,7 +87,7 @@ def test_recipe_cannot_remove_an_export_used_by_keep(tmp_path):
 
 
 def test_create_applies_recipe_once_then_preserves_edits_after_failure(tmp_path, monkeypatch):
-    monkeypatch.setattr('reshoot.setup.check_project', lambda config: {'ok': True})
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
     calls = []
     def preview(a):
         calls.append(a.config)

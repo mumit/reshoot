@@ -9,11 +9,28 @@ class Examples(argparse.HelpFormatter):
                              for part in text.split('\n\n'))
 
 
+# The order a newcomer meets the commands in; reshoot --help lists them this way.
+GROUPS = [('Start here', ['create', 'studio', 'doctor']),
+          ('Record and review', ['preview', 'run', 'recut', 'runs', 'review', 'accept', 'export', 'compare', 'repair']),
+          ('Shape the video', ['step', 'recipe', 'style', 'frame', 'audio', 'sequence', 'screenshot', 'tour']),
+          ('Lower level', ['init', 'rec', 'web', 'window', 'edit', 'check', 'gif', 'last-change', 'skills'])]
+
+
+def grouped(sub):
+    helps = {action.dest: action.help for action in sub._choices_actions}
+    sub._choices_actions = []  # the epilog lists them by group instead
+    width = max(map(len, helps)) + 2
+    return '\n\n'.join(title + ':\n' + '\n'.join(textwrap.fill(helps.pop(name), 100, initial_indent='  ' + name.ljust(width),
+                                                                 subsequent_indent=' ' * (width + 2)) for name in names)
+                       for title, names in GROUPS) + ('\n\nOther:\n  ' + ', '.join(helps) if helps else '') + \
+        '\n\nEach command has its own --help.'
+
+
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="reshoot", description=__doc__)
+    ap = argparse.ArgumentParser(prog="reshoot", usage="reshoot [-h] [--version] COMMAND ...", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     from importlib.metadata import version
     ap.add_argument("--version", action="version", version=version("reshoot"))
-    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub = ap.add_subparsers(dest="cmd", required=True, metavar='COMMAND', help=argparse.SUPPRESS)
 
     from reshoot import web, window, check, story
     p = sub.add_parser("web", help="record a web page acting out a storyboard, in headless Chrome",
@@ -56,7 +73,7 @@ def main(argv=None):
     p.set_defaults(run=check.main)
 
     from reshoot import cut
-    p = sub.add_parser("gif", help="a GIF of part of a take, between two beats or times",
+    p = sub.add_parser("gif", help="a GIF of part of a take, between two steps or times",
                        description="Make a GIF of part of a take, with its own palette.\n\n"
                        "    reshoot gif takes/web.mp4 takes/loop.gif search end\n"
                        "    reshoot gif takes/web.mp4 takes/loop.gif 2.5 9\n\n"
@@ -205,7 +222,7 @@ def main(argv=None):
                        description='List the runs of a versioned project, newest first. ' + runs)
     p.add_argument('project', nargs='?', default='.', help='the project folder or its reshoot.toml (default: here)')
     p.set_defaults(run=review.listing)
-    p = sub.add_parser('compare', help='compare matching beat IDs between two explicit runs',
+    p = sub.add_parser('compare', help='compare matching steps between two explicit runs',
                        description='Compare two runs beat by beat: which beat IDs match, and whether each beat\'s '
                        'definition, duration, evidence frame and results changed. A matched ID does not mean equal '
                        'pixels. ' + runs)
@@ -316,7 +333,7 @@ def main(argv=None):
     command.set_defaults(run=framing.main)
 
     from reshoot import tours
-    p = sub.add_parser('tour', help='build an offline clickable walkthrough from checked beats',
+    p = sub.add_parser('tour', help='build an offline clickable walkthrough from checked steps',
                        description='A tour is one HTML file with its checked result images embedded. It works offline '
                        'and moves between captured screens. Create from checked beats, edit step words and optional '
                        'click markers, then Update preview or re-cut.\n\n'
@@ -348,7 +365,7 @@ def main(argv=None):
         command.set_defaults(run=tours.main)
 
     from reshoot import screenshots
-    p = sub.add_parser('screenshot', help='keep documentation PNGs current with checked beats',
+    p = sub.add_parser('screenshot', help='keep documentation PNGs current with checked steps',
                        description='Select result frames from TOML browser takes for documentation. Each selected '
                        'beat must have passing result checks. Update preview renders stable PNGs and includes '
                        'them in scanning and review; export copies them locally with the videos.\n\n'
@@ -401,7 +418,7 @@ def main(argv=None):
     command.set_defaults(run=audio.main)
 
     from reshoot import sequence
-    p = sub.add_parser('sequence', help='trim and arrange the video by recorded beats',
+    p = sub.add_parser('sequence', help='trim and arrange the video by recorded steps',
                        description='Choose inclusive beat ranges, move, duplicate, add or remove video parts. '
                        'The storyboard still runs in full, with its actions and checks unchanged. Numbers for '
                        'parts, positions and takes start at 1. Update preview after editing.\n\n'
@@ -445,7 +462,7 @@ def main(argv=None):
     p.add_argument('--port', type=int, help='the port (default: a free one)')
     p.add_argument('--no-open', action='store_true', help='print the address without opening a browser')
     p.set_defaults(run=studio.serve)
-    p = sub.add_parser('accept', help='accept a run after watching it: exports, beats and scan items in one step',
+    p = sub.add_parser('accept', help='accept a run after watching it: exports, steps and scan items at once',
                        description='Accept a run after watching its exports and looking at its scan sheets. Unflagged '
                        'items are accepted together; each flagged item must be named with --flagged or --reject. The '
                        'verdict is bound to the run\'s exact files and scan policy.')
@@ -470,6 +487,7 @@ def main(argv=None):
     p.add_argument('--link', metavar='URL', help='with --markdown, the URL that repository paths are added to, such as '
                    'https://github.com/OWNER/REPO/blob/BRANCH/')
     p.set_defaults(run=project.export)
+    ap.epilog = grouped(sub)
     a = ap.parse_args(argv)
     try:
         sys.exit(a.run(a) or 0)

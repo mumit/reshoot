@@ -15,7 +15,7 @@ def args(folder, **changes):
 
 def test_missing_tools_keep_the_project_and_resume_without_reinitializing(tmp_path, monkeypatch, capsys):
     checks, previews = [], []
-    monkeypatch.setattr(setup, 'check_project', lambda path: (checks.append(path) or {'ok': len(checks) > 1}))
+    monkeypatch.setattr(setup, 'check_project', lambda path, **_: (checks.append(path) or {'ok': len(checks) > 1}))
     monkeypatch.setattr('reshoot.run.preview', lambda a: previews.append(a.config))
     assert create.main(args(tmp_path)) == 2
     original = (tmp_path / 'storyboard.toml').read_bytes()
@@ -25,12 +25,12 @@ def test_missing_tools_keep_the_project_and_resume_without_reinitializing(tmp_pa
     assert create.main(args(tmp_path, resume=True)) == 0
     assert (tmp_path / 'storyboard.toml').read_bytes() == original and len(previews) == 1
     assert create.load(tmp_path)['stage'] == 'done'
-    monkeypatch.setattr(setup, 'check_project', lambda path: pytest.fail('completed creation needs no new probe'))
+    monkeypatch.setattr(setup, 'check_project', lambda path, **_: pytest.fail('completed creation needs no new probe'))
     assert create.main(args(tmp_path, resume=True)) == 0 and len(previews) == 1
 
 
 def test_missing_tools_open_the_setup_studio_without_starting_the_app(tmp_path, monkeypatch):
-    monkeypatch.setattr(setup, 'check_project', lambda path: {'ok': False})
+    monkeypatch.setattr(setup, 'check_project', lambda path, **_: {'ok': False})
     monkeypatch.setattr(rec, 'main', lambda a: pytest.fail('no recorder before tools pass'))
     monkeypatch.setattr('reshoot.run.preview', lambda a: pytest.fail('no app before tools pass'))
     opened = []
@@ -40,7 +40,7 @@ def test_missing_tools_open_the_setup_studio_without_starting_the_app(tmp_path, 
 
 
 def test_resuming_a_saved_task_after_preview_failure_does_not_record_it_again(tmp_path, monkeypatch):
-    monkeypatch.setattr(setup, 'check_project', lambda path: {'ok': True})
+    monkeypatch.setattr(setup, 'check_project', lambda path, **_: {'ok': True})
     recorded, previews = [], []
     def record(a):
         recorded.append(a)
@@ -61,7 +61,7 @@ def test_resuming_a_saved_task_after_preview_failure_does_not_record_it_again(tm
 
 @pytest.mark.parametrize('change', ['draft', 'url', 'size'])
 def test_paused_demonstration_refuses_changed_inputs(tmp_path, monkeypatch, change):
-    monkeypatch.setattr(setup, 'check_project', lambda path: {'ok': False})
+    monkeypatch.setattr(setup, 'check_project', lambda path, **_: {'ok': False})
     create.main(args(tmp_path, url='http://localhost:3000/'))
     values = {'resume': True}
     if change == 'draft':
@@ -77,7 +77,7 @@ def test_paused_demonstration_refuses_changed_inputs(tmp_path, monkeypatch, chan
 
 
 def test_external_edit_during_demonstration_retains_both_sources(tmp_path, monkeypatch):
-    monkeypatch.setattr(setup, 'check_project', lambda path: {'ok': True})
+    monkeypatch.setattr(setup, 'check_project', lambda path, **_: {'ok': True})
     def record(a):
         board = tmp_path / 'storyboard.toml'
         board.write_text(board.read_text() + '# external during demonstration\n')

@@ -191,7 +191,11 @@ def current(config):
     return report
 
 
-def print_report(report):
+def print_report(report, brief=False):
+    if brief and report['ok']:  # a working setup needs one line; problems still list every check
+        print(f'Recording tools: ready ({len(report["checks"])} checks passed).' +
+              (" Vision's accurate text reader failed on this Mac, so the scan uses its fast one." if report.get('text_reader') == 'fast' else ''), flush=True)
+        return
     print('Recording tools: ' + ('ready' if report['ok'] else 'need attention'), flush=True)
     for item in report['checks']:
         print(f'  {item["label"]}: {item["status"]}' + (f' · {item["detail"]}' if item['detail'] else ''), flush=True)
@@ -203,7 +207,7 @@ def print_report(report):
               ('; the accurate reader failed on this Mac.' if report['text_reader'] == 'fast' else '.'), flush=True)
 
 
-def check_project(config):
+def check_project(config, brief=False):
     report = inspect(config, probe=True)
     report.update(fingerprint=fingerprint(config, report), checked_at=datetime.now(timezone.utc).isoformat())
     target = Path(config).parent / 'takes/setup.json'
@@ -217,7 +221,7 @@ def check_project(config):
     finally:
         if temp is not None:
             temp.unlink(missing_ok=True)
-    print_report(report)
+    print_report(report, brief)
     return report
 
 

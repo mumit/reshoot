@@ -73,7 +73,7 @@ def test_run_expectations_cannot_pass_from_only_an_earlier_result(tmp_path, monk
     config.write_text('schema_version=1\n[[take]]\nweb="story.toml"\nout="takes/first.mp4"\n'
                       '[[take]]\nweb="story.toml"\nout="takes/second.mp4"\n')
 
-    def execute(cmd, *args):
+    def execute(cmd, *args, **_):
         out = Path(cmd[5])
         second = out.stem == 'second'
         if not (second and failure == 'missing-metadata'):

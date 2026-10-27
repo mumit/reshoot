@@ -220,7 +220,7 @@ def test_mixed_preview_can_join_web_and_terminal_takes(tmp_path, monkeypatch):
     edit.write_text(edit.read_text().split('[[export]]')[0] + '\n[[part]]\ntake = 1\n')
     execute = run.execute
 
-    def capture(cmd, *args):
+    def capture(cmd, *args, **_):
         if cmd[0] == 'vhs':
             output = re.search(r'Output "([^"]+)"', Path(cmd[1]).read_text())[1]
             # Stand in for VHS with its fixed-size encoded terminal output.

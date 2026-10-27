@@ -170,7 +170,7 @@ def shared(root, report, copied, findings_dir, link=None):
 
 def beats(root):
     result = {}
-    for path in root.rglob('*.take.json'):
+    for path in sorted(root.rglob('*.take.json')):
         take = json.loads(path.read_text())
         for beat in take.get('beats', []):
             key = take.get('story_id', path.stem) + '/' + beat['id']
@@ -211,7 +211,7 @@ def compare(a):
     new_root, new = read(a.current)
     before, after = beats(old_root), beats(new_root)
     rows = []
-    for name in sorted(before.keys() | after.keys()):
+    for name in [*after, *(name for name in before if name not in after)]:
         previous, current = before.get(name), after.get(name)
         state = 'added' if previous is None else 'removed' if current is None else 'matched'
         def frame_hash(beat):
@@ -253,7 +253,7 @@ def compare(a):
     result = {'schema_version': 1, 'previous': old['id'], 'current': new['id'], 'beats': rows, 'screenshots': shots, 'tours': tour_rows,
               'inputs_changed': old.get('inputs') != new.get('inputs'),
               'previous_environment': environment(old_root), 'current_environment': environment(new_root),
-              'note': 'Matched means the ID matched, not that pixels or results are equal.'}
+              'note': 'Kept means the step is still in the story, not that it looks the same.'}
     if getattr(a, 'markdown', None):
         Path(a.markdown).write_text(summary(result, new, new_root))
     text = json.dumps(result, indent=2)
@@ -265,15 +265,15 @@ def compare(a):
         counts = {}
         for row in result['beats']:
             counts[row['change']] = counts.get(row['change'], 0) + 1
-        print(f"Compared run {new['id']} with {old['id']}. Beats: " + ', '.join(f'{n} {s}' for s, n in sorted(counts.items())) + '.')
+        print(f"Compared run {new['id']} with {old['id']}. Steps: " + ', '.join(f'{n} {KEPT.get(s, s)}' for s, n in sorted(counts.items())) + '.')
         changed = False
         for row in result['beats']:
-            what = [w for w, key in (('steps', 'definition_changed'), ('results', 'results_changed')) if row[key]]
+            what = [w for w, key in (('its story', 'definition_changed'), ('results', 'results_changed')) if row[key]]
             if row['change'] != 'matched' or what:
                 changed = True
-                print(f"  {row['beat']}: {row['change']}" + (', changed ' + ' and '.join(what) if what else ''))
+                print(f"  {shown_step(row['beat'], result['beats'])}: {KEPT.get(row['change'], row['change'])}" + (', changed ' + ' and '.join(what) if what else ''))
         if not changed:
-            print('No beat changed its steps or results.')
+            print('No step changed its actions or results.')
         for row in result.get('screenshots', []):
             print(f'  screenshot {row["name"]}: {row["change"]}')
         for row in result.get('tours', []):
@@ -356,7 +356,7 @@ def accept(a):
     print(f'Accepting run {report["id"]} ({report.get("mode", "final")}):')
     for path in videos:
         print('  export  ' + path)
-    print(f'  {len(beat_names)} beats, result checks {report.get("expectations_status", "unverified")}')
+    print(f'  {len(beat_names)} steps, result checks {report.get("expectations_status", "unverified")}')
     if key:
         from reshoot.run import shown
         print(f'  {len(key)} scan items on the sheets in {shown(sheets)}' +
@@ -446,6 +446,17 @@ def decide(root, report, choices, status):
     (root / 'run.json').write_text(json.dumps(report, indent=2))
 
 
+KEPT = {'matched': 'kept'}
+
+
+def shown_step(key, rows):
+    """A comparison key such as notes/type-search-notes, as the studio names it; the story shows only when there are several."""
+    from reshoot.story import step_name
+    story, _, beat = key.rpartition('/')
+    several = len({row['beat'].rpartition('/')[0] for row in rows}) > 1
+    return (story + ': ' if several and story else '') + step_name(beat)
+
+
 def summary(result, report, root):
     """A short Markdown account of a comparison, for a pull request or a chat message."""
     from reshoot.check import findings, load
@@ -457,14 +468,14 @@ def summary(result, report, root):
         return '' if value is None else 'changed' if value else 'same'
     lines = [f"Run `{result['current']}` compared with `{result['previous']}`.", '',
              f"- Result checks: {report.get('expectations_status', 'unverified')} ({report.get('expectations_count', 0)})",
-             f"- Beats: " + ', '.join(f'{n} {state}' for state, n in sorted(counts.items())),
+             f"- Steps: " + ', '.join(f'{n} {KEPT.get(state, state)}' for state, n in sorted(counts.items())),
              f"- Scan: {scan.get('status', 'not run')}, {scan.get('unchecked') or 0} items to look at, "
              + (f"{len(findings(flags))} finding{'s' if len(findings(flags)) != 1 else ''} in {len(flags)} of them" if flags else 'nothing flagged'),
              f"- Inputs changed: {'yes' if result['inputs_changed'] else 'no'}", '',
-             '| Beat | Change | Definition | Duration | Frame pixels | Results |', '|---|---|---|---|---|---|']
+             '| Step | In the story | Written step | Length | Frame | Results |', '|---|---|---|---|---|---|']
     for row in result['beats']:
         delta = row['duration_delta']
-        lines.append(f"| `{row['beat']}` | {row['change']} | {yes(row['definition_changed'])} | "
+        lines.append(f"| {shown_step(row['beat'], result['beats'])} | {KEPT.get(row['change'], row['change'])} | {yes(row['definition_changed'])} | "
                      f"{'' if delta is None else f'{delta:+.2f} s' if abs(delta) >= .005 else '0'} | {yes(row['evidence_changed'])} | {yes(row['results_changed'])} |")
     if result.get('screenshots'):
         lines += ['', '| Documentation screenshot | Change |', '|---|---|']
@@ -472,7 +483,7 @@ def summary(result, report, root):
     if result.get('tours'):
         lines += ['', '| Walkthrough | Change |', '|---|---|']
         lines += [f'| `{row["name"]}` | {row["change"]} |' for row in result['tours']]
-    lines += ['', result['note'] + ' Frame pixels change with small things such as the cursor; watch the video.']
+    lines += ['', result['note'] + ' A frame changes with small things such as the cursor, so watch the video.']
     return '\n'.join(lines) + '\n'
 
 
@@ -541,7 +552,7 @@ def main(a):
         source = beat.get('source_video')
         if source and Path(source).resolve().is_relative_to(root) and 'start' in beat:
             relative = quote(str(Path(source).resolve().relative_to(root)))
-            jump = f'<button data-file="{html.escape(relative, quote=True)}" data-time="{float(beat["start"])}">Play this beat</button>'
+            jump = f'<button data-file="{html.escape(relative, quote=True)}" data-time="{float(beat["start"])}">Play this step</button>'
         checks = beat.get('expectations', [])
         passed = sum(x.get('status') == 'passed' for x in checks)
         line = beat.get('status', 'unverified') + (f', {passed} of {len(checks)} result checks passed' if checks else '')

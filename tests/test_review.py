@@ -300,7 +300,7 @@ def test_accept_writes_a_record_that_later_runs_compare_against(tmp_path):
     out = tmp_path / 'summary.md'
     review.compare(SimpleNamespace(previous=str(record), current=str(newer), out=str(tmp_path / 'c.json'), markdown=str(out)))
     text = out.read_text()
-    assert '`notes/search` | matched | same | 0 | same | same |' in text and 'Result checks: passed (1)' in text
+    assert '| Search | kept | same | 0 | same | same |' in text and 'Result checks: passed (1)' in text
 
 
 def test_export_replaces_media_and_writes_records_only_over_records(tmp_path):
@@ -335,11 +335,16 @@ def test_compare_says_which_beats_changed_when_it_writes_a_file(tmp_path, capsys
     new = run_fixture(tmp_path / 'new', 'new')
     for root, actual in [(old, 'one note'), (new, 'two notes')]:
         (root / 'web.take.json').write_text(json.dumps({'story_id': 'notes', 'beats': [
-            {'id': 'search', 'status': 'passed', 'expectations': [{'actual': actual}]}]}))
-    review.compare(SimpleNamespace(previous=str(old), current=str(new), out=str(tmp_path / 'comparison.json')))
+            {'id': 'type-search-notes', 'status': 'passed', 'expectations': [{'actual': actual}]},
+            {'id': 'add', 'status': 'passed'}]}))
+    review.compare(SimpleNamespace(previous=str(old), current=str(new), out=str(tmp_path / 'comparison.json'),
+                                   markdown=str(tmp_path / 'comparison.md')))
     out = capsys.readouterr().out
-    assert 'Beats: 1 matched.' in out and 'notes/search: matched, changed results' in out
-    assert json.loads((tmp_path / 'comparison.json').read_text())['beats'][0]['results_changed'] is True
+    assert 'Steps: 2 kept.' in out and 'Type search notes: kept, changed results' in out
+    rows = json.loads((tmp_path / 'comparison.json').read_text())['beats']
+    assert rows[0]['results_changed'] is True and [row['beat'] for row in rows] == ['notes/type-search-notes', 'notes/add']
+    table = (tmp_path / 'comparison.md').read_text()
+    assert '| Step | In the story |' in table and table.index('| Type search notes |') < table.index('| Add |')  # story order
 
 
 def test_review_page_opens_with_one_status_line(tmp_path):

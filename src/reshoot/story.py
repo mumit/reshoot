@@ -33,6 +33,12 @@ ACTIONS = {'click', 'type', 'select', 'check', 'key', 'scroll', 'navigate', 'wai
 EXPECT = {'text', 'visible', 'count', 'value', 'url', 'checked'}
 
 
+def step_name(beat_id):
+    """A step ID as words: type-search-notes reads "Type search notes"."""
+    words = str(beat_id).replace('-', ' ').replace('_', ' ').strip()
+    return words[:1].upper() + words[1:]
+
+
 def recording_settings(board):
     """Settings that affect capture or timing, excluding caption styling that can be drawn again."""
     settings = {k: v for k, v in board.items() if k not in ('beat', 'caption')}

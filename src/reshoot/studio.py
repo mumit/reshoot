@@ -16,6 +16,7 @@ from pathlib import Path
 from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save
 from reshoot.sequence import outputs, check_cut
 from reshoot.expectations import without_check, update_check, explain
+from reshoot.story import step_name
 
 AUDIO = ('.mp3', '.m4a', '.aac', '.wav', '.ogg', '.flac')
 
@@ -1078,12 +1079,6 @@ def serve(a):
         httpd.reshoot_job.cancel()
         httpd.server_close()
     return 0
-
-
-def step_name(beat_id):
-    """A step ID as words: type-search-notes reads "Type search notes"."""
-    words = str(beat_id).replace('-', ' ').replace('_', ' ').strip()
-    return words[:1].upper() + words[1:]
 
 
 def page(data, accept, seen=0):

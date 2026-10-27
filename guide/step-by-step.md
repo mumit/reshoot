@@ -158,13 +158,13 @@ reshoot export demo/accepted --directory docs/demo
 ```
 
 ```text
-Compared run NEW_ID with ACCEPTED_ID. Beats: 4 matched.
-  notes/intro: matched, changed steps
-  notes/search: matched, changed steps
+Compared run NEW_ID with ACCEPTED_ID. Steps: 4 kept.
+  Intro: kept, changed its story
+  Search: kept, changed its story
 Result checks passed before, passed now. Wrote demo/comparison.json.
 ```
 
-Matched means the same steps were found, not the same pixels. `export` copies
+Kept means the step is still in the story, not that it looks the same. `export` copies
 the MP4, GIF and subtitles, prints the README Markdown, and overwrites only
 with `--replace`.
 

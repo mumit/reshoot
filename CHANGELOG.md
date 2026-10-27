@@ -4,6 +4,15 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Changed
+
+- The comparison in a refresh pull request and from `reshoot review
+  --previous` names steps as the studio does ("Type search notes"), lists them
+  in story order, and says "Steps" and "kept" instead of "Beats" and
+  "matched". The review page says **Play this step**.
+
 ## 0.3.11 (2026-10-27)
 
 Use this instead of 0.3.10, which failed on every command under Python 3.11

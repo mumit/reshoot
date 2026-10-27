@@ -101,6 +101,22 @@ def test_earlier_runs_do_not_claim_full_source_freshness(tmp_path):
     assert journey.state(config, run)['pending']
 
 
+def test_the_first_preview_welcomes_until_an_edit_or_another_recording(tmp_path):
+    config, board, edit = setup(tmp_path)
+    run = recording(tmp_path, config, board, edit)
+    run[1].update(seconds=21.6, expectations_count=3)
+    first = journey.state(config, run)
+    assert first['first'] and first['title'] == 'Your first demo is ready'
+    assert 'Recorded in 22 seconds, and all 3 result checks passed' in first['detail']
+    assert 'first' not in journey.workflow(first, tools={'ok': True}, failure={'stale': True})
+    (tmp_path / 'takes/runs/earlier').mkdir()
+    (tmp_path / 'takes/runs/earlier/run.json').write_text('{}')
+    assert 'first' not in journey.state(config, run)
+    (tmp_path / 'takes/runs/earlier/run.json').unlink()
+    studio.edit(board, {'beat': 'search', 'caption': 'New caption'})
+    assert 'first' not in journey.state(config, run)
+
+
 @pytest.mark.parametrize('creating', [False, True])
 @pytest.mark.parametrize('failure', [{'stale': False, 'repaired': False}, {'stale': True, 'repaired': False},
                                    {'stale': False, 'repaired': True}])
@@ -300,3 +316,19 @@ def test_external_storyboard_replacement_requires_reload_and_rebinds_undo(tmp_pa
         assert 'replacement.toml' in config.read_text()
     finally:
         httpd.shutdown(); httpd.server_close()
+
+
+def test_the_notes_trial_changes_the_app_and_puts_the_app_and_story_back(tmp_path):
+    config, board, edit = setup(tmp_path)
+    page, original, story_before = tmp_path / 'index.html', (tmp_path / 'index.html').read_text(), board.read_text()
+    history = History([config, board, edit])
+    assert studio.trial(tmp_path) == 'original'
+    studio.change_trial(tmp_path, 'apply', board, history)
+    assert studio.trial(tmp_path) == 'changed' and 'id="note-search"' in page.read_text() and 'id="q"' not in page.read_text()
+    with pytest.raises(ValueError):
+        studio.change_trial(tmp_path, 'apply', board, history)
+    board.write_text(story_before.replace('"#q"', '"#note-search"'))  # as a repair would
+    studio.change_trial(tmp_path, 'restore', board, history)
+    assert page.read_text() == original and board.read_text() == story_before and studio.trial(tmp_path) == 'original'
+    page.write_text(original + '<!-- your own app -->')
+    assert studio.trial(tmp_path) is None

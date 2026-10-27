@@ -161,8 +161,14 @@ def state(project, run):
     if report.get('review_status') == 'failed':
         return {'known': True, 'pending': False, 'phase': 'rejected', 'title': 'This recording was rejected',
                 'detail': 'Fix the story or demo data, then record again.', 'changes': [], 'next': 'update'}
+    if mode == 'preview' and not accepted and not report.get('recut_from') and len(list(run[0].parent.glob('*/run.json'))) == 1:
+        checks = report.get('expectations_count', 0)
+        passed = f', and {"its result check" if checks == 1 else f"all {checks} result checks"} passed' if checks else ''
+        return {'known': True, 'pending': False, 'phase': 'preview', 'first': True, 'title': 'Your first demo is ready',
+                'detail': f'Recorded in {round(report.get("seconds", 0))} seconds{passed}. Watch it, try a new caption, '
+                          'or choose Make final when it looks right.', 'changes': [], 'next': 'run'}
     return {'known': True, 'pending': False, 'phase': 'accepted' if accepted else 'preview' if mode != 'final' else 'review',
-            'title': 'Accepted recording' if accepted else 'Your saved edits are in this preview' if mode != 'final' else 'Final ready for review',
+            'title': 'Accepted recording' if accepted else 'Your preview is up to date' if mode != 'final' else 'Final ready for review',
             'detail': 'Download the shown exports when you need them.' if accepted else
                       'Make a final when the preview looks right.' if mode != 'final' else
                       'Watch the exports and inspect the scan evidence, then accept this recording.',
@@ -206,6 +212,8 @@ def workflow(saved, *, creating=False, tools=None, failure=None, session=None, h
         out.update(phase='setup', next='setup', title='Recording tools need attention', detail=block)
     if session:
         out.update(phase='recovery', next='session', title=session['title'], detail=session['detail'])
+    if creating or failure or tools_missing or session:
+        out.pop('first', None)
     kind = out['next']
     out['action'] = out['actions'].get(kind, {'kind': kind, 'label': labels[kind], 'enabled': True, 'reason': ''})
     return out

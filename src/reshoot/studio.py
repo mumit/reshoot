@@ -301,6 +301,44 @@ def fits(limits, seconds, size):
     return f'{limits["platform"]} takes {" and ".join(rules)}; this is {seconds:.1f} s and {size / 1e6:.1f} MB'
 
 
+# The change the notes trial makes, so a newcomer can watch a step break and be repaired.
+TRIAL = [('id="q"', 'id="note-search"'), ('querySelector("#q")', 'querySelector("#note-search")'), ('<h1>Notes ', '<h1>Notes, refreshed ')]
+
+
+def trial(folder):
+    """'original' for the unchanged bundled notes app, 'changed' after the trial change, otherwise None."""
+    page, backup = Path(folder) / 'index.html', Path(folder) / 'takes/notes-before-change.html'
+    if backup.is_file() and page.is_file():
+        return 'changed'
+    try:
+        return 'original' if page.read_bytes() == Path(__file__).with_name('templates').joinpath('index.html').read_bytes() else None
+    except OSError:
+        return None
+
+
+def change_trial(folder, operation, board, history):
+    page, backup = Path(folder) / 'index.html', Path(folder) / 'takes/notes-before-change.html'
+    story_backup = backup.with_suffix('.toml')
+    state = trial(folder)
+    if operation == 'apply' and state == 'original':
+        text = page.read_text()
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        story_backup.write_text(board.read_text())
+        backup.write_text(text)
+        for old, new in TRIAL:
+            text = text.replace(old, new)
+        page.write_text(text)
+    elif operation == 'restore' and state == 'changed':
+        # The repaired step points at the changed app, so the story goes back too, as one undoable edit.
+        if story_backup.is_file():
+            history.change(lambda: board.write_text(story_backup.read_text()))
+            story_backup.unlink()
+        page.write_text(backup.read_text())
+        backup.unlink()
+    else:
+        raise ValueError('The notes app is not in the state this button expects. Reload the studio.')
+
+
 def failed(folder, take, config):
     """The newest failure, until a complete recording succeeds. Its media stays pinned like successful runs."""
     from reshoot import review
@@ -360,7 +398,9 @@ def view(folder, take, config, run=None):
     take = next((item for item in shoot.get('take', []) if item.get('web') == take['web'] and item.get('out') == take['out']), take)
     recording_size = take.get('size', board.get('size', '1280x720@1'))
     edit_path = Path(folder) / shoot['edit']['file'] if shoot.get('edit', {}).get('file') else None
-    data = {'story': board_path.name, 'look': board.get('caption', {}), 'run': None, 'beats': [], 'findings': [],
+    # The header names the project; a second storyboard is named after its file.
+    project_name = Path(folder).resolve().name
+    data = {'story': project_name if board_path.name == 'storyboard.toml' else f'{project_name} · {board_path.stem}', 'look': board.get('caption', {}), 'run': None, 'beats': [], 'findings': [],
             'edit': None, 'failure': failed(folder, take, config), 'recording_size': recording_size}
     from reshoot import create, setup
     tools = setup.current(config)
@@ -513,6 +553,7 @@ def view(folder, take, config, run=None):
             data['sequence_error'] = str(error)
     data['journey'] = workflow(config, folder, take, run, context=data)
     data['downloads'] = []
+    data['trial'] = trial(folder)
     if run:
         from reshoot.delivery import files
         try:
@@ -785,7 +826,7 @@ def server(a):
                     return
                 except (ValueError, OSError, KeyError, TypeError) as error:
                     return review.reply(self, 409, str(error).encode(), 'text/plain')
-            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'recipe', 'demonstration', 'job', 'accept', 'undo', 'redo', 'cancel', 'session'):
+            if action not in ('edit', 'cut', 'style', 'sequence', 'framing', 'audio', 'screenshot', 'tour', 'recipe', 'demonstration', 'job', 'accept', 'undo', 'redo', 'cancel', 'session', 'trial'):
                 return review.reply(self, 404, b'not found', 'text/plain')
             body = review.from_page(self, prefix + action)
             if body is None:
@@ -816,6 +857,9 @@ def server(a):
                     out = {'ok': True}
                 elif action == 'edit':
                     history.change(lambda: edit(Path(folder) / take['web'], body))
+                    out = {'ok': True}
+                elif action == 'trial':
+                    change_trial(folder, body.get('operation'), Path(folder) / take['web'], history)
                     out = {'ok': True}
                 elif action == 'cut':
                     history.change(lambda: edit_cut(edit_file(), config, body))
@@ -1022,7 +1066,7 @@ def server(a):
 def serve(a):
     import webbrowser
     httpd, url, take = server(a)
-    print(f'The studio is at {url}\nIt changes {take["web"]} and the edit file as you edit; press Ctrl-C to stop.',
+    print(f'The studio is at {url}\nYour edits there save to {take["web"]} and the edit file. Press Ctrl-C to stop it.',
           flush=True)
     if not a.no_open:
         webbrowser.open(url)
@@ -1485,12 +1529,29 @@ def page(data, accept, seen=0):
 <p class="hint">Includes the rendered exports, video subtitles, image Markdown and a file manifest. Downloading does not accept or publish them.</p>
 <details><summary>Download individual files</summary><ul>{download_rows}</ul></details></section>'''
                  if run and download_rows else '<section id="download-panel" class="downloads" tabindex="-1"><h2>Your files</h2><p>Record a complete preview to download its exports here.</p></section>')
+    video_file = next((item for item in data.get('downloads', []) if item['name'].endswith('.mp4')), None)
+    gif_file = next((item for item in data.get('downloads', []) if item['name'].endswith('.gif')), None)
+    first_files = ''
+    if state.get('first') and (video_file or gif_file):
+        link = lambda item, label: f'<a class="download-all" href="run/{e(item["source"])}" download="{e(item["name"])}">{label}</a>' if item else ''
+        first_files = (f'<div id="journey-first">{f"""<img src="run/{e(gif_file['source'])}" alt="The README GIF">""" if gif_file else ""}<p>'
+                       f'{link(video_file, "Download the video")} {link(gif_file, "Download the GIF")}'
+                       + (f' <button type="button" data-copy="![Demo]({e(gif_file["name"])})">Copy readme Markdown</button>' if gif_file else '')
+                       + '</p><p class="hint">Put the GIF beside your README, and paste the Markdown where it should show.</p>'
+                       + ('<p class="trial">Want to see what happens when your app changes? <button type="button" data-trial="apply">'
+                          'Change the notes app and record again</button></p>' if data.get('trial') == 'original' else '') + '</div>')
+    if data.get('trial') == 'changed':
+        passed = run and not data.get('failure') and not state['pending'] and state['phase'] in ('preview', 'review')
+        first_files += ('<p id="trial-changed" class="hint">' + (
+            'It still works: the repaired step found the changed search box, and every result check passed. ' if passed else
+            'The notes app is changed for the trial: its search box has a new id, and its heading is new. ')
+            + '<button type="button" data-trial="restore">Put the app and story back</button></p>')
     # Section links keep the full editor available and open the chosen panel without a page reload.
     audio_box = audio_box.replace('<details class="audio-controls"', '<details id="audio-panel" class="audio-controls"', 1)
     screenshot_box = screenshot_box.replace('<details class="screenshots-controls"', '<details id="screenshots-panel" class="screenshots-controls"', 1)
     tour_box = tour_box.replace('<details class="tour-controls"', '<details id="tour-panel" class="tour-controls"', 1)
     document = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>reshoot studio</title><link rel="icon" href="data:,"><style>{STYLE}</style></head><body{'' if run else ' data-first="1"'} data-seen="{seen}" data-journey="{e(json.dumps(state))}" data-studio-pending="{'1' if state['pending'] else ''}">
+<title>reshoot studio</title><link rel="icon" href="data:,"><style>{STYLE}</style></head><body{'' if run else ' data-first="1"'}{' data-new="1"' if state.get('first') else ''} data-seen="{seen}" data-journey="{e(json.dumps(state))}" data-studio-pending="{'1' if state['pending'] else ''}">
 <header><h1>reshoot studio</h1><span class="story">{e(data['story'])}</span>
 <fieldset class="actions" aria-label="Recording and history"{(' disabled' if session else '')}><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
 <button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
@@ -1505,7 +1566,7 @@ def page(data, accept, seen=0):
 <p id="journey-plan" class="hint"{'' if state['pending'] else ' hidden'}>{e(state['update_detail'])}</p>
 <button type="button" data-reset-drafts hidden>Reset unsaved edits</button><button type="button" data-reload-project hidden>Reload project</button>
 <a href="#review-panel" data-jump="review-panel" id="journey-review"{'' if state['next'] == 'review' else ' hidden'}>Review this final</a>
-<a href="#download-panel" data-jump="download-panel" id="journey-files"{'' if state['next'] == 'download' else ' hidden'}>Get your files</a></section>
+{first_files}<a href="#download-panel" data-jump="download-panel" id="journey-files"{'' if state['next'] == 'download' else ' hidden'}>Get your files</a></section>
 <p id="save-error" class="error" role="alert" hidden></p>
 {('<p class="journey"><strong>A step demonstration is waiting.</strong> <a href="#demonstration-panel" data-jump="demonstration-panel">Review the changes</a> before recording another.</p>') if draft else ''}
 <section id="job" hidden><p id="job-title"></p><button type="button" id="cancel">Cancel update</button><video id="job-take" controls hidden></video><audio id="audition-player" controls hidden></audio><details><summary>Progress details</summary><pre id="job-log"></pre></details></section>
@@ -1598,6 +1659,10 @@ main { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr); ga
   body[data-focused] #video, body[data-focused] #still-image { max-height:calc(100dvh - var(--header-height) - 450px); min-height:180px; object-fit:contain }
 }
 .watch > * + *, .side-panel > * + * { margin-top:16px }
+#journey-first { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-top:10px } #journey-first[hidden] { display:none }
+#journey-first img { width:112px; border-radius:5px; border:1px solid var(--line) } #journey-first p { margin:0 }
+#journey-first .hint { flex:1 1 220px; font-size:13px } #journey-first .trial { flex-basis:100% }
+body[data-new="1"] .watch > .status, body[data-new="1"] #still-controls { display:none }
 .side-tabs { display:flex; gap:4px; margin-bottom:16px; border-bottom:1px solid var(--line) }
 .side-tabs button { border:0; border-bottom:2px solid transparent; border-radius:0; background:none; color:var(--muted); padding:8px 12px; margin-bottom:-1px }
 .side-tabs button[aria-selected=true] { color:var(--ink); border-bottom-color:var(--accent); font-weight:600 }
@@ -1725,6 +1790,8 @@ SCRIPT = '''(() => {
     box.open = sessionStorage.getItem(key) === 'open';
     box.addEventListener('toggle', () => sessionStorage.setItem(key, box.open ? 'open' : 'closed'));
   });
+  document.querySelectorAll('[data-copy]').forEach(button => button.onclick = () =>
+    navigator.clipboard.writeText(button.dataset.copy).then(() => toast('Copied. Paste it into your README.'), () => toast(button.dataset.copy)));
   const sideKey = location.pathname + ':side';
   const showSide = name => {
     document.querySelectorAll('.side-tabs [role=tab]').forEach(tab => {
@@ -1764,6 +1831,8 @@ SCRIPT = '''(() => {
     document.getElementById('journey-plan').hidden = !journeyState.pending || drafts || external;
     document.querySelector('[data-reset-drafts]').hidden = !drafts;
     const reload = document.querySelector('[data-reload-project]'); reload.hidden = !external; reload.disabled = drafts;
+    const fresh = !!journeyState.first && !pending; document.body.dataset.new = fresh ? '1' : '';
+    const firstFiles = document.getElementById('journey-first'); if (firstFiles) firstFiles.hidden = !fresh;
     document.getElementById('journey-files').hidden = journeyState.next !== 'download' || pending;
     document.getElementById('journey-review').hidden = journeyState.next !== 'review' || pending;
     document.getElementById('review-current').hidden = !pending;
@@ -1919,6 +1988,11 @@ SCRIPT = '''(() => {
     head.style.left = (100 * video.currentTime / (video.duration || 1)) + '%';
     document.querySelectorAll('.beat').forEach(b => b.classList.toggle('now', JSON.parse(b.dataset.appearances || '[]').some(([start, end]) => video.currentTime >= start && video.currentTime < end)));
   });
+  // A first demo plays once, muted, so the person sees what they made straight away.
+  const playedKey = location.pathname + ':played:' + document.body.dataset.run;
+  if (video && document.body.dataset.new === '1' && !sessionStorage.getItem(playedKey)) {
+    sessionStorage.setItem(playedKey, '1'); video.muted = true; video.play().catch(() => {});
+  }
   const beat = id => document.querySelector(`.beat[data-beat="${CSS.escape(id)}"]`);
   let selected = null;
   const selectionKey = location.pathname + ':selected-step';
@@ -2258,6 +2332,11 @@ SCRIPT = '''(() => {
   document.getElementById('cancel').onclick = () => post('cancel', {}).then(watch);
   document.querySelectorAll('[data-audition]').forEach(button => button.onclick = () => post('job', {kind: 'audition', beat: button.dataset.audition}).then(out => {
     if (out.ok) { box.scrollIntoView({behavior: 'smooth'}); watch(); }
+  }));
+  document.querySelectorAll('[data-trial]').forEach(b => b.onclick = () => post('trial', {operation: b.dataset.trial}).then(out => {
+    if (!out.ok) return;
+    if (b.dataset.trial === 'restore') return location.reload();
+    post('job', {kind: 'preview'}).then(job => { if (job.ok) watch(); });
   }));
   document.querySelectorAll('[data-job]').forEach(b => b.onclick = () => post('job', {kind: b.dataset.job}).then(out => { if (out.ok) { if (out.reason) toast(out.reason); watch(); } }));
   document.querySelectorAll('[data-from]').forEach(b => b.onclick = () => post('job', {kind: 'from', beat: b.dataset.from}).then(out => {

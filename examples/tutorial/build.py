@@ -182,7 +182,11 @@ class Workshop:
 
     async def run(self,page):
         row=f'.beat[data-beat="{self.search}"]'
-        async def preview(p):await self.play(p)
+        async def preview(p):
+            # The studio plays a first preview itself; keep its welcome and downloads in view.
+            await p.evaluate('scrollTo(0,0)')
+            await p.locator('#video').evaluate('el=>{if(el.paused){el.muted=true;el.currentTime=0;el.play()}}')
+            await self.shoot.until(.75); await p.locator('#journey-first [download$=".gif"]').hover()
         await self.shoot.run('first-preview',page,preview)
         await self.jump(page,'story-panel')
         async def proof(p):

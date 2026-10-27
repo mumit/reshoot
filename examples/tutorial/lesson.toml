@@ -65,7 +65,7 @@ id = "first-preview"
 chapter = "Read your preview"
 title = "Watch the first preview"
 takeaway = "The MP4 and GIF come from the same saved story."
-text = "Here is the first preview in the studio. The note is saved, and found again. reshoot added the cursor and the caption, and left out its toolbar. This is already a useful clip."
+text = "Here is the first preview in the studio. The note is saved, and found again. reshoot added the cursor and the caption, and left out its toolbar. The video and the GIF are already there to download."
 
 [[scene]]
 id = "proof"

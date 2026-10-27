@@ -19,6 +19,8 @@ jobs:
         run: |
           version=$(uv version --short)
           test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
+      - name: Check the code compiles on the oldest Python it supports
+        run: uvx --python 3.11 python -m compileall -q src tests
       - name: Install ffmpeg and Tesseract
         run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg fonts-dejavu-core tesseract-ocr
       - run: uv run --extra browser pytest --ocr-backend=tesseract

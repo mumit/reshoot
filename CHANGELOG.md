@@ -8,6 +8,8 @@ change project files or commands.
 
 ### Fixed
 
+- reshoot runs on Python 3.11 again. In 0.3.10 every command stopped with
+  `SyntaxError: f-string: unterminated string` there.
 - After an update finishes, the studio no longer keeps showing "Loading the
   new run..." with an empty player each time the page opens.
 

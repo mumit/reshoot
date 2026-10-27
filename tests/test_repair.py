@@ -318,6 +318,8 @@ def test_studio_repairs_undoes_and_verifies_the_same_task(tmp_path):
                 page = chrome.new_page()
                 page.goto(url)
                 assert page.locator('.failure img').count() == 1
+                assert 'Search stopped: it ' in page.locator('.failure').inner_text()  # the step in words, as the filmstrip names it
+                assert not page.locator('#journey-plan').is_visible() and not page.locator('#journey-changes').is_visible()
                 with page.expect_navigation(timeout=60000):
                     page.click('[data-repair=apply]')
                 assert 'Repair ready to verify' in page.locator('.failure').inner_text()

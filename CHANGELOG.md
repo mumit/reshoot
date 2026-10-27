@@ -12,6 +12,9 @@ change project files or commands.
   --previous` names steps as the studio does ("Type search notes"), lists them
   in story order, and says "Steps" and "kept" instead of "Beats" and
   "matched". The review page says **Play this step**.
+- A stopped recording names its step in words, "Search stopped: it couldn't
+  find…", in the studio and from `reshoot repair`, and no longer lists the
+  changed files or "recording a fresh preview" under the stop.
 
 ## 0.3.11 (2026-10-27)
 

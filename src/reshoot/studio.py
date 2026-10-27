@@ -577,6 +577,9 @@ def workflow(config, folder, take, run, context=None, session=None):
                              failure=context.get('failure'), session=session, has_run=bool(run))
     kind, reason = update_kind(folder, config, take, run)
     state.update(update_kind=kind, update_detail=reason)
+    if state['phase'] == 'stopped':
+        # The stopped step says what to fix; which saved files changed would only distract from it.
+        state.update(changes=[], update_detail='')
     return state
 
 
@@ -1115,7 +1118,9 @@ def page(data, accept, seen=0):
                        f'<button type="button" data-remove-check data-beat="{e(check["beat"])}" data-index="{check["index"]}" '
                        f'data-expect="{e(json.dumps(check["expect"]))}"{locked}>Remove this check</button></details>')
         else:
-            message = failure['message'][:1].upper() + failure['message'][1:]
+            # The recorder says step 'search' stopped; the studio names steps as words, as in its filmstrip.
+            message = re.sub(r"^step '([^']+)' stopped", lambda m: step_name(m.group(1)) + ' stopped', failure['message'])
+            message = message[:1].upper() + message[1:]
             label = (failure.get('candidate_labels') or [None])[0]
             use = f'Use "{label}"' if label else 'Use suggested control'
             buttons = (f'<button type="button" data-repair="apply"{locked}>{e(use)}</button> '
@@ -1565,7 +1570,7 @@ def page(data, accept, seen=0):
 {tools_box}
 <section id="journey" class="journey" role="status" aria-live="polite" data-phase="{e(state['phase'])}"><strong id="journey-title">{e(state['title'])}</strong>
 <p id="journey-detail">{e(state['detail'])}</p><p id="journey-changes" class="hint"{'' if state.get('changes') else ' hidden'}>{e(', '.join(state.get('changes', [])))}</p>
-<p id="journey-plan" class="hint"{'' if state['pending'] else ' hidden'}>{e(state['update_detail'])}</p>
+<p id="journey-plan" class="hint"{'' if state['pending'] and state['update_detail'] else ' hidden'}>{e(state['update_detail'])}</p>
 <button type="button" data-reset-drafts hidden>Reset unsaved edits</button><button type="button" data-reload-project hidden>Reload project</button>
 <a href="#review-panel" data-jump="review-panel" id="journey-review"{'' if state['next'] == 'review' else ' hidden'}>Review this final</a>
 {first_files}<a href="#download-panel" data-jump="download-panel" id="journey-files"{'' if state['next'] == 'download' else ' hidden'}>Get your files</a></section>
@@ -1832,7 +1837,7 @@ SCRIPT = '''(() => {
     textFor('journey-changes', (journeyState.changes || []).join(' · '));
     document.getElementById('journey-changes').hidden = !journeyState.changes?.length || drafts || external;
     textFor('journey-plan', journeyState.update_detail || '');
-    document.getElementById('journey-plan').hidden = !journeyState.pending || drafts || external;
+    document.getElementById('journey-plan').hidden = !journeyState.pending || !journeyState.update_detail || drafts || external;
     document.querySelector('[data-reset-drafts]').hidden = !drafts;
     const reload = document.querySelector('[data-reload-project]'); reload.hidden = !external; reload.disabled = drafts;
     const fresh = !!journeyState.first && !pending; document.body.dataset.new = fresh ? '1' : '';

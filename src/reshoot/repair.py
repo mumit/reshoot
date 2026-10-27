@@ -413,8 +413,9 @@ def main(a):
     from reshoot.workspace import History
     data = load(a.run_path, a.config)
     failure = data['failure']
-    print(f"Step {failure['beat']!r} stopped: it {failure['message']}" if failure.get('message') else
-          f'Control needs repair: beat {failure["beat"]}, {failure["section"]} {failure["index"]}.')
+    from reshoot.story import step_name
+    print(f"{step_name(failure['beat'])} stopped: it {failure['message']}" if failure.get('message') else
+          f'Control needs repair: {step_name(failure["beat"])}, {failure["section"]} {failure["index"]}.')
     if not (a.apply or a.pick):
         for target in failure.get('candidates', []):
             print('Suggested replacement: ' + redact(json.dumps(target)))

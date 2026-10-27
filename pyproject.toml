@@ -1,6 +1,6 @@
 [project]
 name = "reshoot"
-version = "0.3.10"
+version = "0.3.11"
 description = "Agent skills and recording tools for repeatable software demo videos"
 dynamic = ["readme"]
 license = "MIT"

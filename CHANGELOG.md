@@ -4,7 +4,11 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
-## Unreleased
+## 0.3.11 (2026-10-27)
+
+Use this instead of 0.3.10, which failed on every command under Python 3.11
+and has been yanked. Upgrade the project skills with `reshoot skills claude
+--directory . --replace` (or `codex`): they now need 0.3.11.
 
 ### Fixed
 

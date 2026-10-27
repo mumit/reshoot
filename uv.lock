@@ -2366,7 +2366,7 @@ wheels = [
 
 [[package]]
 name = "reshoot"
-version = "0.3.10"
+version = "0.3.11"
 source = { editable = "." }
 dependencies = [
     { name = "pillow" },

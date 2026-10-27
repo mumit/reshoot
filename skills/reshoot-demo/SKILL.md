@@ -7,7 +7,7 @@ description: Create a repeatable software demo with reshoot from an app and demo
 
 ## Set up
 
-Requires reshoot CLI 0.3.10 or newer. Run `reshoot --version`. If it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'`. If the CLI is missing, use the repository's documented installation; do not invent commands for another version.
+Requires reshoot CLI 0.3.11 or newer. Run `reshoot --version`. If it is older, or `reshoot doctor` says a newer release is out, upgrade with `uv tool install --upgrade 'reshoot[browser]'`. If the CLI is missing, use the repository's documented installation; do not invent commands for another version.
 
 Run `reshoot doctor --config CONFIG --probe` for a project. It tests encoding, a TOML browser capture and the configured text scan on temporary synthetic data; it does not test the app, face detection or final media. Fix what it reports instead of turning scans off. If `RESHOOT_CHROME` is set, it must name an executable browser. Restart reshoot after changing shell settings or its Python environment.
 

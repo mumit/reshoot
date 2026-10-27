@@ -80,7 +80,7 @@ exports verify the corrected path. The failed visual candidates remain intact.
 
 The fix adds a temporary lossless encoding step; long-recording performance
 and a fresh Linux run have not been measured in this review. The
-[pitfalls](../../guide/pitfalls.md) and editing skill document the corrected
+[pitfalls](../../guide/troubleshooting.md#what-to-watch-for) and editing skill document the corrected
 behavior and independent GIF inspection.
 
 ## Remaining validation limits

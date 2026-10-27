@@ -1,16 +1,16 @@
 # Reshoot in CI
 
 Use CI to record a demo again when the app changes. When a renamed button breaks
-the storyboard, the recording job fails and identifies the beat. Review the new
+the storyboard, the recording job fails and identifies the step. Review the new
 run before replacing the previous video or README GIF.
 
 Start with a working local browser/VHS project and its reset procedure. Use the
 [local tutorial](step-by-step.md) if you need an example; it is not required for
 an app that already records correctly. Native windows require an interactive
-macOS capture session and are outside these Ubuntu templates. There are three
-CI examples: a refresh workflow that opens a pull request for versioned projects,
-a record-only workflow, and the original pull-request workflow for legacy
-`[keep]` projects. All pin supporting actions to reviewed commits.
+macOS capture session and are outside these Ubuntu templates. There are two
+examples: a refresh workflow that opens a pull request, and a record-only
+workflow. Both pin supporting actions to reviewed commits. The older workflow
+for legacy `[keep]` projects is in the [manual workflow](manual.md#legacy-shoot-files-in-ci).
 
 ## Versioned projects: open a pull request with the refreshed demo
 
@@ -18,11 +18,9 @@ Copy [examples/github/refresh.yml](../examples/github/refresh.yml) into
 `.github/workflows/reshoot.yml` in your app repository and change the marked
 lines. Before the first run:
 
-1. Record a final with `reshoot run demo/reshoot.toml`, watch it, and accept
-   it with `reshoot accept demo/latest`. `accept` refuses a preview, which is
-   made smaller and quicker than a final. It writes `demo/accepted/`, a small
-   record of that run: its report, beat results and evidence frames, without
-   the media. Commit it with the demo source.
+1. Record a final with `reshoot run demo/reshoot.toml`, watch it, accept
+   it with `reshoot accept demo/latest`, and commit
+   [`demo/accepted/`](publish.md#the-accepted-run) with the demo source.
 2. In the repository's Settings, Actions, General, turn on "Allow GitHub Actions
    to create and approve pull requests". The pull request step fails without it.
 3. Add the steps your app needs before it can start, such as installing packages.
@@ -30,7 +28,7 @@ lines. Before the first run:
 When the app or demo source changes on `main`, or when started by hand, the workflow:
 
 1. records a fresh run of `demo/reshoot.toml`;
-2. compares it beat by beat with `demo/accepted`;
+2. compares it step by step with `demo/accepted`;
 3. copies the new MP4 and GIF into `docs/demo/` and the new run's record into
    `demo/accepted/`, with the first frame of each scan finding;
 4. uploads the run, its review page and scan sheets as the `reshoot-review` artifact;
@@ -38,9 +36,9 @@ When the app or demo source changes on `main`, or when started by hand, the work
 
 The pull request shows the new GIF, a link to the MP4 on its branch, each
 scan finding with its first frame, and a table of matched, added and removed
-beats, with whether each one's definition, duration, frame pixels and results
+steps, with whether each one's definition, duration, frame pixels and results
 changed. Pixel changes are common and small; watch the video. The full scan
-sheets and review page stay in the artifact. [Review a refresh pull request](team.md#review-a-refresh-pull-request)
+sheets and review page stay in the artifact. [Review a refresh pull request](publish.md#review-a-refresh-pull-request)
 lists the steps. **Merging the pull request accepts the recording**: the next
 run compares against it. Close the pull request to keep the current demo.
 
@@ -69,7 +67,7 @@ If the repository has no `demo/accepted/` yet, the first run still opens a pull
 request, without a comparison. Merging it starts the record.
 
 When a change breaks the story, such as a renamed input, the run fails on that
-beat and opens no pull request. The job's summary page names the beat and its
+step and opens no pull request. The job's summary page names the step and its
 target, for example `step 'search' stopped: it couldn't find the control matching #q`, and the
 artifact holds a screenshot of the failure. Repair the story locally or with
 the [refresh skill](../skills/reshoot-refresh/SKILL.md), push, and the next run
@@ -86,7 +84,7 @@ fails. It does not change the repository or open a pull request. Use it to test
 CI recording before adopting the refresh workflow. After a run, download the
 `reshoot-review` artifact, open `review.html` locally and keep the folder
 structure intact so media and original frames remain linked. Review the exports
-and sheets as in the [tutorial](step-by-step.md#5-review-and-accept).
+and sheets as in [Review and accept](studio.md#review-and-accept).
 A recording that worked and an uploaded artifact are not an acceptance.
 
 ## Choose when to record
@@ -123,92 +121,16 @@ URL-only projects; hosted state and rate limits can affect repeatability.
 For private test services, use the app's supported CI secret setup and keep
 credentials outside the storyboard and artifacts.
 
-Return to [maintaining and publishing](publish.md) to promote reviewed media
-locally. The record-only workflow requires read access and does not need
-the pull-request permissions described in the legacy section below.
-
-## Legacy projects: open a media pull request
-
-The original [PR workflow](../examples/github/reshoot.yml) uses the legacy
-`[keep]` path. It does not copy runs from versioned projects without an
-explicit export step. Choose this route only when retaining that layout.
-
-### The shoot file
-
-`reshoot run` does a whole shoot from one `reshoot.toml`: it starts the app, waits until it answers, records each
-take, runs the edit script, makes the review sheets, copies the finished files where they're kept, and stops the
-app. The same configuration works locally and in CI. See the notes example:
-[examples/notes/reshoot.toml](../examples/notes/reshoot.toml).
-
-```toml
-[app]
-run = "npm run dev -- --port 8000"
-url = "http://localhost:8000/"
-
-[[take]]
-web = "tools/demo/storyboard.py"
-out = "takes/web.mp4"
-
-[[take]]
-tape = "tools/demo/cli.tape"
-
-[edit]
-script = "tools/demo/edit.py"
-args = ["takes/web.mp4", "takes/cli.mp4"]
-
-[check]
-sources = ["takes/web.assets.json", "takes/final.mp4"]
-review = "takes/review"
-
-[keep]
-"takes/final.mp4" = "docs/demo/demo.mp4"
-"takes/web.gif" = "docs/demo/demo.gif"
-```
-
-`reshoot run --help` describes the legacy shoot settings. The
-[project reference](projects.md) documents versioned files. A failed step stops
-the shoot, stops the app, and exits with an error.
-`takes/run.json` says what happened.
-
-### The GitHub workflow
-
-1. Copy [examples/github/reshoot.yml](../examples/github/reshoot.yml) to `.github/workflows/reshoot.yml`.
-2. Let workflows open pull requests: in the repository's Settings, Actions, General, turn on "Allow GitHub Actions to
-   create and approve pull requests". It's off by default, and the pull request step fails without it.
-3. Add the steps your app needs before it can start (installing packages, a demo database).
-4. Change the marked lines: where the shoot file is, the takes folder, and where `[keep]` copies files.
-
-On each release (or when started by hand), it:
-
-1. installs ffmpeg, VHS if the shoot has a tape, and reshoot, on Ubuntu (Chrome is already there);
-2. runs the shoot;
-3. uploads the takes, review sheets and report as an artifact called `reshoot-review`;
-4. opens a pull request with the new files from `[keep]`.
+The record-only workflow needs read access only, not the pull-request
+permission.
 
 ## Review CI outputs
 
-CI doesn't decide what's safe to show. The pull request says how many images haven't been checked, and how many the
-scan flagged (on Linux it reads text with Tesseract, which the action installs; faces and people need macOS). Flags
-come first on the sheets, and the run's log shows only masked parts of what was found. Before merging,
-download the `reshoot-review` artifact, inspect every sheet at full size, and watch
-the new video. If an item fails, fix the demo data and run the workflow again.
+CI doesn't decide what's safe to show. [Review a refresh pull request](publish.md#review-a-refresh-pull-request)
+lists what to look at before merging. On Linux the scan reads text with
+Tesseract, which the action installs; faces and people need your eyes.
 
-Keep demo data in the repository or generate it in a setup step so CI can use it.
-Data committed to a public repository is public too. Use only data suitable for sharing.
+Keep demo data in the repository or generate it in a setup step so CI can use
+it. Data committed to a public repository is public too.
 
-## Pitfalls
-
-- **Linux draws things differently.** Fonts and emoji differ from macOS, so text can wrap in new places. Watch the
-  first video from CI closely, and set fonts in the app if it matters.
-- **Checks wait on the pull request.** GitHub doesn't run workflows on a pull request opened by
-  `github-actions[bot]` until someone approves them: the run shows "action_required". Approve it on the pull
-  request's Checks tab, or open the pull request with a GitHub App or personal token instead of `GITHUB_TOKEN`.
-  [GitHub documents this approval behavior](https://docs.github.com/en/actions/concepts/security/github_token).
-- **Legacy local runs change kept files too.** With legacy `[keep]`, `reshoot run`
-  copies the new video into `docs/demo/`. Use a disposable checkout for experiments
-  and inspect the diff before keeping those changes. Versioned runs require
-  a separate local export.
-- **Something already on the port.** `reshoot run` stops if the app's URL answers before it starts the app, so a
-  take never shows a different server by mistake.
-- **Agent takes in CI.** A Claude Code take needs an account and a key in CI, and its output varies more than a
-  script's. Record those locally and retain the file for the CI edit when appropriate.
+Problems seen in CI are under [What to watch for](troubleshooting.md#in-ci).

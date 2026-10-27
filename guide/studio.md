@@ -21,8 +21,17 @@ reshoot studio demo        # the folder holding reshoot.toml; demo is the defaul
 ```
 
 It runs until you press Ctrl-C. `--no-open` prints the address instead of
-opening it, and `--port 8800` picks the port. It listens on `127.0.0.1` only,
-behind a random address, and takes changes only from its own page.
+opening it, and `--port 8800` picks the port.
+
+The first time, the page plays your preview and says how long it took and
+whether its result checks passed. **Download the video** and **Download the
+GIF** get the files straight away, and **Copy readme Markdown** copies the line
+that shows the GIF in a README.
+
+In the made-up notes app, **Change the notes app and record again** shows what
+happens when an app changes: the search box gets a new id, the recording stops
+at the search step, and you [repair it](#repair-a-step-that-broke). **Put the
+app and story back** returns both to how they were before the trial.
 
 If a tool is missing when you create a project, **Recording tools** lists what
 to install. Choose **Check again** once it's installed, then **Continue
@@ -35,15 +44,14 @@ The line above the preview says where you are: unsaved fields, saved changes
 not in the video yet, a current preview, or a final ready to review. It
 highlights the next thing to do.
 
-The links under it jump to **Preview**, **Story**, **Cut**, **Look**, **Review**
-and **Download**. **More tools** holds **Compare**, **Audio**, **Screenshots**,
-**Tour** and **Recipes**. Before the first recording, only the story and creation tools
-are shown.
+Beside the preview, **This step** edits the step you chose. **Whole video**
+holds what applies to every step: **Starting recipes**, **Audio**,
+**Documentation screenshots**, **Clickable tour**, **Your cut** and **Style and
+exports**. Choosing a step goes back to **This step**.
 
-Beside the preview, **This step** edits the step you chose, and **Whole video**
-holds the settings for every step: recipes, audio, screenshots, the tour,
-**Your cut** and **Style and exports**. The links open the right one, and
-choosing a step goes back to **This step**.
+The links under the header jump to a section and open its tab. **More tools**
+holds the ones you need less often. Before the first recording, only the story
+and creation tools are shown.
 
 ## Choose a starting recipe
 
@@ -129,8 +137,8 @@ Use playback to check timing, transitions, title cards, narration and audio.
 A layout still does not record the app again or approve the final.
 
 If a value is invalid, correct it or reset the unsaved edit. The previous
-recording is kept while the still updates. Older recordings without a clean
-take need a fresh preview before layout stills are available.
+recording is kept while the still updates. Some older recordings need a fresh
+preview before layout stills are available.
 
 ### Correct a failed result check
 
@@ -250,6 +258,35 @@ The recording still runs the whole task and all its checks; the cut only
 chooses what the video shows. Choose **Update preview**, then **Play part** to
 watch each part. Steps left out say **not in this cut**.
 
+## Grow it into a fuller demo
+
+Expand a working clip only when each extra part helps the viewer. Write the
+audience, starting state and visible result in `BRIEF.md`, and decide whether
+the video shows why a feature matters or how to use it. A product demo leads
+with the result and keeps setup short. A tutorial includes the steps a viewer
+must repeat and holds menus and result text long enough to read.
+
+| Part | Show | Result check |
+|---|---|---|
+| Start | A list with several demo notes | None: it sets the scene |
+| Create | Add "Prepare the release notes" | The saved note appears |
+| Find | Search for "release" | Only the matching note remains |
+| Finish | Hold the result and say what to do next | The result stays readable |
+
+Keep each step small enough to record again on its own, with a stable ID. Add
+an opening or closing card under **Title cards**, and narration only when it
+explains something: the video should still make sense muted. The **Task
+walkthrough** and **Release update** recipes are good starting points. To have
+an agent do it:
+
+```text
+Expand the existing demo/ into a short tutorial of creating an item and finding
+it by search. Read its brief and current recording first. Use synthetic data.
+Keep the working task and result checks; add only the context needed to follow
+it. Use clear captions, readable result holds and a short closing instruction.
+Inspect previews, record a fresh final, and show the MP4 and README GIF.
+```
+
 ## Make screenshots for docs
 
 Choose **Use for docs** beside a step with result checks. Write its **Alt
@@ -300,7 +337,7 @@ accepts a recording nor switches the current recording when a newer one arrives.
 When the app changes and a step can't find its control, the studio keeps the
 last working video and shows the **Failure frame**.
 
-- **Use "Report a problem"**, named after the control it found, appears when
+- **Use "Search notes"**, named after the control it found, appears when
   reshoot can tell what the control became: one that goes to the same place,
   has the same id, or sits where the old one was in the last recording that
   worked. It replays the earlier steps and checks the control before changing
@@ -318,16 +355,28 @@ the check.
 
 ## Review and accept
 
-Open **Review this recording**:
+Accepting says two things: the video shows the task clearly, and nothing in it
+should stay private. A clean scan decides neither; you do. Open **Review this
+recording**:
 
-1. Watch the final MP4 and each export.
-2. Open **Inspect scan sheets** and look at each sheet at full size. **What the
-   scan found** marks each finding on the timeline.
+1. Watch the final MP4 and each export to the end. Check that captions name
+   the outcome, text fits, typing is legible and the result stays on screen.
+   Read the subtitles, and check narration against the picture.
+2. Open **Inspect scan sheets** and look at each sheet at full size. Each sheet
+   holds up to four labelled images, such as `1-1` and `1-2`; anything the
+   scan flagged comes first. Look for names, accounts, keys, file paths or
+   people that shouldn't be there. **What the scan found** marks each finding
+   on the timeline.
 3. Choose whether each finding may be shared, tick that you watched
    everything, and accept or reject the run.
 
-This does what `reshoot accept` does. The studio accepts only the run shown on
-the page, and only when every saved change is in it.
+This does what `reshoot accept` does, and writes
+[`demo/accepted/`](publish.md#the-accepted-run). The studio accepts only the
+run shown on the page, and only when every saved change is in it. A preview
+can't be accepted; make a final first.
+
+If something must not be shared, reject the run. Then fix the demo data or the
+story and record again: the rejected video still shows the problem.
 
 ## Download
 

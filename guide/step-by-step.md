@@ -21,8 +21,8 @@ reshoot create
 
 It makes the notes project in `demo/`, checks that the recording tools work,
 records a preview, and opens it in [the studio](studio.md). The preview takes
-about 15 seconds. If a tool is missing, the studio's **Recording tools** says
-what to install; choose **Check again**, then **Continue creation**.
+about 25 seconds. If a tool is missing, the studio's **Recording tools** says
+what to install; see [a missing tool](troubleshooting.md#a-command-or-dependency-is-missing).
 
 The project holds:
 
@@ -71,9 +71,10 @@ note you need" and leave the field. Then raise the `search` step's **Hold
 result (seconds)** from 2 to 3, so the result stays on screen a second longer.
 
 Each change is saved to `demo/storyboard.toml`. Choose **Update preview**. A
-caption alone would only need the recording edited again, in seconds; the
-longer hold needs a new recording, so the studio records the task again. Watch
-the new preview. If you don't like a change, **Undo** takes it back.
+caption alone would only need a re-cut, in seconds; the longer hold needs a new
+recording, so the studio records the task again
+([which changes need which](studio.md#update-the-preview-then-make-the-final)).
+Watch the new preview. If you don't like a change, **Undo** takes it back.
 
 **From the terminal:** edit the files, then make a new preview:
 
@@ -111,21 +112,11 @@ and the scan's evidence in `review/`.
 Accepting says two things: the video shows the task clearly, and nothing in it
 should stay private. A clean scan decides neither; you do.
 
-In the studio, open **Review this recording**:
-
-1. Watch the MP4 and the GIF to the end.
-2. Open **Inspect scan sheets**. Each sheet holds up to four labelled images,
-   such as `1-1` and `1-2`. Look for names, accounts, keys, file paths or
-   people that shouldn't be there. Anything the scan flagged comes first.
-3. Choose whether each finding may be shared, tick that you watched
-   everything, and accept.
-
-This writes `demo/accepted/`, a small record of the run to commit with the
-project. Later runs are compared with it. A change to the run's files undoes
-the acceptance.
-
-If something must not be shared, reject the run instead. Then fix the demo data
-or the story and record again: the rejected video still shows the problem.
+In the studio, open **Review this recording** and follow
+[its three steps](studio.md#review-and-accept): watch the MP4 and the GIF to the
+end, look at each scan sheet at full size, then choose whether each finding
+may be shared and accept. This writes [`demo/accepted/`](publish.md#the-accepted-run),
+a small record of the run to commit with the project.
 
 **From the terminal:**
 
@@ -216,7 +207,8 @@ only the earlier run; `demo/accepted` now records the update. Choose
 reshoot run demo/reshoot.toml --full
 reshoot compare demo/accepted demo/latest --out demo/comparison.json
 reshoot review demo/latest --previous demo/accepted
-reshoot accept demo/latest --export docs/demo
+reshoot accept demo/latest
+reshoot export demo/accepted --directory docs/demo
 ```
 
 `compare` lists which steps matched and which changed:
@@ -228,15 +220,15 @@ Compared run NEW_ID with ACCEPTED_ID. Beats: 4 matched.
 Result checks passed before, passed now. Wrote demo/comparison.json.
 ```
 
-Four matched beats means the same steps were found, not the same pixels.
-`export` copies the MP4, GIF and subtitles, checks them against the run, and
-prints the Markdown that shows the GIF in a README. It never overwrites a file
+Four matched means the same steps were found, not the same pixels.
+`export` copies the MP4, GIF and subtitles and prints the Markdown that shows
+the GIF in a README. It never overwrites a file
 unless you add `--replace`, and it doesn't publish anything.
 
 ## Keep it in Git
 
-Commit the brief, the app's demo data, the TOML files and `demo/accepted/`.
-`demo/.gitignore` keeps the recordings in `demo/takes/` out. With the accepted
+Commit the brief, the app's demo data, the TOML files and `demo/accepted/`;
+[what to commit](publish.md#the-accepted-run) lists them. With the accepted
 record committed, [CI](ci.md) can record the demo again and compare it.
 
 ## Next
@@ -246,6 +238,6 @@ record committed, [CI](ci.md) can record the demo again and compare it.
   builds the narrated video locally.
 - Record your own app: [a web app](your-app.md), or [a macOS window](macos-window.md).
 - Every studio panel: [the studio](studio.md).
-- Change a demo by its files: [change and grow a demo](customize.md).
+- Grow it into a longer demo: [a fuller demo](studio.md#grow-it-into-a-fuller-demo).
 - Every field and command: [the project reference](projects.md) and
   [commands](commands.md).

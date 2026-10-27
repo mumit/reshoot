@@ -258,7 +258,7 @@ Save your own look and use it in another project with
 This cut shows the search result, then how the note was created, then the
 result again. The app still runs once in its original order and verifies all
 three result checks. Only the video parts move. `through` includes the last
-beat and its reading hold; `end` stops at the named beat's start.
+step and its reading hold; `end` stops at the named step's start.
 
 ![The result first, the creation steps, then the result repeated](../docs/look/sequence.gif)
 
@@ -437,9 +437,9 @@ past a page's limit. The notes example's loop:
 
 ## Sound
 
-A voiceover is spoken before recording, so each beat waits for its line.
+A voiceover is spoken before recording, so each step waits for its line.
 Music plays under it and ducks while someone speaks, then fades out at the end.
-See [Grow it into a fuller demo](customize.md#grow-it-into-a-fuller-demo).
+See [Grow it into a fuller demo](studio.md#grow-it-into-a-fuller-demo).
 ''')
 
 

@@ -7,9 +7,9 @@ command with examples; `reshoot run --help` shows a complete `reshoot.toml`.
 
 ## Project workflow
 
-`RUN` is a run folder such as `demo/takes/runs/ID`. End it with `latest` for the
-newest successful run or `accepted` for the newest accepted run, such as
-`demo/latest` or `demo/takes/runs/accepted`. The command prints which run it chose.
+`RUN` is a run folder such as `demo/takes/runs/ID`, or `demo/latest` for the
+newest successful run, or `demo/accepted` for the run you last accepted. The
+command prints which run it chose.
 
 ### Create and set up
 
@@ -40,18 +40,18 @@ newest successful run or `accepted` for the newest accepted run, such as
 
 | Command | What it does |
 |---|---|
-| `reshoot studio PROJECT` | Opens the latest recording to edit captions and holds, undo/redo, update the preview, compare checked revision frames, make a final, inspect scan sheets and accept the displayed run; saved history offers explicit recovery after restart; runs until Ctrl-C |
+| `reshoot studio PROJECT` | Opens the latest recording to shape the story, look, cut and sound, update the preview, compare, make a final, and review and accept it; see [the studio](studio.md). Runs until Ctrl-C |
 | `reshoot step record BEAT --project demo` | Replays to the step in a fresh browser, then records replacement actions into a separate draft when you choose Done; `--mode before` or `--mode after` adds a step. Existing checks stay |
 | `reshoot step list --project demo` | Shows the newest pending demonstration |
 | `reshoot step show DRAFT --project demo` | Shows proposed action changes without saving them to the story |
-| `reshoot step apply DRAFT --project demo` | Saves the reviewed actions only if the project's files still match; record a fresh preview to verify the task |
+| `reshoot step apply DRAFT --project demo` | Saves the reviewed actions; record a fresh preview to check the task |
 | `reshoot step discard DRAFT --project demo` | Discards the draft and keeps the current story |
 | `reshoot recut RUN` | Edits and scans that run's takes again into a new run, after a change to `edit.toml` or the captions; nothing is recorded |
 | `reshoot style list --project demo` | Lists Focus, Midnight, Paper and the project's saved visual styles |
 | `reshoot style apply STYLE --project demo` | Applies a listed style key or portable TOML file to captions, title-card colours and framing; update the preview afterwards |
 | `reshoot style save NAME --project demo` | Saves the current look in `demo/styles.toml`; `--out FILE` exports a portable style, `--replace` permits overwriting |
-| `reshoot sequence list --project demo` | Lists the video parts and recorded beat names from the latest complete successful run |
-| `reshoot sequence range PART --from BEAT --through BEAT --project demo` | Saves an inclusive beat range; the task and checks stay unchanged |
+| `reshoot sequence list --project demo` | Lists the video parts and recorded step names from the latest complete successful run |
+| `reshoot sequence range PART --from BEAT --through BEAT --project demo` | Saves an inclusive step range; the task and checks stay unchanged |
 | `reshoot sequence move PART --to POSITION --project demo` | Moves a video part; part and position numbers start at 1 |
 | `reshoot sequence duplicate PART --project demo` | Repeats a video part immediately after itself |
 | `reshoot sequence remove PART --project demo` | Removes a video part, keeping at least one |
@@ -59,7 +59,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot frame set EXPORT --fit crop --x 50 --y 50 --view-width 390 --project demo` | Sets Fit/Crop, crop position and viewing width without changing the task; export numbers start at 1, update the preview afterwards |
 | `reshoot frame record --size 640x480@2 --project demo` | Sets the first TOML browser take's viewport; Update preview records again with the existing actions and checks |
 | `reshoot frame check RUN` | Reads the text-size, clipping and subtitle-pace hints measured on that run; they are hints, not a readability verdict |
-| `reshoot tour create --title 'Save and find a note' --project demo` | Creates one offline tour from the first browser take's checked beats; update the preview to build it |
+| `reshoot tour create --title 'Save and find a note' --project demo` | Creates one offline tour from the first browser take's checked steps; update the preview to build it |
 | `reshoot tour set STEP --text 'The note was saved.' --x 50 --y 44 --project demo` | Edits step words and marker position in percentages; `--no-marker` removes the marker. `--title`, `--alt`, `--take`, `--beat`, `--width` and `--crop` also edit a step |
 | `reshoot tour move STEP --to POSITION --project demo` | Reorders a tour step; numbers start at 1 |
 | `reshoot tour add --beat search --take 1 --project demo` | Appends a checked step; words can be given or edited afterwards |
@@ -70,7 +70,7 @@ newest successful run or `accepted` for the newest accepted run, such as
 | `reshoot screenshot set NAME --width 960 --crop 0.1 0.05 0.8 0.7 --project demo` | Changes maximum width and crop fractions; `--native` removes the width limit, `--full-frame` removes cropping, `--take 2` selects another browser take |
 | `reshoot screenshot list --project demo` | Lists named documentation screenshot settings |
 | `reshoot screenshot remove NAME --project demo` | Stops exporting a screenshot in future runs; previously copied files remain |
-| `reshoot audio set --beat search --text "Find the matching note." --project demo` | Saves a narration line on the first TOML browser take; empty `--text ''` removes it. Update preview records again so beats wait for their lines |
+| `reshoot audio set --beat search --text "Find the matching note." --project demo` | Saves a narration line on the first TOML browser take; empty `--text ''` removes it. Update preview records again so steps wait for their lines |
 | `reshoot audio audition search --project demo` | Speaks one saved line into the recording's voice cache and prints its WAV path and duration; no app capture |
 | `reshoot audio set --voice-volume 1 --music-volume 0.15 --duck --project demo` | Saves linear gains and music ducking in `edit.toml`; `--no-duck` disables ducking, and Update preview re-cuts the current recording |
 | `reshoot audio set --engine 'kokoro --voice af_heart --speed 1' --project demo` | Chooses optional [local neural narration](install.md#local-neural-narration). System commands such as `say -v Samantha` still work; `--engine ''` returns to the system default. Custom commands need `{out}` and read text on stdin |
@@ -87,18 +87,18 @@ newest successful run or `accepted` for the newest accepted run, such as
 
 | Command | What it does |
 |---|---|
-| `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable beat IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |
+| `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares stable step IDs, definitions, evidence and results; `--markdown FILE` adds a summary for a pull request |
 | `reshoot review RUN --previous OLD_RUN` | Writes a local comparison page; omitting `--previous` reviews one run |
 | `reshoot review RUN --serve` | Serves the review page on this computer only, to accept or reject the run with its buttons; stops once you decide |
-| `reshoot accept RUN` | Accepts the exports, beats and scan items in one verdict; name each finding with `--flagged F1` or `--reject F1`, or a single frame by its label. `--export docs/demo` then copies the videos and GIFs there, replacing the ones already there. Refuses a preview unless given `--preview` |
-| `reshoot review RUN --import-decisions FILE` | Imports the owner's decisions for that run and its scan policy |
+| `reshoot accept RUN` | Accepts the exports, steps and scan items in one verdict; name each finding with `--flagged F1` or `--reject F1`, or a single frame by its label. `--export docs/demo` then copies the videos and GIFs there, replacing the ones already there, as `export --replace` does. Refuses a preview unless given `--preview` |
+| `reshoot review RUN --import-decisions FILE` | Imports the decisions downloaded from that run's review page |
 
 ### Share
 
 | Command | What it does |
 |---|---|
 | `reshoot export RUN --directory DEST` | Copies videos, GIFs, subtitles, documentation PNGs and offline tour HTML locally, and prints Markdown; `--file` picks single files; refuses to overwrite unless given `--replace` |
-| `reshoot export RUN --record demo/accepted` | Writes the run's small record (report, beat results, evidence frames) for later comparisons |
+| `reshoot export RUN --record demo/accepted` | Writes the run's small record (report, step results, evidence frames) for later comparisons |
 | `reshoot export RUN --directory DEST --record DIR --markdown FILE --link URL` | Also writes Markdown showing the GIF, the MP4 and each scan finding with its frame, such as for a pull request; finding frames go in `DIR/findings/` |
 
 ### Skills
@@ -124,7 +124,7 @@ files. `CONFIG` is a `reshoot.toml` path. Versioned runs write under the configu
 | `reshoot window APP takes/app.mov --id ID -s 8` | Records one macOS window for eight seconds |
 | `reshoot last-change takes/cli.mp4` | Finds the last visible change in a take |
 | `reshoot edit edit.toml takes/web.mp4` | Applies a declarative edit; Python edit files also work |
-| `reshoot gif takes/web.mp4 takes/loop.gif START END` | Exports the interval between times or named beats |
+| `reshoot gif takes/web.mp4 takes/loop.gif START END` | Exports the interval between times or named steps |
 
 Terminal recording uses `vhs FILE.tape`. Install VHS separately. See
 the [manual workflow](manual.md) for terminal takes, Python helpers and windows.

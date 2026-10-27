@@ -149,7 +149,7 @@ screenshots and offline tours now share that workflow. The
   0.3.5 before writing anything ([round 6](docs/validation/2026-10-23-cold-first-demo.md#round-6-the-upgrade-notice-on-035)).
 - **Review inside the pull request:** a refresh pull request shows the GIF, links the MP4 on its branch and shows
   each scan finding with its frame, so a usual review needs no artifact download.
-- **Fewer, clearer guides:** one start-here per reader, including a [team page](guide/team.md), field tables
+- **Fewer, clearer guides:** one start-here per reader, including a [team page](guide/publish.md#on-a-team), field tables
   for the three project files, an index of error messages, one word for each idea, help text for every command,
   and three overlapping pages merged into others.
 - **Review that fits the data:** flagged items are grouped into findings that `accept` names once, the review page

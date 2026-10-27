@@ -23,15 +23,8 @@ Use the [notes example](../examples/notes/) to try each step on a small made-up 
    On Linux, install [VHS](https://github.com/charmbracelet/vhs#installation)
    separately. Python browser stories do not need the Playwright extra. Keep
    the normal browser installation to also use TOML stories.
-2. **For Claude Code,** add the skills:
-
-   ```
-   /plugin marketplace add mumit/reshoot
-   /plugin install reshoot@reshoot
-   ```
-
-   Follow the install prompts, then use `/reshoot:reshoot-demo` with a concrete
-   task. The plugin's supporting skills also cover the individual takes below.
+2. **For Claude Code,** add the [plugin](install.md#install-the-skills). Its
+   supporting skills also cover the individual takes below.
 3. **Make demo data.** Give the app its own database, data folder or account, with only things anyone may see.
    Check that the app can be pointed at it with a flag or an environment variable, and can't reach real data while
    it does. Good demo data:
@@ -170,13 +163,63 @@ scripted interaction, standalone MP4/GIF export and review.
    the take has a voiceover, it's added; set `MUSIC` in the edit script for music under it, which ducks while the voice speaks.
 3. Watch all of it. Read any text on screen, including what an AI agent wrote in a terminal take.
 
-## All at once
+## Legacy shoot files in CI
 
-Once each step works, put them in a `reshoot.toml` and `reshoot run` does the whole shoot. A GitHub workflow can
-then reshoot on each release. See [reshoot in CI](ci.md). The legacy notes
-`reshoot.toml` includes `[keep]`, which copies outputs into `docs/demo/` even on a
-local run. Use a disposable checkout or remove that table in the configuration
-before experimenting; versioned projects keep each run in its own folder instead.
+Once each step works, put them in a `reshoot.toml` and `reshoot run` does the
+whole shoot: it starts the app, waits until it answers, records each take, runs
+the edit script, makes the review sheets, copies the finished files where
+they're kept, and stops the app. The same file works locally and in CI. See the
+notes example, [examples/notes/reshoot.toml](../examples/notes/reshoot.toml):
+
+```toml
+[app]
+run = "npm run dev -- --port 8000"
+url = "http://localhost:8000/"
+
+[[take]]
+web = "tools/demo/storyboard.py"
+out = "takes/web.mp4"
+
+[[take]]
+tape = "tools/demo/cli.tape"
+
+[edit]
+script = "tools/demo/edit.py"
+args = ["takes/web.mp4", "takes/cli.mp4"]
+
+[check]
+sources = ["takes/web.assets.json", "takes/final.mp4"]
+review = "takes/review"
+
+[keep]
+"takes/final.mp4" = "docs/demo/demo.mp4"
+"takes/web.gif" = "docs/demo/demo.gif"
+```
+
+`reshoot run --help` describes these settings. A failed step stops the shoot,
+stops the app and exits with an error; `takes/run.json` says what happened.
+`[keep]` copies the new video into `docs/demo/` on every run, local ones too,
+so use a disposable checkout for experiments and look at the diff before
+keeping it. New projects should use the versioned files in the
+[project reference](projects.md), where each run has its own folder.
+
+To record it in CI and open a pull request with the kept files:
+
+1. Copy [examples/github/reshoot.yml](../examples/github/reshoot.yml) to `.github/workflows/reshoot.yml`.
+2. In the repository's Settings, Actions, General, turn on "Allow GitHub
+   Actions to create and approve pull requests". The pull request step fails
+   without it.
+3. Add the steps your app needs before it can start, such as installing
+   packages or a demo database.
+4. Change the marked lines: where the shoot file is, the takes folder, and
+   where `[keep]` copies files.
+
+On each release, or when started by hand, it installs ffmpeg, VHS if the shoot
+has a tape, and reshoot on Ubuntu; runs the shoot; uploads the takes, review
+sheets and report as the `reshoot-review` artifact; and opens a pull request
+with the files from `[keep]`. Download the artifact and look at every sheet
+before merging. For versioned projects, use [the refresh workflow](ci.md)
+instead.
 
 ## When the app changes
 

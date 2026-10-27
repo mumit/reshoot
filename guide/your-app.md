@@ -32,21 +32,22 @@ step from the script, so restore its app state before repeating it.
 
 Choose **Done**. Reshoot writes the project, records a preview and opens the
 studio. The recorder also suggests result checks from what each step changed
-on the page, marked `# suggested` in `demo/storyboard.toml`. If the preview
-stops on one that isn't the result, remove it there and choose **Update
-preview**. Change captions and holds there, then choose **Update preview**.
-Choose **Make final** when ready to inspect the full-size exports and scan
-sheets. Nothing is accepted or published automatically.
+on the page, marked `# suggested` in `demo/storyboard.toml`. In the studio,
+remove any suggested check that isn't the result, change captions and holds,
+and choose **Update preview** to see the changes. Choose **Make final** when
+ready to inspect the full-size exports and scan sheets. Nothing is accepted or
+published automatically.
 
 Checkboxes and radio buttons replay their chosen state. Multiple-choice lists,
 file selection and drops are saved as unresolved steps; the rest of the story
-is kept. Add the required actions in `storyboard.toml` and remove that beat's
+is kept. Add the required actions in `storyboard.toml` and remove that step's
 `recording_issue` after repairing it. A story with unresolved steps cannot be
 recorded. The manual route below covers startup, reset and login setup when
 your app needs them.
 
 ## Choose one result
 
+Keep the first demo small: see [a good first demo](agent-quickstart.md#start-with-one-prompt).
 Before writing actions, fill in `BRIEF.md`. For example:
 
 ```text
@@ -163,8 +164,8 @@ hold = 0.5
 ```
 
 Replace the entire placeholder `demo/storyboard.toml` with the new story. The
-generated edit ends at the start of the `end` beat, so keep that ID unless you
-also change the edit. Named result beats and their holds keep the proof readable.
+generated edit ends at the start of the `end` step, so keep that ID unless you
+also change the edit. Named result steps and their holds keep the proof readable.
 
 Find targets in the app's source, or in the browser's inspector when you have only the URL. An accessible role and
 name work when they identify one control; a stable `data-testid` also works.
@@ -186,7 +187,7 @@ reshoot rec http://127.0.0.1:3000/ demo/draft.toml
 ```
 
 This opens a fresh browser for you to do the task with demo data. Close it when
-you finish, and it writes the clicks, typing and dropdown choices as beats.
+you finish, and it writes the clicks, typing and dropdown choices as steps.
 Checkboxes and radio buttons record their chosen state. Multiple-choice lists,
 file selection and drops leave a blocking `recording_issue` in that step,
 preserving the rest of the draft for repair.
@@ -196,18 +197,18 @@ the words you typed showing up in a list, a list getting shorter, a new
 address, a label that changed. Each is marked
 `# suggested from what this changed on the page`. Keep the ones that show the
 result, delete the rest, and check counts that depend on data the app keeps.
-The draft ends with the `end` beat the generated edit needs. Add captions and
-purposes, rename beats whose IDs, such as `click-albums`, don't say what the
+The draft ends with the `end` step the generated edit needs. Add captions and
+purposes, rename steps whose IDs, such as `click-albums`, don't say what the
 step is for, and use the draft to
 replace `demo/storyboard.toml`. Every action and result check is in the
 [project reference](projects.md#storyboardtoml).
 
 ## Login and demo data
 
-Every take starts with a fresh browser profile, so reshoot never uses your own
+Every recording starts with a fresh browser profile, so reshoot never uses your own
 browser's login. If the app needs one,
 use a separate demo account and TOML `[[setup]]` actions before the recorded
-beats. Setup actions use the same action fields, for example:
+steps. Setup actions use the same action fields, for example:
 
 ```toml
 [[setup]]
@@ -223,8 +224,9 @@ persistent demo header, but it is not a substitute for isolated data.
 
 If fixture files live inside `demo/`, declare them with top-level
 `inputs = ["seed.json"]` in `reshoot.toml`, before any table. Only existing files
-inside that project directory are accepted. The report hashes declared inputs;
-it does not capture an external database or service automatically.
+inside that project directory are accepted. When one of them changes,
+**Update preview** records again. It can't see a change to an external
+database or service; use **Record app again** then.
 
 ## Record it
 
@@ -234,13 +236,13 @@ reshoot preview demo/reshoot.toml
 reshoot run demo/reshoot.toml
 ```
 
-Watch the preview before the final. A failing beat names its control; see
+Watch the preview before the final. A failing step names its control; see
 [Troubleshooting](troubleshooting.md#an-action-or-result-check-fails). Then
-[accept the final](step-by-step.md#5-review-and-accept). For a portrait
-export, choose a crop or record a separate mobile take: fitting a wide page
+[accept the final](studio.md#review-and-accept). For a portrait
+export, choose a crop or record a separate mobile version: fitting a wide page
 into a phone frame does not make its words readable.
 
-When the app changes, keep the beat IDs and the result checks and record
+When the app changes, keep the step IDs and the result checks and record
 again; [Keep a demo current](publish.md) covers comparing and sharing the new
-run, and [Change and grow a demo](customize.md) covers captions, timing and
-longer stories.
+run, and [the studio](studio.md) covers captions, timing and
+[longer stories](studio.md#grow-it-into-a-fuller-demo).

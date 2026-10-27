@@ -41,7 +41,7 @@ reshoot create http://127.0.0.1:8765/ --directory demo
 For your own app, use its development address instead. If port 8765 is busy,
 pick another and use it in both commands. Use a new directory for each
 project. reshoot checks its tools and opens a fresh browser.
-[Recording tools](studio.md#open-it) helps if setup needs attention.
+[Recording tools](troubleshooting.md#a-command-or-dependency-is-missing) helps if setup needs attention.
 
 ## Record one task
 
@@ -79,7 +79,7 @@ and result checks stay. Update the preview to check the whole task, and use
 
 ## Add polish
 
-Choose **Midnight** under **Look**. In the step's **Narration**, write "Find
+Choose **Look**, then **Midnight** under **Visual styles**. In the step's **Narration**, write "Find
 the note you saved by typing one of its words" and save it. Add an opening
 card saying "Find a note in seconds." Update the preview and watch it.
 
@@ -100,7 +100,7 @@ Look at the suggested **Search notes** control and use it if it's right.
 **Choose replacement in app** lets you pick another. Then update the preview.
 See [repair](studio.md#repair-a-step-that-broke).
 
-Open **More tools → Compare** and choose the polished recording. Play both, or
+Open **More tools**, then **Compare**, and choose the polished recording. Play both, or
 pick a step to jump both to it. Comparing doesn't accept either recording.
 
 ## Finish and keep the source

@@ -42,6 +42,14 @@ after inspecting the app. A URL-only session can inspect page controls without
 source code. For a native app, the agent needs app-specific automation or your
 interaction during capture; reshoot does not operate arbitrary desktop controls.
 
+> **A good first demo**
+>
+> - One task with a visible result, such as a saved item appearing in a list.
+> - Two to four steps.
+> - Captions of a few words that say what happened, not what was clicked.
+> - About 10 to 30 seconds long. The Feature highlight recipe aims for 15 seconds.
+> - A preview of a small app takes under a minute to record.
+
 The first run may need permission to install recording tools, a way to start
 the app, or an isolated demo login. Supply those when asked. The agent needs
 access to the guide during setup; if GitHub access is blocked, supply a local
@@ -82,8 +90,8 @@ the [GitHub workflow](ci.md) only runs reshoot.
 
 | You have | Use |
 |---|---|
-| Claude Code | The prompt above. Tried with `claude-opus-5-5`: 2 to 3 minutes and under $2 a demo on small apps |
-| Codex | The prompt above. Tried with codex-cli 0.164.0 and its default model: 5 to 9 minutes a demo |
+| Claude Code | The prompt above. Tried with `claude-opus-5-5`: 2 to 5 minutes and under $2 a demo on small apps |
+| Codex | The prompt above. Tried with codex-cli 0.164.0 and its default model: 4 to 9 minutes a demo |
 | Both | Either; you need only one. The demo files are the same, so another agent can refresh it later |
 | Another coding agent | Untested. It may work if it has everything in the next table; paste the same prompt |
 | No agent | The CLI on its own, below |
@@ -120,10 +128,10 @@ asks for, and the provider's usual terms apply.
 
 ### Without an agent
 
-Run `reshoot create` to try the notes example, or
-`reshoot create URL --directory demo` with your demo server running, and show
-the task yourself. [The tutorial](step-by-step.md) walks through it, and
-[the studio](studio.md) covers shaping and accepting the result.
+Run `reshoot create` to try the notes example; [the tutorial](step-by-step.md)
+walks through it. To record your own app, [show the task yourself](your-app.md#show-the-task)
+with `reshoot create URL --directory demo`. [The studio](studio.md) covers
+shaping and accepting the result.
 
 ## Review what you get
 
@@ -154,17 +162,17 @@ first. Reply in plain words:
 | It kept current | "Set up the GitHub workflow that refreshes the demo when the app changes." |
 
 To make changes yourself by pointing, run `reshoot studio demo`: it shows the
-run beat by beat and saves your edits to the captions, cards, frame and exports
-to the project's files. See [Shape it in the studio](studio.md).
+run step by step and saves your edits to the project's files. See
+[the studio](studio.md).
 
 The agent revises the source and records another run. Saying "accept" lets it
-run `reshoot accept` for you; you can also run the command yourself. The
-[review instructions](step-by-step.md#5-review-and-accept) cover flagged and
-rejected items. Nothing posts automatically.
+run `reshoot accept` for you; you can also accept in the studio's
+[Review this recording](studio.md#review-and-accept). Nothing posts
+automatically.
 
-You can stop here with your first clip. When ready, see [how the videos look](look.md),
-then [change a caption or timing, or grow a fuller demo](customize.md).
-Use [updates and publishing](publish.md) when the recording becomes part of your project.
+You can stop here with your first clip. When ready, see [how the videos look](look.md)
+and [grow a fuller demo](studio.md#grow-it-into-a-fuller-demo). Use
+[Keep a demo current](publish.md) when the recording becomes part of your project.
 
 ## Update the demo when the app changes
 
@@ -174,8 +182,8 @@ and the accepted run. `demo/accepted` names the newest run you accepted, and
 
 ```text
 $reshoot-refresh
-Refresh demo/reshoot.toml against demo/accepted, using its exact run ID.
-Record the current UI performing the same task. Keep the beat IDs and result
+Refresh demo/reshoot.toml against demo/accepted.
+Record the current UI performing the same task. Keep the step IDs and result
 checks, repair changed controls if needed, and retain the previous run.
 Inspect a preview, make a fresh final, and open the comparison for review.
 ```
@@ -189,7 +197,7 @@ For a separate review, compare the newest run with the accepted one:
 ```text
 $reshoot-review
 Review demo/latest against demo/accepted.
-Inspect the actual MP4 and GIF, result checks, scan coverage and beat evidence.
+Inspect the actual MP4 and GIF, result checks, scan coverage and step evidence.
 Report readability or timing problems and any human decisions still pending.
 Preserve the existing recordings and review evidence.
 ```
@@ -198,115 +206,31 @@ In Claude Code, use `/reshoot-review`; with the plugin, use
 `/reshoot:reshoot-review`. Include the task after the skill name so the agent
 knows which recording to inspect.
 
-For a native app, give the skill the saved capture/edit recipe and exact old
-and new MP4/GIF paths instead of run IDs. Request a new one-window take and
+For a native app, give the skill the saved capture and edit recipe and the
+old and new MP4 and GIF paths. Request a new one-window recording and
 manual comparison. See the [native workflow](macos-window.md) for its limits.
 
 ## Install the skills yourself
 
-Skip this section if the agent already handled setup. A skill is a reusable
-set of instructions for the agent. Reshoot's three primary skills cover
-creation, refresh and review; the CLI provides the recording tools.
+Skip this if the agent already set itself up. [Install](install.md#install-the-skills)
+covers the project skills and the Claude Code plugin.
 
-Install the [CLI and platform dependencies](install.md), then run the command
-for your agent from the app repository or demo work folder:
+## For the agent: setup and creation workflow
 
-| Agent | Run in a terminal | Installed location |
-|---|---|---|
-| Codex | `reshoot skills codex --directory .` | `.agents/skills/` |
-| Claude Code | `reshoot skills claude --directory .` | `.claude/skills/` |
+When you receive the prompt above:
 
-Start with `$reshoot-demo` in Codex or `/reshoot-demo` in Claude Code, followed
-by a task. Use the agent's skill selector to confirm that the skill is available.
-If a newly installed skill does not appear, start a new session in the same
-work folder. These locations and invocation conventions follow the
-[official OpenAI documentation](https://developers.openai.com/codex/skills) and
-[Claude Code skill documentation](https://code.claude.com/docs/en/skills).
-
-For the complete Claude Code plugin, run these commands inside Claude Code:
-
-```text
-/plugin marketplace add mumit/reshoot
-/plugin install reshoot@reshoot
-```
-
-Follow the installation and any reload prompts. Invoke
-`/reshoot:reshoot-demo` with the task. This route includes all ten skills;
-the CLI's project installer copies the three primary skills. See
-[Claude's plugin instructions](https://code.claude.com/docs/en/discover-plugins)
-and the [skill catalog](../skills/README.md). Choose one route for the project.
-The plugin still needs the CLI and recording dependencies.
-
-## Try it without an app or an agent
-
-Use the [bundled notes tutorial](step-by-step.md) for a complete CLI example
-with synthetic data. It covers the first recording and an update. For your
-target, use the [source-app walkthrough](your-app.md),
-[running-URL route](your-app.md#with-only-a-url) or [native window route](macos-window.md). [Without an agent](#without-an-agent)
-lists the commands in order.
-
-## Setup and creation workflow for the agent
-
-When receiving the prompt above, follow this workflow:
-
-1. Identify the target: source code, running URL or native macOS window. Read
-   repository instructions when present. Inspect source and fixtures when
-   available, or inspect the running page/window. Choose a small task with an observable result. Propose
-   a reasonable task when the request leaves it open; ask only when a missing
-   decision prevents useful progress.
-2. Read the [installation guide](install.md). Check `reshoot --version`: reuse an
-   existing installation only if it is the latest release on
-   [PyPI](https://pypi.org/project/reshoot/), which `reshoot doctor` also reports.
-   Otherwise install or upgrade it with `uv tool install --upgrade 'reshoot[browser]'`,
-   and install missing platform dependencies, within the owner's authorization. Obtain required installation permissions
-   through the harness. Do not bypass permission failures.
-3. Install the primary skills with `reshoot skills codex --directory .`
-   or `reshoot skills claude --directory .` for the current harness; the CLI copies
-   its own version of them. When the skills are already there, keep them if the
-   CLI was not upgraded. After an upgrade, add `--replace`, first saying which
-   skill folders it replaces; if `git status` shows changes to them, ask the owner
-   before replacing. A plugin installation needs no project copy. Read the installed
-   `reshoot-demo/SKILL.md` and follow it. If skill discovery has not refreshed,
-   read that file directly and continue within the current session.
-4. Choose the appropriate route. For a browser, reuse a project or initialize
-   `demo/` with `reshoot init demo --url APP_URL`. Follow the
-   [own-app guide](your-app.md), replace
-   the placeholder with actual actions and checks, and keep the edit's endpoint
-   valid. For a native app, follow the [window guide](macos-window.md): save
-   capture instructions and an edit, select one window by ID and arrange
-   app-specific automation or manual interaction. Do not force native capture
-   into the versioned browser configuration.
-5. Use isolated synthetic data and document its reset. Keep secrets and real
-   accounts outside the demo. Resolve a fresh-profile login for web apps or a
-   synthetic document for native apps. Ask for missing setup when needed.
-6. For versioned browser projects, run `reshoot doctor --config demo/reshoot.toml --probe`
-   and `reshoot preview demo/reshoot.toml`. For native apps, verify ffmpeg and
-   capture permission, then make a standalone test take. Inspect the result;
-   repair actions without changing the intended task. Retain failed attempts.
-7. Make a fresh final and inspect the actual MP4 and GIF. For versioned runs,
-   read the report and generate the review page. For standalone native takes,
-   generate check sheets and compare media manually. Present exact paths,
-   coverage and unresolved findings. Open the exports when the environment permits.
-8. End with this handoff, in this order:
-   - one sentence on the task and its visible result;
-   - the MP4, the GIF and the review page as paths, opened when the
-     environment permits;
-   - the status line the run printed: result checks, scan items, flagged items;
-   - anything the owner must look at: flagged items, reduced checks, mocked
-     data, shortened waits;
-   - "Reply accept, or ask for changes such as:", with two or three changes
-     that fit this recording, from the table in
-     [Review what you get](#review-what-you-get);
-   - the `reshoot accept RUN` command the run printed, for the owner to run.
-
-   Run `reshoot accept RUN --yes` only when the owner replies accept or
-   otherwise explicitly asks; never on your own judgment. After accepting, offer
-   `reshoot export demo/accepted --directory docs/demo` and the README Markdown
-   it prints. Keep source files available for the next refresh; commit or
-   publish only when authorized. Keep your changes in `demo/` and the skill
-   folder: don't edit the app's README or other files unless the owner asks.
-   `reshoot init` writes `demo/.gitignore`, which keeps recordings out.
-
-The initial target is one readable task and a visible result. Add narration,
-terminal segments, branding or portrait framing after that first recording
-works. Use [Troubleshooting](troubleshooting.md) for setup and review failures.
+1. Read the [installation guide](install.md). Check `reshoot --version`, and
+   reuse an installation only if it is the latest release, which
+   `reshoot doctor` reports. Otherwise run
+   `uv tool install --upgrade 'reshoot[browser]'` and install missing tools,
+   within the owner's authorization and the harness's permissions. Do not
+   bypass permission failures.
+2. Install the primary skills with `reshoot skills codex --directory .` or
+   `reshoot skills claude --directory .`. If they are already there and the CLI
+   was upgraded, add `--replace`, first saying which skill folders it
+   replaces; if `git status` shows changes to them, ask the owner first. A
+   plugin installation needs no project copy.
+3. Read the installed `reshoot-demo/SKILL.md` and follow it, including its
+   handoff. If skill discovery has not refreshed, read that file directly and
+   continue in the current session. Offer two or three changes from
+   [Review what you get](#review-what-you-get) in the handoff.

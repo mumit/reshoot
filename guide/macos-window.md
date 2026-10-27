@@ -79,7 +79,7 @@ The outputs are `takes/native-01/window-final.mp4` and
 fits the GIF into 800 × 450. Use numeric `start` and `end` values in `[[part]]`
 to trim it. Keep the result readable at its exported size. Use
 [Python edit helpers](manual.md#cut) for caption overlays and window
-cards; native captures do not contain browser beat or caption metadata.
+cards; native captures do not contain browser step or caption metadata.
 
 ## Review and keep the recipe
 
@@ -92,7 +92,7 @@ reshoot check takes/native-01/app.mov takes/native-01/window-final.mp4 takes/nat
 
 Exit 1 means supplied items need human review; exit 2 means an error. Inspect
 the sheets and original frames before recording a scan verdict. Follow the
-[review checklist](step-by-step.md#5-review-and-accept), using
+[review checklist](studio.md#review-and-accept), using
 the actual media and standalone check directory. Record the verdict with
 `reshoot check --review takes/native-01/review --fail LABEL` for a failed item,
 then `--ok` once the rest pass. This route does not generate a versioned
@@ -101,9 +101,9 @@ run's `review.html`, and `reshoot accept` needs a versioned run.
 Keep a brief, the edit, reset steps and any automation script in a source folder
 such as `demo/`. Keep generated takes outside version control. Compare old and
 new native recordings manually; versioned `reshoot.toml` projects and automated
-beat comparison support browser and VHS takes, not standalone native capture.
+step comparison support browser and VHS takes, not standalone native capture.
 Do not invent a run manifest for a window recording. Copy only accepted exports
 to a new sharing folder when ready.
 
-Next: [grow a fuller demo](customize.md#grow-it-into-a-fuller-demo). Native capture needs an interactive
+Next: [grow a fuller demo](studio.md#grow-it-into-a-fuller-demo). Native capture needs an interactive
 macOS session; the Ubuntu browser CI template does not automate this route.

@@ -2,7 +2,7 @@
 
 Thanks for helping. The most useful things to send are:
 
-- **a pitfall** you hit, in a line or two: what happened, and what avoids it ([guide/pitfalls.md](guide/pitfalls.md));
+- **a pitfall** you hit, in a line or two: what happened, and what avoids it ([what to watch for](guide/troubleshooting.md#what-to-watch-for));
 - **a fix** in `reshoot` so the pitfall can't happen again;
 - **a skill** for a kind of take that isn't covered yet, such as an iOS simulator, an Electron app or Linux windows;
 - **a report from another project or platform.** Linux and macOS have CI and
@@ -39,6 +39,18 @@ with an explicit backend, install Tesseract and run
 `uv run --extra browser pytest --ocr-backend=tesseract`. A failed Vision integration
 remains an error; selecting Tesseract does not validate face detection.
 
+## Install an unreleased version
+
+To try changes from the default branch without a checkout, install from Git:
+
+```bash
+uv tool install --force 'reshoot[browser] @ git+https://github.com/mumit/reshoot'
+```
+
+Append `@COMMIT_SHA` to the Git URL to reproduce an exact revision, following
+uv's [Git source syntax](https://docs.astral.sh/uv/guides/tools/#requesting-different-sources).
+Run `uv tool install --force 'reshoot[browser]'` to return to the PyPI release.
+
 ## Try a change
 
 Record a new packaged project and inspect the output alongside the test results:
@@ -74,7 +86,7 @@ Keep it aligned with the README's first-demo prompt and the [skill catalog](skil
 The [installation guide](guide/install.md), [CLI tutorial](guide/step-by-step.md)
 and [own-app walkthrough](guide/your-app.md) provide the detailed tool instructions.
 The [manual guide](guide/manual.md) keeps Python and individual-take examples.
-Keep the [five-stage guide](guide/README.md) usable from source code, a running
+Keep the [guide index](guide/README.md) usable from source code, a running
 web URL and a native macOS window. Do not make CLI reference reading or CI setup
 a prerequisite for the first clip. Keep native standalone recipes distinct from
 versioned browser/VHS projects.

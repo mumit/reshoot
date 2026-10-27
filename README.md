@@ -56,9 +56,11 @@ uv tool install 'reshoot[browser]'
 reshoot create        # make the notes demo and open it in the studio
 ```
 
-It makes a made-up notes app and a story for it, records a preview in about
-15 seconds, and opens it in [the studio](guide/studio.md). reshoot runs on
-macOS or Linux; [installation](guide/install.md) covers each.
+It needs [uv](https://docs.astral.sh/uv/), ffmpeg and Chrome or Chromium, and
+runs on macOS or Linux; [installation](guide/install.md) covers each, and
+`reshoot create` says what's missing. It makes a made-up notes app and a story
+for it, records a preview in about 25 seconds, and opens it in
+[the studio](guide/studio.md).
 
 ## Then shape it in the studio
 
@@ -70,18 +72,10 @@ story stop on the step that broke, repair it, and compare.
 
 ## Show the task yourself
 
-For a simple web app, you can record the task by hand instead of asking an
-agent. Start the app on your computer as you do when developing it, such as
-with `npm run dev`, using a demo account and made-up data. Then give reshoot
-the address it prints:
-
-```bash
-reshoot create http://127.0.0.1:3000/ --directory demo
-```
-
-A browser opens there. Show one task, add a caption and check the result with
-its toolbar, and choose **Done**. [Record your own web app](guide/your-app.md)
-has the details.
+For a simple web app, start it with demo data and run
+`reshoot create http://127.0.0.1:3000/ --directory demo` with its address. Show
+one task in the browser that opens, and choose **Done**.
+[Record your own web app](guide/your-app.md#show-the-task) has the details.
 
 ## The story is a file
 
@@ -101,24 +95,26 @@ contains = "Pick up the bikes"
 ```
 
 reshoot types into the real page with a visible cursor, shows the caption, and
-holds on the result. When the app renames `#q`, the run stops on that beat:
+holds on the result. When the app renames `#q`, the run stops on that step:
 `type target {css = '#q'} matched 0 elements`. Fix the target, or pick the new
 one in the studio, and run again.
 
 ## Keep it current
 
 Accept a final once; that writes `demo/accepted/`, a small record to commit.
-After the app changes, record again, compare and accept the update:
+After the app changes, record again, compare, accept the update and copy it
+into your docs:
 
 ```bash
 reshoot run demo/reshoot.toml
 reshoot compare demo/accepted demo/latest --out demo/comparison.json
-reshoot accept demo/latest --export docs/demo
+reshoot accept demo/latest
+reshoot export demo/accepted --directory docs/demo --replace
 ```
 
 Or let CI do it: the [GitHub workflow](guide/ci.md) records the demo when the
 app changes on `main` and opens a pull request with the new video, GIF and a
-beat-by-beat comparison. A broken story fails on its beat and opens nothing.
+step-by-step comparison. A broken story fails on its step and opens nothing.
 
 ## How it differs
 
@@ -136,7 +132,7 @@ beat-by-beat comparison. A broken story fails on its beat and opens nothing.
 | A web app | Headless Chrome: the page only, never your desktop |
 | A CLI or an agent at work | [VHS](https://github.com/charmbracelet/vhs) terminal recordings |
 | A native app on macOS | One window, by its ID |
-| A narrated explanation | Voiceover timed to the beats, music under it, subtitles |
+| A narrated explanation | Voiceover timed to the steps, music under it, subtitles |
 | Other formats | Edits, portrait crops and size limits for each export |
 
 [Platforms](guide/README.md#platforms) lists what runs where.
@@ -150,9 +146,8 @@ beat-by-beat comparison. A broken story fails on its beat and opens nothing.
 | Before sharing | [reshoot-review](skills/reshoot-review/SKILL.md) | "Check the final video and GIF against the accepted run." |
 
 Skills are instructions for a coding agent and its model; the CLI also runs
-without a coding agent. The first-demo prompt installs the skills, and the
-[agent quickstart](guide/agent-quickstart.md#install-the-skills-yourself) shows
-other ways. The [skill catalog](skills/README.md) describes all ten.
+without a coding agent. The first-demo prompt installs the skills, and
+[installation](guide/install.md#install-the-skills) shows other ways. The [skill catalog](skills/README.md) describes all ten.
 
 ## Where next
 
@@ -160,9 +155,9 @@ other ways. The [skill catalog](skills/README.md) describes all ten.
 |---|---|
 | Learn it step by step | [The tutorial](guide/step-by-step.md) |
 | Record your own app | [A web app](guide/your-app.md), or [a macOS window](guide/macos-window.md) |
-| Change a demo | By pointing in [the studio](guide/studio.md), or by its [files](guide/customize.md) |
+| Change a demo | By pointing in [the studio](guide/studio.md), or by its [files](guide/projects.md) |
 | See the cursor, zoom, captions and shapes | [How the videos look](guide/look.md) |
-| Use it on a team | [Ownership, review, alerts and CI cost](guide/team.md) |
+| Use it on a team | [Ownership, review, alerts and CI cost](guide/publish.md#on-a-team) |
 | Keep it current in CI | [GitHub Actions](guide/ci.md) |
 | Look something up | [Project reference](guide/projects.md) · [Commands](guide/commands.md) · [Troubleshooting](guide/troubleshooting.md) |
 | Rebuild the video above | [Before-and-after recipe](examples/promo/README.md) |

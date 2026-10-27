@@ -8,6 +8,15 @@ change project files or commands.
 
 ### Added
 
+- The studio welcomes a first preview: it plays once, says how long it took
+  and which result checks passed, and offers **Download the video**,
+  **Download the GIF** and **Copy readme Markdown**. It opens on a checked step
+  with a caption, and keeps layout controls out of the way until the first
+  edit.
+- In the made-up notes app, **Change the notes app and record again** gives the
+  search box a new id, so you can watch the step stop and repair it. **Put the
+  app and story back** returns both.
+
 - Optional local Kokoro English narration, selectable in Studio or with
   `reshoot audio set --engine 'kokoro --voice af_heart'`. Auditions share the
   recording cache; the workshop recipe uses connected passages and model word
@@ -43,6 +52,11 @@ change project files or commands.
 
 ### Changed
 
+- `reshoot create` prints a few lines: the tools are ready, the preview is
+  recording, and the result. Each stage's output is kept in the run's
+  `output.log`, and a failure names that file. `reshoot --help` groups the
+  commands, starting with `create`, `studio` and `doctor`.
+- The studio header names the project folder instead of `storyboard.toml`.
 - Recorded steps take the control's own words, so a search box with the
   placeholder "Search notes" records as `type-search-notes`, not `type-q`. The
   studio shows step names as words ("Type search notes"), and a missing

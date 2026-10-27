@@ -12,11 +12,11 @@ each command.
 |---|---|
 | `BRIEF.md` | The audience, the task, the visible result, the destination, and how to reset the demo data |
 | `reshoot.toml` | How to start the app, which takes to record, the edit and the scan |
-| `storyboard.toml` | The beats: actions, captions, result checks and holds |
+| `storyboard.toml` | The steps: actions, captions, result checks and holds |
 | `edit.toml` | Which parts of the takes to keep, title cards, music and the exports |
 | `styles.toml` | Saved visual styles, created by the studio or `style save`; optional |
 | `takes/runs/ID/` | One run: its report, recordings, scan sheets and review page. Ignored by git |
-| `accepted/` | The accepted run's report, beat results and evidence frames, without media, and in CI each scan finding's first frame. Commit it |
+| `accepted/` | The [accepted run](publish.md#the-accepted-run)'s record, without media. Commit it |
 
 `reshoot init demo` writes a complete project with a made-up notes app, and
 `reshoot init demo --url URL` a draft for your app. Paths in each file are
@@ -49,7 +49,7 @@ review = "review"
 | Field | Default | What it does |
 |---|---|---|
 | `schema_version` | required | `1`. Without it the file is a legacy shoot, below |
-| `inputs` | none | Demo data files inside the project, such as `["seed.json"]`. The report hashes them, so a comparison shows when they changed. It cannot hash an external database |
+| `inputs` | none | Demo data files inside the project, such as `["seed.json"]`. When one changes, **Update preview** records again and a comparison shows it. An external database isn't covered |
 | `timeout` | `600` | Seconds the app startup, takes and edit may take together |
 | `[app] run` | none | The shell command that starts the app, run in this file's folder. Leave `[app]` out to record a server that is already running |
 | `[app] url` | required with `run` | Recording waits until this answers without an HTTP error. Nothing may answer there before the run starts |
@@ -62,7 +62,7 @@ review = "review"
 | `[edit] file` | none | The `edit.toml`, or `script` for a Python edit |
 | `[edit] args` | `[]` | The takes the edit numbers 0, 1, ... |
 | `[[screenshot]] name` | required | A unique name of 1 to 80 letters, digits, underscores or hyphens; produces `screenshots/NAME.png` inside the run |
-| `[[screenshot]] take`, `beat` | `0`, required | The zero-based take index and beat ID. Requires a complete TOML browser take and passing result checks on that beat |
+| `[[screenshot]] take`, `beat` | `0`, required | The zero-based take index and step ID. Requires a complete TOML browser take and passing result checks on that step |
 | `[[screenshot]] alt` | required | One-line description of the visible result, at most 300 characters; included in direct text scanning and exported Markdown |
 | `[[screenshot]] width` | captured size | Maximum PNG width, 160 to 3840 pixels; never enlarges the source |
 | `[[screenshot]] crop` | whole viewport | `[left, top, width, height]` fractions inside the captured viewport; positive dimensions. Review the crop after layout changes |
@@ -89,21 +89,20 @@ alt = "Search shows the saved bike note"
 width = 960
 ```
 
-The run uses the beat's existing captured result frame, retaining privacy masks
+The run uses the step's existing captured result frame, retaining privacy masks
 and any visible cursor. Video captions, zoom and framing are not added. PNGs are
 automatically appended to the run's check sources when `[check]` is configured;
 alt text is scanned alongside subtitles and narration when scanning is enabled.
-`screenshots.json` binds the PNG, its source frame and take metadata by hash.
-Partial previews produce no documentation screenshots. See
+A preview started with `--from` makes no documentation screenshots. See
 [screenshots](studio.md#make-screenshots-for-docs) for studio,
 crop, refresh and local export steps.
 
 ### Offline tour
 
 One optional `[tour]` in `reshoot.toml` exports `tours/NAME.html`. Each of 1 to
-30 steps names a complete TOML browser take and a beat with passing result
+30 steps names a complete TOML browser take and a step with passing result
 checks. The tour uses their captured result frames independently of the video
-cut. Partial previews produce no tour.
+cut. A preview started with `--from` makes no tour.
 
 ```toml
 [tour]
@@ -135,10 +134,8 @@ and `crop` follow the documentation screenshot rules.
 The HTML embeds images, CSS and navigation, with no external requests. Tour
 titles, explanations and alt text are escaped, not rendered as HTML. Navigation
 uses Next/Back, step numbers, optional markers and arrow/Home/End keys. A
-no-JavaScript view retains all steps. `tours.json` binds the HTML, its images,
-source frames and take metadata by hash. Tour images join configured check
-sources, and enabled detection scans their words directly. The manifest and
-PNG assets remain in the run for review; local export needs only the HTML.
+no-JavaScript view keeps all steps. Tour images and words are scanned with the
+video. Export copies only the HTML, which holds everything.
 
 See [offline tours](studio.md#make-a-clickable-tour) for studio,
 CLI and refresh steps.
@@ -181,27 +178,27 @@ count = 1
 | `blur` | `[]` | Selectors blurred on every page for the whole take, such as `[".avatar"]` |
 | `seed` | `1` | Sets the cursor's path and typing rhythm, so takes match |
 | `timeout` | `600` | Seconds the whole take may take |
-| `voice` | none | A voiceover: `{beat_id = "Words"}`. Each line is spoken before recording, and its beat waits for it |
+| `voice` | none | A voiceover: `{beat_id = "Words"}`. Each line is spoken before recording, and its step waits for it |
 | `voice_engine` | `say` or `espeak-ng` | `"kokoro --voice af_heart --speed 1"` uses optional [local neural narration](install.md#local-neural-narration). Other text-to-speech commands need `{out}` for the sound file and read text on stdin. Lines are cached by their words and engine in `takes/voice-cache`; changing the voice or speed makes a new line |
 | `[[setup]]` | none | Actions run before recording, such as a demo login. Same fields as `[[beat.action]]` |
 | `[caption]` | | How captions look, below |
 | `[cursor]` | | How the cursor looks, below |
 
-### Beats
+### Steps: `[[beat]]`
 
 Each `[[beat]]` is one step. Its ID stays the same across releases, so runs can
-be compared beat by beat.
+be compared step by step.
 
 | Field | Default | What it does |
 |---|---|---|
-| `id` | required | Letters, digits, `_` and `-`, unique in the story. Edits cut at beat IDs |
-| `purpose` | | What the beat proves, for reviewers |
-| `caption` | none | The caption shown from this beat on |
+| `id` | required | Letters, digits, `_` and `-`, unique in the story. Edits cut at step IDs |
+| `purpose` | | What the step proves, for reviewers |
+| `caption` | none | The caption shown from this step on |
 | `sub` | none | A smaller second line under the caption |
 | `hold` | `1` | Seconds to stay on the result after the actions and result checks |
 | `recording_issue` | none | An unresolved recorded interaction. Recording stops here until the actions are repaired and this field is removed |
-| `min_reading` | `0` | Seconds the beat must stay on screen, even when its wait is shortened |
-| `trim_wait` | `false` | Lets the edit shorten this beat's wait, once its result check passed. Needs `trim_waits = true` in the edit |
+| `min_reading` | `0` | Seconds the step must stay on screen, even when its wait is shortened |
+| `trim_wait` | `false` | Lets the edit shorten this step's wait, once its result check passed. Needs `trim_waits = true` in the edit |
 | `[[beat.action]]` | none | Actions, in order |
 | `[[beat.expect]]` | none | Result checks, after the actions |
 
@@ -259,8 +256,8 @@ explicitly changes the locator after rechecking the current app. Wrong result
 values and count mismatches do not get locator repairs.
 
 Actions use real input. A target that is missing, hidden, disabled, covered or
-matches more than one element fails the beat, and the run saves a failure
-image, rather than forcing the click. Beats without result checks are labeled
+matches more than one element fails the step, and the run saves a failure
+image, rather than forcing the click. Steps without result checks are labeled
 `unverified` on the review page.
 
 ### Captions and cursor
@@ -306,10 +303,10 @@ preset = "readme"
 | `schema_version` | required | `1` |
 | `output` | `"demo-final.mp4"` | The final video, beside the first take |
 | `music` | none | A music file, relative to this file. It ducks under the voiceover and fades out. Use music you may share |
-| `[audio] voice_volume` | `1` | Linear narration gain, 0 to 2. A gain of 0 mutes the voice but keeps its beat timing and subtitles |
+| `[audio] voice_volume` | `1` | Linear narration gain, 0 to 2. A gain of 0 mutes the voice but keeps its step timing and subtitles |
 | `[audio] music_volume` | `0.25` | Linear music gain, 0 to 1, before ducking and the ending fade |
 | `[audio] duck` | `true` | Lower music while the voice speaks. Turn off to retain only the chosen gain and ending fade. The final mix limits peaks before encoding; this is not loudness normalization |
-| `trim_waits` | `false` | Shorten the waits of beats marked `trim_wait`, keeping at least 0.8 s or their `min_reading`, and label them "Wait shortened" |
+| `trim_waits` | `false` | Shorten the waits of steps marked `trim_wait`, keeping at least 0.8 s or their `min_reading`, and label them "Wait shortened" |
 | `[style] background`, `foreground` | dark, white | Title card colors. `background` can be `[top, bottom]` for a frame's gradient; cards use the top one |
 | `[style] font`, `logo` | none | Files for title cards, relative to this file |
 | `[frame]` | none | Puts each take in a browser-like window on the `[style]` background, at the same size; the page shrinks to fit. Title cards stay full size |
@@ -318,8 +315,8 @@ preset = "readme"
 | `[frame] shadow`, `bar` | `true`, `true` | A soft shadow, and a title bar with three dots |
 | `[frame] background`, `bar_color` | `[style] background`, `"#2b2f36"` | Colors for this frame only |
 | `[[part]] take` | `0` | Which take in `[edit] args` |
-| `[[part]] start`, `end` | the whole take | Seconds or beat IDs; `end` stops at that beat's start |
-| `[[part]] through` | none | Include this recorded beat through its end and result hold. Use a beat name, without `end` in the same part |
+| `[[part]] start`, `end` | the whole take | Seconds or step IDs; `end` stops at that step's start |
+| `[[part]] through` | none | Include this recorded step through its end and result hold. Use a step name, without `end` in the same part |
 | `[[part]] speed` | `1` | Any other speed needs a `label` shown on screen, and cannot shorten a voiceover line |
 | `[[part]] label` | none | Words burned into the part, such as "Sped up 2x" |
 | `[[part]] card` | | A title card's words, instead of `take` |
@@ -339,23 +336,15 @@ preset = "readme"
 Each export also gets subtitles and a poster image. A portrait export of a wide
 page shrinks its text: crop on purpose, or record a narrower take. Every cut
 writes a `.timeline.json`, which keeps the review page's links from the final
-video back to the source beats. `reshoot edit edit.py TAKE...` runs a Python
+video back to the source steps. `reshoot edit edit.py TAKE...` runs a Python
 edit instead; see the [manual workflow](manual.md#cut).
 
-MP4 and GIF use the same even-pixel framing geometry and crop positions.
-Each finished edit and export also writes `.readability.json`, containing its
-viewing width, sampled text-size estimates, clipping hints, reading rate and
-coverage notes. App font samples use the 10th percentile of visible included
-samples; captions include their smaller second lines. The current hint
-thresholds are 12 px for app samples, 14 px for captions/cards and 18 subtitle
-characters per second. They do not change run success or acceptance.
-
-The `.take.json` captures bounded main-page font-size and rectangle samples
-at result holds, plus checked-result rectangles, without storing sampled page
-text or field values. The `.captions.json` retains caption boxes and font sizes.
-Spatial mappings in `.timeline.json` account for browser framing, cuts and
-export transforms. Missing or unsupported measurements are stated explicitly;
-they never imply a readability pass. See [destination framing](studio.md#fit-an-export-to-where-its-shown).
+MP4 and GIF use the same framing and crop positions. Each finished edit and
+export also writes `.readability.json`, with hints about text that may be too
+small or clipped at its viewing width: under 12 px for app text, under 14 px
+for captions and cards, or subtitles faster than 18 characters a second. The
+hints don't change whether a run passes or can be accepted, and a missing
+measurement is never a pass. See [destination framing](studio.md#fit-an-export-to-where-its-shown).
 
 ### Export presets
 
@@ -438,26 +427,23 @@ smaller size with faster encoding and a sampled scan, and `accept` refuses it.
 | File | What it is |
 |---|---|
 | `run.json` | What ran, how long each step took, the result checks, the scan and the review status |
-| `review.html` | The exports, findings, scan sheets and each beat's result, for looking at |
+| `review.html` | The exports, findings, scan sheets and each step's result, for looking at |
 | `app.log` | The app's own output |
 | `takes/NAME.clean.mp4` | The take without captions, which captions are drawn on |
-| `takes/NAME.captions.json` | When each beat's caption showed, and the words drawn |
+| `takes/NAME.captions.json` | When each step's caption showed, and the words drawn |
 | `takes/NAME.timeline.json` | Source intervals mapped to output time; finished edits also retain ordered part intervals, including cards, for cut-part playback |
-| `takes/NAME.readability.json` | Measured viewing size, text and clipping hints, and their limits, hashed alongside the media |
-| `takes/NAME.take.json` | Each beat's actions, result checks, timings and evidence frames, and the browser used |
-| `takes/NAME.failure.png` | The page when a beat failed |
+| `takes/NAME.readability.json` | Measured viewing size, and text and clipping hints |
+| `takes/NAME.take.json` | Each step's actions, result checks, timings and evidence frames, and the browser used |
+| `takes/NAME.failure.png` | The page when a step failed |
 | `takes/demo-final*.mp4`, `.gif`, `.srt` | The exports |
 | `review/` | The scan: numbered sheets, original frames, `flags.json` and `report.json` |
 
 `reshoot recut RUN` makes a new run from that run's takes, editing and scanning
 them again with the current `edit.toml` and `[check]`, and drawing the
-captions again from the current storyboard. Its report has
-`recut_from`, the earlier run's ID, and keeps that run's result checks, story
-hashes and demo data, since the recording is the same.
-
-The report hashes the story, the edit, `reshoot.toml`, the declared inputs and
-uncommitted git changes. Services the app calls and untracked files are not
-covered.
+captions again from the current storyboard. It keeps that run's result
+checks, since the recording is the same; its report's `recut_from` names the
+run it came from. [The studio](studio.md#update-the-preview-then-make-the-final)
+says when a re-cut is enough and when to record again.
 
 ## Scan, compare and accept
 
@@ -476,22 +462,21 @@ reshoot review demo/latest --previous demo/accepted
 reshoot accept demo/latest --flagged F1
 ```
 
-`compare` matches beats by ID and reports whether each one's definition,
+`compare` matches steps by ID and reports whether each one's definition,
 duration, evidence frame and result checks changed; `--markdown FILE` adds a
-summary for a pull request. A matched beat does not mean equal pixels.
+summary for a pull request. A matched step does not mean equal pixels.
 `review --previous` writes the review page with both runs side by side.
 
-`accept` covers the exports, every beat and every scan item at once, binds the
-decision to the run's exact files and scan settings, and writes `accepted/`.
+`accept` covers the exports, every step and every scan item at once, and
+writes `accepted/`.
 Each finding must be named with `--flagged` or `--reject`; it stops and lists
 them otherwise. It asks for confirmation, and without a terminal needs `--yes`.
 `reshoot review RUN --serve` offers the same decision on the review page, from
-a server on `127.0.0.1` that takes it only from its own page. `reshoot studio`
-offers it too, beside the beats.
-A changed file or a new scan undoes the decision. The
-[tutorial](step-by-step.md#5-review-and-accept) walks through it.
+a page on your computer. `reshoot studio` offers it too, under
+[Review this recording](studio.md#review-and-accept). If a file changes after
+you accept, or the scan runs again, accept again.
 
-For a decision per beat, the review page's **Your decisions** controls download
+For a decision per step, the review page's **Your decisions** controls download
 a file for `reshoot review RUN --import-decisions FILE`; that covers the
 recording only, and `reshoot check --review RUN/review --ok` the scan only.
 `reshoot check` on its own exits 0 when every item is accepted, 1 when some

@@ -70,7 +70,7 @@ thing once, where it belongs, and link to it from elsewhere:
 | A file field | [guide/projects.md](guide/projects.md), under its file |
 | A command | [guide/commands.md](guide/commands.md), under its job, and `--help` |
 | A picture of a setting | [guide/look.md](guide/look.md), by editing `examples/look/build.py` |
-| A fixed problem | [CHANGELOG.md](CHANGELOG.md). Keep it in [guide/pitfalls.md](guide/pitfalls.md) only if people still need to do something |
+| A fixed problem | [CHANGELOG.md](CHANGELOG.md). Keep it under "What to watch for" in [guide/troubleshooting.md](guide/troubleshooting.md#what-to-watch-for) only if people still need to do something |
 
 Write for the person using reshoot: what to do, in the studio's own words, then why. Leave out how the code keeps
 things safe unless the reader has to act on it.

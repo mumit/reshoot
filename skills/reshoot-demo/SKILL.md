@@ -61,7 +61,7 @@ Save a brief, a capture recipe and an edit script in a demo folder. `reshoot win
 
 For browser and VHS projects, run `reshoot preview CONFIG`, inspect its frames and result checks, then record the final with `reshoot run CONFIG`. Read `run.json` for detail. For a native app, inspect a test take, then capture and edit a fresh final in a new folder, and make check sheets with `reshoot check SOURCES --full --review NEW_REVIEW_DIR`.
 
-Inspect the actual outputs. A run that completes has not passed its scan or been reviewed. Fix failing inputs and actions rather than weakening a check. If the owner wants a quicker refresh, follow the guide's `speed.md` and say which checks you reduced. Always read agent-written terminal text.
+Inspect the actual outputs. A run that completes has not passed its scan or been reviewed. Fix failing inputs and actions rather than weakening a check. If the owner wants a quicker refresh, follow the guide's `troubleshooting.md` and say which checks you reduced. Always read agent-written terminal text.
 
 ## Hand off
 

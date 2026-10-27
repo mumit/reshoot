@@ -51,7 +51,7 @@ one route:
 
 Follow Claude Code's installation and reload prompts. The plugin uses namespaced
 invocations such as `/reshoot:reshoot-demo`. The skills need the CLI and recording
-tools for every route. See [setup and discovery](../guide/agent-quickstart.md#install-the-skills-yourself).
+tools for every route. See [setup and discovery](../guide/install.md#install-the-skills).
 
 The CLI bundles the same primary skill source used by the plugin. It refuses
 to overwrite existing project skills. Upgrading the CLI does not update those
@@ -81,7 +81,7 @@ Native takes require app-specific automation or manual interaction, standalone
 editing and manual comparison; browser overlays and result checks do not apply.
 
 After the first clip, see [how the videos look](../guide/look.md),
-[change and grow the demo](../guide/customize.md) or
+[change and grow the demo](../guide/studio.md) or
 [keep it current and share it](../guide/publish.md).
 
 ## Keep the review with the recording

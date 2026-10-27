@@ -17,6 +17,8 @@ change project files or commands.
   The recipe preserves original page footage and leaves owner review pending.
   Its `renarrate` operation makes a separate narration edition from existing
   footage; the workshop uses Kokoro Heart with consistent playback loudness.
+  A packaging recipe prepares a portable video/caption/transcript ZIP and
+  draft upload descriptions without publishing anything.
 - Demonstrate replacement actions or an added step from the studio or
   `reshoot step record`. Earlier actions replay first; Done saves a separate
   draft for review. Applying retains existing result checks, supports studio

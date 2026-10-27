@@ -29,7 +29,7 @@ jobs:
       # - run: npm ci
 
       - id: shoot
-        uses: mumit/reshoot@305f5ebd94636edb118635b07509e8177cf4dab9 # v0.3.11; update deliberately
+        uses: mumit/reshoot@3c143f670e82b305d2b7a4a8cbd279c2c8bc5643 # v0.3.12; update deliberately
         with:
           config: reshoot.toml   # change: where your shoot is
 

@@ -19,7 +19,7 @@ def attempt(root):
         (exports/(name+'.srt')).write_text('1\n00:00:00,000 --> 00:00:02,000\nA synthetic lesson.\n')
         (exports/(name+'.vtt')).write_text('WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nA synthetic lesson.\n')
         (exports/(name+'-chapters.json')).write_text(json.dumps([{'start':0,'end':2,'title':'A synthetic lesson'}]))
-        audit['exports'][name]={'sha256':package.sha(exports/(name+'.mp4'))}
+        audit['exports'][name]={'sha256':package.sha(exports/(name+'.mp4')),'seconds':420 if name=='tutorial' else 150}
     (exports/'transcript.md').write_text('# Synthetic workshop\n\nA synthetic lesson.\n')
     (root/'audit.json').write_text(json.dumps(audit))
     return root
@@ -44,7 +44,8 @@ def test_bundle_preserves_audited_files_and_has_only_portable_paths(tmp_path):
         assert 'data-seek="0.000"' in player and 'transcript.md' in player
     assert (destination/'SHA256SUMS').read_text().startswith(package.sha(archive))
     assert '00:00 A synthetic lesson' in (destination/'tutorial-upload.txt').read_text()
-    assert 'workshop-*' in (destination/'release-notes.md').read_text()
+    notes=(destination/'release-notes.md').read_text()
+    assert 'workshop-*' in notes and 'about 7 minutes' in notes and 'about 2.5 minutes' in notes
 
 
 @pytest.mark.parametrize('change',['video','transcript'])

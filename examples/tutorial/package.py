@@ -21,6 +21,11 @@ def timestamp(seconds):
     return f'{minutes:02}:{seconds:02}'
 
 
+def minutes(audit, name):
+    value = round(audit['exports'][name]['seconds'] / 30) / 2  # to the nearest half minute
+    return f'{value:g} minute' + ('' if value == 1 else 's')
+
+
 def package(attempt, destination, commit):
     exports = attempt/'exports'
     audit = json.loads((attempt/'audit.json').read_text())
@@ -90,7 +95,8 @@ def package(attempt, destination, commit):
         'Rebuild instructions: '+source+'/examples/tutorial/README.md\n')
     (destination/'release-notes.md').write_text('# Draft: Reshoot web app workshop\n\n'
         'Learn to record a useful task, shape its story, repair it after a UI change and export a current demo.\n\n'
-        '- Full chaptered workshop, about 15 minutes.\n- First-demo introduction, about 2½ minutes.\n'
+        f'- Full chaptered workshop, about {minutes(audit, "tutorial")}.\n'
+        f'- First-demo introduction, about {minutes(audit, "first-demo")}.\n'
         '- English captions, timestamped transcript and a portable chapter player.\n'
         '- Synthetic notes data and local Kokoro Heart narration.\n\n'
         'Download and extract `reshoot-workshop-heart.zip`. Start with `README.md` or open either MP4 directly.\n\n'

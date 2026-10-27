@@ -1,135 +1,119 @@
 # Make a web app demo, then keep it current
 
 Follow one useful task from demonstration to refreshed exports. The workshop
-uses the made-up notes app: save “Pick up the bikes,” then find it by “bike.”
-All data is synthetic. The same URL-based workflow works with a simple web app
-running on your computer.
+uses the made-up notes app: save "Pick up the bikes," then find it by "bike."
+All data is synthetic. The same steps work with a simple web app running on
+your computer.
 
-The [video recipe](../examples/tutorial/README.md) builds the narrated workshop,
-short first-demo excerpt, subtitles, transcript and chapter player locally.
-The lesson leaves every recording pending owner review.
+The [video recipe](../examples/tutorial/README.md) builds the narrated
+workshop, a short first-demo excerpt, subtitles, a transcript and a chapter
+player on your computer. It leaves every recording pending your review.
 
 ## Before starting
 
 [Install reshoot](install.md), including its browser and video tools. Start
-your app with its normal development command and a separate demo environment.
-Use the address that app prints. The notes app needs no account and resets
-on reload. A fresh browser profile does not reset your app's database; document
-its demo data and reset routine before promising repeatable results.
+your app with its normal development command and demo data, and use the
+address it prints. The notes app needs no account and resets on reload. A
+fresh browser profile doesn't reset your app's database, so write down how to
+reset its demo data before you count on repeatable recordings.
 
-To try the bundled notes project without starting a server yourself:
+To try the notes app without starting a server:
 
 ```bash
 reshoot create --recipe feature --directory notes-demo
 ```
 
-That starts with a prepared story. To follow the video's URL-based recording
-on the notes app, make a separate fixture and start its server:
+That starts with a prepared story. To follow the video, serve the notes app
+yourself. `reshoot init notes-app` makes a folder holding the app's page;
+serve that folder:
 
 ```bash
 reshoot init notes-app
 python3 -m http.server 8765 --bind 127.0.0.1 --directory notes-app
 ```
 
-Leave that server running. In another terminal, demonstrate the task:
+Leave that server running. In another terminal, show the task:
 
 ```bash
 reshoot create http://127.0.0.1:8765/ --directory demo
 ```
 
-For your own app, replace the address with its development URL. If port 8765
-is busy, choose another server port and use it in the recording command too.
-Use a new directory for a new project. Reshoot checks
-the tools and opens a fresh browser profile. [Recording tools](studio.md#open-it)
-helps you continue if setup needs attention.
+For your own app, use its development address instead. If port 8765 is busy,
+pick another and use it in both commands. Use a new directory for each
+project. reshoot checks its tools and opens a fresh browser.
+[Recording tools](studio.md#open-it) helps if setup needs attention.
 
 ## Record one task
 
-In the recorder's browser, add the synthetic note and press Enter. Choose
-**Check result**, then select the saved note. Search for “bike,” add “Find the
-matching note” with **Caption here**, and check the matching result.
+In the recorder's browser, add the note and press Enter. Choose **Check
+result**, then click the saved note. Search for "bike," add "Find the
+matching note" with **Caption here**, and check the matching note.
 
-Choose **Done**. Reshoot saves the story and records its preview. Toolbar
-controls stay out of the generated demo. Inspect any suggested result checks
-that need attention; keep the ones that prove your task's result.
+Choose **Done**. reshoot saves the story and records its preview. The toolbar
+stays out of the video. If it suggests result checks, keep the ones that prove
+your task worked.
 
 ## Read and shape the preview
 
-Watch the video in Studio. Passing checks confirm the expectations you named;
-you still judge whether the story and visual result make sense.
+Watch the video in the studio. Passing checks prove the results you named;
+you still judge whether the video explains them well.
 
-Choose the search step in the filmstrip. Change its caption to “A note found
-in a moment” and leave the field. The layout still helps you judge the words
-and placement. Increase **Hold result** to 3 seconds, try **Undo**, then
-**Redo**. Choose **Update preview** and **Play selected step** to judge the
-timing in the actual video.
+Choose **Type search notes** in the filmstrip. Change its caption to "A note
+found in a moment" and leave the field; the layout still shows the new words.
+Set **Hold result** to 3 seconds, then try **Undo** and **Redo**. Choose
+**Update preview** and **Play selected step** to judge the pause in the video.
+[The studio guide](studio.md#change-the-story) explains layout stills and
+selection.
 
-Under **Style and exports**, inspect framing and viewing width. Check the
-result at the size your audience will see. [The Studio guide](studio.md#change-the-story)
-explains layout stills and selection; [framing](studio.md#fit-an-export-to-where-its-shown)
-covers Fit, Crop and text measurements.
-
-## Demonstrate a replacement
+## Change a step by showing it
 
 In the search step, open **Change actions by showing them**, then choose
-**Replace this step’s actions**. Earlier actions replay in a fresh browser.
-Type “bikes” and choose **Done**.
+**Replace this step's actions**. The earlier steps replay in a fresh browser.
+Type "bikes" and choose **Done**.
 
-Review **Current actions** and **Proposed actions**. Choose **Use these
-actions** when the change is right, or **Discard draft**. The original words,
-timing and result checks stay. Update the preview to verify the complete task.
-**Undo** restores an applied change. The same panel can add a step; see
-[step demonstrations](studio.md#show-a-changed-step) for their current limits.
+Compare **Current actions** and **Proposed actions**. Choose **Use these
+actions** when the change is right, or **Discard draft**. The caption, hold
+and result checks stay. Update the preview to check the whole task, and use
+**Undo** if you change your mind. The same panel can add a step; see
+[step demonstrations](studio.md#show-a-changed-step) for their limits.
 
-## Add useful polish
+## Add polish
 
-Choose **Midnight** under **Look**. In the selected step's **Narration**, write
-“Find the note you saved by typing one of its words,” save it and audition it.
-Add an opening card saying “Find a note in seconds.” Update and watch the
-rendered result. Use speech and cards where they help explain the task.
+Choose **Midnight** under **Look**. In the step's **Narration**, write "Find
+the note you saved by typing one of its words" and save it. Add an opening
+card saying "Find a note in seconds." Update the preview and watch it.
 
-The tutorial uses a disclosed local synthetic voice. The demonstration's
-own spoken line is included in its exported MP4; the workshop narration
-continues over the interface footage so the voices do not compete.
+The workshop's own narration is a local synthetic voice. Your demo keeps its
+spoken line in its exported MP4; the workshop talks over the studio footage
+instead, so the two voices don't overlap.
 
 ## Refresh after an app change
 
-The workshop changes only its copy of the notes app: the search control's ID
-changes from `q` to `note-search`, its script uses that new ID, and the heading
-becomes “Notes, refreshed.”
+The workshop changes its copy of the notes app: the search box's id goes from
+`q` to `note-search`, and the heading becomes "Notes, refreshed."
 
-For a project pointing at a running URL, choose **More → Record a preview**
-after changing the external app. Studio cannot automatically detect every
-remote or external file change. The new recording stops at the old search
-target while keeping the previous good video available.
+The studio can't see changes to a running app, so choose **Record app
+again**. The new recording stops at the search step, and the previous good
+video stays available.
 
-Inspect the suggested **Search notes** control and use it if it is right.
-**Choose replacement in app** lets you select another. Keep the useful result
-checks, then update the preview. See [repair](studio.md#repair-a-step-that-broke).
+Look at the suggested **Search notes** control and use it if it's right.
+**Choose replacement in app** lets you pick another. Then update the preview.
+See [repair](studio.md#repair-a-step-that-broke).
 
-Open **More tools → Compare** and choose the earlier polished recording.
-Compare corresponding steps, their results and their appearance. Each side
-keeps its own recording and timing. The workshop compares pending recordings;
-it does not accept either one.
+Open **More tools → Compare** and choose the polished recording. Play both, or
+pick a step to jump both to it. Comparing doesn't accept either recording.
 
 ## Finish and keep the source
 
-Before the final, inspect the small export. The workshop's wide view makes
-its app text too small. Choose **Compact view: 640 x 480** under **Recording
-view** and save it. Set the export to **Fit** with a viewing width of 640,
-update the preview and inspect it again. A narrower app view gives the
-important words more room in the finished image.
-
 Choose **Make final**. Watch the final MP4 and each export, open the scan
-sheets, inspect findings and read the coverage. A sampled scan can miss frames;
-automatic checks do not approve your media. Make your own acceptance decision
-after reviewing this exact recording.
+sheets, and read what the scan covered. A scan samples frames and can miss
+things; you decide whether to accept the recording.
 
-**Download all exports** gives you the displayed run's files. Downloading
-does not accept or publish them. Keep the project source beside your app and
-retain its accepted record when you choose to accept a final.
+**Download all exports** gives you the files from the recording on screen.
+Downloading doesn't accept or publish them. Keep the project beside your app,
+so the next recording starts from your choices.
 
-For an app with login, database setup or complex interactions, follow
-[your own web app](your-app.md) or use the [agent quickstart](agent-quickstart.md).
-The [command reference](commands.md) and [Studio guide](studio.md) support
-individual tasks without replaying the whole workshop.
+For an app with a login, database setup or complex interactions, follow
+[your own web app](your-app.md) or the [agent quickstart](agent-quickstart.md).
+The [command reference](commands.md) and [studio guide](studio.md) cover each
+task on its own.

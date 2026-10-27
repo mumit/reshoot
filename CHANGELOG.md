@@ -57,6 +57,12 @@ change project files or commands.
   asks for one short confirmation.
 - `create` ends with one next step, and the setup check leaves out its
   disclaimer. A preview's "record final" command uses a short path.
+- The workshop is shorter, about half its length, with one point per scene.
+  It records at `create`'s default size so the app's text is readable from the
+  start, shows the studio at 125%, and clicks **Use these actions** after the
+  narration describes the draft. Subtitles avoid one-word lines, the app
+  opening matches the dark recordings, and the closing card names the
+  repository.
 - Choosing a step in the filmstrip brings its inspector into view beside
   the preview. The preview stays in place on windows 640 px tall or more,
   down from 700.

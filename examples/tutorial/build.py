@@ -21,6 +21,8 @@ from reshoot import create, demonstrate, rec, review, story, studio, web
 from media import CURSOR, Shoot, compose, renarrate, save, speech
 
 BASE = Path(__file__).resolve().parent
+# Studio text is shown 25% larger, so it can be read in a 1080p workshop frame.
+ZOOM = "addEventListener('DOMContentLoaded',()=>{document.body.style.zoom='1.25'})"
 ROOT = BASE.parents[1]
 
 
@@ -126,7 +128,7 @@ async def prelude(folder, lesson, shoot, app_url):
     async with async_playwright() as pw:
         chrome=await pw.chromium.launch(executable_path=web.find_chrome(),headless=True,args=web.chrome_flags())
         try:
-            context=await chrome.new_context(viewport={'width':1440,'height':810},locale='en-US',timezone_id='UTC')
+            context=await chrome.new_context(viewport={'width':1440,'height':810},locale='en-US',timezone_id='UTC',color_scheme='dark')
             await context.add_init_script(CURSOR)
             page=await context.new_page(); await page.goto(app_url)
             await shoot.run('app',page)
@@ -182,36 +184,24 @@ class Workshop:
         row=f'.beat[data-beat="{self.search}"]'
         async def preview(p):await self.play(p)
         await self.shoot.run('first-preview',page,preview)
-        await self.select(page)
-        await self.shoot.run('proof',page)
+        await self.jump(page,'story-panel')
+        async def proof(p):
+            await asyncio.sleep(1.5); await self.select(p)
+        await self.shoot.run('proof',page,proof)
         await self.shoot.run('story-files')
-        async def selection(p):
-            await self.jump(p,'story-panel'); await p.locator('#step-strip').scroll_into_view_if_needed()
-            await click(p,'#step-choice-0'); await asyncio.sleep(2)
-            await self.select(p)
-        await self.shoot.run('selection',page,selection)
         await self.select(page)
         async def caption(p):
-            await asyncio.sleep(2); await field(p,row+' [name=caption]','A note found in a moment')
+            await asyncio.sleep(1.5); await field(p,row+' [name=caption]','A note found in a moment')
         await self.shoot.run('caption',page,caption)
         async def hold(p):
-            await asyncio.sleep(2); await field(p,row+' [name=hold]','3')
-        await self.shoot.run('hold',page,hold)
-        async def undo(p):
-            await nav_click(p,'[data-history=undo]');await asyncio.sleep(2)
+            await asyncio.sleep(1.5); await field(p,row+' [name=hold]','3')
+            await self.shoot.until(.6)
+            await nav_click(p,'[data-history=undo]');await asyncio.sleep(1)
             await nav_click(p,'[data-history=redo]');await self.select(p)
-        await self.shoot.run('undo',page,undo)
-        await self.shoot.run('update',page,lambda p:self.job(p,'[data-job=update]'))
-        await self.shoot.run('play-step',page,lambda p:self.play(p,True))
-        async def shape(p):
-            await self.jump(p,'look-panel')
-            form=p.locator('.export-framing').first
-            await form.scroll_into_view_if_needed();await asyncio.sleep(2)
-            await form.locator('[name=fit]').select_option('crop')
-            await form.locator('[name=display_width]').fill('390')
-            await click(p,'.export-framing button[type=submit]');await asyncio.sleep(1)
-            await self.jump(p,'preview-panel')
-        await self.shoot.run('shape',page,shape)
+        await self.shoot.run('hold',page,hold)
+        async def update(p):
+            await self.job(p,'[data-job=update]');await self.play(p,True)
+        await self.shoot.run('update',page,update)
         await self.select(page)
         async def replace(p):
             if not await p.locator(row+' .demonstrate-controls').evaluate('el=>el.open'):
@@ -234,7 +224,8 @@ class Workshop:
             await page.wait_for_selector('#demonstration-panel',timeout=45000)
             await page.locator('#demonstration-panel').scroll_into_view_if_needed()
         async def use(p):
-            await asyncio.sleep(5); await nav_click(p,'[data-demonstration=apply]')
+            # Apply after the narration has walked through both lists.
+            await self.shoot.until(.8); await nav_click(p,'[data-demonstration=apply]')
         await self.shoot.run('replace-review',page,use)
         await self.shoot.run('replace-verify',page,lambda p:self.job(p,'[data-job=update]'))
         async def style(p):
@@ -251,11 +242,6 @@ class Workshop:
             await click(p,row+' .narration-form button[type=submit]')
             await p.wait_for_function('!document.querySelector("[data-unsaved]")')
         await self.shoot.run('voice',page,narration)
-        async def audition(p):
-            await self.job(p,f'[data-audition="{self.search}"]',audition=True)
-            await p.locator('#audition-player').evaluate('el=>{el.muted=true;el.pause()}')
-            await p.locator('#audition-player').scroll_into_view_if_needed()
-        await self.shoot.run('audition',page,audition)
         async def card(p):
             await self.jump(p,'look-panel')
             await nav_click(p,'[data-add-card=start]')
@@ -269,7 +255,6 @@ class Workshop:
         await self.shoot.run('polished',page,polished)
         if 'polished_run' not in self.state:
             self.state['polished_run']=review.read(self.folder/'demo/latest')[1]['id']
-        await self.shoot.run('data')
         await self.shoot.run('change')
         app=self.folder/'app/index.html'
         if 'id="q"' in app.read_text():
@@ -279,7 +264,6 @@ class Workshop:
                 shutil.copy2(self.folder/'demo'/name,snapshot/name)
             app.write_text(app.read_text().replace('id="q"','id="note-search"').replace('querySelector("#q")','querySelector("#note-search")').replace('<h1>Notes ','<h1>Notes, refreshed '))
         async def refresh(p):
-            await click(p,'details.advanced > summary')
             await self.job(p,'[data-job=preview]',expected=None)
         await self.shoot.run('refresh',page,refresh)
         if not self.shoot.complete('failure'):
@@ -298,23 +282,9 @@ class Workshop:
             await click(p,'.compare-playback button:has-text("Play both")')
             await p.locator('.compare-pair').first.scroll_into_view_if_needed()
         await self.shoot.run('compare',page,compare)
-        async def readable(p):
-            await self.jump(p,'look-panel')
-            await p.locator('.recording-view').scroll_into_view_if_needed()
-            await asyncio.sleep(2)
-            await p.locator('.recording-view [name=size]').select_option('640x480@2')
-            await click(p,'.recording-view button[type=submit]')
-            await p.wait_for_function('!document.querySelector("[data-unsaved]")')
-            form=p.locator('.export-framing').first
-            await form.scroll_into_view_if_needed()
-            await form.locator('[name=fit]').select_option('contain')
-            await form.locator('[name=display_width]').fill('640')
-            await click(p,'.export-framing button[type=submit]')
-            await asyncio.sleep(1)
-            await self.job(p,'[data-job=update]')
-            await self.play(p)
-        await self.shoot.run('readable-final',page,readable)
-        await self.shoot.run('final',page,lambda p:self.job(p,'[data-job=run]'))
+        async def final(p):
+            await self.job(p,'[data-job=run]');await self.play(p)
+        await self.shoot.run('final',page,final)
         await self.jump(page,'review-panel')
         await self.shoot.run('review',page)
         async def sheets(p):
@@ -361,7 +331,7 @@ def record(folder, lesson, rehearse=False):
                 return await original(url,w,h,calls,headless=True,toolbar=True,drive=lambda page:recorder_tour(page,shoot))
             rec.session=driven
             try:
-                code=create.main(SimpleNamespace(url=app_url,directory=str(folder/'demo'),size='1440x810@1',
+                code=create.main(SimpleNamespace(url=app_url,directory=str(folder/'demo'),size=None,
                                                  no_studio=True,no_open=True,recipe=None,title=None))
                 if code:raise RuntimeError('URL-based creation failed. Inspect the retained logs and draft.')
             finally:rec.session=original
@@ -386,6 +356,7 @@ def record(folder, lesson, rehearse=False):
                 try:
                     context=await chrome.new_context(viewport={'width':1440,'height':810},accept_downloads=True,locale='en-US',timezone_id='UTC')
                     await context.add_init_script(CURSOR)
+                    await context.add_init_script(ZOOM)
                     page=await context.new_page(); page.set_default_timeout(20000)
                     errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
                     await page.goto(url)
@@ -398,6 +369,7 @@ def record(folder, lesson, rehearse=False):
         state.update(status='recorded',native_run=review.read(folder/'demo/latest')[1]['id'])
         save(folder/'recording.json',state)
     finally:app.shutdown();app.server_close()
+    print('Recorded. Next: uv run python examples/tutorial/build.py compose --attempt',folder.relative_to(ROOT),flush=True)
 
 
 def main():
@@ -462,7 +434,11 @@ def main():
             async def act(p):
                 await asyncio.sleep(2);await field(p,'#q','bikes',False)
                 await click(p,'reshoot-recorder [data-do=done]')
-            await shoot.run('replace-show',page,act)
+            await shoot.run('replace-show',page,act,(w,h))
+        # Chrome's screencast leaves out the bottom of a page unless the window is the page's size.
+        project=Path(args.project);project=project.parent if project.is_file() else project
+        w,h,_=web.parse_size(story.load(project/'storyboard.toml')['size'])
+        os.environ['RESHOOT_CHROME_FLAGS']=' '.join([flag for flag in web.chrome_flags() if not flag.startswith(('--window-size','--force-device-scale-factor'))]+[f'--window-size={w},{h}'])
         ident=demonstrate.record(args.project,args.beat,headless=True,drive=drive,
                                 draft_id=args.draft_id,expected_revision=args.expected_revision)
         print('Separate draft saved',ident,flush=True)

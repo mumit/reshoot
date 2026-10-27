@@ -67,13 +67,24 @@ def renarrate(source, target, lesson):
     return edition
 
 
+def tidy(cues, short=16, longest=84):
+    """Join a cue of a word or two to the unfinished sentence before it."""
+    out = []
+    for cue in cues:
+        if (out and len(cue['text']) < short and not re.search(r'[.!?]$', out[-1]['text'])
+                and len(out[-1]['text']) + 1 + len(cue['text']) <= longest):
+            out[-1] = {**out[-1], 'end':cue['end'], 'text':out[-1]['text'] + ' ' + cue['text']}
+        else: out.append(cue)
+    return out
+
+
 def speech(folder, lesson):
     cache = folder / 'speech'
     cache.mkdir(exist_ok=True)
     result = {}
     for scene in lesson['scene']:
         target = cache / (scene['id'] + '.wav')
-        signature = hashlib.sha256(('passage-v2\0' + lesson['voice'] + scene['text']).encode()).hexdigest()
+        signature = hashlib.sha256(('passage-v3\0' + lesson['voice'] + scene['text']).encode()).hexdigest()
         info = target.with_suffix('.json')
         if info.exists() and json.loads(info.read_text()).get('signature') == signature and target.exists():
             result[scene['id']] = json.loads(info.read_text()); continue
@@ -92,7 +103,7 @@ def speech(folder, lesson):
                 for word in words:
                     group.append(word)
                     text = ''.join(item['text'] for item in group).strip()
-                    if (len(text) >= 85 and word['text'][-1:].isspace()) or re.search(r'[.!?]$', text):
+                    if (len(text) >= 55 and word['text'][-1:].isspace()) or re.search(r'[.!?]$', text):
                         cues.append({'start':at+group[0]['start'], 'end':at+group[-1]['end'], 'text':text})
                         group = []
                 if group:
@@ -113,6 +124,7 @@ def speech(folder, lesson):
                 cues.append({'start':start, 'end':end, 'text':chunk})
                 start = end
             at += length
+        cues = tidy(cues)
         listing = cache / (scene['id'] + '.concat')
         listing.write_text(''.join(f"file '{path.as_posix()}'\n" for path in files))
         cut.ff('-f','concat','-safe','0','-i',listing,'-af','adelay=200,apad=pad_dur=0.8',
@@ -127,18 +139,20 @@ def speech(folder, lesson):
 def draw_text(draw, xy, text, size, fill=FG, weight=600, width=None):
     font = cut.font(size, weight)
     if width:
-        lines, current = [], ''
-        for word in text.split():
-            proposed = current + (' ' if current else '') + word
-            if current and draw.textlength(proposed, font=font) > width:
-                lines.append(current); current = word
-            else: current = proposed
-        if current: lines.append(current)
+        lines = []
+        for paragraph in text.split('\n'):
+            current = ''
+            for word in paragraph.split():
+                proposed = current + (' ' if current else '') + word
+                if current and draw.textlength(proposed, font=font) > width:
+                    lines.append(current); current = word
+                else: current = proposed
+            lines.append(current)
         text = '\n'.join(lines)
     draw.multiline_text(xy,text,font=font,fill=fill,spacing=12)
 
 
-def plate(scene, chapter, detail=False):
+def plate(scene, chapter, detail=False, link=None):
     image = Image.new('RGB',(1920,1080),BG)
     draw = ImageDraw.Draw(image)
     draw_text(draw,(48,13),f'reshoot workshop  /  {chapter:02}  {scene["chapter"]}',25,ACCENT)
@@ -158,13 +172,14 @@ def plate(scene, chapter, detail=False):
             draw_text(draw,(120,935),'Command / explanation graphic · Synthetic narration',23,MUTED)
         else:
             draw_text(draw,(120,435),scene['takeaway'],48,ACCENT,width=1580)
+            if link: draw_text(draw,(120,640),link,44,FG,500)
             draw_text(draw,(120,780),'Real notes app · Synthetic data · Synthetic narration',30,MUTED)
     return image
 
 
 class Camera:
-    def __init__(self, page):
-        self.page, self.frames, self.offset = page, Frames(), None
+    def __init__(self, page, size=(1440,810)):
+        self.page, self.frames, self.offset, self.size = page, Frames(), None, size
         self.legacy = hasattr(page, 'cmd')
         self.tasks = set()
 
@@ -184,7 +199,7 @@ class Camera:
         else:
             def frame(event):
                 at = event['metadata']['timestamp']
-                if event['metadata']['deviceWidth']!=1440 or event['metadata']['deviceHeight']!=810:
+                if (event['metadata']['deviceWidth'],event['metadata']['deviceHeight'])!=self.size:
                     self.bad_size=(event['metadata']['deviceWidth'],event['metadata']['deviceHeight'])
                 if self.offset is None: self.offset = time.monotonic() - at
                 self.frames.append((at+self.offset,base64.b64decode(event['data'])))
@@ -208,7 +223,7 @@ class Camera:
             await self.cdp.detach()
         self.frames.append((stopped,None))
         if hasattr(self,'bad_size'):
-            raise ValueError(f'Browser filming viewport was clipped: {self.bad_size}. Keep a 1440 by 810 window.')
+            raise ValueError(f'Browser filming viewport was clipped: {self.bad_size}. Keep a window of {self.size}.')
         if len(self.frames) < 2: raise ValueError('No browser-page frames captured.')
         try:
             first, last = self.frames[0][0], self.frames[-1][0]
@@ -230,23 +245,29 @@ class Shoot:
     def complete(self, key):
         return (self.raw / (key + '.json')).exists()
 
+    async def until(self, fraction):
+        await asyncio.sleep(max(0,self.spoken[self.active]['seconds']*fraction-(time.monotonic()-self.began)))
+
     def mark(self, kind, **data):
         self.events.append({'at':time.monotonic()-self.began,'kind':kind,**data})
 
-    async def run(self, key, page=None, action=None):
+    async def run(self, key, page=None, action=None, size=(1440,810)):
         if self.complete(key): return
         self.active, self.events, self.wait = key, [], None
         self.began = time.monotonic()
         print('recording',key,flush=True)
-        camera = Camera(page) if page else None
+        camera = Camera(page, size) if page else None
         if camera:
             await camera.start(); self.began = camera.began
         if action: await action(page)
         await asyncio.sleep(max(.35,self.spoken[key]['seconds']-(time.monotonic()-self.began)))
+        split = None
+        if camera and self.scenes[key].get('focus') == 'right':
+            split = await page.evaluate("(document.querySelector('.side')?.getBoundingClientRect().left ?? 831) - 16")
         offset = await camera.stop(self.raw / (key+'.mp4')) if camera else 0
         seconds = cut.duration(self.raw/(key+'.mp4')) if camera else self.spoken[key]['seconds']
         save(self.raw/(key+'.json'),{'id':key,'kind':'browser footage' if camera else 'instruction graphic',
-             'seconds':seconds,'events':self.events,'wait':self.wait,'capture_offset':offset})
+             'seconds':seconds,'events':self.events,'wait':self.wait,'capture_offset':offset,'split':split})
         print('recorded',key,round(seconds,1),flush=True)
 
 
@@ -276,7 +297,7 @@ def compose(folder, lesson, spoken):
             native,report=review.read(folder/'demo/latest')
             source=native/next(name for name in review.exports(native,report) if name.endswith('.mp4'))
             native_seconds=cut.duration(source)
-            begin=max(0,native_seconds-spoken[key]['seconds']-.1)
+            begin=min(max(.6,native_seconds-spoken[key]['seconds']-.1),max(0,native_seconds-1))
             meta={**meta,'kind':'finished demo export','seconds':spoken[key]['seconds'],
                   'source_file':str(source.relative_to(folder)),'source_start':begin,
                   'source_end':min(native_seconds,begin+spoken[key]['seconds']),
@@ -286,7 +307,7 @@ def compose(folder, lesson, spoken):
         seconds = math.ceil(seconds*30)/30
         detail = scene.get('focus') == 'right' and meta['kind']=='browser footage'
         png = work/(key+'.png')
-        image=plate(scene,chapters.index(scene['chapter'])+1,detail)
+        image=plate(scene,chapters.index(scene['chapter'])+1,detail,lesson.get('link') if index==len(lesson['scene'])-1 else None)
         if meta['kind'] in ('browser footage','finished demo export') and not detail:
             image=Image.new('RGB',(1920,1080),BG)
             draw_text(ImageDraw.Draw(image),(48,13),f'reshoot workshop  /  {chapters.index(scene["chapter"])+1:02}  {scene["chapter"]}',25,ACCENT)
@@ -308,8 +329,10 @@ def compose(folder, lesson, spoken):
                     filters.append('[p0][p1]concat=n=2:v=1:a=0[page]')
                 else: filters.append('[1:v]setpts=PTS-STARTPTS[page]')
                 if detail:
-                    filters.append('[page]tpad=stop_mode=clone:stop_duration=60,crop=625:810:815:0,scale=-2:936:flags=lanczos[screen]')
-                    filters.append('[0:v][screen]overlay=1070:60:shortest=1[v]')
+                    left = max(0,min(1000,round(meta.get('split') or 815)))
+                    shown = round((1440-left)*936/810/2)*2
+                    filters.append(f'[page]tpad=stop_mode=clone:stop_duration=60,crop={1440-left}:810:{left}:0,scale={shown}:936:flags=lanczos[screen]')
+                    filters.append(f'[0:v][screen]overlay={1920-128-shown}:60:shortest=1[v]')
                 else:
                     filters.append('[page]tpad=stop_mode=clone:stop_duration=60,scale=1664:936:force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos,pad=1664:936:(ow-iw)/2:(oh-ih)/2:color=0x101a29[screen]')
                     filters.append('[0:v][screen]overlay=128:60:shortest=1[v]')
@@ -360,7 +383,7 @@ def export(folder, lesson, timeline, cues, name, selected):
     meta = folder/'edit'/(name+'.ffmeta');meta.write_text('\n'.join(metadata)+'\n')
     srt = folder/'exports'/(name+'.srt')
     srt.write_text('\n\n'.join(f'{i}\n{stamp(c["start"],True)} --> {stamp(c["end"],True)}\n'+
-                              '\n'.join(textwrap.wrap(c['text'],68)) for i,c in enumerate(mapped,1))+'\n')
+                              '\n'.join(textwrap.wrap(c['text'],42)) for i,c in enumerate(mapped,1))+'\n')
     (folder/'exports'/(name+'.vtt')).write_text('WEBVTT\n\n'+re.sub(r'(\d{2}:\d{2}:\d{2}),(\d{3})',r'\1.\2',srt.read_text()))
     audio_filter='aresample=async=1:first_pts=0'
     # Measure the exact edit, then normalize speech without changing its timing.

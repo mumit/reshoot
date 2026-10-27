@@ -6,8 +6,8 @@ repair the story, compare recordings, inspect the final and download exports.
 
 The [written companion](../../guide/video-workshop.md) stands on its own.
 `lesson.toml` holds the narration, scene titles, teaching points and chapter
-order. The build produces a long workshop and a short first-demo excerpt from
-the same actual recordings. Duration follows the narration and real actions;
+order. The build produces the workshop and a short first-demo excerpt from the
+same recordings. Duration follows the narration and real actions;
 the build does not pad it to a target length.
 
 ## Build from scratch
@@ -121,7 +121,8 @@ For a standalone GitHub video release, use a `workshop-*` tag. This repository's
   process logs remain off screen and are retained with the attempt.
 - Actual page footage stays under `raw/`. The edit map records retained time
   ranges. Only recording waits may be shortened, with an on-screen label;
-  clicks and typing retain their original speed. Detail views crop the page.
+  clicks and typing retain their original speed. The studio page is shown at
+  125% so its words can be read, and detail views crop its right column.
   The opening plays the finished demo and holds its result under the
   introduction; the hold is labeled and recorded in the edit map.
 - Local synthetic narration is disclosed. Kokoro speaks connected passages;
@@ -153,4 +154,4 @@ need a new attempt. Keep failed attempts for diagnosis.
 
 Installation troubleshooting, platform limitations and advanced setup belong
 in the linked guides. Keep this lesson focused on useful decisions and the
-second recording, and refresh its source as Studio changes.
+second recording, and refresh its source as the studio changes.

@@ -466,16 +466,26 @@ def summary(result, report, root):
         counts[row['change']] = counts.get(row['change'], 0) + 1
     def yes(value):
         return '' if value is None else 'changed' if value else 'same'
-    lines = [f"Run `{result['current']}` compared with `{result['previous']}`.", '',
-             f"- Result checks: {report.get('expectations_status', 'unverified')} ({report.get('expectations_count', 0)})",
-             f"- Steps: " + ', '.join(f'{n} {KEPT.get(state, state)}' for state, n in sorted(counts.items())),
-             f"- Scan: {scan.get('status', 'not run')}, {scan.get('unchecked') or 0} items to look at, "
-             + (f"{len(findings(flags))} finding{'s' if len(findings(flags)) != 1 else ''} in {len(flags)} of them" if flags else 'nothing flagged'),
-             f"- Inputs changed: {'yes' if result['inputs_changed'] else 'no'}", '',
-             '| Step | In the story | Written step | Length | Frame | Results |', '|---|---|---|---|---|---|']
+    status, count = report.get('expectations_status', 'unverified'), report.get('expectations_count', 0)
+    checks = f'{count} of {count} passed' if status == 'passed' and count else status
+    found = findings(flags)
+    scanned = (f"{scan.get('unchecked') or 0} items to look at, "
+               + (f"{len(found)} finding{'s' if len(found) != 1 else ''} in {len(flags)} of them" if flags else 'nothing flagged')
+               if scan.get('status') == 'completed' else scan.get('status', 'not run'))
+    same = set(counts) == {'matched'}
+    steps = f"the same {counts['matched']}" if same else ', '.join(f'{n} {KEPT.get(state, state)}' for state, n in sorted(counts.items()))
+    # Only an added or removed step needs the column; otherwise every row would say kept.
+    columns = ['Step', *([] if same else ['In the story']), 'Written step', 'Length', 'Frame', 'Results']
+    lines = [f"Recording `{result['current'][:8]}` compared with `{result['previous'][:8]}`.", '',
+             f"- Result checks: {checks}",
+             f"- Steps: {steps}",
+             f"- Scan: {scanned}",
+             f"- App or demo data changed: {'yes' if result['inputs_changed'] else 'no'}", '',
+             '| ' + ' | '.join(columns) + ' |', '|' + '---|' * len(columns)]
     for row in result['beats']:
         delta = row['duration_delta']
-        lines.append(f"| {shown_step(row['beat'], result['beats'])} | {KEPT.get(row['change'], row['change'])} | {yes(row['definition_changed'])} | "
+        lines.append(f"| {shown_step(row['beat'], result['beats'])} | " + ('' if same else f"{KEPT.get(row['change'], row['change'])} | ")
+                     + f"{yes(row['definition_changed'])} | "
                      f"{'' if delta is None else f'{delta:+.2f} s' if abs(delta) >= .005 else '0'} | {yes(row['evidence_changed'])} | {yes(row['results_changed'])} |")
     if result.get('screenshots'):
         lines += ['', '| Documentation screenshot | Change |', '|---|---|']
@@ -483,7 +493,7 @@ def summary(result, report, root):
     if result.get('tours'):
         lines += ['', '| Walkthrough | Change |', '|---|---|']
         lines += [f'| `{row["name"]}` | {row["change"]} |' for row in result['tours']]
-    lines += ['', result['note'] + ' A frame changes with small things such as the cursor, so watch the video.']
+    lines += ['', ('' if same else result['note'] + ' ') + 'A frame changes with small things such as the cursor, so watch the video.']
     return '\n'.join(lines) + '\n'
 
 

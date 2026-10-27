@@ -11,7 +11,9 @@ change project files or commands.
 - The comparison in a refresh pull request and from `reshoot review
   --previous` names steps as the studio does ("Type search notes"), lists them
   in story order, and says "Steps" and "kept" instead of "Beats" and
-  "matched". The review page says **Play this step**.
+  "matched". It shows short recording ids, "3 of 3 passed", "App or demo
+  data changed", and leaves out the "In the story" column unless a step was
+  added or removed. The review page says **Play this step**.
 - A stopped recording names its step in words, "Search stopped: it couldn't
   find…", in the studio and from `reshoot repair`, and no longer lists the
   changed files or "recording a fresh preview" under the stop.

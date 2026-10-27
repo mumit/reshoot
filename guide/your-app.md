@@ -1,54 +1,38 @@
 # Record your own web app
 
-The shortest route is to [paste the first-demo prompt](agent-quickstart.md)
-into Codex or Claude Code and let the agent write these files. Use this page to
-write them yourself, or to guide the agent's choices. It covers an app whose
-source you have and one you can only reach by URL. For an installed macOS app,
-see [Record a macOS window](macos-window.md).
-
-[Install reshoot](install.md) first. The [notes tutorial](step-by-step.md) is
-a complete example to try separately; it is not a prerequisite.
+The quickest route is the [agent prompt](agent-quickstart.md). This page is for
+doing it yourself. For a Mac app, see [a macOS window](macos-window.md).
 
 ## Show the task
 
-This suits a simple web app. For anything with setup, such as a login, a
-database to reset or images that take a while to load, an
-[agent](agent-quickstart.md) gets further on its own.
-
-Start the app on your computer as you do when developing it, such as with
-`npm run dev`, using a demo account and made-up data. Then give reshoot the
-address it prints:
+For a simple web app; with a login or data to reset, an agent gets further.
+Start the app with made-up data, then give reshoot its address:
 
 ```bash
 reshoot create http://127.0.0.1:3000/ --directory demo
 ```
 
-Use made-up data in a separate demo account. The browser starts with a fresh
-profile. Show one task, use **Caption here** to explain its outcome, and
-**Check result** to select the visible result without activating it. **Hide**
-selects an element to blur in every recording. **Pause** leaves interactions
-out; restore the app's state before resuming. **Remove last step** removes the
-step from the script, so restore its app state before repeating it.
+In the browser that opens, show one task:
 
-Choose **Done**. Reshoot writes the project, records a preview and opens the
-studio. The recorder also suggests result checks from what each step changed
-on the page, marked `# suggested` in `demo/storyboard.toml`. In the studio,
-remove any suggested check that isn't the result, change captions and holds,
-and choose **Update preview** to see the changes. Choose **Make final** when
-ready to inspect the full-size exports and scan sheets. Nothing is accepted or
-published automatically.
+- **Caption here** explains its outcome.
+- **Check result** selects the visible result without activating it.
+- **Hide** selects an element to blur in every recording.
+- **Pause** leaves interactions out; restore the app's state before resuming.
+- **Remove last step** removes a step; restore its app state before repeating it.
 
-Checkboxes and radio buttons replay their chosen state. Multiple-choice lists,
-file selection and drops are saved as unresolved steps; the rest of the story
-is kept. Add the required actions in `storyboard.toml` and remove that step's
-`recording_issue` after repairing it. A story with unresolved steps cannot be
-recorded. The manual route below covers startup, reset and login setup when
-your app needs them.
+Choose **Done**. reshoot writes the project, records a preview and opens the
+studio. Result checks it suggests are marked `# suggested` in
+`demo/storyboard.toml`: remove any that aren't the result, then choose
+**Update preview**, and **Make final** when ready.
+
+Multiple-choice lists, file selection and drops are saved as steps with a
+`recording_issue`, which can't be recorded. Add their actions in
+`storyboard.toml` and remove the `recording_issue`.
 
 ## Choose one result
 
-Keep the first demo small: see [a good first demo](agent-quickstart.md#start-with-one-prompt).
-Before writing actions, fill in `BRIEF.md`. For example:
+Keep the first demo [small](agent-quickstart.md#start-with-one-prompt). Fill in
+`BRIEF.md` first:
 
 ```text
 Audience: Developers evaluating a task app
@@ -59,58 +43,42 @@ Destination: A short README loop with captions
 Next action: Try the app
 ```
 
-Choose demo data that makes the result easy to see. Give the app its own demo
-database or fixture folder, with no connection to real accounts or files.
-Document how to reset it before each recording. If a response is mocked, state
-that in the brief and wherever the demo's claim requires that context.
+Give the app its own demo data and a way to reset it. If a response is mocked,
+say so in the brief.
 
 ## Create the project
 
-From the app repository's root, or from an empty folder for a URL-only app:
+From the app repository's root, or an empty folder for a URL-only app:
 
 ```bash
 reshoot init demo --url http://127.0.0.1:3000/
 ```
 
-This writes `BRIEF.md`, `storyboard.toml`, `edit.toml` and `reshoot.toml`. It does
-not copy the notes app or start the app. Replace the story's placeholder caption
-with actions and result checks before recording a demo.
-
-Start the demo server and leave it running, or let reshoot manage its
-lifecycle. For the second option, add an `[app]` table to `demo/reshoot.toml`.
-For a JavaScript app one level above `demo/`, this is an example to adapt:
+This writes `BRIEF.md`, `storyboard.toml`, `edit.toml` and `reshoot.toml`.
+Either leave your server running, or let reshoot start and stop it with an
+`[app]` table in `demo/reshoot.toml`:
 
 ```toml
 [app]
 run = "cd .. && npm run dev -- --host 127.0.0.1 --port 3000"
 url = "http://127.0.0.1:3000/"
 timeout = 60
+reset = "MY_DEMO_RESET_COMMAND"
 ```
 
-The command runs from `demo/`, so `cd ..` reaches the app repository. Replace
-the command with the app's actual startup command and install its dependencies
-first. Keep the URL in this table and `storyboard.toml` consistent.
-
-To reset data, add `reset = "MY_DEMO_RESET_COMMAND"` inside `[app]`.
-Replace that placeholder with a command that affects only demo data. Reset
-runs from the same directory before startup and defaults to a 30-second timeout.
-An existing server must be stopped when `[app]` manages startup. Without `[app]`,
-reshoot uses the existing server and leaves it running.
+Commands run from `demo/`. `reset` runs before startup and must touch only
+demo data. Stop any server already on that port.
 
 ### With only a URL
 
-Leave out `[app]`; reshoot records the site already running at the URL, local
-or hosted, in a fresh headless browser. Use a test environment or an account
-that holds only made-up data. Find out how to reset its data. A saved item on a
-hosted service stays after recording unless the app or your reset removes it.
-Without a reset, the preview and the final each add one, so write result checks
-that still pass then, such as the new item being shown, and avoid exact totals.
+Leave out `[app]`; reshoot records the site at the URL, local or hosted. Use a
+test account with made-up data. Without a reset, each recording adds another
+saved item, so check that the new item is shown rather than an exact total.
 
 ## Write a checked story
 
-Here is a complete story for an example app with a task textbox, an Add task
-button, a search field and a task list. The app must actually provide these
-controls. Replace the example targets with the ones in your app.
+For an app with a task box, an Add task button, a search field and a task
+list; use your app's targets:
 
 ```toml
 schema_version = 1
@@ -163,22 +131,14 @@ id = "end"
 hold = 0.5
 ```
 
-Replace the entire placeholder `demo/storyboard.toml` with the new story. The
-generated edit ends at the start of the `end` step, so keep that ID unless you
-also change the edit. Named result steps and their holds keep the proof readable.
+Replace all of `demo/storyboard.toml` with it. Keep the `end` step: the
+generated edit stops there.
 
-Find targets in the app's source, or in the browser's inspector when you have only the URL. An accessible role and
-name work when they identify one control; a stable `data-testid` also works.
-Use CSS when that is the clearest stable target. Reshoot fails on missing,
-covered, disabled or ambiguous controls rather than forcing a click. Repair
-the target or app state instead of removing the result check.
-
-The recorder saves alternative locators for future repairs. If the app renames
-a control, the studio shows the failed step and lets you select its replacement;
-see [Repair a changed control](studio.md#repair-a-step-that-broke). From the
-CLI, inspect the failed run with `reshoot repair RUN`, then use `--apply` for a
-suggestion or `--pick` to choose the replacement. Result checks still have to
-pass in a fresh recording.
+Find targets in the source or the browser's inspector. A role and name work
+when they match one control; so does a `data-testid` or stable CSS. reshoot
+fails on a missing, covered, disabled or ambiguous control rather than forcing
+a click: fix the target or app state, not the result check. When a control
+changes, [repair the step](studio.md#repair-a-step-that-broke).
 
 ## Draft it by clicking through
 
@@ -186,29 +146,16 @@ pass in a fresh recording.
 reshoot rec http://127.0.0.1:3000/ demo/draft.toml
 ```
 
-This opens a fresh browser for you to do the task with demo data. Close it when
-you finish, and it writes the clicks, typing and dropdown choices as steps.
-Checkboxes and radio buttons record their chosen state. Multiple-choice lists,
-file selection and drops leave a blocking `recording_issue` in that step,
-preserving the rest of the draft for repair.
-
-It also suggests result checks from what each action changed on the page:
-the words you typed showing up in a list, a list getting shorter, a new
-address, a label that changed. Each is marked
-`# suggested from what this changed on the page`. Keep the ones that show the
-result, delete the rest, and check counts that depend on data the app keeps.
-The draft ends with the `end` step the generated edit needs. Add captions and
-purposes, rename steps whose IDs, such as `click-albums`, don't say what the
-step is for, and use the draft to
-replace `demo/storyboard.toml`. Every action and result check is in the
-[project reference](projects.md#storyboardtoml).
+Do the task in the browser that opens, then close it. The draft has your
+actions as steps and suggested result checks, with the same limits as
+**Show the task**. Keep the checks that show the result, add captions, rename
+steps such as `click-albums`, and use it as `demo/storyboard.toml`. The [project reference](projects.md#storyboardtoml)
+lists every action and check.
 
 ## Login and demo data
 
-Every recording starts with a fresh browser profile, so reshoot never uses your own
-browser's login. If the app needs one,
-use a separate demo account and TOML `[[setup]]` actions before the recorded
-steps. Setup actions use the same action fields, for example:
+Every recording starts with a fresh browser profile. For a login, use a demo
+account and `[[setup]]` actions, which run before the recorded steps:
 
 ```toml
 [[setup]]
@@ -216,17 +163,12 @@ type = "navigate"
 url = "http://127.0.0.1:3000/demo-login"
 ```
 
-That route is an example, not a feature reshoot adds. Implement an isolated
-demo login or the app's actual test-account flow. Do not put real credentials
-into a committed storyboard. If the login cannot be automated, solve that
-before promising a recording CI can repeat. `blur = ["SELECTOR"]` can hide a
-persistent demo header, but it is not a substitute for isolated data.
+Your app must provide that demo login. Never commit real credentials. `blur = ["SELECTOR"]` can hide a demo header, but is no
+substitute for demo data.
 
-If fixture files live inside `demo/`, declare them with top-level
-`inputs = ["seed.json"]` in `reshoot.toml`, before any table. Only existing files
-inside that project directory are accepted. When one of them changes,
-**Update preview** records again. It can't see a change to an external
-database or service; use **Record app again** then.
+Declare fixture files inside `demo/` with top-level `inputs = ["seed.json"]` in
+`reshoot.toml`, before any table, so **Update preview** records again when they
+change. For an external database, use **Record app again**.
 
 ## Record it
 
@@ -236,13 +178,7 @@ reshoot preview demo/reshoot.toml
 reshoot run demo/reshoot.toml
 ```
 
-Watch the preview before the final. A failing step names its control; see
-[Troubleshooting](troubleshooting.md#an-action-or-result-check-fails). Then
-[accept the final](studio.md#review-and-accept). For a portrait
-export, choose a crop or record a separate mobile version: fitting a wide page
-into a phone frame does not make its words readable.
-
-When the app changes, keep the step IDs and the result checks and record
-again; [Keep a demo current](publish.md) covers comparing and sharing the new
-run, and [the studio](studio.md) covers captions, timing and
-[longer stories](studio.md#grow-it-into-a-fuller-demo).
+If a step fails, see
+[troubleshooting](troubleshooting.md#an-action-or-result-check-fails). For a portrait export, crop or
+record a mobile size: squeezing a wide page into a phone frame makes its text
+unreadable. To update it later, see [keep a demo current](publish.md).

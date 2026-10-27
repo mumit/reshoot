@@ -1,26 +1,16 @@
 # Project reference
 
-Every field of the files in a demo project, and what a run writes. For a
-guided first recording, use the [agent quickstart](agent-quickstart.md) or the
-[CLI tutorial](step-by-step.md); for your own app, [Record your own web app](your-app.md).
-[Commands](commands.md) lists the CLI, and `reshoot COMMAND --help` describes
-each command.
+Every field of a demo project's files, and what a run writes. Paths in a file
+are relative to that file. [Commands](commands.md) lists the CLI.
 
 ## The files
 
-| File | What it holds |
-|---|---|
-| `BRIEF.md` | The audience, the task, the visible result, the destination, and how to reset the demo data |
-| `reshoot.toml` | How to start the app, which takes to record, the edit and the scan |
-| `storyboard.toml` | The steps: actions, captions, result checks and holds |
-| `edit.toml` | Which parts of the takes to keep, title cards, music and the exports |
-| `styles.toml` | Saved visual styles, created by the studio or `style save`; optional |
-| `takes/runs/ID/` | One run: its report, recordings, scan sheets and review page. Ignored by git |
-| `accepted/` | The [accepted run](publish.md#the-accepted-run)'s record, without media. Commit it |
-
-`reshoot init demo` writes a complete project with a made-up notes app, and
-`reshoot init demo --url URL` a draft for your app. Paths in each file are
-relative to that file.
+`BRIEF.md` says who the demo is for, the task, the visible result and how to
+reset the data. `reshoot.toml`, `storyboard.toml` and `edit.toml` are below;
+`styles.toml` holds saved styles. `takes/runs/ID/` holds each run and stays
+out of Git; `accepted/` is the [accepted run](publish.md#the-accepted-run)'s
+record to commit. `reshoot init demo` writes the notes project;
+`reshoot init demo --url URL` a draft for your app.
 
 ## reshoot.toml
 
@@ -48,157 +38,97 @@ review = "review"
 
 | Field | Default | What it does |
 |---|---|---|
-| `schema_version` | required | `1`. Without it the file is a legacy shoot, below |
-| `inputs` | none | Demo data files inside the project, such as `["seed.json"]`. When one changes, **Update preview** records again and a comparison shows it. An external database isn't covered |
-| `timeout` | `600` | Seconds the app startup, takes and edit may take together |
-| `[app] run` | none | The shell command that starts the app, run in this file's folder. Leave `[app]` out to record a server that is already running |
-| `[app] url` | required with `run` | Recording waits until this answers without an HTTP error. Nothing may answer there before the run starts |
+| `schema_version` | required | `1`. Without it the file is a [legacy shoot](#legacy-shoot-files) |
+| `inputs` | none | Demo data files inside the project; a change makes **Update preview** record again |
+| `timeout` | `600` | Seconds for app startup, takes and edit together |
+| `[app] run` | none | Shell command that starts the app, from this folder. Without `[app]`, a running server is used |
+| `[app] url` | required with `run` | Recording waits until this answers; nothing may answer before |
 | `[app] timeout` | `60` | Seconds to wait for `url` |
-| `[app] reset` | none | A shell command that resets the demo data before startup. Never point it at real data |
+| `[app] reset` | none | Shell command that resets demo data before startup |
 | `[app] reset_timeout` | `30` | Seconds `reset` may take |
-| `[[take]] web` | | A `storyboard.toml` (or a legacy `.py` storyboard) recorded in headless Chrome |
-| `[[take]] out` | required with `web` | The video to write, inside the run, such as `takes/demo.mp4` |
-| `[[take]] tape` | | A [VHS](https://github.com/charmbracelet/vhs) tape for a terminal take. Its `Output "..."` line names the video |
+| `[[take]] web` | | A `storyboard.toml` (or legacy `.py`) recorded in headless Chrome |
+| `[[take]] out` | required with `web` | The video to write, such as `takes/demo.mp4` |
+| `[[take]] tape` | | A [VHS](https://github.com/charmbracelet/vhs) tape; its `Output` line names the video |
 | `[edit] file` | none | The `edit.toml`, or `script` for a Python edit |
-| `[edit] args` | `[]` | The takes the edit numbers 0, 1, ... |
-| `[[screenshot]] name` | required | A unique name of 1 to 80 letters, digits, underscores or hyphens; produces `screenshots/NAME.png` inside the run |
-| `[[screenshot]] take`, `beat` | `0`, required | The zero-based take index and step ID. Requires a complete TOML browser take and passing result checks on that step |
-| `[[screenshot]] alt` | required | One-line description of the visible result, at most 300 characters; included in direct text scanning and exported Markdown |
-| `[[screenshot]] width` | captured size | Maximum PNG width, 160 to 3840 pixels; never enlarges the source |
-| `[[screenshot]] crop` | whole viewport | `[left, top, width, height]` fractions inside the captured viewport; positive dimensions. Review the crop after layout changes |
-| `[check] sources` | `[]` | The files to scan, usually the final MP4 and GIF. `takes/demo.assets.json` adds every image the page loaded |
-| `[check] review` | | The folder for scan sheets, inside the run |
-| `[check] scan` | `true` | `false` skips detection; the sheets are still made for your eyes |
-| `[check] full` | `false` | Scan every frame of a final, as `reshoot run --full` does. Previews always sample |
+| `[edit] args` | `[]` | The takes, numbered 0, 1, ... |
+| `[check] sources` | `[]` | Files to scan. `takes/demo.assets.json` adds every image the page loaded |
+| `[check] review` | | Folder for scan sheets |
+| `[check] scan` | `true` | `false` skips detection but still makes sheets |
+| `[check] full` | `false` | Scan every frame of a final. Previews always sample |
 | `[check] every` | `3` | Seconds between sampled frames |
-| `[check] watch_for` | `[]` | Words to flag wherever they appear, such as a real company name |
-| `[check] ocr` | `"auto"` | `"vision"` (macOS), `"tesseract"`, or `auto` for Vision on macOS and Tesseract elsewhere. A chosen engine that fails never falls back |
+| `[check] watch_for` | `[]` | Words to flag, such as a real company name |
+| `[check] ocr` | `"auto"` | `"vision"` (macOS) or `"tesseract"`; a chosen one never falls back. `RESHOOT_OCR` sets it too |
 
-Each take has exactly one of `web` or `tape`. A run with `[app]` stops the app
-at the end, even when a step fails. `RESHOOT_OCR` sets the scan engine when the
-file doesn't.
+Each take has one of `web` or `tape`. The app is stopped at the end of a run,
+even when a step fails.
 
-Documentation screenshots are selected separately from video parts:
+### Documentation screenshots
 
-```toml
-[[screenshot]]
-name = "search-result"
-take = 0
-beat = "search"
-alt = "Search shows the saved bike note"
-width = 960
-```
+Each `[[screenshot]]`:
 
-The run uses the step's existing captured result frame, retaining privacy masks
-and any visible cursor. Video captions, zoom and framing are not added. PNGs are
-automatically appended to the run's check sources when `[check]` is configured;
-alt text is scanned alongside subtitles and narration when scanning is enabled.
-A preview started with `--from` makes no documentation screenshots. See
-[screenshots](studio.md#make-screenshots-for-docs) for studio,
-crop, refresh and local export steps.
+| Field | Default | What it does |
+|---|---|---|
+| `name` | required | 1 to 80 letters, digits, `_` or `-`; writes `screenshots/NAME.png` |
+| `take`, `beat` | `0`, required | The TOML browser take and a step whose result checks pass |
+| `alt` | required | One line, at most 300 characters; scanned and used in Markdown |
+| `width` | captured size | Maximum width, 160 to 3840 px; never enlarges |
+| `crop` | whole page | `[left, top, width, height]` as fractions |
+
+The PNG is the step's result frame, without captions, zoom or frame, and is
+scanned. A preview with `--from` makes none.
 
 ### Offline tour
 
-One optional `[tour]` in `reshoot.toml` exports `tours/NAME.html`. Each of 1 to
-30 steps names a complete TOML browser take and a step with passing result
-checks. The tour uses their captured result frames independently of the video
-cut. A preview started with `--from` makes no tour.
+One optional `[tour]` with `[[tour.step]]` tables writes `tours/NAME.html`, a
+single offline file.
 
-```toml
-[tour]
-name = "notes-tour"
-title = "Save and find a note"
+| Field | Default | What it does |
+|---|---|---|
+| `name` | required | 1 to 80 letters, digits, `_` or `-` |
+| `title` | required | Up to 120 characters of plain text |
+| `[[tour.step]]` | required | 1 to 30 steps |
+| step `take`, `beat` | `0`, required | A TOML browser take and a step whose result checks pass |
+| step `title`, `alt` | required | Up to 120 and 300 characters |
+| step `text` | empty | Up to 1000 characters |
+| step `hotspot` | none | `[x, y]` fractions for a numbered marker that goes to the next step |
+| step `width`, `crop` | 1280 px maximum, whole page | As for screenshots |
 
-[[tour.step]]
-take = 0
-beat = "add"
-title = "Save a note"
-text = "The new note appears in the list."
-alt = "The saved bike note appears in the list"
-hotspot = [0.5, 0.44]
-
-[[tour.step]]
-beat = "search"
-title = "Find it by a word"
-alt = "Search shows the matching note"
-```
-
-`name` uses 1 to 80 letters, digits, underscores or hyphens. Tour and step
-titles allow up to 120 plain-text characters, explanations up to 1000, and alt
-text up to 300. `take` defaults to 0; a step requires `beat`, `title` and `alt`.
-`text` defaults to empty. Optional `hotspot = [x, y]` uses fractions from 0 to 1
-across the step image; it advances to the following step or restarts from the
-last one. Width defaults to a 1280 px maximum without upscaling. Step `width`
-and `crop` follow the documentation screenshot rules.
-
-The HTML embeds images, CSS and navigation, with no external requests. Tour
-titles, explanations and alt text are escaped, not rendered as HTML. Navigation
-uses Next/Back, step numbers, optional markers and arrow/Home/End keys. A
-no-JavaScript view keeps all steps. Tour images and words are scanned with the
-video. Export copies only the HTML, which holds everything.
-
-See [offline tours](studio.md#make-a-clickable-tour) for studio,
-CLI and refresh steps.
+It is scanned with the video. A preview with `--from` makes none.
 
 ## storyboard.toml
 
-```toml
-schema_version = 1
-id = "notes"
-url = "http://127.0.0.1:8765/"
-size = "1280x720@1"
-seed = 1
-
-[[beat]]
-id = "search"
-purpose = "Show only the matching note"
-caption = "Find the matching note"
-hold = 2.0
-[[beat.action]]
-type = "type"
-target = {css = "#q"}
-text = "bike"
-[[beat.expect]]
-type = "count"
-target = {css = "#list li"}
-count = 1
-```
+[Write a checked story](your-app.md#write-a-checked-story) has a complete example.
 
 ### Top level
 
 | Field | Default | What it does |
 |---|---|---|
 | `schema_version` | required | `1` |
-| `id` | | A name for the story, shown in comparisons |
+| `id` | | The story's name in comparisons |
 | `url` | required | The page to open |
-| `size` | `"1280x720@1"` | CSS width x height @ pixel ratio. `@2` records twice the pixels for sharper text |
+| `size` | `"1280x720@1"` | Width x height @ pixel ratio; `@2` gives sharper text |
 | `theme` | `"dark"` | `"dark"` or `"light"`, for `prefers-color-scheme` |
-| `mobile` | `false` | A phone: touch and a mobile viewport. Use a phone `size`, such as `"390x844@3"` |
-| `zoom` | `false` | `true` follows clicks and typing with the camera; a number sets the most it enlarges (1.8) |
-| `blur` | `[]` | Selectors blurred on every page for the whole take, such as `[".avatar"]` |
-| `seed` | `1` | Sets the cursor's path and typing rhythm, so takes match |
-| `timeout` | `600` | Seconds the whole take may take |
-| `voice` | none | A voiceover: `{beat_id = "Words"}`. Each line is spoken before recording, and its step waits for it |
-| `voice_engine` | `say` or `espeak-ng` | `"kokoro --voice af_heart --speed 1"` uses optional [local neural narration](install.md#local-neural-narration). Other text-to-speech commands need `{out}` for the sound file and read text on stdin. Lines are cached by their words and engine in `takes/voice-cache`; changing the voice or speed makes a new line |
-| `[[setup]]` | none | Actions run before recording, such as a demo login. Same fields as `[[beat.action]]` |
-| `[caption]` | | How captions look, below |
-| `[cursor]` | | How the cursor looks, below |
+| `mobile` | `false` | Touch and a mobile viewport; use a phone `size`, such as `"390x844@3"` |
+| `zoom` | `false` | `true` follows clicks and typing; a number sets the most it enlarges (1.8) |
+| `blur` | `[]` | Selectors blurred on every page, such as `[".avatar"]` |
+| `seed` | `1` | Fixes the cursor path and typing rhythm |
+| `timeout` | `600` | Seconds the take may take |
+| `voice` | none | A voiceover, `{beat_id = "Words"}`. Each step waits for its line |
+| `voice_engine` | `say` or `espeak-ng` | `"kokoro --voice af_heart --speed 1"` for [Kokoro](install.md#local-neural-narration), or a command that reads stdin and writes `{out}` |
+| `[[setup]]` | none | Actions before recording, such as a demo login; fields as in `[[beat.action]]` |
 
 ### Steps: `[[beat]]`
 
-Each `[[beat]]` is one step. Its ID stays the same across releases, so runs can
-be compared step by step.
-
 | Field | Default | What it does |
 |---|---|---|
-| `id` | required | Letters, digits, `_` and `-`, unique in the story. Edits cut at step IDs |
+| `id` | required | Letters, digits, `_` and `-`, unique. Keep it stable so runs compare step by step |
 | `purpose` | | What the step proves, for reviewers |
 | `caption` | none | The caption shown from this step on |
-| `sub` | none | A smaller second line under the caption |
-| `hold` | `1` | Seconds to stay on the result after the actions and result checks |
-| `recording_issue` | none | An unresolved recorded interaction. Recording stops here until the actions are repaired and this field is removed |
-| `min_reading` | `0` | Seconds the step must stay on screen, even when its wait is shortened |
-| `trim_wait` | `false` | Lets the edit shorten this step's wait, once its result check passed. Needs `trim_waits = true` in the edit |
+| `sub` | none | A smaller second line |
+| `hold` | `1` | Seconds on the result after the actions and checks |
+| `recording_issue` | none | An interaction the recorder couldn't save; blocks recording until you add actions and remove it |
+| `min_reading` | `0` | Seconds the step stays on screen, even when its wait is shortened |
+| `trim_wait` | `false` | Lets the edit shorten this step's wait once its check passed; needs `trim_waits = true` |
 | `[[beat.action]]` | none | Actions, in order |
 | `[[beat.expect]]` | none | Result checks, after the actions |
 
@@ -207,14 +137,14 @@ be compared step by step.
 | `type` | Fields | Does |
 |---|---|---|
 | `click` | `target` | Glides the cursor there and clicks |
-| `type` | `target`, `text`, `clear` (`true`) | Clicks the field, clears it, and types at a person's pace |
-| `select` | `target`, `option` | Picks a dropdown option by its value or label |
-| `check` | `target`, `checked` (`true`) | Sets a checkbox or radio button to the chosen state, using native input |
-| `key` | `target`, `key` | Presses a key in the target, such as `"Enter"` in a search field |
-| `scroll` | `dy` (`300`) | Scrolls the page down by `dy` pixels |
+| `type` | `target`, `text`, `clear` (`true`) | Clicks the field, clears it and types |
+| `select` | `target`, `option` | Picks a dropdown option by value or label |
+| `check` | `target`, `checked` (`true`) | Sets a checkbox or radio button |
+| `key` | `target`, `key` | Presses a key, such as `"Enter"` |
+| `scroll` | `dy` (`300`) | Scrolls down `dy` pixels |
 | `navigate` | `url` | Opens a page |
 | `wait` | `target` | Waits until the target is visible |
-| `upload` | `target`, `file` | Uploads a demo file, relative to the storyboard |
+| `upload` | `target`, `file` | Uploads a demo file |
 
 ### Result checks
 
@@ -224,13 +154,12 @@ be compared step by step.
 | `count` | `target`, `count` | Exactly that many elements match |
 | `value` | `target`, `value` | A field holds the value |
 | `visible` | `target` | The target is visible |
-| `checked` | `target`, `checked` (`true`) | A checkbox or radio button is checked, or with `checked = false`, not |
+| `checked` | `target`, `checked` (`true`) | A checkbox or radio button is in that state |
 | `url` | `contains` | The page's URL contains the text |
 
-Every action and result check can set `timeout` in milliseconds (default
-`10000`). A target has exactly one of `css`, `test_id` or `role`, with an
-optional `name` (the accessible name, with `role`), `text` (only elements with
-these words) and `frame` (an iframe's selector):
+Every action and check takes `timeout` in milliseconds (`10000`). A target has
+one of `css`, `test_id` or `role`, with optional `name` (accessible name, with
+`role`), `text` (elements with these words) and `frame` (an iframe selector):
 
 ```toml
 target = {role = "button", name = "Add note"}
@@ -238,9 +167,8 @@ target = {test_id = "note-list"}
 target = {css = "#list li", text = "bikes"}
 ```
 
-Targeted operations can also set `fallbacks`, an array of up to 12 alternative
-target tables. The recorder saves stable alternatives, such as an accessible
-role, name or placeholder:
+`fallbacks`, up to 12 alternative targets, are used only to suggest a
+[repair](studio.md#repair-a-step-that-broke), never in place of `target`:
 
 ```toml
 [[beat.action]]
@@ -249,35 +177,24 @@ target = {css = "#save"}
 fallbacks = [{role = "button", name = "Save"}, {css = "button[name='save']"}]
 ```
 
-Fallbacks suggest a repair only when their visible, compatible matches agree
-on one element. They never execute in place of the primary target. Missing or
-ambiguous controls fail the run; `reshoot repair RUN --apply` or the studio
-explicitly changes the locator after rechecking the current app. Wrong result
-values and count mismatches do not get locator repairs.
-
-Actions use real input. A target that is missing, hidden, disabled, covered or
-matches more than one element fails the step, and the run saves a failure
-image, rather than forcing the click. Steps without result checks are labeled
-`unverified` on the review page.
+A target that is missing, hidden, disabled, covered or ambiguous fails the step
+and saves a failure image. Steps without result checks show as `unverified`.
 
 ### Captions and cursor
 
 | Field | Default | What it does |
 |---|---|---|
 | `[caption] position` | `"bottom"` | `"top"` or `"bottom"` |
-| `[caption] margin` | `0.065` | Distance from the edge, as a fraction of the frame's height, up to 0.4 |
-| `[caption] min_seconds` | `0` | The shortest time a caption stays up |
-| `[caption] background`, `foreground` | translucent dark, white | Colors, such as `"#f4f1ea"` |
-| `[caption] font` | system | A font file, relative to the storyboard |
-| `[cursor] size` | `1` | 0.5 to 3 times the default arrow |
+| `[caption] margin` | `0.065` | Distance from the edge, as a fraction of the height, up to 0.4 |
+| `[caption] min_seconds` | `0` | Shortest time a caption stays up |
+| `[caption] background`, `foreground` | translucent dark, white | Colours, such as `"#f4f1ea"` |
+| `[caption] font` | system | A font file |
+| `[cursor] size` | `1` | 0.5 to 3 times the arrow |
 | `[cursor] typing` | `13` | Characters a second, 1 to 60 |
-| `[cursor] ripple` | `true` | `false` leaves out the ring that spreads on each click |
+| `[cursor] ripple` | `true` | `false` drops the ring on each click |
 
-Captions are drawn after recording, from the storyboard, and a run fails if one
-cannot fit inside the margins. They are plain text: tags such as `<i>` are
-dropped. Because they are drawn afterwards, `reshoot recut` can change their
-words and look without recording again. [How the videos look](look.md) shows each.
-Python storyboards, the legacy format, are in the [manual workflow](manual.md).
+Captions are plain text drawn after recording, so `reshoot recut` can change
+them. [How the videos look](look.md) shows each setting.
 
 ## edit.toml
 
@@ -301,50 +218,43 @@ preset = "readme"
 | Field | Default | What it does |
 |---|---|---|
 | `schema_version` | required | `1` |
-| `output` | `"demo-final.mp4"` | The final video, beside the first take |
-| `music` | none | A music file, relative to this file. It ducks under the voiceover and fades out. Use music you may share |
-| `[audio] voice_volume` | `1` | Linear narration gain, 0 to 2. A gain of 0 mutes the voice but keeps its step timing and subtitles |
-| `[audio] music_volume` | `0.25` | Linear music gain, 0 to 1, before ducking and the ending fade |
-| `[audio] duck` | `true` | Lower music while the voice speaks. Turn off to retain only the chosen gain and ending fade. The final mix limits peaks before encoding; this is not loudness normalization |
-| `trim_waits` | `false` | Shorten the waits of steps marked `trim_wait`, keeping at least 0.8 s or their `min_reading`, and label them "Wait shortened" |
-| `[style] background`, `foreground` | dark, white | Title card colors. `background` can be `[top, bottom]` for a frame's gradient; cards use the top one |
-| `[style] font`, `logo` | none | Files for title cards, relative to this file |
-| `[frame]` | none | Puts each take in a browser-like window on the `[style]` background, at the same size; the page shrinks to fit. Title cards stay full size |
-| `[frame] padding` | `0.06` | Space on each side, as a fraction of the width, up to 0.25 |
+| `output` | `"demo-final.mp4"` | The final video |
+| `music` | none | A music file you may share; ducks under the voice and fades out |
+| `[audio] voice_volume` | `1` | Narration gain, 0 to 2; 0 mutes but keeps timing and subtitles |
+| `[audio] music_volume` | `0.25` | Music gain, 0 to 1 |
+| `[audio] duck` | `true` | Lower music while the voice speaks |
+| `trim_waits` | `false` | Shorten waits of `trim_wait` steps to 0.8 s or their `min_reading`, labelled "Wait shortened" |
+| `[style] background`, `foreground` | dark, white | Title card colours; `background` can be `[top, bottom]` for a frame gradient |
+| `[style] font`, `logo` | none | Files for title cards |
+| `[frame]` | none | Puts each take in a browser window on the `[style]` background; the page shrinks |
+| `[frame] padding` | `0.06` | Space each side, as a fraction of the width, up to 0.25 |
 | `[frame] radius` | `12` | Corner radius in pixels, up to 64 |
-| `[frame] shadow`, `bar` | `true`, `true` | A soft shadow, and a title bar with three dots |
-| `[frame] background`, `bar_color` | `[style] background`, `"#2b2f36"` | Colors for this frame only |
+| `[frame] shadow`, `bar` | `true`, `true` | A shadow, and a title bar with three dots |
+| `[frame] background`, `bar_color` | `[style] background`, `"#2b2f36"` | Colours for the frame only |
 | `[[part]] take` | `0` | Which take in `[edit] args` |
 | `[[part]] start`, `end` | the whole take | Seconds or step IDs; `end` stops at that step's start |
-| `[[part]] through` | none | Include this recorded step through its end and result hold. Use a step name, without `end` in the same part |
-| `[[part]] speed` | `1` | Any other speed needs a `label` shown on screen, and cannot shorten a voiceover line |
-| `[[part]] label` | none | Words burned into the part, such as "Sped up 2x" |
+| `[[part]] through` | none | A step ID to include through its hold; not with `end` |
+| `[[part]] speed` | `1` | Any other speed needs a `label`, and can't shorten a voiceover line |
+| `[[part]] label` | none | Words shown on the part, such as "Sped up 2x" |
 | `[[part]] card` | | A title card's words, instead of `take` |
 | `[[part]] duration` | `2` | Seconds a card stays up |
-| `[[export]] preset` | none | A place to post, below: sets the format, size and frame rate, and checks the export against that place's limits. Fields you give override it |
-| `[[export]] name` | `"landscape"`, or the preset | Letters, digits, `_` and `-`; the file is `demo-final-NAME.mp4` or `.gif` |
+| `[[export]] preset` | none | A [destination](#export-presets) that sets format, size and rate and checks limits; your fields override it |
+| `[[export]] name` | `"landscape"`, or the preset | The file is `demo-final-NAME.mp4` or `.gif` |
 | `[[export]] format` | `"mp4"` | `"mp4"` or `"gif"` |
 | `[[export]] width`, `height` | `1280`, `720` | Even numbers |
-| `[[export]] fit` | `"contain"` | `"contain"` fits the whole frame in; `"crop"` fills the shape from the middle |
-| `[[export]] focus` | `[0.5, 0.5]` | Horizontal and vertical crop positions from 0 (left/top) to 1 (right/bottom), across the overflow; ignored by Fit |
-| `[[export]] display_width` | up to 640, at least 160 | Intended browser viewing width, 160 to 1920 px. Changes inspection and measurements, not encoded dimensions |
-| `[[export]] fps` | 60, or 15 for a GIF | Frames a second, 1 to 120 |
-| `[[export]] max_bytes` | none | Fail the export if the file comes out larger |
-| `[[export]] min_reading` | `0` | Fail the export if any caption is on screen for less than this |
-| `[[export]] poster_at` | three quarters in | Seconds into the export for its poster frame |
+| `[[export]] fit` | `"contain"` | `"contain"` fits the whole frame; `"crop"` fills the shape |
+| `[[export]] focus` | `[0.5, 0.5]` | Crop position, 0 (left/top) to 1 (right/bottom) |
+| `[[export]] display_width` | up to 640 | Viewing width, 160 to 1920 px, used only to judge text size |
+| `[[export]] fps` | 60, or 15 for a GIF | 1 to 120 |
+| `[[export]] max_bytes` | none | Fail if the file is larger |
+| `[[export]] min_reading` | `0` | Fail if a caption shows for less than this |
+| `[[export]] poster_at` | three quarters in | Seconds in for the poster frame |
 
-Each export also gets subtitles and a poster image. A portrait export of a wide
-page shrinks its text: crop on purpose, or record a narrower take. Every cut
-writes a `.timeline.json`, which keeps the review page's links from the final
-video back to the source steps. `reshoot edit edit.py TAKE...` runs a Python
-edit instead; see the [manual workflow](manual.md#cut).
-
-MP4 and GIF use the same framing and crop positions. Each finished edit and
-export also writes `.readability.json`, with hints about text that may be too
-small or clipped at its viewing width: under 12 px for app text, under 14 px
-for captions and cards, or subtitles faster than 18 characters a second. The
-hints don't change whether a run passes or can be accepted, and a missing
-measurement is never a pass. See [destination framing](studio.md#fit-an-export-to-where-its-shown).
+Each export also gets subtitles, a poster image and a `.readability.json` of
+hints: app text under 12 px, captions under 14 px, or subtitles over 18
+characters a second.
+`reshoot edit edit.py TAKE...` runs a Python edit instead; see the
+[manual workflow](manual.md#cut).
 
 ### Export presets
 
@@ -357,27 +267,18 @@ measurement is never a pass. See [destination framing](studio.md#fit-an-export-t
 | `linkedin` | MP4, 1920x1080, 30 fps | LinkedIn: 3 s to 15 min, 75 KB to 5 GB, 256x144 to 4096x2304, shape up to 2.4:1, 10 to 60 fps |
 | `linkedin-square`, `linkedin-portrait` | MP4, 1080x1080 or 1080x1350 | The same |
 
-An export that breaks a limit fails and says which, such as `export linkedin
-does not fit LinkedIn: it is 2.0 s; LinkedIn takes 3 to 900 s`. The limits come
-from [X's media guide](https://docs.x.com/x-api/media/quickstart/best-practices),
-[LinkedIn's help](https://www.linkedin.com/help/linkedin/answer/a548372) and
-[GitHub's docs](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files),
-read on 2026-10-24. X's are for an account without Premium. Platforms change
-them, so check before a launch. A square or portrait preset fits the whole
-frame in by default; set `fit = "crop"`, or record a narrower take, so the text
-stays readable.
+An export that breaks a limit fails and says which. Limits are from
+[X](https://docs.x.com/x-api/media/quickstart/best-practices) (without Premium),
+[LinkedIn](https://www.linkedin.com/help/linkedin/answer/a548372) and
+[GitHub](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files)
+on 2026-10-24. Square and portrait presets fit; set `fit = "crop"` or record a
+narrower take for readable text.
 
 ## Visual style files
 
-`reshoot style apply STYLE --project demo` accepts a starting look, a saved
-key from `style list`, or a portable style file. The studio also imports and
-downloads portable styles. Applying a style writes its values into each TOML
-browser storyboard's `[caption]`, and the edit's `[style]` and `[frame]`.
-There is no run-time reference to the style file. Story, timing, fonts, logos,
-audio, exports and scan coverage remain in their project files.
-
-A portable style has `schema_version = 1`, a `name` of 1 to 60 characters,
-an optional `description` of at most 200 characters, and these settings:
+`reshoot style apply STYLE` takes a key from `style list` or a style file, and
+writes it into the storyboard's `[caption]` and the edit's `[style]` and
+`[frame]`. A style file:
 
 ```toml
 schema_version = 1
@@ -403,92 +304,53 @@ bar = true
 bar_color = "#1e293b"
 ```
 
-Omitted visual fields use the defaults in the caption and frame tables below;
-cards default to `#0e0d0c` and white. A `[frame]` enables framing unless
-`frame_enabled = false` explicitly disables it. Without either, framing is
-off. Backgrounds accept an opaque colour or exactly two colours for a gradient;
-cards use the gradient's top colour. Caption colours can include opacity.
-Styles contain no asset paths, scripts, task content or timing settings.
+`name` is 1 to 60 characters, with an optional `description` up to 200.
+Omitted fields take the defaults above; cards default to `#0e0d0c` and white.
+A `[frame]` turns framing on unless `frame_enabled = false`. Backgrounds are
+one opaque colour or two for a gradient; caption colours may include opacity.
 
-`style save NAME` stores a complete style under `[styles]` in the optional
-project library `styles.toml`, with `schema_version = 1`. Its key uses lowercase
-letters, numbers and hyphens, such as `launch-look`; each value is an inline
-style table. The CLI lists these keys. `--out FILE` writes the standalone form
-above. Existing names and export paths require `--replace` to overwrite.
+`style save NAME` stores it under `[styles]` in `styles.toml` with a key such
+as `launch-look`.
 
 ## What a run writes
 
-Each run gets its own folder, `takes/runs/ID/`, beside `reshoot.toml`, so a
-failed run never replaces an earlier one. `reshoot runs demo` lists them.
-Commands that take a run also accept `demo/latest`, the newest successful run,
-and `demo/accepted`, the accepted run. A preview records the same actions at a
-smaller size with faster encoding and a sampled scan, and `accept` refuses it.
+Each run gets `takes/runs/ID/`. A preview is smaller, quicker and always
+sampled.
 
 | File | What it is |
 |---|---|
-| `run.json` | What ran, how long each step took, the result checks, the scan and the review status |
-| `review.html` | The exports, findings, scan sheets and each step's result, for looking at |
-| `app.log` | The app's own output |
-| `takes/NAME.clean.mp4` | The take without captions, which captions are drawn on |
-| `takes/NAME.captions.json` | When each step's caption showed, and the words drawn |
-| `takes/NAME.timeline.json` | Source intervals mapped to output time; finished edits also retain ordered part intervals, including cards, for cut-part playback |
-| `takes/NAME.readability.json` | Measured viewing size, and text and clipping hints |
-| `takes/NAME.take.json` | Each step's actions, result checks, timings and evidence frames, and the browser used |
+| `run.json` | What ran, step timings, result checks, the scan and review status |
+| `review.html` | The exports, findings, scan sheets and each step's result |
+| `app.log` | The app's output |
+| `takes/NAME.clean.mp4` | The take without captions |
+| `takes/NAME.captions.json` | When each caption showed, and its words |
+| `takes/NAME.timeline.json` | Where each source step lands in the output |
+| `takes/NAME.readability.json` | Text size and clipping hints |
+| `takes/NAME.take.json` | Each step's actions, checks, timings and evidence frames |
 | `takes/NAME.failure.png` | The page when a step failed |
 | `takes/demo-final*.mp4`, `.gif`, `.srt` | The exports |
 | `review/` | The scan: numbered sheets, original frames, `flags.json` and `report.json` |
 
-`reshoot recut RUN` makes a new run from that run's takes, editing and scanning
-them again with the current `edit.toml` and `[check]`, and drawing the
-captions again from the current storyboard. It keeps that run's result
-checks, since the recording is the same; its report's `recut_from` names the
-run it came from. [The studio](studio.md#update-the-preview-then-make-the-final)
-says when a re-cut is enough and when to record again.
+`reshoot recut RUN` re-edits a run's takes into a new run.
 
 ## Scan, compare and accept
 
-A run scans the files in `[check] sources`, plus subtitles and voiceover text,
-for email addresses, phone numbers, keys, paths with a user name, street
-addresses, the `watch_for` words and, with Vision on macOS, faces and people.
-It points at likely problems; it never proves a frame is safe. Flagged items
-are grouped into findings by what was found, so an address on screen for the
-whole video is one finding, `F1`, not hundreds. Tesseract reads text only;
-faces and people then need your eyes. A detector that fails is an error, not an
-empty list.
+The scan reads `[check] sources`, subtitles and voiceover for email
+addresses, phone numbers, keys, paths with a user name, street addresses,
+`watch_for` words and, with Vision, faces and people, grouped into findings
+such as `F1`.
 
-```bash
-reshoot compare demo/accepted demo/latest --out demo/comparison.json
-reshoot review demo/latest --previous demo/accepted
-reshoot accept demo/latest --flagged F1
-```
-
-`compare` matches steps by ID and reports whether each one's definition,
-duration, evidence frame and result checks changed; `--markdown FILE` adds a
-summary for a pull request. A matched step does not mean equal pixels.
-`review --previous` writes the review page with both runs side by side.
-
-`accept` covers the exports, every step and every scan item at once, and
-writes `accepted/`.
-Each finding must be named with `--flagged` or `--reject`; it stops and lists
-them otherwise. It asks for confirmation, and without a terminal needs `--yes`.
-`reshoot review RUN --serve` offers the same decision on the review page, from
-a page on your computer. `reshoot studio` offers it too, under
-[Review this recording](studio.md#review-and-accept). If a file changes after
-you accept, or the scan runs again, accept again.
-
-For a decision per step, the review page's **Your decisions** controls download
-a file for `reshoot review RUN --import-decisions FILE`; that covers the
-recording only, and `reshoot check --review RUN/review --ok` the scan only.
-`reshoot check` on its own exits 0 when every item is accepted, 1 when some
-still need a person, and 2 on an error.
+`reshoot compare` matches steps by ID. `reshoot accept` covers the exports,
+steps and scan, and writes `accepted/`; accept again if a file changes or the
+scan reruns. See [commands](commands.md#review-and-accept).
 
 ## Legacy shoot files
 
-A `reshoot.toml` without `schema_version` is a legacy shoot. It writes into
-the project rather than a run folder, and can also have:
+A `reshoot.toml` without `schema_version` writes into the project, not a run
+folder, and can also have:
 
-- `[[take]] run = "COMMAND"`: any command, such as `reshoot window MyApp takes/app.mov -s 8`;
-- `[edit] script = "edit.py"`: a Python edit using `reshoot.cut`;
-- `[keep]`: copies of finished files, such as `"takes/final.mp4" = "docs/demo.mp4"`, made by every run.
+- `[[take]] run = "COMMAND"`, such as `reshoot window MyApp takes/app.mov -s 8`;
+- `[edit] script = "edit.py"`, a Python edit using `reshoot.cut`;
+- `[keep]`, copies made by every run, such as `"takes/final.mp4" = "docs/demo.mp4"`.
 
-`reshoot run --help` shows one. New projects should use `schema_version = 1`.
+`reshoot run --help` shows one.

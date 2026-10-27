@@ -1,193 +1,128 @@
 # Install reshoot
 
-To let a coding agent handle setup, start with the
-[first-demo prompt](agent-quickstart.md). Use this page to install the tools
-yourself or resolve a missing dependency. Install the CLI once, then keep each
-demo's story and edit files in its own project.
+The [first-demo prompt](agent-quickstart.md) has your agent do this for you.
 
 ## Requirements
 
-| Tool | Purpose |
+| Tool | For |
 |---|---|
-| Python 3.11 or newer | Runs reshoot; `python3` also starts the tutorial's local app |
-| [uv](https://docs.astral.sh/uv/getting-started/installation/) | Installs the CLI in its own environment |
-| ffmpeg and ffprobe | Encode, edit and inspect recordings |
-| Google Chrome or Chromium | Records browser pages |
-| Tesseract on Linux | Reads text during automatic checks |
+| Python 3.11 or newer | reshoot, and the tutorial's local app |
+| [uv](https://docs.astral.sh/uv/getting-started/installation/) | Installing the CLI |
+| ffmpeg and ffprobe | Editing recordings |
+| Google Chrome or Chromium | Recording browser pages |
+| Tesseract, on Linux | Reading text in the scan |
 
-macOS uses Apple's Vision framework for text, face and person detection by
-default. Tesseract provides text detection only. Select it explicitly on either
-platform when needed; it does not provide face or person detection.
+On macOS the scan uses Apple's Vision for text, faces and people. Tesseract
+reads text only.
 
 ## macOS
 
-With [Homebrew](https://brew.sh/) installed:
+With [Homebrew](https://brew.sh/):
 
 ```bash
 brew install uv python ffmpeg
 brew install --cask google-chrome
 ```
 
-If Chrome or Chromium is already installed, keep that browser instead of
-installing another. Headless browser recording does not need Screen Recording
-permission. Recording a native app window does; see the [manual workflow](manual.md#once).
-For native-only capture, skip Chrome; use the [window walkthrough](macos-window.md)
-after installing the CLI. The bundled notes project below is a browser example.
+An installed Chrome or Chromium is fine. Only a native window needs Screen
+Recording permission ([once](manual.md#once)); to record only native windows,
+skip Chrome and see [a macOS window](macos-window.md).
 
 ## Linux
 
-Install uv using its [installation instructions](https://docs.astral.sh/uv/getting-started/installation/).
-On Debian 12, install the remaining tools with:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/). On
+Debian 12:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y python3 ffmpeg chromium tesseract-ocr fonts-dejavu-core
 ```
 
-On other distributions, install the equivalent packages, using Python 3.11 or
-newer. Browser package names vary. A supported Google Chrome installation also
-works. If automatic discovery misses it, set its executable path:
+Elsewhere, install the equivalents. If reshoot can't find the browser:
 
 ```bash
 export RESHOOT_CHROME=/absolute/path/to/chromium
 ```
 
-Windows is untested. Recording one app window and detecting faces and
-people need macOS.
-
 ## Install the CLI
-
-On either platform:
 
 ```bash
 uv tool install 'reshoot[browser]'
 reshoot --version
-python3 --version
 ```
 
-The `browser` extra installs the Python Playwright dependency. Reshoot uses the
-Chrome or Chromium executable installed above; the tutorial does not require
-`playwright install`. If `reshoot` is not on the shell's path, run
-`uv tool update-shell`, start a new terminal and try again.
-
-This installs the latest release from [PyPI](https://pypi.org/project/reshoot/).
-To pin a release, name its version, such as `'reshoot[browser]==0.3.0'`.
+reshoot uses the browser installed above; no `playwright install` is needed.
+If `reshoot` isn't found, run `uv tool update-shell` and open a new terminal.
+To pin a release, use `'reshoot[browser]==0.3.0'`.
 [Contributing](../CONTRIBUTING.md#install-an-unreleased-version) covers
 installing from Git.
 
 ## Check a project
 
 ```bash
-reshoot init demo
-reshoot doctor --config demo/reshoot.toml
+reshoot init demo                                # skip if demo/ exists
+reshoot doctor --config demo/reshoot.toml        # each tool and how to fix it
+reshoot doctor --config demo/reshoot.toml --probe  # also try each tool on made-up input
 ```
 
-Skip `init` if `demo/` already exists. `doctor` reports each tool, its
-version and how to fix what's missing. To
-also try the tools on a tiny made-up video, page and text image, run:
-
-```bash
-reshoot doctor --config demo/reshoot.toml --probe
-```
-
-These checks don't start your app or install anything, and a full recording
-can still fail.
-
-`reshoot create` runs the same checks before it uses your app and lists
-anything missing with its fix. [Troubleshooting](troubleshooting.md#a-command-or-dependency-is-missing)
-covers **Recording tools**, **Check again** and resuming a paused creation.
-
-Next, make your first demo with [the tutorial](step-by-step.md) or
-[your agent](agent-quickstart.md).
+`reshoot create` runs the same checks. Next: [the tutorial](step-by-step.md).
 
 ## Install the skills
 
-Skip this if your agent already set itself up. A skill is a set of
-instructions for a coding agent. reshoot's three primary skills cover
-creating, refreshing and reviewing a demo; the CLI does the recording.
-From the app repository or demo folder, run the command for your agent:
+From the app repository or demo folder:
 
-| Agent | Run in a terminal | Installed in |
+| Agent | Run | Installed in |
 |---|---|---|
 | Codex | `reshoot skills codex --directory .` | `.agents/skills/` |
 | Claude Code | `reshoot skills claude --directory .` | `.claude/skills/` |
 
-Start with `$reshoot-demo` in Codex or `/reshoot-demo` in Claude Code,
-followed by a task. If a new skill doesn't appear, start a new session in the
-same folder. See the
-[Codex skill documentation](https://developers.openai.com/codex/skills) and
-[Claude Code skill documentation](https://code.claude.com/docs/en/skills).
+Start with `$reshoot-demo` in Codex or `/reshoot-demo` in Claude Code, then the
+task. If a skill doesn't appear, start a new session.
 
-For the Claude Code plugin, with all ten skills, run these inside Claude Code:
+Or install the Claude Code plugin, with all ten skills, inside Claude Code:
 
 ```text
 /plugin marketplace add mumit/reshoot
 /plugin install reshoot@reshoot
 ```
 
-Then invoke `/reshoot:reshoot-demo` with the task. The plugin still needs the
-CLI and its tools. Choose one route per project. The
+Then use `/reshoot:reshoot-demo`. Choose one route per project. The
 [skill catalog](../skills/README.md) describes every skill.
 
 ## Upgrade and remove
 
-`reshoot doctor` says when a newer release is out. To upgrade:
+`reshoot doctor` says when a newer release is out.
 
 ```bash
 uv tool upgrade reshoot
-reshoot --version
 ```
 
-uv respects the original source and version constraints when upgrading; see its
-[tool upgrade guide](https://docs.astral.sh/uv/guides/tools/#upgrading-tools).
-To change a pinned version, install again with `uv tool install --force`.
+To change a pinned version, run `uv tool install --force` with the new one.
+Upgrading doesn't update the project's skill copies: run
+`reshoot skills codex --directory . --replace` (or `claude`), after committing
+any changes you made to them, since `--replace` discards them.
 
-`reshoot skills` installs project-local copies of the three primary skills.
-Upgrading the CLI does not replace those copies. After an upgrade, run
-`reshoot skills codex --directory . --replace`, or `claude`, to install the
-new version over them. If you changed the installed skills, commit or copy
-those changes first; `--replace` discards them.
-
-To remove the CLI, run `uv tool uninstall reshoot`. Demo projects and their
-recordings remain in their existing directories.
+`uv tool uninstall reshoot` removes the CLI and leaves your projects.
 
 ## Optional tools
 
-Install [VHS](https://github.com/charmbracelet/vhs#installation) only for
-terminal takes (`brew install vhs` on macOS).
+[VHS](https://github.com/charmbracelet/vhs#installation) for terminal takes
+(`brew install vhs`).
 
 ### Local neural narration
 
-Kokoro is an optional local speech engine for English narration. Install it
-with the browser tools:
+Kokoro speaks English narration on your CPU, with no account or key:
 
 ```bash
-uv tool install --upgrade 'reshoot[browser,kokoro]'
-```
-
-From a source checkout, use `uv sync --extra browser --extra kokoro` instead.
-The extra includes PyTorch and adds a substantial download. The first audition
-also downloads the public Kokoro model, selected voice and English language
-data. Speech is generated on your CPU; no account, API key or speech service
-is needed. Subsequent synthesis can run offline with the downloaded files.
-
-Choose a voice and [audition a saved line](commands.md#shape):
-
-```bash
+uv tool install --upgrade 'reshoot[browser,kokoro]'   # from source: uv sync --extra browser --extra kokoro
 reshoot audio set --engine 'kokoro --voice af_heart' --project demo
 reshoot audio audition search --project demo
 ```
 
-The step needs saved spoken words before it can be auditioned.
-Heart (`af_heart`), Bella (`af_bella`), Michael (`am_michael`) and British
-Emma (`bf_emma`) also appear in Studio's voice selector after installation.
-Use `--speed 0.9` for slower speech; the supported range is 0.5 to 2.
-Audition the actual words before recording a long explanation.
-For offline synthesis after the first successful audition of a voice, set
-`HF_HUB_OFFLINE=1` to use downloaded model files without checking the Hub.
-
-The [Kokoro voice catalog](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md)
-lists other English voice IDs. Try an unfamiliar ID with an audition first.
-
-For missing tools, browser errors or scan failures, see
-[Troubleshooting](troubleshooting.md).
+It adds PyTorch, and the first audition downloads the model and voice. After
+that, `HF_HUB_OFFLINE=1` works offline. A step needs saved spoken words to
+[audition](commands.md#shape). Heart (`af_heart`), Bella (`af_bella`), Michael
+(`am_michael`) and Emma (`bf_emma`) appear in the studio's voice selector.
+`--speed` runs from 0.5 to 2. The
+[voice catalog](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md)
+lists other voices.

@@ -1,69 +1,46 @@
 # Manual takes and Python storyboards
 
-For a first demo, follow the [project tutorial](step-by-step.md): it has checked
-TOML actions, isolated run folders, comparison and local export. This page keeps
-the lower-level workflow for Python stories, VHS terminal takes, custom edits
-and individual macOS windows. Its paths and examples use the legacy layout.
+The lower-level workflow for Python stories, VHS terminal takes, Python edits
+and single macOS windows, in the legacy layout. For a first demo, use
+[the tutorial](step-by-step.md) instead.
 
-These steps make a video from a web take, a terminal take and an end card. Leave out what you don't need. The
-commands run from the project's root. Storyboards, tapes and the edit script go in the project (here
-`tools/demo/`). Takes and cuts go in `takes/`, which git should ignore.
-
-Use the [notes example](../examples/notes/) to try each step on a small made-up app.
+These steps make a video from a web take, a terminal take and an end card;
+leave out what you don't need. Commands run from the project's root, with
+stories, tapes and the edit in `tools/demo/` and takes in `takes/`, which Git
+ignores. The [notes example](../examples/notes/) has each piece.
 
 ## Once
 
-1. **Install the tools.** Follow the [installation guide](install.md), then add
-   VHS for the terminal steps. On macOS:
-
-   ```bash
-   brew install vhs
-   ```
-
-   On Linux, install [VHS](https://github.com/charmbracelet/vhs#installation)
-   separately. Python browser stories do not need the Playwright extra. Keep
-   the normal browser installation to also use TOML stories.
-2. **For Claude Code,** add the [plugin](install.md#install-the-skills). Its
-   supporting skills also cover the individual takes below.
-3. **Make demo data.** Give the app its own database, data folder or account, with only things anyone may see.
-   Check that the app can be pointed at it with a flag or an environment variable, and can't reach real data while
-   it does. Good demo data:
-
-   - uses made-up people, with names that are clearly made up and emails at `example.com`;
-   - has no real customers, colleagues, addresses, phone numbers or payment details;
-   - has test keys only, which you can revoke after recording;
-   - has photos without people, and of places that aren't near anyone's home;
-   - looks real enough to be interesting: a few dozen varied items, not three called "test".
-4. **For app windows (macOS),** give the app you run commands from (Terminal, iTerm, an editor) Screen Recording
-   permission: System Settings, Privacy & Security, Screen Recording. Then restart it.
-5. **For Claude Code takes,** make a separate configuration folder, so nothing of your usual setup shows. Log in once, with
-   the account that should appear:
-
-   ```bash
-   CLAUDE_CONFIG_DIR=~/.claude-demo claude
-   ```
+1. **Install** [reshoot](install.md) and VHS (`brew install vhs`, or
+   [VHS's instructions](https://github.com/charmbracelet/vhs#installation) on Linux).
+2. **For Claude Code,** add the [plugin](install.md#install-the-skills); its
+   skills cover the takes below.
+3. **Make demo data** the app can be pointed at, with no way to reach real data:
+   made-up people with `example.com` emails, no real customers, addresses or
+   payment details, revocable test keys, photos without people or homes, and a
+   few dozen varied items.
+4. **For app windows,** give the app you run commands from Screen Recording
+   permission in System Settings, Privacy & Security, then restart it.
+5. **For Claude Code takes,** log in once with the demo account in a separate
+   configuration folder: `CLAUDE_CONFIG_DIR=~/.claude-demo claude`.
 
 ## Plan
 
-1. Decide where the video goes and how long it is. Thirty to sixty seconds suits a social post.
-2. List the three to six things it shows. Each gets a caption of a few plain words.
-3. Pick a take for each: web if it's in a browser, terminal for a CLI or an AI agent, an app window only when
-   nothing else can show it.
+Pick three to six things to show, a short caption each, and a take for each:
+web, terminal, or an app window only when nothing else can show it.
 
 ## Write the storyboard
 
-To draft a storyboard from recorded interactions, run:
+Draft one by doing the task in a fresh browser, then closing it:
 
 ```bash
 reshoot rec http://localhost:8000/ tools/demo/storyboard.py
 ```
 
-Chrome opens with a fresh, empty profile. Click and type through the task, then close the
-window. The recorder writes one beat per click or run of typing, with pauses as the holds. Add
-captions and check the selectors. Anything typed into a password field comes out as a placeholder.
+Each click or run of typing becomes a step. Add captions and check the selectors.
 
-To write a storyboard by hand, start from [examples/notes/storyboard.py](../examples/notes/storyboard.py). Each beat is a
-name, some JavaScript run in the page, and seconds to hold:
+Or start from [examples/notes/storyboard.py](../examples/notes/storyboard.py).
+Each step in `BEATS` is a name, JavaScript run in the page, and seconds to hold:
 
 ```python
 URL = "http://localhost:8000/"
@@ -76,100 +53,80 @@ BEATS = [
 ]
 ```
 
-- `__demo` has `click`, `type`, `key`, `waitFor`, `scroll`, `caption`, `hide` and `show`. The
-  [record-web skill](../skills/record-web/SKILL.md) lists them all.
-- Give a caption about 1.5 seconds to be read, and a result 2.5 seconds or more.
-- If the app needs a login, log in with a demo account in `SETUP` beats. They run before recording starts.
-- Anything private that's part of the app, like the account name in a header, goes in `BLUR`.
-- For a voiceover, add `VOICE = {"home": "Find a note by its words."}`, a line for each beat that needs one. See
+- `__demo` has `click`, `type`, `key`, `waitFor`, `scroll`, `caption`, `hide`
+  and `show`; the [record-web skill](../skills/record-web/SKILL.md) lists them.
+- Give a caption about 1.5 seconds and a result 2.5 or more.
+- `SETUP` steps run before recording, such as a demo login.
+- `BLUR` lists private parts of the app, such as the account name.
+- `VOICE = {"home": "Find a note by its words."}` adds a voiceover; see
   [examples/notes/voiced.py](../examples/notes/voiced.py).
-- Views that load slowly the first time (maps, charts, big images) go in `WARM`, so they're ready when shown.
-- `ZOOM = True` zooms in on each click and bit of typing, then back out, so the video is readable on a phone.
+- `WARM` lists slow views, such as maps, to load first.
+- `ZOOM = True` zooms on each click and bit of typing.
 
 ## Record the web take
 
-1. Start the app on its demo data, and leave it running.
-2. Record:
+With the app running on demo data:
 
-   ```bash
-   reshoot web tools/demo/storyboard.py takes/web.mp4
-   ```
+```bash
+reshoot web tools/demo/storyboard.py takes/web.mp4
+```
 
-   It prints each beat and how long it took, then the frame rate and any page errors. Next to the video it writes
-   `web.beats.json` (when each beat starts) and `web.assets.json` (every image and media file the page loaded).
-3. Look at a few frames: `ffmpeg -ss 5 -i takes/web.mp4 -frames:v 1 frame.png`.
-4. For a phone version, record again with `--size 390x844@3 --mobile`.
+It writes `web.beats.json` and `web.assets.json` (every image the page loaded). Check frames with
+`ffmpeg -ss 5 -i takes/web.mp4 -frames:v 1 frame.png`. For a phone version,
+add `--size 390x844@3 --mobile`.
 
 ## Record the terminal take
 
-1. Copy [the template tape](../skills/record-terminal/template.tape) and change the commands.
-2. Record: `vhs tools/demo/cli.tape`.
-3. Find where it finished: `reshoot last-change takes/cli.mp4`.
+Copy [the template tape](../skills/record-terminal/template.tape), change the
+commands, run `vhs tools/demo/cli.tape`, and find where it finished with
+`reshoot last-change takes/cli.mp4`.
 
 ## Record an app window
 
 ```bash
-reshoot window --list                         # check the window is there
+reshoot window --list
 reshoot window TextEdit takes/app.mov --id WINDOW_ID -s 8
 ```
 
-Replace `WINDOW_ID` with the selected numeric ID. Use the
-[macOS window walkthrough](macos-window.md) for capture permission, manual or
-scripted interaction, standalone MP4/GIF export and review.
+See [a macOS window](macos-window.md).
 
 ## Check everything the takes can show
 
-1. Generate sheets and add watch-for words for content that must not appear:
+1. Make the sheets, with words that must not appear:
 
    ```bash
    reshoot check takes/web.assets.json takes/web.mp4 takes/cli.mp4 --review takes/review --watch-for "Acme,Jane Roe"
    ```
 
-   It also scans supplied images and sampled frames for text that looks private (emails, phone numbers, keys, file paths with a
-   user name, street addresses, the watch-for words) and, on macOS, for faces and people. Flagged images come first
-   on the sheets, boxed in red. The scan points at problems; it doesn't pass anything.
-
-   Keep the app running: the assets list holds URLs, which are fetched from it. If the app shows things at random
-   (suggestions, featured items, a shuffled gallery), add the whole set it picks from, such as its image folder.
-2. Open `takes/review/01.jpg` and the rest. Look at each image at full size.
-
-   **What fails:**
-
-   - a person, including faces at the edge, tiny figures, reflections and people behind windows;
-   - personal details: names, emails, phone numbers, addresses, number plates, house numbers;
-   - secrets: keys, tokens, passwords, URLs with tokens in them;
-   - work details: customers, colleagues, internal tools, unreleased features, private repository names;
-   - the computer itself: user names, file paths, other apps, browser tabs, bookmarks, notifications.
-
-   Reject uncertain items.
-3. **If something fails:**
-   1. Note its label, such as `3-2`, and run `reshoot check --review takes/review --fail 3-2`. It prints where it came
-      from.
-   2. Take it out of the demo data.
-   3. Record the take again, since the old take still shows it.
-4. **When the rest pass:** `reshoot check --review takes/review --ok`.
-5. Run step 1 again. Repeat until it says everything has been checked.
+   Keep the app running, since the assets list is fetched from it. If the app
+   shows things at random, add the whole set it picks from.
+2. Open `takes/review/01.jpg` and the rest at full size. Fail any person,
+   personal detail, secret, work detail (customers, internal tools, unreleased
+   features), or sign of the computer (user names, paths, tabs, notifications).
+   Reject what you're unsure of.
+3. For a failure, run `reshoot check --review takes/review --fail 3-2` to see
+   where it came from, remove it from the demo data, and record the take again.
+4. When the rest pass, run `reshoot check --review takes/review --ok`, then
+   step 1 again until everything is checked.
 
 ## Cut
 
-1. Copy [examples/notes/edit.py](../examples/notes/edit.py) into the project and change the words at the top.
-2. Run it:
+Copy [examples/notes/edit.py](../examples/notes/edit.py), change the words at
+the top, and run:
 
-   ```bash
-   reshoot edit tools/demo/edit.py takes/web.mp4 takes/cli.mp4
-   ```
+```bash
+reshoot edit tools/demo/edit.py takes/web.mp4 takes/cli.mp4
+```
 
-   The example writes the finished video, a 9:16 version, a GIF and subtitles (`.srt`) next to the web take. If
-   the take has a voiceover, it's added; set `MUSIC` in the edit script for music under it, which ducks while the voice speaks.
-3. Watch all of it. Read any text on screen, including what an AI agent wrote in a terminal take.
+It writes the video, a 9:16 version, a GIF and subtitles next to the web take,
+with the voiceover and any `MUSIC`. Watch all of it, including what an agent
+wrote in a terminal take.
 
 ## Legacy shoot files in CI
 
-Once each step works, put them in a `reshoot.toml` and `reshoot run` does the
-whole shoot: it starts the app, waits until it answers, records each take, runs
-the edit script, makes the review sheets, copies the finished files where
-they're kept, and stops the app. The same file works locally and in CI. See the
-notes example, [examples/notes/reshoot.toml](../examples/notes/reshoot.toml):
+A `reshoot.toml` runs the whole shoot, locally or in CI, and copies the files
+in `[keep]`. From
+[examples/notes/reshoot.toml](../examples/notes/reshoot.toml):
 
 ```toml
 [app]
@@ -196,37 +153,19 @@ review = "takes/review"
 "takes/web.gif" = "docs/demo/demo.gif"
 ```
 
-`reshoot run --help` describes these settings. A failed step stops the shoot,
-stops the app and exits with an error; `takes/run.json` says what happened.
-`[keep]` copies the new video into `docs/demo/` on every run, local ones too,
-so use a disposable checkout for experiments and look at the diff before
-keeping it. New projects should use the versioned files in the
-[project reference](projects.md), where each run has its own folder.
+`takes/run.json` says what happened. `[keep]`
+copies on every run, local ones too, so check the diff. New projects should
+use the [versioned files](projects.md).
 
-To record it in CI and open a pull request with the kept files:
-
-1. Copy [examples/github/reshoot.yml](../examples/github/reshoot.yml) to `.github/workflows/reshoot.yml`.
-2. In the repository's Settings, Actions, General, turn on "Allow GitHub
-   Actions to create and approve pull requests". The pull request step fails
-   without it.
-3. Add the steps your app needs before it can start, such as installing
-   packages or a demo database.
-4. Change the marked lines: where the shoot file is, the takes folder, and
-   where `[keep]` copies files.
-
-On each release, or when started by hand, it installs ffmpeg, VHS if the shoot
-has a tape, and reshoot on Ubuntu; runs the shoot; uploads the takes, review
-sheets and report as the `reshoot-review` artifact; and opens a pull request
-with the files from `[keep]`. Download the artifact and look at every sheet
-before merging. For versioned projects, use [the refresh workflow](ci.md)
-instead.
+For CI, copy [examples/github/reshoot.yml](../examples/github/reshoot.yml) to
+`.github/workflows/reshoot.yml`, change its marked lines, add your app's setup
+steps, and turn on "Allow GitHub Actions to create and approve pull requests"
+in Settings, Actions, General. On each release, or by hand, it runs the shoot,
+uploads the `reshoot-review` artifact and opens a pull request with the
+`[keep]` files. Look at every sheet before merging.
 
 ## When the app changes
 
-- **A button or name changed:** fix the selector in the storyboard and record the web take again.
-- **Beats renamed or added:** update the beat names the edit script uses for trims and GIFs.
-- **New content in the demo data:** check it before cutting. `reshoot check` shows only what's new.
-
-## Before posting
-
-Watch the video all the way through at full size once more, then publish it manually.
+- **A control changed:** fix the selector and record the web take again.
+- **Steps renamed or added:** update the names the edit script uses.
+- **New demo data:** check it; `reshoot check` shows only what's new.

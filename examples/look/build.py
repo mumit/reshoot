@@ -202,44 +202,34 @@ def write_page(shapes, gifs, styled, framed, quality):
         for name, q in quality.items())
     PAGE.write_text(f'''# How the videos look
 
-Every picture here comes from the bundled notes example, recorded by
-[`examples/look/build.py`](../examples/look/build.py). Each one changes a
-single setting, or combines them in a reusable visual style. Run the script again to bring the page up to
-date.
+Every picture comes from the notes example, recorded by
+[`examples/look/build.py`](../examples/look/build.py), which also writes this
+page. Each changes one setting.
 
 ## Clickable tour
 
-The same checked notes task becomes a single HTML walkthrough. Next, the
-numbered marker and keyboard arrows move between captured result screens.
-The embedded images, words and navigation work offline.
+The checked notes task as one offline HTML walkthrough. The numbered marker
+and arrow keys move between result screens.
 
 ![The notes walkthrough with a numbered marker on the saved result](../docs/look/tour.jpg)
 
-[Download the offline notes walkthrough](../docs/look/notes-tour.html), then open
-the HTML file in a browser. Create and edit one in the studio's **Clickable tour**
-panel; see [offline tours](studio.md#make-a-clickable-tour).
+[Download the notes walkthrough](../docs/look/notes-tour.html) and open it in a
+browser. [Make one](studio.md#make-a-clickable-tour) in **Clickable tour**.
 
 ## Documentation screenshots
 
-A selected result frame becomes a PNG beside the videos. This is the captured
-page after the search checks passed, without the video's caption, camera zoom
-or decorative frame. The recorded cursor may remain visible. It is a viewport
-image, not a stitched full-page capture.
+A checked result frame as a PNG: the visible page, without the video's
+caption, zoom or frame. The cursor may show.
 
 ![Search shows the saved bike note](../docs/look/docs-search.png)
 
-Choose **Use for docs** beside a checked step in the studio, describe the image,
-save it and update the preview. Its name stays stable across fresh recordings.
-See [documentation screenshots](studio.md#make-screenshots-for-docs)
-for cropping, local export and refresh review.
+See [documentation screenshots](studio.md#make-screenshots-for-docs).
 
 ## Visual styles
 
-Choose a complete look in the studio's **Style and exports**, or apply one
-from the command line. Each changes caption colours and placement, title-card
-colours and browser framing. Fonts, story content, timing, audio and exports
-stay as they are. The app is large in Focus; the framed styles give it a
-background and slightly shrink it, so check text at the exported size.
+A style sets caption colours and placement, title-card colours and the
+browser frame. The framed styles shrink the app slightly, so check text at the
+exported size.
 
 | Focus | Midnight | Paper |
 |---|---|---|
@@ -250,15 +240,13 @@ reshoot style apply midnight --project demo
 reshoot recut demo/latest
 ```
 
-Save your own look and use it in another project with
-[reusable styles](studio.md#change-the-look).
+[Save your own](studio.md#change-the-look) for other projects.
 
 ## Beat cuts and sequence
 
-This cut shows the search result, then how the note was created, then the
-result again. The app still runs once in its original order and verifies all
-three result checks. Only the video parts move. `through` includes the last
-step and its reading hold; `end` stops at the named step's start.
+The result, then how the note was made, then the result again. The app still
+runs once, in order. `through` includes the last step and its hold; `end`
+stops at the named step's start.
 
 ![The result first, the creation steps, then the result repeated](../docs/look/sequence.gif)
 
@@ -279,16 +267,13 @@ start = "search"
 through = "search"
 ```
 
-The studio's **Your cut** edits these ranges and their order, with Undo and
-Redo. See [trim and arrange the video](studio.md#trim-and-arrange-the-video)
-for the CLI equivalents. Update preview reuses a current recording and
-retains repeated captions and narration at their new times.
+**Your cut** in the studio edits these; see
+[trim and arrange the video](studio.md#trim-and-arrange-the-video).
 
 ## The cursor
 
-The cursor glides along a slight curve, taking longer for longer trips,
-presses down with a ring on each click, and types at an uneven pace. It is
-drawn on the page, so it is in every recording without editing.
+The cursor glides on a slight curve, rings on each click, and types at an
+uneven pace.
 
 ![The cursor gliding to the note field, a ring spreading on the click, then typing](../docs/look/cursor.gif)
 
@@ -301,11 +286,8 @@ ripple = true
 
 ## Auto-zoom
 
-With `zoom = true`, the camera follows the action after recording: it starts
-moving before a click, so it lands as the click happens, eases in on a
-critically damped spring, stays put through short pauses, and pulls back when
-something changes elsewhere on the page. Captions are drawn after the zoom, so
-they stay where they are.
+With `zoom = true`, the camera follows the action, landing as each click
+happens and pulling back when something changes elsewhere. Captions stay put.
 
 ![The notes demo with auto-zoom, following typing and the search](../docs/look/zoom.gif)
 
@@ -313,16 +295,13 @@ they stay where they are.
 |---|---|
 | ![Typing the search without zoom](../docs/look/zoom-off.jpg) | ![Typing the search, zoomed in](../docs/look/zoom-on.jpg) |
 
-The page is recorded at up to twice its pixel ratio while zoom is on, so text
-stays sharp as it zooms in. For larger text without zoom, use a narrower
-viewport, such as `size = "960x540@2"`.
+For larger text without zoom, use a narrower viewport, such as
+`size = "960x540@2"`.
 
 ## Captions
 
-Captions sit at the bottom by default. A `[caption]` table sets their colors,
-margin, font and minimum time on screen, and `position = "top"` moves them up,
-which suits apps whose content sits low; check that they don't cover a
-heading.
+A `[caption]` table sets colours, margin, font and minimum time on screen.
+`position = "top"` suits apps whose content sits low.
 
 | Default | Styled |
 |---|---|
@@ -334,8 +313,8 @@ heading.
 
 ## Title cards
 
-A `card` part in `edit.toml` adds a still title, colored by `[style]`, which
-can also set a font and a logo.
+A `card` part in `edit.toml` adds a title, coloured by `[style]`, which can
+also set a font and logo.
 
 ![A title card reading "Notes, now with search"](../docs/look/card.jpg)
 
@@ -351,11 +330,9 @@ duration = 2
 
 ## A browser frame
 
-A `[frame]` table in `edit.toml` puts each take in a window with a title bar,
-rounded corners and a soft shadow, on the `[style]` background: one colour, or
-a top and bottom colour for a gradient. Title cards stay full size. The page is
-shrunk to fit, so text gets smaller: frame a recording whose text is large
-enough already.
+A `[frame]` table in `edit.toml` puts each take in a window on the `[style]`
+background, one colour or a gradient. The page shrinks, so frame only a
+recording with large enough text.
 
 ![The notes demo in a browser window on a blue gradient](../docs/look/frame.jpg)
 
@@ -368,11 +345,9 @@ bar = true       # the title bar with three dots
 
 ## Shapes
 
-An `[[export]]` profile makes another size from the same recording.
-`fit = "contain"` fits the whole frame in, so the text shrinks; `fit = "crop"`
-fills the shape from the middle, so the text stays large but the edges go. For
-a portrait video people read on a phone, record a narrower viewport, or a take
-of its own.
+An `[[export]]` makes another size. `fit = "contain"` fits the whole frame,
+so text shrinks; `fit = "crop"` fills the shape and loses the edges. For a
+phone, record a narrower viewport.
 
 {aspect}
 
@@ -385,15 +360,12 @@ height = 1350
 fit = "crop"
 ```
 
-The `x`, `linkedin` and `readme` [presets](projects.md#export-presets) make
-these shapes for a platform and check its limits.
+The `x`, `linkedin` and `readme` [presets](projects.md#export-presets) also
+check a platform's limits.
 
 ## Destination framing and readability
 
-Each export can Fit the whole video or Crop to fill its shape, with horizontal
-and vertical crop positions. The studio's crop guide helps aim it; Update
-preview renders the choice. A crop can cut off a caption or checked result.
-These are the centre and right-biased versions of the same held notes result:
+A crop can be aimed, and can cut off a caption or result:
 
 | Centre crop | Right-biased crop |
 |---|---|
@@ -409,27 +381,20 @@ focus = [0.85, 0.5]
 display_width = 390
 ```
 
-The same geometry frames MP4 and GIF. `focus` uses fractions from 0 (left or
-top) to 1 (right or bottom). Viewing width changes inspection and text-size
-estimates, not encoded dimensions. The gallery's measured values are:
+`focus` runs from 0 (left or top) to 1 (right or bottom). `display_width`
+only changes how text size is judged. Measured here:
 
 | Export | Viewing width | Small app-text samples | Smallest caption text |
 |---|---|---|---|
 {measurements}
 
-These are editing hints from sampled main-page text and rendered caption
-geometry. They do not establish readability or accessibility. Camera zoom,
-custom placement, iframe or canvas text need visual inspection. The studio's
-**Inspect at viewing size** keeps the requested width, with scrolling when
-needed. See [destination framing](studio.md#fit-an-export-to-where-its-shown)
-for the controls and CLI. `reshoot frame check demo/latest` reads the feedback
-measured on that run.
+These are hints, not proof of readability; look at zoomed, iframe or canvas
+text yourself. See [destination framing](studio.md#fit-an-export-to-where-its-shown),
+or run `reshoot frame check demo/latest`.
 
 ## GIF size
 
-A README GIF is made with its own palette. `max_bytes` in an export profile
-fails the export if the file comes out larger, so a GIF never silently grows
-past a page's limit. The notes example's loop:
+`max_bytes` in an export fails it if the file comes out larger. The notes loop:
 
 | Width | File |
 |---|---|
@@ -437,9 +402,8 @@ past a page's limit. The notes example's loop:
 
 ## Sound
 
-A voiceover is spoken before recording, so each step waits for its line.
-Music plays under it and ducks while someone speaks, then fades out at the end.
-See [Grow it into a fuller demo](studio.md#grow-it-into-a-fuller-demo).
+Each step waits for its voiceover line. Music ducks under speech and fades at
+the end. See [balance the sound](studio.md#balance-the-sound).
 ''')
 
 

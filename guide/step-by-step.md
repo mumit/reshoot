@@ -1,17 +1,9 @@
 # Make a demo, then update it
 
-This tutorial makes a demo of the bundled notes app, changes it in the studio,
-breaks the app on purpose, and repairs the demo. It shows each step in the
-studio, and then the same step from the terminal, so you learn both.
-
-The notes app saves a made-up note, searches for a word, and checks that the
-matching note appears. You'll finish with an MP4, a README GIF and an accepted
-record of them.
-
-Install [reshoot and its tools](install.md) first. Then work in one terminal,
-in a folder where a new `demo/` folder can be made. You don't need a
-repository, an AI account or any real data. To have an agent make a demo
-instead, use the [agent quickstart](agent-quickstart.md).
+Make a demo of the bundled notes app, change it in the studio, break the app
+and repair the demo. Each step shows the studio, then the same thing from the
+terminal. You need [reshoot and its tools](install.md) and an empty folder; no
+repository, AI account or real data.
 
 ## 1. Create the demo
 
@@ -19,12 +11,9 @@ instead, use the [agent quickstart](agent-quickstart.md).
 reshoot create
 ```
 
-It makes the notes project in `demo/`, checks that the recording tools work,
-records a preview, and opens it in [the studio](studio.md). The preview takes
-about 25 seconds. If a tool is missing, the studio's **Recording tools** says
-what to install; see [a missing tool](troubleshooting.md#a-command-or-dependency-is-missing).
-
-The project holds:
+It makes the notes project in `demo/`, records a preview in about 25 seconds,
+and opens it in [the studio](studio.md). If a tool is missing, **Recording
+tools** says what to install.
 
 ```text
 demo/
@@ -36,23 +25,17 @@ demo/
   .gitignore       Keeps the recordings in takes/ out of Git
 ```
 
-**From the terminal:** `reshoot init demo` makes the project,
-`reshoot doctor --config demo/reshoot.toml --probe` checks the tools, and
-`reshoot preview demo/reshoot.toml` records the preview. reshoot starts its
-own notes server for each recording and stops it afterwards. It records only
-the browser page, never your desktop.
+**From the terminal:** `reshoot init demo`, then
+`reshoot doctor --config demo/reshoot.toml --probe` and
+`reshoot preview demo/reshoot.toml`.
 
 ## 2. Look at the preview
 
-The studio shows the video with its steps on a timeline under it. Click a
-step to play it. The note "Pick up the bikes" is saved, then found as the only
-result for "bike".
+Click a step on the timeline to play it. The note "Pick up the bikes" is
+saved, then found as the only result for "bike". Green steps passed their
+result checks; grey ones, `intro` and `end`, have none.
 
-The save and search steps are green because their result checks passed. The
-`intro` and `end` steps are grey: they have no result checks, so nothing
-confirms what they show.
-
-**From the terminal:** the preview prints the paths of what it made:
+**From the terminal:** the preview prints its paths:
 
 ```text
 Done in 13 s: 3 of 3 result checks passed · scan: 6 items, 0 flagged · not accepted yet.
@@ -61,22 +44,18 @@ Done in 13 s: 3 of 3 result checks passed · scan: 6 items, 0 flagged · not acc
   review demo/takes/runs/RUN_ID/review.html
 ```
 
-Open them with `open PATH` on macOS or `xdg-open PATH` on Linux. Each run has
-its own folder, and `reshoot runs demo` lists them.
+Open them with `open PATH` on macOS or `xdg-open PATH` on Linux.
+`reshoot runs demo` lists the runs.
 
 ## 3. Change a caption and a hold
 
-In the studio, under **Your story**, change the `intro` caption to "Find the
-note you need" and leave the field. Then raise the `search` step's **Hold
-result (seconds)** from 2 to 3, so the result stays on screen a second longer.
-
-Each change is saved to `demo/storyboard.toml`. Choose **Update preview**. A
-caption alone would only need a re-cut, in seconds; the longer hold needs a new
-recording, so the studio records the task again
+Under **Your story**, change the `intro` caption to "Find the note you need"
+and leave the field. Raise the `search` step's **Hold result (seconds)** from
+2 to 3. Choose **Update preview**; the hold makes it record again
 ([which changes need which](studio.md#update-the-preview-then-make-the-final)).
-Watch the new preview. If you don't like a change, **Undo** takes it back.
+**Undo** takes a change back.
 
-**From the terminal:** edit the files, then make a new preview:
+**From the terminal:** edit `demo/storyboard.toml`:
 
 ```toml
 caption = "Find the note you need"   # the intro beat
@@ -90,33 +69,19 @@ reshoot preview demo/reshoot.toml   # after a change to actions, checks or holds
 
 ## 4. Make the final
 
-A preview is smaller and quicker, for looking at. When it looks right, choose
-**Make final** to record the full-size run.
+Choose **Make final** for the full-size run. The scan samples a frame every
+three seconds; to scan every frame, add `full = true` under `[check]` in
+`demo/reshoot.toml`.
 
-The scan samples a frame every three seconds, so it can miss something brief.
-To scan every frame of each final, add `full = true` to the `[check]` table
-in `demo/reshoot.toml`. It takes longer, and it still needs your review.
-
-**From the terminal:**
-
-```bash
-reshoot run demo/reshoot.toml --full
-```
-
-The run's folder holds the finished `takes/demo-final.mp4`, its
-`demo-final.srt` subtitles and `demo-final-readme.gif`, plus `review.html`
-and the scan's evidence in `review/`.
+**From the terminal:** `reshoot run demo/reshoot.toml --full`. The run's
+folder holds `takes/demo-final.mp4`, `demo-final.srt`,
+`demo-final-readme.gif`, `review.html` and the scan's evidence in `review/`.
 
 ## 5. Review and accept
 
-Accepting says two things: the video shows the task clearly, and nothing in it
-should stay private. A clean scan decides neither; you do.
-
-In the studio, open **Review this recording** and follow
-[its three steps](studio.md#review-and-accept): watch the MP4 and the GIF to the
-end, look at each scan sheet at full size, then choose whether each finding
-may be shared and accept. This writes [`demo/accepted/`](publish.md#the-accepted-run),
-a small record of the run to commit with the project.
+Open **Review this recording** and follow
+[its three steps](studio.md#review-and-accept). Accepting writes
+[`demo/accepted/`](publish.md#the-accepted-run), a small record to commit.
 
 **From the terminal:**
 
@@ -126,22 +91,20 @@ reshoot accept demo/latest --flagged F1 # accept a finding the scan flagged
 reshoot accept demo/latest --reject F1  # reject the run because of a finding
 ```
 
-`demo/latest` means the newest successful run. `accept` refuses a preview, and
-lists each finding once, such as `F1  email sam.•••: 318 frames, 1-1 to 80-2`.
-`reshoot review demo/latest --serve` opens the review page with the same
-choices.
+`accept` refuses a preview and lists each finding, such as
+`F1  email sam.•••: 318 frames, 1-1 to 80-2`. `reshoot review demo/latest
+--serve` opens the review page.
 
-To give a verdict on each step separately, use **Your decisions** at the end
-of the review page, choose **Download decisions**, and import the file with
-`reshoot review RUN_FOLDER --import-decisions FILE`. Most reviews don't need
-this.
+To judge each step separately, use **Your decisions** at the end of the review
+page, choose **Download decisions**, and run
+`reshoot review RUN_FOLDER --import-decisions FILE`.
 
 ![The review page's Your decisions controls, with each notes step and the video still pending](../docs/guide/review-decisions.png)
 
 ## 6. Change the app and repair the demo
 
-This renames the app's search box from `q` to `note-search`, as a real app
-change might. It edits only the made-up notes app:
+Choose **Change the notes app and record again**, or rename the search box
+yourself:
 
 ```bash
 python3 - <<'PY'
@@ -155,51 +118,34 @@ app.write_text(text)
 PY
 ```
 
-In the studio, choose **Update preview**. The recording stops on the search
-step, because the storyboard still looks for `#q`. This is the failure you
-want: the demo stops where the app changed, instead of recording the wrong
-thing. The studio keeps your last good video and says what happened:
+Choose **Update preview**. The recording stops on the search step, keeps your
+last good video, and says:
 
 ```text
 Step 'search' stopped: it couldn't find the control matching #q. It's probably
 "Search notes" now: that one is where it was.
 ```
 
-Choose **Use "Search notes"**. The studio checks the box on the current app,
-then changes only how the step finds it. The search word and the expected
-result stay the same. Choose **Update preview**, and all three result checks
-pass again. If the suggestion is wrong, choose **Choose replacement in app**
-instead: a browser opens at the search step, and clicking the box there
-doesn't type into it.
+Choose **Use "Search notes"**, then **Update preview**; all three result checks
+pass. If the suggestion is wrong, choose **Choose replacement in app** and
+click the box in the browser that opens.
 
-**From the terminal:** the failed preview prints the suggestion and the
-commands:
+**From the terminal:**
 
 ```bash
 reshoot repair demo/takes/runs/RUN_ID --apply  # use the suggested control
 reshoot repair demo/takes/runs/RUN_ID --pick   # or choose the box in a browser
 ```
 
-Or change the step yourself in `demo/storyboard.toml`, leaving the rest of it
-as it was:
-
-```toml
-target = {css = "#note-search"}
-```
-
-Then record a preview with `reshoot preview demo/reshoot.toml`.
+Or set `target = {css = "#note-search"}` in the step and run
+`reshoot preview demo/reshoot.toml`.
 
 ## 7. Compare, accept and copy the update
 
-Choose **Make final**. Open **More tools**, then **Compare**. **Play both**
-shows the accepted export beside the new one; the checked frames below show
-the task's results. The caption and the search step changed; the task and its
-result didn't. [Comparison controls](studio.md#compare-with-an-earlier-recording)
-let you inspect a step or choose another export.
-
-Review and accept the new final as in step 5. The earlier acceptance covers
-only the earlier run; `demo/accepted` now records the update. Choose
-**Download all exports** for a ZIP of the video, GIF and subtitles.
+Choose **Make final**. Open **More tools**, then **Compare**, and choose
+**Play both** to see the accepted export beside the new one
+([comparison controls](studio.md#compare-with-an-earlier-recording)). Review
+and accept the new final as in step 5. **Download all exports** gives a ZIP.
 
 **From the terminal:**
 
@@ -211,8 +157,6 @@ reshoot accept demo/latest
 reshoot export demo/accepted --directory docs/demo
 ```
 
-`compare` lists which steps matched and which changed:
-
 ```text
 Compared run NEW_ID with ACCEPTED_ID. Beats: 4 matched.
   notes/intro: matched, changed steps
@@ -220,24 +164,17 @@ Compared run NEW_ID with ACCEPTED_ID. Beats: 4 matched.
 Result checks passed before, passed now. Wrote demo/comparison.json.
 ```
 
-Four matched means the same steps were found, not the same pixels.
-`export` copies the MP4, GIF and subtitles and prints the Markdown that shows
-the GIF in a README. It never overwrites a file
-unless you add `--replace`, and it doesn't publish anything.
+Matched means the same steps were found, not the same pixels. `export` copies
+the MP4, GIF and subtitles, prints the README Markdown, and overwrites only
+with `--replace`.
 
 ## Keep it in Git
 
-Commit the brief, the app's demo data, the TOML files and `demo/accepted/`;
-[what to commit](publish.md#the-accepted-run) lists them. With the accepted
-record committed, [CI](ci.md) can record the demo again and compare it.
+Commit [these files](publish.md#the-accepted-run), including `demo/accepted/`,
+so [CI](ci.md) can record and compare the demo.
 
 ## Next
 
-- Follow the [video workshop companion](video-workshop.md) for URL-based
-  demonstration, Studio editing and updating a changed app. Its linked recipe
-  builds the narrated video locally.
-- Record your own app: [a web app](your-app.md), or [a macOS window](macos-window.md).
-- Every studio panel: [the studio](studio.md).
-- Grow it into a longer demo: [a fuller demo](studio.md#grow-it-into-a-fuller-demo).
-- Every field and command: [the project reference](projects.md) and
-  [commands](commands.md).
+- [The video workshop](video-workshop.md)
+- Your own app: [a web app](your-app.md) or [a macOS window](macos-window.md)
+- [A fuller demo](studio.md#grow-it-into-a-fuller-demo)

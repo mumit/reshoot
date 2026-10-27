@@ -1,283 +1,167 @@
 # The studio
 
-The studio is a page on your computer for shaping a demo. It shows the latest
-recording, lets you change its story and look by pointing, and is where you
-review and accept the final. If first creation stops, it helps you correct the
-story and continue. Your project files stay the source of truth: everything
-you change in the studio is saved to them.
-
-**Start with a story.** The studio doesn't write a story or
-choose what to show. To make the first one, ask your
-[agent](agent-quickstart.md), try the made-up notes app with `reshoot create`,
-or [show the task yourself](your-app.md#show-the-task) in a simple web app.
+The studio is a local page for changing a demo by pointing, then accepting the
+final. Every change is saved to the project's files. For a first story, ask your
+[agent](agent-quickstart.md), run `reshoot create` for the notes app, or
+[show the task yourself](your-app.md#show-the-task).
 
 ## Open it
 
-`reshoot create` opens the studio once it has made the first preview. To open
-it for an existing project:
+`reshoot create` opens it after the first preview. For an existing project:
 
 ```bash
 reshoot studio demo        # the folder holding reshoot.toml; demo is the default
 ```
 
-It runs until you press Ctrl-C. `--no-open` prints the address instead of
-opening it, and `--port 8800` picks the port.
+`--no-open` prints the address; `--port 8800` picks the port.
 
-The first time, the page plays your preview and says how long it took and
-whether its result checks passed. **Download the video** and **Download the
-GIF** get the files straight away, and **Copy readme Markdown** copies the line
-that shows the GIF in a README.
+A first preview shows "Your first demo is ready", with **Download the video**,
+**Download the GIF** and **Copy readme Markdown**.
 
-In the made-up notes app, **Change the notes app and record again** shows what
-happens when an app changes: the search box gets a new id, the recording stops
-at the search step, and you [repair it](#repair-a-step-that-broke). **Put the
-app and story back** returns both to how they were before the trial.
+In the notes app, **Change the notes app and record again** renames the search
+box, so the recording stops at the search step for you to
+[repair](#repair-a-step-that-broke). **Put the app and story back** undoes the
+trial.
 
-If a tool is missing when you create a project, **Recording tools** lists what
-to install. Choose **Check again** once it's installed, then **Continue
-creation**. From the terminal, `reshoot create --resume --directory demo` does
-the same.
+If a tool is missing, **Recording tools** lists what to install. Choose
+**Check again**, then **Continue creation**, or run
+`reshoot create --resume --directory demo`.
 
 ## Find your way
 
-The line above the preview says where you are: unsaved fields, saved changes
-not in the video yet, a current preview, or a final ready to review. It
-highlights the next thing to do.
+The line above the preview highlights the next thing to do. The links under the header jump to Preview, Story, Cut, Look, Review and
+Download; **More tools** holds Compare, Audio, Screenshots, Tour and Recipes.
 
-Beside the preview, **This step** edits the step you chose. **Whole video**
-holds what applies to every step: **Starting recipes**, **Audio**,
-**Documentation screenshots**, **Clickable tour**, **Your cut** and **Style and
-exports**. Choosing a step goes back to **This step**.
-
-The links under the header jump to a section and open its tab. **More tools**
-holds the ones you need less often. Before the first recording, only the story
-and creation tools are shown.
+Beside the preview, **This step** edits the selected step. **Whole video**
+holds **Starting recipes**, **Audio**, **Documentation screenshots**,
+**Clickable tour**, **Your cut** and **Style and exports**.
 
 ## Choose a starting recipe
 
-Open **More tools**, then **Recipes**, to choose a useful starting pace and look.
+Under **More tools**, **Recipes**:
 
-| Recipe | For | Files |
-|---|---|---|
-| Feature highlight | One useful result, aiming for about 15 seconds with a quiet Focus look | MP4 and README GIF |
-| Task walkthrough | Several explained steps at a comfortable pace, aiming for about 45 seconds with a Paper look | MP4 and subtitles |
-| Release update | An opening, a demonstration and the result, aiming for about 25 seconds with a Midnight look | MP4 and README GIF |
+- **Feature highlight:** one result in about 15 seconds, Focus look, MP4 and GIF.
+- **Task walkthrough:** explained steps in about 45 seconds, Paper look, MP4 and subtitles.
+- **Release update:** opening, task and result in about 25 seconds, Midnight look, MP4 and GIF.
 
-Enter an optional title for new cards and choose **Apply recipe**. It changes
-holds, caption colours, the browser frame and export choices. Existing task
-actions, result checks, cut ranges and cards stay. Walkthrough and release
-recipes add an opening and closing only when there are no cards.
-
-The targets guide pacing: a simple task stays shorter, while app waits and
-narration may make it longer. **Undo** restores the previous settings.
-**Update preview** records the task with the new pacing before final review.
+Enter an optional card title and choose **Apply recipe**. It changes holds,
+caption colours, the frame and exports, and keeps your actions, checks, cut
+and cards.
 
 ## Change the story
 
-The filmstrip under the video shows the story's steps. Choose one to open its
-inspector beside the preview. Left and right arrow keys move between steps;
-Home and End choose the first or last. The inspector shows that step's last
-frame, result checks, caption, second line and hold.
+Choose a step in the filmstrip under the video, or use the arrow keys.
+**This step** shows its last frame, result checks and fields:
 
-- **Caption and second line:** change them and leave the field. They're saved
-  to `storyboard.toml`, and the step says the change isn't in the video yet.
-- **Hold result (seconds):** how long the result stays on screen. Raise it
-  when a caption needs more reading time.
-- **Narration:** open it under a step, write **Spoken words** and choose
-  **Save narration**. **Audition saved line** plays it without starting the
-  app. Clear the words and save to remove the line.
-  Optional [Kokoro voices](install.md#local-neural-narration) appear in the
-  voice selector after installation; restart Studio if it was already open.
+- **Caption** and second line: saved when you leave the field.
+- **Hold result (seconds):** how long the result stays on screen.
+- **Narration:** write **Spoken words** and choose **Save narration**.
+  **Audition saved line** plays it. Clear the words and save to remove it.
+  [Kokoro voices](install.md#local-neural-narration) appear after installing;
+  restart the studio if it was open.
 
-Choose a step's frame, a mark on the timeline or one of its fields to select
-it. **Editing step** above the preview keeps that step named while you work.
-**Play selected step** plays it; **Edit this step** returns to its fields.
-Saved changes say when an update is still needed. The shown video keeps its
-recorded words until you update it.
+**Play selected step** plays it.
 
 ### Show a changed step
 
-Open **Change actions by showing them** in the selected step. Choose
-**Replace this step’s actions**, or **Add step after this**. The ending offers
-**Add step before ending** so the new action appears inside the usual cut.
+Open **Change actions by showing them** and choose **Replace this step’s
+actions** or **Add step after this** (**Add step before ending** on the last
+step). Chrome opens and replays the earlier steps. Do just the new actions
+with demo data, using **Check result** for the result, then choose **Done**.
+Review the draft and choose **Use these actions** or **Discard draft**.
+Replacing keeps the step's words, timing and result checks.
 
-Chrome opens with a fresh profile and replays the earlier actions and checks.
-For an added step it also replays the selected step. Show just the new actions
-using demo data, then choose **Done** in the recording toolbar. Closing Chrome
-or cancelling keeps the story unchanged.
-
-The studio shows a separate draft with the proposed changes. Replacing keeps
-the step's words, timing and every existing result check; adding keeps all
-existing steps. **Check result** adds an explicit check for the demonstrated
-result. Review the changes, then choose **Use these actions** or **Discard
-draft**. **Undo** restores an applied edit. Drafts stay under the project's
-ignored `takes/demonstrations/` folder.
-
-**Update preview** records the complete task to verify the saved actions before
-final review. The previous video stays available. If the project changed during
-the demonstration, keep those files and record again. If an earlier check fails,
-fix that step first. For a paused creation, choose **Continue creation** after
-applying the draft.
-
-Step demonstrations support the recorder's simple page actions. Change iframe,
-popup, file-selection, drop, password and privacy-blur settings in the story
-file. A custom cut can leave out a newly added step; include it under **Your cut**.
+Change iframes, popups, file selection, drops, passwords and blurs in the story
+file. Add a new step to a custom cut under **Your cut**.
 
 ### See layout changes as you edit
 
-With a recording that has editable captions, the studio shows a **layout
-still** when you choose a step or edit its caption, caption colours, browser
-frame or crop. **Preview shape** chooses the main video or one of its exports.
-Draft words and crop positions can be previewed before saving.
-
-The still uses the recorded step with the caption drawing, window frame and
-export geometry used by the video. **Show recorded video** returns to playback;
-**Play selected step** does the same. Update preview makes the edited video.
-Use playback to check timing, transitions, title cards, narration and audio.
-A layout still does not record the app again or approve the final.
-
-If a value is invalid, correct it or reset the unsaved edit. The previous
-recording is kept while the still updates. Some older recordings need a fresh
-preview before layout stills are available.
+Editing a caption, colours, frame or crop shows a **layout still** of the
+step as the video will draw it. **Preview shape** picks the main video or an
+export; **Show recorded video** returns to playback.
 
 ### Correct a failed result check
 
-When a check fails, the studio explains what it expected and what appeared.
-If the expected result is right, fix the app or its demo data. If the expected
-result is wrong, change the expected count, text, field value, address or
-ticked state and choose **Save expected result**. The control and neighboring
-checks stay the same. Choose the continuation named on the page to verify it.
-Change a check's target or kind in `storyboard.toml`.
-
-If the check does not prove anything useful, open **Remove a check that is
-not needed**, then choose **Remove this check**. **Undo** restores a correction
-or removal. A saved correction still needs a new preview to pass.
+The studio shows what a failed check expected and what appeared. If the
+expectation is right, fix the app or data; if not, change it and choose
+**Save expected result**. If the check proves
+nothing useful, open **Remove a check that is not needed** and choose
+**Remove this check**. Change a check's target or kind in `storyboard.toml`.
 
 ## Update the preview, then make the final
 
-**Update preview** makes a new preview and chooses the quickest way:
+**Update preview** re-cuts the recording in seconds after a change to
+captions, the look, the cut or audio levels. After a change to actions, result
+checks, holds, narration, the recording size or declared `inputs`, it records
+the task again. **Cancel update** keeps the previous video.
 
-- Changes to captions, the look, the cut or audio levels reuse the recording.
-  This takes seconds.
-- Changes to actions, result checks, holds, narration, the recording size or
-  declared demo `inputs` record the task again.
+**Record app again** records the whole task, for a change the studio can't
+see, such as to a database. **Record from here**, on
+a step, records from that step on.
 
-It says which it did, then shows the new run. **Cancel update** stops it and
-keeps the previous video. Editing waits while an update is running.
-
-**Record app again** always records the whole task. Use it after a change the
-studio can't see, such as a change to a running app or its database.
-
-**Record from here**, on a step, records from that step on, replaying the
-earlier steps without recording them. A step whose actions, checks or hold
-changed since the recording says "Changed since this recording."
-
-When the preview looks right, **Make final** records the whole run at full
-size. A preview is for looking at; accept a final.
+When the preview looks right, **Make final** records the full-size run you accept.
 
 ## Undo, and edits made elsewhere
 
-**Undo** and **Redo** cover every change you save in the studio, including a
-style, a cut, a repair or a screenshot. They keep up to 50 changes.
+**Undo** and **Redo** cover every saved change, up to 50, and survive a restart.
 
-The history survives a restart. When the files still match, the studio keeps
-your Undo and Redo automatically so you can carry on editing.
-
-You or an agent can edit the files while the studio is open. When you come
-back to the page, it offers **Reload project**. If a field won't save, fix it or
-choose **Reset unsaved edits** to reload the saved project.
-
-If your files differ from saved editing history, the studio lists the changed
-files and keeps them. **Download saved source copy** gives you the files as the studio last
-saved them, so you can compare and copy over what you want by hand.
-Choose **Start with current files** to begin a new history with those files.
-The previous history stays in a local archive.
+If the files change while the studio is open, it offers **Reload project**.
+If a field won't save, choose **Reset unsaved edits**. If the files no longer
+match the studio's history, **Download saved source copy** gives its last
+saved files, and **Start with current files** begins a new history.
 
 ## Change the look
 
-Open **Style and exports** once the story works.
+Open **Style and exports**:
 
-- **Visual styles:** Focus keeps the app large; Midnight and Paper put it in a
-  frame. **Save style** keeps the current look by name in `styles.toml`.
-  **Download current style** makes a file that **Import a style** applies in
-  another project.
-- **Caption look:** top or bottom, background and text colours. Colours are
-  hex values, such as `#ffffff`.
-- **Title cards:** add an opening or closing card, reword it, set its seconds
-  and colours, or remove it.
-- **Frame:** put the app in a browser window, on a background colour or a
-  two-colour gradient.
-- **Exports:** change, add or remove an export by its preset, such as
-  `readme` or `linkedin`. Each export is shown in its own shape, with its size
-  and the limits of the place its preset is for. Each export is also added to
-  the scan.
+- **Visual styles:** Focus keeps the app large; Midnight and Paper frame it.
+  **Save style** keeps the look by name in `styles.toml`; **Download current
+  style** makes a file for **Import a style** in another project.
+- **Caption look:** top or bottom, and hex colours such as `#ffffff`.
+- **Title cards:** add, reword, time, colour or remove an opening or closing card.
+- **Frame:** a browser window, on a colour or a two-colour gradient.
+- **Exports:** change, add or remove an export by preset, such as `readme`.
 
-The look, cards, frame and exports are saved to `storyboard.toml` and
-`edit.toml`, so a style keeps working without the style file.
-[How the videos look](look.md) shows each setting in pictures.
+[How the videos look](look.md) shows each setting.
 
 ### Fit an export to where it's shown
 
 Under each export:
 
-- **Framing:** Fit keeps the whole video and adds space around it. Crop fills
-  the shape and can cut off part of the video. Click the crop guide, or set
-  **Horizontal** and **Vertical position (%)**, to aim the crop.
-- **Viewing width (px):** the width people will watch at. It doesn't change
-  the file, only how the studio judges text size.
+- **Framing:** Fit adds space around the video; Crop fills the shape and can
+  cut part off. Click the crop guide, or set **Horizontal** and **Vertical
+  position (%)**.
+- **Viewing width (px):** the width people watch at, used to judge text size.
 
 Choose **Save framing**, then **Update preview**. **Inspect at viewing size**
-shows the export at that width, with hints about text that may be too small
-or a crop that cuts off a caption or a result. The hints are a guide: look at
-the export yourself.
-
-If the app's text is too small, **Recording view** records the task again at a
-compact or portrait size. A different layout may need a step repaired.
+shows the export at that width, with hints about small text or a bad crop. If the app's text is too small, **Recording
+view** records again at a compact or portrait size; a step may then need repair.
 
 ## Balance the sound
 
-Open **Audio** to choose a **Voice** and a **Music track** from the project
-folder. **Narration level** and **Music level** are percentages: 100% keeps the
-original level and 0% mutes it. **Lower music while narration speaks** keeps the
-voice clear. Choose **Save balance**, then **Update preview**, and listen to the
-MP4.
-
-The default voice is macOS `say`, or `espeak-ng` elsewhere. A custom voice is a
-command you set in the storyboard, which runs with your permissions.
+In **Audio**, choose a **Voice** and a **Music track**.
+**Narration level** and **Music level** are percentages; 0% mutes.
+**Lower music while narration speaks** keeps the voice clear. Choose **Save
+balance**, then **Update preview**. The default voice is macOS `say`, or
+`espeak-ng` elsewhere.
 
 ## Trim and arrange the video
 
-**Your cut** lists the parts of the video: recorded clips and title cards.
+**Your cut** lists the clips and title cards.
 
-- Choose a clip's **From step** and **Through step (included)**, then **Save
-  range**. Through includes that step's result hold.
-- **Earlier** and **Later** move a part, **Duplicate** repeats it, and
-  **Remove** leaves it out. **Add clip to end** adds another range.
+- Choose a clip's **From step** and **Through step (included)**, then **Save range**.
+- **Earlier** and **Later** move a part, **Duplicate** repeats it, **Remove**
+  leaves it out and **Add clip to end** adds another range.
 
-The recording still runs the whole task and all its checks; the cut only
-chooses what the video shows. Choose **Update preview**, then **Play part** to
-watch each part. Steps left out say **not in this cut**.
+Every step and check still runs. After **Update preview**, **Play part**
+plays each part.
 
 ## Grow it into a fuller demo
 
-Expand a working clip only when each extra part helps the viewer. Write the
-audience, starting state and visible result in `BRIEF.md`, and decide whether
-the video shows why a feature matters or how to use it. A product demo leads
-with the result and keeps setup short. A tutorial includes the steps a viewer
-must repeat and holds menus and result text long enough to read.
-
-| Part | Show | Result check |
-|---|---|---|
-| Start | A list with several demo notes | None: it sets the scene |
-| Create | Add "Prepare the release notes" | The saved note appears |
-| Find | Search for "release" | Only the matching note remains |
-| Finish | Hold the result and say what to do next | The result stays readable |
-
-Keep each step small enough to record again on its own, with a stable ID. Add
-an opening or closing card under **Title cards**, and narration only when it
-explains something: the video should still make sense muted. The **Task
-walkthrough** and **Release update** recipes are good starting points. To have
-an agent do it:
+Add a part only when it helps the viewer. A product demo leads with the
+result; a tutorial holds each step long enough to repeat. Keep each step small,
+with a stable ID, and the video clear when muted. Start from the **Task
+walkthrough** or **Release update** recipe, or ask an agent:
 
 ```text
 Expand the existing demo/ into a short tutorial of creating an item and finding
@@ -290,122 +174,76 @@ Inspect previews, record a fresh final, and show the MP4 and README GIF.
 ## Make screenshots for docs
 
 Choose **Use for docs** beside a step with result checks. Write its **Alt
-text**, a file name, and a maximum width if you want one, then **Save
-screenshot**. **Crop** lets you drag a rectangle on the page; **Use whole
-captured page** removes the crop.
-
-After **Update preview**, the run has a PNG of that step's result. It's made
-again on every run, scanned and reviewed with the video, so it stays current.
-It shows the page as recorded, without the video's captions, zoom or frame.
-Check the PNG and its alt text before accepting.
+text**, a file name and an optional maximum width, then **Save screenshot**.
+**Crop** lets you drag a rectangle; **Use whole captured page** removes it.
+Every run then makes a PNG of that step's result, without captions, zoom or
+frame, and scans it with the video.
 
 ## Make a clickable tour
 
-Open **Clickable tour**, give it a title and a file name, and choose **Create
-from checked steps**. Each step shows a checked result, with a title, an
-explanation and alt text.
-
-- **Earlier**, **Later**, **Add step** and **Remove step** shape it.
-- **Click marker:** click the image to place a numbered marker that the viewer
-  clicks to go on. **Show a click marker** turns it on or off.
-
-After **Update preview**, **Open walkthrough** opens the tour and **Download
-HTML** saves it. It's one HTML file that works offline, with keyboard
-navigation. It's made again on every run and scanned with the video.
+Open **Clickable tour**, give it a title and file name, and choose **Create
+from checked steps**. Give each step a title, explanation and alt text.
+**Earlier**, **Later**, **Add step** and **Remove step** shape it. Click the
+image to place a numbered **click marker**; **Show a click marker** turns it
+on or off. After **Update preview**, **Open walkthrough** opens it and
+**Download HTML** saves the single offline file.
 
 ## Compare with an earlier recording
 
-Open **More tools**, then **Compare**. Choose **Earlier recording**; an accepted
-run is offered first. Each side names its recording and links to its own review.
-
-**Watch the exports** shows an exported MP4 or MOV from each recording. Choose
-an export on each side, then **Play both** or **Pause both**. **Listen to**
-chooses one side's audio or mutes both. The videos start together and keep
-their own timing.
-
-Choose **Step in the cut** to seek to that step on both sides. **Play step**
-plays each appearance to its own end. Repeated appearances are paired by their
-order in each cut; a side says when an appearance is absent. Older recordings
-without saved cut timing still play with the video controls.
-
-Below the videos, checked result frames show added, removed and changed steps.
-These are the captured pages before later captions or edits. Comparing neither
-accepts a recording nor switches the current recording when a newer one arrives.
+Open **More tools**, then **Compare**, and choose an **Earlier recording**; the
+accepted run is offered first. Under **Watch the exports**, choose an export on
+each side, then **Play both** or **Pause both**. **Listen to** picks a side's
+audio. **Step in the cut** seeks both sides to a step, and **Play step** plays
+it. Below, checked result frames show added, removed and changed steps.
 
 ## Repair a step that broke
 
-When the app changes and a step can't find its control, the studio keeps the
-last working video and shows the **Failure frame**.
+When a step can't find its control, the studio shows the **Failure frame**:
 
-- **Use "Search notes"**, named after the control it found, appears when
-  reshoot can tell what the control became: one that goes to the same place,
-  has the same id, or sits where the old one was in the last recording that
-  worked. It replays the earlier steps and checks the control before changing
-  the step. When it can't tell, the message lists the controls of that kind
-  the page has now.
-- **Choose replacement in app** opens a fresh browser at the broken step. Click
-  the control, then confirm it. Clicking it there doesn't press it.
+- **Use "<name>"** appears when reshoot can tell what the control became. It
+  checks the control on the current app, then changes how the step finds it.
+- **Choose replacement in app** opens a browser at the broken step. Click the
+  control there, which doesn't press it, and confirm.
 
-For a failed **result check**, [review and correct its expected result](#correct-a-failed-result-check).
-
-A repair changes only how the step finds its control. Its action and expected
-result stay the same. Choose **Update preview** to check the whole task again.
-If the result itself is wrong, fix the app, the demo data or the story, not
-the check.
+The action and expected result stay the same. Then choose **Update preview**.
 
 ## Review and accept
 
-Accepting says two things: the video shows the task clearly, and nothing in it
-should stay private. A clean scan decides neither; you do. Open **Review this
-recording**:
+Accepting says the video shows the task clearly and nothing in it is private.
+A clean scan decides neither. Open **Review this recording**:
 
-1. Watch the final MP4 and each export to the end. Check that captions name
-   the outcome, text fits, typing is legible and the result stays on screen.
-   Read the subtitles, and check narration against the picture.
-2. Open **Inspect scan sheets** and look at each sheet at full size. Each sheet
-   holds up to four labelled images, such as `1-1` and `1-2`; anything the
-   scan flagged comes first. Look for names, accounts, keys, file paths or
-   people that shouldn't be there. **What the scan found** marks each finding
-   on the timeline.
+1. Watch the final MP4 and each export to the end: captions, text size, typing,
+   the result, subtitles and narration.
+2. Open **Inspect scan sheets** and look at each sheet at full size, flagged
+   images first, for names, accounts, keys, file paths or people.
+   **What the scan found** marks each finding on the timeline.
 3. Choose whether each finding may be shared, tick that you watched
-   everything, and accept or reject the run.
+   everything, and accept or reject.
 
-This does what `reshoot accept` does, and writes
-[`demo/accepted/`](publish.md#the-accepted-run). The studio accepts only the
-run shown on the page, and only when every saved change is in it. A preview
-can't be accepted; make a final first.
-
-If something must not be shared, reject the run. Then fix the demo data or the
-story and record again: the rejected video still shows the problem.
+This writes [`demo/accepted/`](publish.md#the-accepted-run). If something is
+private, reject the run, fix the data or story, and record again.
 
 ## Download
 
-**Download all exports** gives you a ZIP of the shown run's videos, GIFs,
-screenshots, tour and subtitles. It includes the Markdown for each image and a
-list of the files with their review status. It leaves out your project files
-and logs. **Download individual files** offers each one alone. Downloading
-doesn't accept or publish anything.
+**Download all exports** gives a ZIP of the run's videos, GIFs, screenshots,
+tour, subtitles and Markdown. **Download individual files** offers each alone.
 
 ## The same work from the terminal
 
-Each studio change has a command. They take `--project demo`, and the numbers
-for parts, takes, exports and steps start at 1. Run `reshoot recut demo/latest`
-afterwards to see a change on the same recording, or `reshoot preview
-demo/reshoot.toml` to record again.
+Commands take `--project demo` and number parts, exports and steps from 1.
+Run `reshoot recut demo/latest` or `reshoot preview demo/reshoot.toml` after.
 
 | In the studio | Command |
 |---|---|
-| Visual styles | `reshoot style list`, `reshoot style apply midnight`, `reshoot style save "Launch look"` |
-| Your cut | `reshoot sequence list`, `reshoot sequence range 1 --from add --through search` |
-| Framing and viewing width | `reshoot frame set 1 --fit crop --x 50 --view-width 390`, `reshoot frame check demo/latest` |
+| Visual styles | `reshoot style list`, `style apply midnight`, `style save "Launch look"` |
+| Your cut | `reshoot sequence list`, `sequence range 1 --from add --through search` |
+| Framing | `reshoot frame set 1 --fit crop --x 50 --view-width 390`, `frame check demo/latest` |
 | Recording view | `reshoot frame record --size 640x480@2` |
-| Narration and balance | `reshoot audio set --beat search --text '...'`, `reshoot audio audition search` |
+| Audio | `reshoot audio set --beat search --text '...'`, `audio audition search` |
 | Screenshots | `reshoot screenshot set search-result --beat search --alt '...'` |
-| Clickable tour | `reshoot tour create --title '...'`, `reshoot tour set 1 --text '...'` |
+| Clickable tour | `reshoot tour create --title '...'`, `tour set 1 --text '...'` |
 | Repair | `reshoot repair RUN`, then `--apply` or `--pick` |
-| Demonstrate a step | `reshoot step record search`, then `reshoot step show DRAFT` and `reshoot step apply DRAFT` |
-| Accept | `reshoot accept demo/latest` |
-| Copy the exports | `reshoot export demo/latest --directory docs/demo` |
+| Show a changed step | `reshoot step record search`, `step show DRAFT`, `step apply DRAFT` |
 
 [Commands](commands.md) lists every option, and [the project
-reference](projects.md) every field the studio writes.
+reference](projects.md) every field.

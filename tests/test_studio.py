@@ -309,6 +309,9 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             page.click('#cancel')
             page.wait_for_function("document.getElementById('job-title').textContent.includes('cancelled')", timeout=30000)
             assert page.locator('.status').inner_text() == previous
+            page.reload()
+            page.wait_for_timeout(1000)
+            assert not page.locator('#job').is_visible()  # a finished update leaves no stale progress box
             browser.close()
     finally:
         httpd.shutdown()

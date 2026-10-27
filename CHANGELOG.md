@@ -4,6 +4,13 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Fixed
+
+- After an update finishes, the studio no longer keeps showing "Loading the
+  new run..." with an empty player each time the page opens.
+
 ## 0.3.10 (2026-10-27)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

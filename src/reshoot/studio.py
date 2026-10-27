@@ -1729,7 +1729,7 @@ body[data-focused] .beat[hidden] { display:none }
 .shape .media { height:170px; max-width:100%; background:#000; border-radius:8px; overflow:hidden }
 .shape img, .shape video { width:100%; height:100%; object-fit:contain; border-radius:0 }
 .shape figcaption { font-size:12px; color:var(--muted); margin-top:6px; max-width:300px } .fits { color:var(--ok) }
-#job { margin:16px 20px 0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px }
+#job { margin:16px 20px 0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px } #job[hidden], #job-take[hidden] { display:none }
 #job-take { max-width:640px; margin:6px 0 }
 #job-log { max-height:220px; overflow:auto; font-size:12px; white-space:pre-wrap; margin:6px 0 0 }
 #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:8px 14px; border-radius:8px; opacity:0; transition:opacity .2s; pointer-events:none; max-width:calc(100% - 32px) }
@@ -2307,6 +2307,8 @@ SCRIPT = '''(() => {
     });
     const what = job.kind === 'from' ? `Recording from ${job.beat}` : names[job.kind];
     if (job.running) { title.textContent = what + '...'; take.hidden = true; auditionPlayer.pause(); auditionPlayer.hidden = true; return setTimeout(watch, 700); }
+    // A finished update this page already shows needs no box; an audition or a partial take stays to play.
+    if (job.n <= +document.body.dataset.seen && !['audition', 'from'].includes(job.kind)) { box.hidden = true; return; }
     if (job.kind === 'audition') {
       title.textContent = job.cancelled ? 'Narration audition cancelled.' : job.code === 0 ? `Narration for ${job.beat}. Listen before updating the preview.` : 'Narration audition failed. Your saved story and previous recording are kept; see progress details.';
       if (job.audio) {

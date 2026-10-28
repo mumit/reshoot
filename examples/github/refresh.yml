@@ -65,8 +65,9 @@ jobs:
             echo
             cat "$RUNNER_TEMP/comparison.md"
             echo
-            echo "**Before merging:** watch the video to the end and look at each finding above. The full scan sheets"
-            echo "and review page are in the \`reshoot-review\` artifact of the workflow run."
+            # GitHub keeps each line break in a pull request body, so each paragraph is one echo.
+            echo "**Before merging:** watch the video to the end and look at each finding above. The full scan sheets and review page are in the \`reshoot-review\` artifact of the workflow run."
+            echo
             echo "Merging accepts this recording. Close the pull request to keep the current one."
           } > "$RUNNER_TEMP/body.md"
 

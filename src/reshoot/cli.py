@@ -10,7 +10,7 @@ class Examples(argparse.HelpFormatter):
 
 
 # The order a newcomer meets the commands in; reshoot --help lists them this way.
-GROUPS = [('Start here', ['create', 'studio', 'doctor']),
+GROUPS = [('Start here', ['create', 'studio', 'doctor', 'upgrade']),
           ('Record and review', ['preview', 'run', 'recut', 'runs', 'review', 'accept', 'export', 'compare', 'repair']),
           ('Shape the video', ['step', 'recipe', 'style', 'frame', 'audio', 'sequence', 'screenshot', 'tour']),
           ('Lower level', ['init', 'rec', 'web', 'window', 'edit', 'check', 'gif', 'last-change', 'skills'])]
@@ -180,6 +180,16 @@ def main(argv=None):
     p.add_argument('--json', action='store_true', help='print paths, versions and detectors as JSON')
     p.add_argument('--probe', action='store_true', help='also test capture/encoding/text recognition using only temporary synthetic data')
     p.set_defaults(run=project.doctor)
+    p = sub.add_parser('upgrade', help='install the newest reshoot, or a chosen version, the way this one was installed',
+                       description='Install the newest reshoot from PyPI, keeping the extras you installed, such as '
+                       'browser or kokoro. It says what it will run and asks first. It runs uv or pipx for those '
+                       'installs, and only says what to do for a source checkout or pip. Projects and their skills '
+                       'are left as they are.\n\n'
+                       '    reshoot upgrade\n'
+                       '    reshoot upgrade 0.3.11 --yes   # an exact version, such as to go back', formatter_class=Examples)
+    p.add_argument('version', nargs='?', help='an exact version to install instead of the newest')
+    p.add_argument('--yes', action='store_true', help="upgrade without asking, such as in a script")
+    p.set_defaults(run=project.upgrade)
     p = sub.add_parser('init', help='create a demo project: the made-up notes example, or a draft for your app',
                        description='Create a demo project: BRIEF.md, storyboard.toml, edit.toml, reshoot.toml and a '
                        '.gitignore that keeps recordings out of git.\n\n'

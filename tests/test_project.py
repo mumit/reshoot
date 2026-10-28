@@ -70,11 +70,84 @@ def test_the_app_log_stays_out_of_the_output_and_shows_when_the_app_stops(tmp_pa
 def test_doctor_says_when_a_newer_release_is_out(monkeypatch, capsys):
     monkeypatch.setattr(project, 'latest_release', lambda: '99.0.0')
     project.doctor(SimpleNamespace(config=None, json=False))
-    assert "99.0.0 is out: uv tool install --upgrade 'reshoot[browser]'" in capsys.readouterr().out
+    assert '99.0.0 is out: reshoot upgrade' in capsys.readouterr().out
     monkeypatch.setattr(project, 'latest_release', lambda: None)
     project.doctor(SimpleNamespace(config=None, json=False))
     assert 'is out' not in capsys.readouterr().out
     assert project.release('0.10.0') > project.release('0.9.9') and project.release('weird') == ()
+
+
+def test_installation_reads_uv_and_pipx_records_and_spots_a_checkout(tmp_path, monkeypatch):
+    import importlib.metadata, sys
+    origin = {}
+    monkeypatch.setattr(importlib.metadata, 'distribution',
+                        lambda name: SimpleNamespace(read_text=lambda file: json.dumps(origin)))
+    monkeypatch.setattr(sys, 'prefix', str(tmp_path))
+    assert project.installation() == ('pip', None)
+    (tmp_path / 'pipx_metadata.json').write_text(json.dumps({'main_package': {'package_or_url': 'reshoot[browser,kokoro]'}}))
+    assert project.installation() == ('pipx', ['browser', 'kokoro'])
+    (tmp_path / 'uv-receipt.toml').write_text('[tool]\nrequirements = [{ name = "reshoot", extras = ["browser"], '
+                                              'specifier = "==0.3.11" }]\n')
+    assert project.installation() == ('uv', ['browser'])
+    origin.update(url='file:///src/reshoot', dir_info={'editable': True})
+    assert project.installation() == ('source', None)
+
+
+@pytest.fixture
+def upgrading(monkeypatch, tmp_path):
+    """An upgrade from 0.3.12 with uv, PyPI and the installed command stubbed out; returns the commands run."""
+    import importlib.metadata
+    ran = []
+    monkeypatch.setattr(importlib.metadata, 'version', lambda name: '0.3.12')
+    monkeypatch.setattr(project, 'latest_release', lambda: '0.3.13')
+    monkeypatch.setattr(project, 'installation', lambda: ('uv', ['browser', 'kokoro']))
+    monkeypatch.setattr(project.shutil, 'which', lambda name: '/bin/' + name)
+    def run(command, **kw):
+        ran.append(command)
+        installed = next((part.split('==')[1] for part in ran[0] if '==' in part), '0.3.13')
+        return SimpleNamespace(returncode=0, stdout=installed + '\n', stderr='')
+    monkeypatch.setattr(project.subprocess, 'run', run)
+    monkeypatch.chdir(tmp_path)
+    return ran
+
+
+def test_upgrade_keeps_the_extras_and_checks_the_new_version(upgrading, tmp_path, capsys):
+    (tmp_path / '.claude/skills/reshoot-demo').mkdir(parents=True)
+    assert project.upgrade(SimpleNamespace(version=None, yes=True)) == 0
+    assert upgrading[0] == ['uv', 'tool', 'install', '--upgrade', 'reshoot[browser,kokoro]']
+    assert upgrading[1][1:] == ['--version']
+    out = capsys.readouterr().out
+    assert 'reshoot 0.3.12 to 0.3.13' in out and 'CHANGELOG.md' in out and 'may change project files' not in out
+    assert 'reshoot 0.3.13 is installed. Restart any open studio' in out
+    assert 'reshoot skills claude --directory . --replace' in out
+    upgrading.clear()
+    assert project.upgrade(SimpleNamespace(version='0.4.0', yes=True)) == 0
+    assert upgrading[0] == ['uv', 'tool', 'install', '--force', 'reshoot[browser,kokoro]==0.4.0']
+    assert 'may change project files' in capsys.readouterr().out
+
+
+def test_upgrade_asks_first_and_runs_nothing_it_cannot_check(upgrading, monkeypatch, capsys):
+    import sys
+    monkeypatch.setattr(sys.stdin, 'isatty', lambda: False, raising=False)
+    with pytest.raises(ValueError, match='--yes'):
+        project.upgrade(SimpleNamespace(version=None, yes=False))
+    monkeypatch.setattr(project, 'latest_release', lambda: '0.3.12')
+    assert project.upgrade(SimpleNamespace(version=None, yes=True)) == 0
+    assert 'already the newest' in capsys.readouterr().out
+    monkeypatch.setattr(project, 'latest_release', lambda: None)
+    with pytest.raises(ValueError, match="PyPI couldn't be reached"):
+        project.upgrade(SimpleNamespace(version=None, yes=True))
+    for how, said in (('source', 'git pull'), ('pip', "pip install --upgrade 'reshoot==0.3.11'")):
+        monkeypatch.setattr(project, 'installation', lambda how=how: (how, None))
+        assert project.upgrade(SimpleNamespace(version='0.3.11', yes=True)) == 2
+        assert said in capsys.readouterr().out
+    assert upgrading == []
+
+
+def test_upgrade_says_when_the_new_version_did_not_arrive(upgrading, monkeypatch, capsys):
+    monkeypatch.setattr(project.subprocess, 'run', lambda command, **kw: SimpleNamespace(returncode=0, stdout='0.3.12\n', stderr=''))
+    assert project.upgrade(SimpleNamespace(version=None, yes=True)) == 2
+    assert "says '0.3.12', not 0.3.13" in capsys.readouterr().out
 
 
 def test_external_app_scaffold_is_valid_python(tmp_path):

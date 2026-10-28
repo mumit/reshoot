@@ -18,7 +18,7 @@ def doctor(a):
     else:
         installed, latest = result['reshoot']['version'], result['reshoot']['latest']
         newer = latest and release(latest) > release(installed)
-        print(f'reshoot: {installed}' + (f"; {latest} is out: uv tool install --upgrade 'reshoot[browser]'" if newer else ''))
+        print(f'reshoot: {installed}' + (f'; {latest} is out: reshoot upgrade' if newer else ''))
         setup.print_report(result)
         if not getattr(a, 'probe', False):
             import shlex
@@ -45,6 +45,77 @@ def release(text):
         return tuple(int(part) for part in text.split('.')[:3])
     except (AttributeError, ValueError):
         return ()
+
+
+CHANGELOG = 'https://github.com/mumit/reshoot/blob/main/CHANGELOG.md'
+
+
+def installation():
+    """How this reshoot was installed: ('uv', extras), ('pipx', extras), ('source', None) or ('pip', None)."""
+    import sys
+    import tomllib
+    from importlib.metadata import distribution
+    try:
+        origin = json.loads(distribution('reshoot').read_text('direct_url.json') or '{}')
+    except Exception:
+        origin = {}
+    if 'dir_info' in origin:  # installed from a folder, editable or not
+        return 'source', None
+    prefix = Path(sys.prefix)
+    if (prefix / 'uv-receipt.toml').is_file():
+        wanted = tomllib.loads((prefix / 'uv-receipt.toml').read_text())['tool']['requirements']
+        return 'uv', next((item.get('extras', []) for item in wanted if item.get('name') == 'reshoot'), [])
+    if (prefix / 'pipx_metadata.json').is_file():
+        spec = json.loads((prefix / 'pipx_metadata.json').read_text())['main_package'].get('package_or_url', '')
+        return 'pipx', re.findall(r'[\w-]+', spec.partition('[')[2].partition(']')[0])
+    return 'pip', None
+
+
+def upgrade(a):
+    """Install the newest reshoot, or the one asked for, the way this one was installed."""
+    import sys
+    from importlib.metadata import version
+    installed, target = version('reshoot'), a.version or latest_release()
+    if not target:
+        raise ValueError(f"PyPI couldn't be reached to find the newest reshoot. To choose one: reshoot upgrade {installed}")
+    if target == installed:
+        print(f'reshoot {installed} is already ' + ('installed.' if a.version else 'the newest.'))
+        return 0
+    how, extras = installation()
+    package = 'reshoot' + (f"[{','.join(extras)}]" if extras else '') + (f'=={a.version}' if a.version else '')
+    command = {'uv': ['uv', 'tool', 'install', '--force' if a.version else '--upgrade', package],
+               'pipx': ['pipx', 'install', '--force', package] if a.version else ['pipx', 'upgrade', 'reshoot']}.get(how)
+    if how == 'source':
+        print('This reshoot runs from a source checkout. Update it there: git pull, then uv sync --extra browser.')
+        return 2
+    if command is None:
+        print(f"Upgrade this installation yourself: python -m pip install --upgrade '{package}'")
+        return 2
+    if not shutil.which(command[0]):
+        print(f'{command[0]} is not on PATH. Run this where it is: {" ".join(command)}')
+        return 2
+    print(f'reshoot {installed} to {target}, with: {" ".join(command)}\nWhat changed: {CHANGELOG}')
+    if release(target)[:2] != release(installed)[:2]:
+        print('A minor version before 1.0 may change project files or commands, so read what changed first.')
+    if not a.yes:
+        if not sys.stdin.isatty():
+            raise ValueError('pass --yes to upgrade without a question')
+        if input('Upgrade? [y/N] ').strip().lower() not in ('y', 'yes'):
+            print('Not upgraded.')
+            return 0
+    if subprocess.run(command).returncode:
+        print(f'The upgrade failed, so reshoot {installed} is still installed.')
+        return 2
+    found = subprocess.run([str(Path(sys.prefix) / 'bin' / 'reshoot'), '--version'], capture_output=True, text=True)
+    if found.returncode or found.stdout.strip() != target:
+        print(f'The upgrade finished, but reshoot --version says {found.stdout.strip() or found.stderr.strip()!r}, '
+              f'not {target}. Run reshoot doctor.')
+        return 2
+    print(f'reshoot {target} is installed. Restart any open studio to use it.')
+    for harness, folder in (('claude', '.claude'), ('codex', '.agents')):
+        if (Path.cwd() / folder / 'skills' / 'reshoot-demo').is_dir():
+            print(f'This project has reshoot skills; update them to match: reshoot skills {harness} --directory . --replace')
+    return 0
 
 
 NOTES_DATA = '''Use made-up data only. The bundled notes app resets when the page reloads.

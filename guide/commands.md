@@ -23,6 +23,8 @@ Commands that edit a project take `--project demo`.
 | `reshoot init demo --url URL` | Writes a draft for your app |
 | `reshoot doctor --config CONFIG` | Checks tools and detectors |
 | `reshoot doctor --config CONFIG --probe` | Also tries encoding, browser capture and OCR on made-up input; `--json` for structured output |
+| `reshoot upgrade` | Installs the newest release the way reshoot was installed, keeping its extras; asks first, `--yes` doesn't |
+| `reshoot upgrade 0.3.11` | Installs that exact version, such as to go back |
 | `reshoot recipe list` | Lists [starting recipes](studio.md#choose-a-starting-recipe) |
 | `reshoot recipe apply feature` | Applies one; `--title 'Words'` names new cards, `--dry-run` only describes it |
 

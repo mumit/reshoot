@@ -6,6 +6,13 @@ change project files or commands.
 
 ## Unreleased
 
+### Added
+
+- `reshoot upgrade` installs the newest reshoot the way it was installed,
+  keeping extras such as `kokoro`, after showing the command and asking.
+  `reshoot upgrade VERSION` installs an exact version. For a source checkout
+  or pip it says what to run instead. `reshoot doctor` now points to it.
+
 ### Fixed
 
 - In `examples/github/refresh.yml`, a refresh pull request now shows its own

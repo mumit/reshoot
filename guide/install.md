@@ -91,13 +91,21 @@ Then use `/reshoot:reshoot-demo`. Choose one route per project. The
 
 ## Upgrade and remove
 
-`reshoot doctor` says when a newer release is out.
+`reshoot doctor` says when a newer release is out. To install it:
 
 ```bash
-uv tool upgrade reshoot
+reshoot upgrade
 ```
 
-To change a pinned version, run `uv tool install --force` with the new one.
+It shows the command it will run and a link to what changed, then asks. It
+keeps the extras you installed, such as `kokoro`. `reshoot upgrade 0.3.11`
+installs an exact version, such as to go back. For a uv or pipx install it
+runs uv or pipx; for a source checkout or pip it says what to run. Restart an
+open studio afterwards.
+
+Before 0.3.13, use `uv tool install --upgrade 'reshoot[browser]'`, adding any
+other extras you use.
+
 Upgrading doesn't update the project's skill copies: run
 `reshoot skills codex --directory . --replace` (or `claude`), after committing
 any changes you made to them, since `--replace` discards them.

@@ -114,8 +114,8 @@ When you receive the prompt above:
 
 1. Read the [installation guide](install.md). Check `reshoot --version`, and
    reuse an installation only if it is the latest release, which
-   `reshoot doctor` reports. Otherwise run
-   `uv tool install --upgrade 'reshoot[browser]'` and install missing tools,
+   `reshoot doctor` reports. Otherwise run `reshoot upgrade --yes`, or
+   `uv tool install 'reshoot[browser]'` if it isn't installed, and install missing tools,
    within the owner's authorization and the harness's permissions. Do not
    bypass permission failures.
 2. Install the primary skills with `reshoot skills codex --directory .` or

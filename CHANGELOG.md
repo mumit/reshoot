@@ -4,6 +4,17 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Fixed
+
+- In `examples/github/refresh.yml`, a refresh pull request now shows its own
+  GIF and links to its own video. Before, every pull request linked to the
+  `reshoot/refresh` branch, so GitHub could show an older cached GIF, and an
+  earlier pull request showed the latest recording. Copy the new last step
+  into your workflow. The note at the end of the pull request also no longer
+  breaks in the middle of a sentence.
+
 ## 0.3.12 (2026-10-27)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

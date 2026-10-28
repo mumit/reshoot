@@ -78,7 +78,8 @@ jobs:
           path: demo/takes/ # change: your project's takes folder
           retention-days: 14
 
-      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+      - id: pr
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         if: steps.shoot.outputs.ok == 'true'
         with:
           branch: reshoot/refresh
@@ -88,3 +89,14 @@ jobs:
           commit-message: "docs: refresh the demo recording"
           title: Refresh the demo recording
           body-path: ${{ runner.temp }}/body.md
+
+      # Every refresh reuses the branch, so a link to it would show a later recording, or an old copy GitHub cached.
+      # Point this pull request at its own commit instead.
+      - if: steps.pr.outputs.pull-request-head-sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ steps.pr.outputs.pull-request-number }}
+          SHA: ${{ steps.pr.outputs.pull-request-head-sha }}
+        run: |
+          sed "s|/blob/reshoot/refresh/|/blob/$SHA/|g" "$RUNNER_TEMP/body.md" > "$RUNNER_TEMP/pinned.md"
+          gh pr edit "$PR" --body-file "$RUNNER_TEMP/pinned.md"

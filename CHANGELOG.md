@@ -4,7 +4,11 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
-## Unreleased
+## 0.3.13 (2026-10-27)
+
+Upgrade the project skills with `reshoot skills claude --directory . --replace`
+(or `codex`): they now need 0.3.13 and upgrade with `reshoot upgrade`. From
+now on, `reshoot upgrade` installs a new release for you.
 
 ### Added
 
@@ -21,6 +25,8 @@ change project files or commands.
   earlier pull request showed the latest recording. Copy the new last step
   into your workflow. The note at the end of the pull request also no longer
   breaks in the middle of a sentence.
+- The workshop build in `examples/tutorial/` keeps the stopped step's message
+  on screen while the narration reads it.
 
 ## 0.3.12 (2026-10-27)
 

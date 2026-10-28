@@ -271,7 +271,8 @@ class Workshop:
             await self.job(p,'[data-job=preview]',expected=None)
         await self.shoot.run('refresh',page,refresh)
         if not self.shoot.complete('failure'):
-            await page.locator('.failure').scroll_into_view_if_needed()
+            # The card's edge is already on screen, so scroll_into_view_if_needed would leave its message hidden.
+            await page.locator('.failure').evaluate("e=>e.scrollIntoView({block:'center'})")
         await self.shoot.run('failure',page)
         async def repair(p):await self.job(p,'[data-repair=apply]')
         await self.shoot.run('repair',page,repair)

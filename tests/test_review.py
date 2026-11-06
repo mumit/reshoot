@@ -328,6 +328,12 @@ def test_run_writes_a_github_job_summary_with_the_failed_beat(tmp_path, monkeypa
               'errors': ["beat 'search' failed: type target {css = '#q'} matched 0 elements"]}, tmp_path / 'run.json')
     text = summary.read_text()
     assert '### reshoot: failed' in text and "beat 'search' failed" in text
+    assert '- Scan:' not in text and '- Review:' not in text  # nothing was scanned or recorded to review
+    run.save({'ok': True, 'expectations_status': 'passed', 'expectations_count': 3, 'scan_status': 'passed',
+              'unchecked': 2, 'flagged': 0, 'review_status': 'pending'}, tmp_path / 'run.json')
+    text = summary.read_text()
+    assert '- Result checks: 3 of 3 passed' in text and '- Scan: passed, 2 items to look at, 0 flagged' in text
+    assert '- Review: pending' in text
 
 
 def test_compare_says_which_beats_changed_when_it_writes_a_file(tmp_path, capsys):

@@ -169,12 +169,14 @@ def job_summary(report, root):
     status, count = report.get('expectations_status', 'unverified'), report.get('expectations_count', 0)
     repairs = [failure for failure in report.get('repairs', []) if failure.get('message')]
     checks = (f'{count} of {count} passed' if status == 'passed' else
-              f'not all checked: {count} passed before the run stopped' if status == 'unverified' and repairs else f'{status} ({count})')
-    lines = [f"### reshoot: {'recorded' if report.get('ok') else 'failed'}", '',
-             f"- Result checks: {checks}",
-             f"- Scan: {report.get('scan_status')}, {report.get('unchecked') or 0} items to look at, "
-             f"{report.get('flagged') or 0} flagged",
-             f"- Review: {report.get('review_status')}"]
+              f'{count} passed before the run stopped' if status == 'unverified' and repairs else f'{status} ({count})')
+    lines = [f"### reshoot: {'recorded' if report.get('ok') else 'failed'}", '', f"- Result checks: {checks}"]
+    # A run that stopped scanned nothing and has nothing to review, so those lines would only look like a clean result.
+    if report.get('scan_status') not in (None, 'skipped'):
+        lines.append(f"- Scan: {report.get('scan_status')}, {report.get('unchecked') or 0} items to look at, "
+                     f"{report.get('flagged') or 0} flagged")
+    if report.get('ok'):
+        lines.append(f"- Review: {report.get('review_status')}")
     # A stopped step is said once, in words; the generic "web ... failed" and the raw error repeat it.
     lines += [f"- {step_name(failure['beat'])} stopped: it {failure['message']}" for failure in repairs]
     if not repairs:

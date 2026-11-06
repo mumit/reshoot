@@ -71,7 +71,9 @@ def test_suggestion_is_a_patch_git_applies_and_the_job_summary_shows_it(tmp_path
     before = data['board_path'].read_bytes()
     patch = repair.suggestion(data['root'])
     assert patch.startswith('--- a/storyboard.toml\n+++ b/storyboard.toml') and data['board_path'].read_bytes() == before
-    text = run.job_summary({'ok': False, 'repairs': [data['failure']]}, data['root'])
+    text = run.job_summary({'ok': False, 'expectations_status': 'unverified', 'expectations_count': 1,
+                            'repairs': [data['failure']]}, data['root'])
+    assert '- Result checks: 1 passed before the run stopped\n' in text
     assert "- Save stopped: it couldn't find the control matching #old." in text and '```diff\n' + patch in text
     subprocess.run(['git', 'init', '-q'], check=True)
     subprocess.run(['git', 'apply'], input=patch.encode(), check=True)

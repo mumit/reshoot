@@ -1,6 +1,6 @@
 [project]
 name = "reshoot"
-version = "0.3.13"
+version = "0.3.14"
 description = "Demo videos of web apps that check their own results, stop on the step a change breaks, and record again in CI"
 dynamic = ["readme"]
 license = "MIT"

@@ -4,7 +4,12 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
-## Unreleased
+## 0.3.14 (2026-11-06)
+
+Upgrade the project skills with `reshoot skills claude --directory . --replace`
+(or `codex`): they now need 0.3.14. To check each pull request, copy
+`examples/github/check.yml` into `.github/workflows/`, then accept a new run so
+the comparison has its result checks.
 
 ### Added
 

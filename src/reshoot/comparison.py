@@ -122,7 +122,7 @@ def evidence(run):
             result[key] = {'id': beat['id'], 'purpose': beat.get('purpose') or beat['id'],
                            'status': beat.get('status', 'unverified'), 'frame': frame, 'reason': reason,
                            'definition': beat.get('definition_sha256'), 'start': beat.get('start'), 'end': beat.get('end'),
-                           'source': str(source.resolve()),
+                           'source': str(source.resolve()), 'checks': beat.get('checks'),
                            'results': [{k: value for k, value in row.items() if k != 'at'} for row in checks]}
     return result
 
@@ -147,6 +147,7 @@ def model(project, current_id, current_binding, previous_id, previous_binding):
     identities['current']['videos'] = playback.exports(current, after)
     if identities['previous']['binding'] != previous_binding or identities['current']['binding'] != current_binding:
         raise ValueError('The scan changed while loading. Reload before comparing.')
+    from reshoot import review
     rows = []
     for key in dict.fromkeys([*before, *after]):
         old, new = before.get(key), after.get(key)
@@ -168,7 +169,8 @@ def model(project, current_id, current_binding, previous_id, previous_binding):
         rows.append({'beat': key, **sides, 'change': 'added' if old is None else 'removed' if new is None else 'matched',
                      'frame_changed': old['frame']['sha256'] != new['frame']['sha256'] if frames else None,
                      'definition_changed': old['definition'] != new['definition'] if old and new and old['definition'] and new['definition'] else None,
-                     'results_changed': old['results'] != new['results'] if old and new else None})
+                     'results_changed': old['results'] != new['results'] if old and new else None,
+                     'checks_changed': review.check_changes(old, new)})
     return {**identities, 'beats': rows, 'note': 'The paired videos show the rendered exports. The result frames below retain privacy masks and show the captured page before later captions, zoom, framing, cards or cuts. Inspect scan evidence in both review pages.'}
 
 

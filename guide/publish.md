@@ -82,7 +82,8 @@ the new recording for the owner.
    whether it may be shared: real names, email addresses, keys, other people's
    data. The scan points at likely problems; it doesn't prove a frame is safe.
 3. Read the comparison table. Small pixel changes are normal; a changed result
-   is not.
+   is not. Under "Result checks changed", make sure each removed check was
+   removed on purpose: a removed check no longer proves its step worked.
 4. Merge to accept. To ask for changes, comment and close it; the next refresh
    opens a new one.
 

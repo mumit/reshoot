@@ -1,7 +1,7 @@
 [project]
 name = "reshoot"
 version = "0.3.13"
-description = "Agent skills and recording tools for repeatable software demo videos"
+description = "Demo videos of web apps that check their own results, stop on the step a change breaks, and record again in CI"
 dynamic = ["readme"]
 license = "MIT"
 license-files = ["LICENSE"]

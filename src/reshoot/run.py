@@ -151,18 +151,46 @@ def save(report, path):
                 f.write(f"{name}={value if value is not None else 'unknown'}\n")
             f.write(f"report={path}\n")
     if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
-        # The job's summary page, so a failed beat is visible without reading the log.
-        lines = [f"### reshoot: {'recorded' if report.get('ok') else 'failed'}", '',
-                 f"- Result checks: {report.get('expectations_status', 'unverified')} ({report.get('expectations_count', 0)})",
-                 f"- Scan: {report.get('scan_status')}, {report.get('unchecked') or 0} items to look at, "
-                 f"{report.get('flagged') or 0} flagged",
-                 f"- Review: {report.get('review_status')}"]
+        # The job's summary page, so a failed beat is visible without reading the log. The same text is kept beside
+        # run.json for a workflow to post on a pull request.
+        text = job_summary(report, path.parent)
+        with open(summary, "a") as f:
+            f.write(text + '\n')
+        (path.parent / 'summary.md').write_text(text)
+        if out := os.environ.get("GITHUB_OUTPUT"):
+            with open(out, "a") as f:
+                f.write(f"summary={path.parent / 'summary.md'}\n")
+
+
+def job_summary(report, root):
+    """Markdown on what a run showed: its checks and scan, and for a stopped step why, with the suggested repair."""
+    from reshoot import repair
+    from reshoot.story import step_name
+    status, count = report.get('expectations_status', 'unverified'), report.get('expectations_count', 0)
+    repairs = [failure for failure in report.get('repairs', []) if failure.get('message')]
+    checks = (f'{count} of {count} passed' if status == 'passed' else
+              f'{count} passed before the run stopped' if status == 'unverified' and repairs else f'{status} ({count})')
+    lines = [f"### reshoot: {'recorded' if report.get('ok') else 'failed'}", '', f"- Result checks: {checks}"]
+    # A run that stopped scanned nothing and has nothing to review, so those lines would only look like a clean result.
+    if report.get('scan_status') not in (None, 'skipped'):
+        lines.append(f"- Scan: {report.get('scan_status')}, {report.get('unchecked') or 0} items to look at, "
+                     f"{report.get('flagged') or 0} flagged")
+    if report.get('ok'):
+        lines.append(f"- Review: {report.get('review_status')}")
+    # A stopped step is said once, in words; the generic "web ... failed" and the raw error repeat it.
+    lines += [f"- {step_name(failure['beat'])} stopped: it {failure['message']}" for failure in repairs]
+    if not repairs:
         lines += [f"- Error: {error}" for error in report.get('errors', [])]
+    diff = repair.suggestion(root) if repairs else None
+    if diff:
+        lines += ['', 'The suggested repair changes only that control. Look at the failure frame in the run\'s files first, '
+                  'then apply it with `git apply`, or with `reshoot repair` after recording the failure locally:', '',
+                  '```diff', diff.rstrip('\n'), '```']
+    else:
         for failure in report.get('repairs', []):
             for target in failure.get('candidates', []):
                 lines.append(f'- Suggested control for {failure["beat"]}: `' + redact(json.dumps(target)) + '`; apply explicitly and record again.')
-        with open(summary, "a") as f:
-            f.write('\n'.join(lines) + '\n\n')
+    return '\n'.join(lines) + '\n'
 
 
 def earlier(shoot, config):

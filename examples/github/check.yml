@@ -1,0 +1,84 @@
+# Records the demo on each pull request, as a check: it fails when a step stops or a result check fails, and keeps one
+# comment on the pull request up to date. A stopped step's comment says why and suggests the repair as a patch.
+# When the demo passes, it lists the result checks added or removed since the accepted run.
+#
+# Copy to .github/workflows/reshoot-check.yml in an app with a versioned demo project, and change the marked lines.
+# Pull requests from forks get a read-only token, so they see the job's summary instead of a comment.
+# Nothing is committed or published by this workflow, and a suggested repair changes nothing until someone applies it.
+name: Check the demo
+
+on:
+  pull_request:
+    paths:
+      - 'demo/**'                 # change: your demo project
+      - 'src/**'                  # change: your app's source
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Set up your app here, so that the [app] run command in demo/reshoot.toml works. For example:
+      # - uses: actions/setup-node@v4
+      #   with: { node-version: 22 }
+      # - run: npm ci
+
+      - id: shoot
+        uses: mumit/reshoot@916918a17980a9d5055b0613ef57e32f2b570268 # v0.3.13; update deliberately
+        with:
+          config: demo/reshoot.toml # change: your project
+
+      - name: Comment on the pull request
+        if: always() && steps.shoot.outputs.summary
+        continue-on-error: true # a fork's pull request can't be commented on
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          OK: ${{ steps.shoot.outputs.ok }}
+          SUMMARY: ${{ steps.shoot.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "<!-- reshoot check -->"
+            # GitHub keeps each line break in a comment, so each paragraph is one echo.
+            if [ "$OK" = "true" ]; then
+              echo "**The demo still works with this change.**"
+            else
+              echo "**This change stops the demo.** The run stopped on the step below instead of recording the wrong thing."
+            fi
+            echo
+            cat "$SUMMARY"
+            if [ "$OK" = "true" ] && [ -f demo/accepted/run.json ]; then # change: your project's accepted record
+              reshoot compare demo/accepted "$(dirname "$SUMMARY")" --out "$RUNNER_TEMP/comparison.json" --markdown "$RUNNER_TEMP/comparison.md" > /dev/null
+              echo
+              echo "### Compared with the accepted run"
+              echo
+              cat "$RUNNER_TEMP/comparison.md"
+            fi
+            echo
+            if [ "$OK" = "true" ]; then
+              echo "The video and scan sheets are in the \`reshoot-review\` artifact of [this run]($RUN_URL)."
+            else
+              echo "The failure frame is in the \`reshoot-review\` artifact of [this run]($RUN_URL)."
+            fi
+          } > "$RUNNER_TEMP/comment.md"
+          # One comment per pull request, updated on each push.
+          ID=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- reshoot check -->")) | .id' | tail -n 1)
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$ID" -F "body=@$RUNNER_TEMP/comment.md" > /dev/null
+          else
+            gh pr comment "$PR" --body-file "$RUNNER_TEMP/comment.md"
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: reshoot-review
+          path: demo/takes/ # change: your project's takes folder
+          retention-days: 14

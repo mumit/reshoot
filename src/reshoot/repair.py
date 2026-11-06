@@ -285,13 +285,12 @@ def load(run_path, config=None):
     raise ValueError('This run has no repairable control diagnosis. Result mismatches need the app or demo data fixed.')
 
 
-def apply(data, target, alternatives=()):
-    """Change just one target, preserving its operation, expected values, other checks and comments."""
+def edited(data, target, alternatives=()):
+    """The storyboard's lines with just one target changed, preserving its operation, expected values, other checks
+    and comments."""
     from reshoot import story
-    from reshoot.workspace import read_lines, tables, put, save
+    from reshoot.workspace import read_lines, tables, put
     story.target(target)
-    if digest(data['board_path']) != data['meta']['story_sha256']:
-        raise ValueError('The storyboard changed during the repair. Your edits were kept.')
     failure, board = data['failure'], data['board']
     lines = read_lines(data['board_path'])
     if failure['section'] == 'setup':
@@ -313,6 +312,33 @@ def apply(data, target, alternatives=()):
     end = next((n for n in range(head + 1, len(lines)) if lines[n].lstrip().startswith('[')), len(lines))
     if not data['entry'].get('fallbacks'):
         put(lines, (head + 1, end), 'fallbacks', others[:12] or None)
+    return lines
+
+
+def suggestion(run_path, config=None):
+    """The suggested repair as a diff of the storyboard that `git apply` takes, for a pull request; None without one.
+    It is a proposal: nothing changes until a person applies it."""
+    import difflib
+    from reshoot.run import shown
+    from reshoot.workspace import read_lines
+    try:
+        data = load(run_path, config)
+    except (ValueError, OSError, KeyError):
+        return None
+    if not data['failure'].get('candidates'):
+        return None
+    name = shown(data['board_path'])
+    return ''.join(difflib.unified_diff(read_lines(data['board_path']), edited(data, data['failure']['candidates'][0]),
+                                        'a/' + name, 'b/' + name))
+
+
+def apply(data, target, alternatives=()):
+    """Change just one target, preserving its operation, expected values, other checks and comments."""
+    from reshoot import story
+    from reshoot.workspace import save
+    if digest(data['board_path']) != data['meta']['story_sha256']:
+        raise ValueError('The storyboard changed during the repair. Your edits were kept.')
+    failure, lines = data['failure'], edited(data, target, alternatives)
     expected_after = hashlib.sha256(''.join(lines).encode()).hexdigest()
     record = {'schema_version': 1, 'before': data['meta']['story_sha256'], 'after': expected_after,
               'beat': failure['beat'], 'section': failure['section'], 'index': failure['index'],

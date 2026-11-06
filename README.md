@@ -14,7 +14,8 @@ Before and after a UI change, from one storyboard.
 Each run confirms the result appeared, stops on the step whose control no
 longer matches, and scans the frames for email addresses, keys and faces.
 [Skills](skills/README.md) for Claude Code and Codex write the story from your
-app, and a GitHub workflow records it again when the app changes.
+app. In CI, the demo is a check on each pull request: it says which step a
+change breaks and suggests the repair, then records the demo again after merge.
 
 ## Make a demo of your app
 
@@ -91,17 +92,23 @@ reshoot accept demo/latest
 reshoot export demo/accepted --directory docs/demo --replace
 ```
 
-Or let [the GitHub workflow](guide/ci.md) record the demo when `main` changes
-and open a pull request with the new video, GIF and comparison.
+Or let [GitHub workflows](guide/ci.md) do it. One records the demo on each
+pull request and comments when a step stops, with a patch for the storyboard.
+The other records it when `main` changes and opens a pull request with the new
+video, GIF and comparison, including any result check that was removed.
 
 ## How it differs
 
-Unlike Screen Studio or Loom, you never record the same flow by hand again.
-Unlike Playwright video, it adds a cursor, typing, captions, zoom, cuts, a GIF,
-result checks and a privacy scan. Unlike Arcade or Supademo, it makes ordinary
-MP4 and GIF files locally that CI can refresh. It is
-[VHS](https://github.com/charmbracelet/vhs) for web apps and macOS windows, and
-uses VHS for terminals.
+Screen recorders such as Screen Studio, Loom and OpenScreen record what
+happens on screen, and some can be driven by a script or an agent. reshoot runs
+the task and checks that each step's result appeared, so when the app changes
+it stops on the step that broke instead of recording the wrong thing, and
+suggests the repair. Unlike Playwright video, it adds a cursor, typing,
+captions, zoom, cuts, a GIF and a privacy scan around those checks. Unlike
+Arcade or Supademo, it makes ordinary MP4 and GIF files locally that CI can
+refresh. It is [VHS](https://github.com/charmbracelet/vhs) for web apps, and
+uses VHS for terminals. It records a macOS window too, but without result
+checks.
 
 ## What it records
 

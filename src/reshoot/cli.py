@@ -234,8 +234,8 @@ def main(argv=None):
     p.set_defaults(run=review.listing)
     p = sub.add_parser('compare', help='compare matching steps between two explicit runs',
                        description='Compare two runs beat by beat: which beat IDs match, and whether each beat\'s '
-                       'definition, duration, evidence frame and results changed. A matched ID does not mean equal '
-                       'pixels. ' + runs)
+                       'definition, duration, evidence frame and results changed, and which result checks were added or '
+                       'removed. A matched ID does not mean equal pixels. ' + runs)
     p.add_argument('previous', help='the earlier run, usually the accepted one')
     p.add_argument('current', help='the run to compare against it')
     p.add_argument('--out', help='write the comparison JSON here instead of printing it')

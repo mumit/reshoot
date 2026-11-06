@@ -4,6 +4,20 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Added
+
+- A pull-request check, `examples/github/check.yml`. It records the demo on
+  each pull request and keeps one comment there: the demo still works, or the
+  step that stopped, why, and the suggested repair as a storyboard patch for
+  `git apply`. The job fails, so the check can be required.
+- `reshoot compare`, the refresh pull request and the studio's comparison list
+  each result check added or removed since the earlier run. Runs recorded
+  before this release don't record their checks, so accept a new run to start.
+- The GitHub Action has a `summary` output: the run's Markdown summary, which
+  now includes the stopped step in words and the suggested patch.
+
 ## 0.3.13 (2026-10-27)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

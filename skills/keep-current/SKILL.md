@@ -1,6 +1,6 @@
 ---
 name: keep-current
-description: Set up a reshoot.toml so one command (`reshoot run`) records a project's whole demo video again, and a GitHub Actions workflow that reshoots it on each release and opens a pull request. Use when someone wants their demo video or README GIF to stay up to date, or asks for demo videos in CI.
+description: Set up a reshoot.toml so one command (`reshoot run`) records a project's whole demo video again, a GitHub Actions check that records it on each pull request and says which step a change breaks, and a workflow that reshoots it and opens a pull request. Use when someone wants their demo video or README GIF to stay up to date, or asks for demo videos in CI.
 ---
 
 # Keep a demo video current
@@ -40,3 +40,5 @@ description: Set up a reshoot.toml so one command (`reshoot run`) records a proj
 The run report and Action outputs distinguish `scan_status` and `review_status`. `ok=true` means the run completed, not that it is accepted for publishing. A required check error stops the run, and the app remains available until its URL-based checks finish.
 
 For a versioned project (`schema_version = 1`), use `../../examples/github/refresh.yml` instead of the legacy workflow above. Accept a run locally first and commit the `demo/accepted/` record that `reshoot accept` writes; the workflow compares each new run with it, copies the new media to `docs/demo/` and opens a pull request whose merge accepts the recording. Changing repository settings, pushing, and merging are the person's call. Each versioned run keeps its files in its own folder. Compare two explicit runs with `reshoot compare OLD NEW --out FILE`, then generate `reshoot review NEW --previous OLD`. Matching beat IDs do not imply matching results. No new run replaces the accepted run until someone accepts it.
+
+To catch a change that breaks the demo before it merges, also copy `../../examples/github/check.yml` to `.github/workflows/reshoot-check.yml`. It records the demo on each pull request, fails when a step stops or a check fails, and keeps one comment on the pull request: the stopped step, why, and the suggested repair as a storyboard patch, or, when it passes, the result checks added or removed since the accepted run. A suggested patch is a proposal: apply it only after looking at the failure frame, and only with the person's yes. Treat a removed check as a question for the person, never as a way to make a run pass.

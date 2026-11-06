@@ -75,6 +75,17 @@ def test_comparison_matches_ids_and_exposes_added_removed_and_changed_frames_wit
     assert {path: path.read_bytes() for path in tmp_path.rglob('*') if path.is_file()} == before
 
 
+def test_comparison_lists_a_removed_result_check_in_words(tmp_path):
+    old, new = recording(tmp_path, 1), recording(tmp_path, 2)
+    for run, checks in [(old, [{'type': 'text', 'target': {'css': '#list li'}, 'contains': 'A saved note'}]), (new, [])]:
+        path = run[0] / 'takes/demo.take.json'
+        take = json.loads(path.read_text())
+        take['beats'][0]['checks'] = checks
+        path.write_text(json.dumps(take))
+        rebind(run)
+    assert model(tmp_path, old, new)['beats'][0]['checks_changed'] == {'removed': ['`#list li` contains "A saved note"'], 'added': []}
+
+
 @pytest.mark.parametrize('kind', ['unchecked', 'outside', 'unbound', 'partial'])
 def test_only_bound_complete_checked_frames_can_be_shown(tmp_path, kind):
     old, new = recording(tmp_path, 1), recording(tmp_path, 2)

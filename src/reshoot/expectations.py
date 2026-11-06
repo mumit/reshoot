@@ -74,11 +74,31 @@ def form(check, disabled=False):
             '<button type="submit">Save expected result</button> <button type="reset">Reset</button></fieldset></form>')
 
 
+def where(entry):
+    target = entry.get('target') or {}
+    return (f'`{target["css"]}`' if 'css' in target else f'test id "{target["test_id"]}"' if 'test_id' in target
+            else f'the {target.get("role")} "{target.get("name", "")}"' if 'role' in target else 'the page')
+
+
+def phrase(entry):
+    """What a result check expects, in words, for a comparison or a pull request."""
+    at, kind = where(entry), entry.get('type')
+    if kind == 'count':
+        return f'{entry.get("count")} matching {at}'
+    if kind == 'text':
+        return f'{at} contains "{entry.get("contains")}"'
+    if kind == 'url':
+        return f'the address contains "{entry.get("contains")}"'
+    if kind == 'value':
+        return f'{at} holds "{entry.get("value")}"'
+    if kind == 'checked':
+        return f'{at} is {"ticked" if entry.get("checked", True) else "not ticked"}'
+    return f'{at} is visible' if kind == 'visible' else f'{kind} {at}'
+
+
 def explain(n, beat, entry, error):
     """Describe an expected result and the recorded mismatch in plain words."""
-    target = entry.get('target') or {}
-    where = (f'`{target["css"]}`' if 'css' in target else f'test id "{target["test_id"]}"' if 'test_id' in target
-             else f'the {target.get("role")} "{target.get("name", "")}"' if 'role' in target else 'the page')
+    at = where(entry)
     actual = re.search(r'Actual value: (.+)', error or '')
     actual = actual[1].strip().strip('"') if actual else None
     step = f'Step {n} ({beat})'
@@ -86,16 +106,16 @@ def explain(n, beat, entry, error):
     if kind == 'count':
         want = entry.get('count')
         what = 'no elements' if want == 0 else f'{want} element{"" if want == 1 else "s"}'
-        return f'{step} expected {what} matching {where}' + (f', but the page had {actual}.' if actual else ', but the count was different.')
+        return f'{step} expected {what} matching {at}' + (f', but the page had {actual}.' if actual else ', but the count was different.')
     if kind == 'text':
         shown = f', but it showed "{actual[:80]}"' if actual else ", but it didn't"
-        return f'{step} expected {where} to contain "{entry.get("contains")}"{shown}.'
+        return f'{step} expected {at} to contain "{entry.get("contains")}"{shown}.'
     if kind == 'visible':
-        return f"{step} expected {where} to be visible, but it wasn't."
+        return f"{step} expected {at} to be visible, but it wasn't."
     if kind == 'url':
         return f'{step} expected the address to contain "{entry.get("contains")}"' + (f', but it was {actual}.' if actual else ", but it didn't.")
     if kind == 'value':
-        return f'{step} expected {where} to hold "{entry.get("value")}"' + (f', but it held "{actual}".' if actual else '.')
+        return f'{step} expected {at} to hold "{entry.get("value")}"' + (f', but it held "{actual}".' if actual else '.')
     if kind == 'checked':
-        return f'{step} expected {where} to be {"ticked" if entry.get("checked", True) else "not ticked"}.'
+        return f'{step} expected {at} to be {"ticked" if entry.get("checked", True) else "not ticked"}.'
     return f"{step}'s result check didn't pass."

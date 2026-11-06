@@ -53,6 +53,13 @@
         if (row.definition_changed) flags.push('Actions or checks changed');
         if (row.results_changed) flags.push('Results changed');
         article.append(node('p', flags.join(' · ') || 'Checked frame unavailable on one side.', 'hint'));
+        const lost = row.checks_changed?.removed || [], gained = row.checks_changed?.added || [];
+        if (lost.length || gained.length) {
+          const list = node('ul', null, 'compare-checks');
+          for (const words of lost) list.append(node('li', 'Removed check: ' + words));
+          for (const words of gained) list.append(node('li', 'Added check: ' + words));
+          article.append(list);
+        }
         const pair = node('div', null, 'compare-pair');
         for (const side of ['previous', 'current']) {
           const beat = row[side], figure = node('figure'); figure.dataset.side = side;

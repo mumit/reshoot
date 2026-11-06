@@ -61,6 +61,25 @@ def test_repair_changes_one_target_and_keeps_checks_and_comments(tmp_path):
     assert json.loads((data['root'] / 'repair.json').read_text())['before'] == data['meta']['story_sha256']
 
 
+def test_suggestion_is_a_patch_git_applies_and_the_job_summary_shows_it(tmp_path, monkeypatch):
+    import subprocess
+    from reshoot import run
+    data = source(tmp_path)
+    data['failure'].update(candidates=[{'css': '#new'}], message="couldn't find the control matching #old.")
+    monkeypatch.setattr(repair, 'load', lambda *args: data)
+    monkeypatch.chdir(tmp_path)
+    before = data['board_path'].read_bytes()
+    patch = repair.suggestion(data['root'])
+    assert patch.startswith('--- a/storyboard.toml\n+++ b/storyboard.toml') and data['board_path'].read_bytes() == before
+    text = run.job_summary({'ok': False, 'expectations_status': 'unverified', 'expectations_count': 1,
+                            'repairs': [data['failure']]}, data['root'])
+    assert '- Result checks: 1 passed before the run stopped\n' in text
+    assert "- Save stopped: it couldn't find the control matching #old." in text and '```diff\n' + patch in text
+    subprocess.run(['git', 'init', '-q'], check=True)
+    subprocess.run(['git', 'apply'], input=patch.encode(), check=True)
+    assert story.load(data['board_path'])['beat'][0]['action'][0]['target'] == {'css': '#new'}
+
+
 def test_stale_source_cannot_be_overwritten_by_a_repair(tmp_path):
     data = source(tmp_path)
     data['board_path'].write_text('# an external edit\n')
@@ -224,6 +243,7 @@ def test_failed_run_suggests_repair_and_new_preview_keeps_original_checks(tmp_pa
     before = story.load(board)
     data = repair.load(root)
     assert data['failure']['candidates'] == [{'css': "input[placeholder='Search notes']"}]
+    assert '+target = {css = "input[placeholder=\'Search notes\']"}' in repair.suggestion(root)
     repair.main(SimpleNamespace(run_path=str(root), config=None, apply=True, pick=False))
     after = story.load(board)
     assert [b.get('expect') for b in before['beat']] == [b.get('expect') for b in after['beat']]

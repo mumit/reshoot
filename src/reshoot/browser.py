@@ -297,6 +297,7 @@ async def capture(board, a, frames, out, metadata, spoken):
                 start = beats[current] = time.monotonic()
                 result = {'id': current, 'purpose': beat.get('purpose'), 'caption': beat.get('caption'),
                           'definition_sha256': __import__('hashlib').sha256(json.dumps(beat, sort_keys=True).encode()).hexdigest(),
+                          'checks': [{k: v for k, v in entry.items() if k not in ('timeout', 'fallbacks')} for entry in beat.get('expect', [])],
                           'status': 'running', 'expectations': []}
                 metadata['beats'].append(result)
                 await bounded(page.evaluate('p => __demo.caption(p[0], p[1])', [beat.get('caption'), beat.get('sub')]), 'showing the caption')

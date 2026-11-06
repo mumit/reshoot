@@ -10,7 +10,9 @@ from pathlib import Path
 # Edits change the lines they must and leave the rest of a file, comments included, as it was.
 def quote(value):
     if isinstance(value, dict):
-        return '{' + ', '.join(json.dumps(k) + ' = ' + quote(v) for k, v in value.items()) + '}'
+        # Bare keys, as a person writes them, unless a key needs quotes.
+        return '{' + ', '.join((k if re.fullmatch(r'[A-Za-z0-9_-]+', k) else json.dumps(k)) + ' = ' + quote(v)
+                               for k, v in value.items()) + '}'
     if isinstance(value, list):
         return '[' + ', '.join(quote(v) for v in value) + ']'
     return json.dumps(value, ensure_ascii=False)  # JSON's strings, numbers, booleans and lists are TOML's too

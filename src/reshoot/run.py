@@ -166,21 +166,28 @@ def job_summary(report, root):
     """Markdown on what a run showed: its checks and scan, and for a stopped step why, with the suggested repair."""
     from reshoot import repair
     from reshoot.story import step_name
+    status, count = report.get('expectations_status', 'unverified'), report.get('expectations_count', 0)
+    repairs = [failure for failure in report.get('repairs', []) if failure.get('message')]
+    checks = (f'{count} of {count} passed' if status == 'passed' else
+              f'not all checked: {count} passed before the run stopped' if status == 'unverified' and repairs else f'{status} ({count})')
     lines = [f"### reshoot: {'recorded' if report.get('ok') else 'failed'}", '',
-             f"- Result checks: {report.get('expectations_status', 'unverified')} ({report.get('expectations_count', 0)})",
+             f"- Result checks: {checks}",
              f"- Scan: {report.get('scan_status')}, {report.get('unchecked') or 0} items to look at, "
              f"{report.get('flagged') or 0} flagged",
              f"- Review: {report.get('review_status')}"]
-    lines += [f"- Error: {error}" for error in report.get('errors', [])]
-    for failure in report.get('repairs', []):
-        if failure.get('message'):
-            lines.append(f"- {step_name(failure['beat'])} stopped: it {failure['message']}")
-        for target in failure.get('candidates', []):
-            lines.append(f'- Suggested control for {failure["beat"]}: `' + redact(json.dumps(target)) + '`; apply explicitly and record again.')
-    if report.get('repairs') and (diff := repair.suggestion(root)):
+    # A stopped step is said once, in words; the generic "web ... failed" and the raw error repeat it.
+    lines += [f"- {step_name(failure['beat'])} stopped: it {failure['message']}" for failure in repairs]
+    if not repairs:
+        lines += [f"- Error: {error}" for error in report.get('errors', [])]
+    diff = repair.suggestion(root) if repairs else None
+    if diff:
         lines += ['', 'The suggested repair changes only that control. Look at the failure frame in the run\'s files first, '
                   'then apply it with `git apply`, or with `reshoot repair` after recording the failure locally:', '',
                   '```diff', diff.rstrip('\n'), '```']
+    else:
+        for failure in report.get('repairs', []):
+            for target in failure.get('candidates', []):
+                lines.append(f'- Suggested control for {failure["beat"]}: `' + redact(json.dumps(target)) + '`; apply explicitly and record again.')
     return '\n'.join(lines) + '\n'
 
 

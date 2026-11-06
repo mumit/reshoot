@@ -241,7 +241,7 @@ def test_failed_run_suggests_repair_and_new_preview_keeps_original_checks(tmp_pa
     before = story.load(board)
     data = repair.load(root)
     assert data['failure']['candidates'] == [{'css': "input[placeholder='Search notes']"}]
-    assert '+target = {"css" = "input[placeholder=\'Search notes\']"}' in repair.suggestion(root)
+    assert '+target = {css = "input[placeholder=\'Search notes\']"}' in repair.suggestion(root)
     repair.main(SimpleNamespace(run_path=str(root), config=None, apply=True, pick=False))
     after = story.load(board)
     assert [b.get('expect') for b in before['beat']] == [b.get('expect') for b in after['beat']]

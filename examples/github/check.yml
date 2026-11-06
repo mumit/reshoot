@@ -61,7 +61,11 @@ jobs:
               cat "$RUNNER_TEMP/comparison.md"
             fi
             echo
-            echo "The video, failure frames and scan sheets are in the \`reshoot-review\` artifact of [this run]($RUN_URL)."
+            if [ "$OK" = "true" ]; then
+              echo "The video and scan sheets are in the \`reshoot-review\` artifact of [this run]($RUN_URL)."
+            else
+              echo "The failure frame is in the \`reshoot-review\` artifact of [this run]($RUN_URL)."
+            fi
           } > "$RUNNER_TEMP/comment.md"
           # One comment per pull request, updated on each push.
           ID=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \

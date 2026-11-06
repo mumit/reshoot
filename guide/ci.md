@@ -1,8 +1,32 @@
 # Reshoot in CI
 
-Record the demo again when the app changes. Start from a browser or VHS
-project that records locally. Native windows can't be recorded in CI. Legacy
-`[keep]` projects use the [manual workflow](manual.md#legacy-shoot-files-in-ci).
+Check the demo on each pull request, and record it again when the app changes.
+Start from a browser or VHS project that records locally. Native windows can't
+be recorded in CI. Legacy `[keep]` projects use the
+[manual workflow](manual.md#legacy-shoot-files-in-ci).
+
+## Check the demo on each pull request
+
+Copy [examples/github/check.yml](../examples/github/check.yml) to
+`.github/workflows/reshoot-check.yml`, change the marked lines, and add the
+steps your app needs before it starts. On each pull request it records
+`demo/reshoot.toml` and keeps one comment on the pull request up to date:
+
+- **The demo still works with this change**, with its result checks. With a
+  committed `demo/accepted/`, it also lists each check added or removed since
+  the accepted run, so a demo can't pass by checking less.
+- **This change stops the demo**, with the step that stopped and why, such as
+  `Type search notes stopped: it couldn't find the control matching #q. It's
+  probably "Search notes" now`, and the suggested repair as a patch to the
+  storyboard. Look at the failure frame in the `reshoot-review` artifact, then
+  apply the patch with `git apply` and push. Nothing changes until you do.
+
+A stopped step or failed check also fails the job, so you can make the check
+required in your branch rules. A wrong result has no suggested repair: fix the
+app or the demo data, or change the expected result in the
+[studio](studio.md#correct-a-failed-result-check) if the story should show
+something different. Pull requests from forks get a read-only token and see
+the job's summary instead of a comment.
 
 ## Versioned projects: open a pull request with the refreshed demo
 

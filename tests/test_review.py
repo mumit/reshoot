@@ -347,6 +347,35 @@ def test_compare_says_which_beats_changed_when_it_writes_a_file(tmp_path, capsys
     assert '| Step | Written step |' in table and 'Steps: the same 2' in table and table.index('| Type search notes |') < table.index('| Add |')  # story order
 
 
+def test_compare_lists_result_checks_removed_or_added_since_the_accepted_run(tmp_path, capsys):
+    old = run_fixture(tmp_path / 'old', 'old')
+    new = run_fixture(tmp_path / 'new', 'new')
+    saved = {'type': 'text', 'target': {'css': '#list li'}, 'contains': 'Pick up the bikes'}
+    looser = {'type': 'visible', 'target': {'css': '#list li'}}
+    for root, checks in [(old, [saved, {'type': 'count', 'target': {'css': '#list li'}, 'count': 1}]),
+                         (new, [looser, {'type': 'count', 'target': {'css': '#list li'}, 'count': 1}])]:
+        (root / 'web.take.json').write_text(json.dumps({'story_id': 'notes', 'beats': [
+            {'id': 'search', 'status': 'passed', 'checks': checks}]}))
+    review.compare(SimpleNamespace(previous=str(old), current=str(new), out=str(tmp_path / 'comparison.json'),
+                                   markdown=str(tmp_path / 'comparison.md')))
+    assert 'removed from Search: `#list li` contains "Pick up the bikes"' in capsys.readouterr().out
+    row = json.loads((tmp_path / 'comparison.json').read_text())['beats'][0]
+    assert row['checks_changed'] == {'removed': ['`#list li` contains "Pick up the bikes"'], 'added': ['`#list li` is visible']}
+    text = (tmp_path / 'comparison.md').read_text()
+    assert 'Checks in the story: 1 removed, 1 added' in text
+    assert '- **Removed** from Search: `#list li` contains "Pick up the bikes"' in text
+
+
+def test_compare_says_when_the_earlier_run_did_not_record_its_checks(tmp_path):
+    old = run_fixture(tmp_path / 'old', 'old')
+    new = run_fixture(tmp_path / 'new', 'new')
+    (old / 'web.take.json').write_text(json.dumps({'story_id': 'notes', 'beats': [{'id': 'search', 'status': 'passed'}]}))
+    (new / 'web.take.json').write_text(json.dumps({'story_id': 'notes', 'beats': [{'id': 'search', 'status': 'passed', 'checks': []}]}))
+    result = review.compare(SimpleNamespace(previous=str(old), current=str(new), out=None))
+    assert result['beats'][0]['checks_changed'] is None
+    assert review.checks_line(result['beats']).startswith('not compared')
+
+
 def test_review_page_opens_with_one_status_line(tmp_path):
     root = run_fixture(tmp_path / 'run')
     sheets_fixture(root, {'1-2': [['email', 'priv•••']]})

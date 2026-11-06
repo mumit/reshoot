@@ -79,7 +79,7 @@ Commands that edit a project take `--project demo`.
 
 | Command | What it does |
 |---|---|
-| `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares steps by ID; `--markdown FILE` writes a pull request summary |
+| `reshoot compare OLD_RUN NEW_RUN --out comparison.json` | Compares steps by ID and lists result checks added or removed; `--markdown FILE` writes a pull request summary |
 | `reshoot review RUN` | Writes the review page; `--previous OLD_RUN` compares |
 | `reshoot review RUN --serve` | Serves it locally to accept or reject |
 | `reshoot review RUN --import-decisions FILE` | Imports per-step decisions from the review page |

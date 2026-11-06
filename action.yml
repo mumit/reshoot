@@ -35,6 +35,9 @@ outputs:
   report:
     description: Where the run's report (run.json) is
     value: ${{ steps.run.outputs.report }}
+  summary:
+    description: Where the run's Markdown summary is, with the stopped step and its suggested repair, for a pull request
+    value: ${{ steps.run.outputs.summary }}
 
 runs:
   using: composite

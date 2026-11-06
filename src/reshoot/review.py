@@ -206,6 +206,18 @@ def decision_names(root):
             *('tour/' + row['name'] for row in tour_listing(root, report))}
 
 
+def check_changes(previous, current):
+    """The result checks a step gained or lost, in words; None when a run predates recorded checks."""
+    from collections import Counter
+    from reshoot.expectations import phrase
+    sides = [beat.get('checks') if beat else [] for beat in (previous, current)]
+    if None in sides:
+        return None
+    old, new = (Counter(json.dumps(x, sort_keys=True) for x in side) for side in sides)
+    words = lambda counts: [phrase(json.loads(key)) for key in counts.elements()]
+    return {'removed': words(old - new), 'added': words(new - old)}
+
+
 def compare(a):
     old_root, old = read(a.previous)
     new_root, new = read(a.current)
@@ -229,6 +241,7 @@ def compare(a):
                     beat[field] = str(p.relative_to(base)) if p.is_relative_to(base) else None
             return beat
         rows.append({'beat': name, 'change': state, 'previous': portable(previous, old_root), 'current': portable(current, new_root),
+                     'checks_changed': check_changes(previous, current),
                      'definition_changed': previous.get('definition_sha256') != current.get('definition_sha256') if previous and current else None,
                      'duration_delta': round((current['end']-current['start'])-(previous['end']-previous['start']), 3) if previous and current and all(k in b for b in (previous,current) for k in ('start','end')) else None,
                      'evidence_changed': previous_hash != current_hash if previous_hash and current_hash else None,
@@ -274,6 +287,11 @@ def compare(a):
                 print(f"  {shown_step(row['beat'], result['beats'])}: {KEPT.get(row['change'], row['change'])}" + (', changed ' + ' and '.join(what) if what else ''))
         if not changed:
             print('No step changed its actions or results.')
+        print('Checks in the story: ' + checks_line(result['beats']) + '.')
+        for row in result['beats']:
+            for kind in ('removed', 'added'):
+                for words in (row.get('checks_changed') or {}).get(kind, []):
+                    print(f"  {kind} {'from' if kind == 'removed' else 'to'} {shown_step(row['beat'], result['beats'])}: {words}")
         for row in result.get('screenshots', []):
             print(f'  screenshot {row["name"]}: {row["change"]}')
         for row in result.get('tours', []):
@@ -457,6 +475,15 @@ def shown_step(key, rows):
     return (story + ': ' if several and story else '') + step_name(beat)
 
 
+def checks_line(rows):
+    """How the story's result checks changed since the accepted run, for the top of a comparison."""
+    if any(row.get('checks_changed') is None for row in rows):
+        return 'not compared, because the earlier run did not record them'
+    removed = sum(len(row['checks_changed']['removed']) for row in rows)
+    added = sum(len(row['checks_changed']['added']) for row in rows)
+    return ', '.join(part for part in (f'{removed} removed' if removed else '', f'{added} added' if added else '') if part) or 'the same'
+
+
 def summary(result, report, root):
     """A short Markdown account of a comparison, for a pull request or a chat message."""
     from reshoot.check import findings, load
@@ -478,6 +505,7 @@ def summary(result, report, root):
     columns = ['Step', *([] if same else ['In the story']), 'Written step', 'Length', 'Frame', 'Results']
     lines = [f"Recording `{result['current'][:8]}` compared with `{result['previous'][:8]}`.", '',
              f"- Result checks: {checks}",
+             f"- Checks in the story: {checks_line(result['beats'])}",
              f"- Steps: {steps}",
              f"- Scan: {scanned}",
              f"- App or demo data changed: {'yes' if result['inputs_changed'] else 'no'}", '',
@@ -487,6 +515,13 @@ def summary(result, report, root):
         lines.append(f"| {shown_step(row['beat'], result['beats'])} | " + ('' if same else f"{KEPT.get(row['change'], row['change'])} | ")
                      + f"{yes(row['definition_changed'])} | "
                      f"{'' if delta is None else f'{delta:+.2f} s' if abs(delta) >= .005 else '0'} | {yes(row['evidence_changed'])} | {yes(row['results_changed'])} |")
+    changed = [(row, kind, words) for row in result['beats'] if row.get('checks_changed')
+               for kind in ('removed', 'added') for words in row['checks_changed'][kind]]
+    if changed:
+        lines += ['', '### Result checks changed', '',
+                  'A removed check no longer proves its step worked. Make sure each one was removed on purpose.', '']
+        lines += [f"- {'**Removed** from' if kind == 'removed' else 'Added to'} {shown_step(row['beat'], result['beats'])}: {words}"
+                  for row, kind, words in changed]
     if result.get('screenshots'):
         lines += ['', '| Documentation screenshot | Change |', '|---|---|']
         lines += [f'| `{row["name"]}` | {row["change"]} |' for row in result['screenshots']]

@@ -1,6 +1,6 @@
 {
   "name": "reshoot",
-  "description": "Agent skills and recording tools for repeatable software demo videos.",
+  "description": "Agent skills and recording tools for demo videos that check their results and stay current.",
   "owner": {
     "name": "Mumit Khan",
     "url": "https://github.com/mumit"

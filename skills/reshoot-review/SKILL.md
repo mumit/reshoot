@@ -5,11 +5,10 @@ description: Inspect a reshoot recording and its check report for failed actions
 
 # Review a recording
 
-For a versioned browser project, if `reshoot --help` lists `status`, read
-`reshoot status PROJECT --json` first. Choose only an `enabled` action; `reason`
-says why not. Do not start one with `waits_for_person` unless the owner asks.
-`ok` means inspection succeeded, not that the demo passed. Tools, live studio
-jobs and unsaved fields are not checked.
+For a versioned browser project, read `reshoot status PROJECT --json` first.
+Choose only an `enabled` action; `reason` says why not. Do not start one with
+`waits_for_person` unless the owner asks. `ok` means inspection succeeded, not
+that the demo passed. Tools, live studio jobs and unsaved fields are not checked.
 
 When the owner uses the studio, Compare shows paired exported videos and
 checked result frames from the run on the page beside an earlier run. Review
@@ -30,7 +29,7 @@ Inspect marker placement and crops after layout changes. GitHub shows HTML
 source, so download and open it locally for interactive review. No tour is
 accepted or hosted by exporting it.
 
-Requires reshoot CLI 0.3.14 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `reshoot upgrade --yes` before going on. Read the project's brief and, for a versioned project, its current run report. Confirm which run produced the files, and distinguish execution, result checks, automatic scanning and human review.
+Requires reshoot CLI 0.3.15 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `reshoot upgrade --yes` before going on. Read the project's brief and, for a versioned project, its current run report. Confirm which run produced the files, and distinguish execution, result checks, automatic scanning and human review.
 
 For standalone native media, read its capture/edit recipe and exact source/export paths instead of requiring or inventing a run report. Compare old and new recordings manually and identify the result visually; do not claim browser result checks or automated beat comparison. Use a video player and check sheets rather than `reshoot review RUN`, which requires a versioned run manifest. Preserve existing reviews; generate any new scan in a separate directory.
 

@@ -5,15 +5,14 @@ description: Create a repeatable software demo with reshoot from an app and demo
 
 # Create a demo
 
-For a versioned browser project, if `reshoot --help` lists `status`, read
-`reshoot status PROJECT --json` first. Choose only an `enabled` action; `reason`
-says why not. Do not start one with `waits_for_person` unless the owner asks.
-`ok` means inspection succeeded, not that the demo passed. Tools, live studio
-jobs and unsaved fields are not checked.
+For a versioned browser project, read `reshoot status PROJECT --json` first.
+Choose only an `enabled` action; `reason` says why not. Do not start one with
+`waits_for_person` unless the owner asks. `ok` means inspection succeeded, not
+that the demo passed. Tools, live studio jobs and unsaved fields are not checked.
 
 ## Set up
 
-Requires reshoot CLI 0.3.14 or newer. Run `reshoot --version`. If it is older, or `reshoot doctor` says a newer release is out, upgrade with `reshoot upgrade --yes`. If the CLI is missing, use the repository's documented installation; do not invent commands for another version.
+Requires reshoot CLI 0.3.15 or newer. Run `reshoot --version`. If it is older, or `reshoot doctor` says a newer release is out, upgrade with `reshoot upgrade --yes`. If the CLI is missing, use the repository's documented installation; do not invent commands for another version.
 
 Run `reshoot doctor --config CONFIG --probe`. Its synthetic encoding, browser
 and text-scan probes do not validate the app, faces or final media. Fix failures

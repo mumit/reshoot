@@ -5,11 +5,10 @@ description: Update an existing reshoot demo after an app or release changes. Us
 
 # Refresh a demo
 
-For a versioned browser project, if `reshoot --help` lists `status`, read
-`reshoot status PROJECT --json` first. Choose only an `enabled` action; `reason`
-says why not. Do not start one with `waits_for_person` unless the owner asks.
-`ok` means inspection succeeded, not that the demo passed. Tools, live studio
-jobs and unsaved fields are not checked.
+For a versioned browser project, read `reshoot status PROJECT --json` first.
+Choose only an `enabled` action; `reason` says why not. Do not start one with
+`waits_for_person` unless the owner asks. `ok` means inspection succeeded, not
+that the demo passed. Tools, live studio jobs and unsaved fields are not checked.
 
 The owner may shape the demo in the studio, which saves to the project files:
 read them again before editing. Its comparison and downloads show the run on
@@ -43,7 +42,7 @@ are not deleted when a selection is removed. Nothing is published by these comma
 
 For combined web and VHS edits, keep take dimensions matched. Mixed previews retain the configured browser dimensions to match the unchanged VHS output size.
 
-Requires reshoot CLI 0.3.14 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `reshoot upgrade --yes` before going on. For a versioned browser/VHS project, read its brief, config, storyboard and previous run before changing anything, then run `reshoot doctor --config CONFIG`. Use `reshoot runs PROJECT` to list runs; a run path ending in `accepted` or `latest` resolves to the newest accepted or successful run. Record the exact ID of the run you compare against, since aliases move as new runs finish. When there is no `demo/accepted`, compare against the newest final run in `reshoot runs`, and tell the owner it was never accepted. A `demo/accepted/run.json` with `"accepted_by": "merge"` came from a merged refresh pull request: it is the accepted run, though its `review_status` says `pending`.
+Requires reshoot CLI 0.3.15 or newer. Run `reshoot --version`; if it is older, or `reshoot doctor` says a newer release is out, upgrade with `reshoot upgrade --yes` before going on. For a versioned browser/VHS project, read its brief, config, storyboard and previous run before changing anything, then run `reshoot doctor --config CONFIG`. Use `reshoot runs PROJECT` to list runs; a run path ending in `accepted` or `latest` resolves to the newest accepted or successful run. Record the exact ID of the run you compare against, since aliases move as new runs finish. When there is no `demo/accepted`, compare against the newest final run in `reshoot runs`, and tell the owner it was never accepted. A `demo/accepted/run.json` with `"accepted_by": "merge"` came from a merged refresh pull request: it is the accepted run, though its `review_status` says `pending`.
 
 For a standalone native recording, read the brief, capture/edit scripts and exact previous media instead of expecting a versioned config or run report. Look up the current demo window ID, reset synthetic data, and use `reshoot window APP NEW_TAKE.mov --id ID -s SECONDS` with app-specific automation or coordinated manual interaction. Keep test and fresh final takes in new folders; edit and scan final exports. Compare the old/new MP4s and animated GIFs manually. Disclose that browser result checks, versioned `preview`/`run`, and automated beat comparison do not apply. Follow the versioned flow below only for browser/VHS projects.
 

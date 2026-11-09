@@ -59,6 +59,81 @@ def test_recorder_keeps_incomplete_steps_and_explicit_checks(tmp_path):
     assert data['beat'][-1]['id'] == 'end'
 
 
+def test_a_failed_change_undoes_only_its_own_writes(tmp_path):
+    from reshoot.workspace import save
+    board, config = tmp_path / 'story.toml', tmp_path / 'reshoot.toml'
+    board.write_text('before\n')
+    config.write_text('settings\n')
+    history = History([board, config])
+    def fail():
+        save(board, ['saved by the studio\n'], lambda path: None)
+        config.write_text('changed in an editor meanwhile\n')  # not this change's write
+        raise ValueError('bad export')
+    with pytest.raises(ValueError):
+        history.change(fail)
+    assert board.read_text() == 'before\n' and config.read_text() == 'changed in an editor meanwhile\n'
+    def edited_after():
+        save(board, ['saved by the studio\n'], lambda path: None)
+        board.write_text('edited in an editor after the save\n')
+        raise ValueError('bad export')
+    with pytest.raises(ValueError):
+        history.change(edited_after)
+    assert board.read_text() == 'edited in an editor after the save\n'
+
+
+def test_an_undo_that_cannot_write_every_file_changes_none(tmp_path, monkeypatch):
+    board, config = tmp_path / 'story.toml', tmp_path / 'reshoot.toml'
+    board.write_text('before')
+    config.write_text('settings')
+    history = History([board, config])
+    def both():
+        board.write_text('after')
+        config.write_text('new settings')
+    history.change(both)
+    real = Path.write_bytes
+    def write_bytes(self, data):
+        if self.name == '.reshoot.toml.restore':
+            raise OSError('disk full')
+        return real(self, data)
+    monkeypatch.setattr(Path, 'write_bytes', write_bytes)
+    with pytest.raises(OSError):
+        history.move('undo')
+    monkeypatch.undo()
+    assert board.read_text() == 'after' and config.read_text() == 'new settings'
+    assert len(history.undo) == 1 and not history.redo  # still in step, so Undo can be tried again
+    history.move('undo')
+    assert board.read_text() == 'before' and config.read_text() == 'settings'
+
+
+def test_ctrl_c_during_the_first_preview_stops_creation_instead_of_opening_the_studio(tmp_path, monkeypatch, capsys):
+    from reshoot import run
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
+    def stopped(a):
+        raise run.Interrupted('run failed: KeyboardInterrupt')
+    monkeypatch.setattr('reshoot.run.preview', stopped)
+    monkeypatch.setattr(studio, 'serve', lambda a: pytest.fail('a stopped creation must not open the studio'))
+    with pytest.raises(run.Interrupted):
+        create.main(SimpleNamespace(url=None, directory=str(tmp_path), size=None, no_studio=False, no_open=True))
+    assert 'Continue with: reshoot create --resume' in capsys.readouterr().out
+    assert create.load(tmp_path)['stage'] == 'preview'
+
+
+def test_a_run_stopped_with_ctrl_c_says_it_was_interrupted(tmp_path, monkeypatch):
+    from reshoot import run
+    def execute(*args, **kwargs):
+        raise KeyboardInterrupt
+    monkeypatch.setattr(run, 'execute', execute)
+    (tmp_path / 'story.toml').write_text('schema_version=1\nurl="http://localhost/"\n[[beat]]\nid="result"\n')
+    config = tmp_path / 'reshoot.toml'
+    config.write_text('schema_version=1\n[[take]]\nweb="story.toml"\nout="takes/first.mp4"\n')
+    with pytest.raises(run.Interrupted):
+        run.main(SimpleNamespace(config=str(config)))
+    monkeypatch.setattr(run, 'execute', lambda *a, **k: 3)
+    with pytest.raises(SystemExit) as failed:
+        run.main(SimpleNamespace(config=str(config)))
+    assert not isinstance(failed.value, run.Interrupted)  # an ordinary failure is not a stop
+
+
 def test_create_keeps_an_incomplete_story_without_attempting_a_preview(tmp_path, monkeypatch):
     monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
     monkeypatch.setattr(rec, 'main', lambda a: rec.write_toml(a.out, a.url, a.size,

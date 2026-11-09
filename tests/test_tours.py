@@ -154,6 +154,9 @@ def test_offline_tour_navigation_escape_and_no_network(tmp_path):
         assert page.locator('.step:visible').get_attribute('id') == 'step-1'
         page.keyboard.press('End')
         assert page.locator('.step:visible').get_attribute('id') == 'step-2'
+        assert page.evaluate('location.hash') == '#step-2'
+        page.reload()  # stays on the step it showed
+        assert page.locator('.step:visible').get_attribute('id') == 'step-2'
         page.keyboard.press('ArrowLeft')
         assert page.locator('.step:visible').get_attribute('id') == 'step-1'
         assert not requests and not errors

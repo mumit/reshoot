@@ -150,12 +150,21 @@ def main(a):
         draft.unlink()
     if state.get('recipe') and not state.get('recipe_applied') and (digest(config), digest(board_path)) != (
             state.get('config_sha256'), state.get('story_sha256')):
-        # Changed in the studio while creation was paused: the recipe would replace those holds, exports and style.
-        print(f'Your project changed since creation paused, so the {state["recipe"]} recipe was not applied over your '
-              f'changes. Apply it with: reshoot recipe apply {state["recipe"]} --project {shlex.quote(str(root))}', flush=True)
+        if state.get('recipe_applying'):
+            # It was applied, then creation stopped before saving that: never apply it a second time.
+            state.update(recipe_applied=True, recipe_applying=False, config_sha256=digest(config),
+                         story_sha256=digest(board_path))
+            save(root, state)
+            print(f'The {state["recipe"]} recipe was applied before creation stopped.', flush=True)
+        else:
+            # Changed in the studio while creation was paused: the recipe would replace those holds, exports and style.
+            print(f'Your project changed since creation paused, so the {state["recipe"]} recipe was not applied over your '
+                  f'changes. Apply it with: reshoot recipe apply {state["recipe"]} --project {shlex.quote(str(root))}', flush=True)
     elif state.get('recipe') and not state.get('recipe_applied'):
+        state['recipe_applying'] = True  # saved first, so a stop before the next save is not taken for a change of yours
+        save(root, state)
         result = recipes.apply(config, state['recipe'], state.get('title'))
-        state.update(recipe_applied=True, config_sha256=digest(config), story_sha256=digest(board_path))
+        state.update(recipe_applied=True, recipe_applying=False, config_sha256=digest(config), story_sha256=digest(board_path))
         save(root, state)
         print(f'Applied {result["recipe"]}.', flush=True)
     board = story.load(board_path)
@@ -169,6 +178,10 @@ def main(a):
             if not a.no_studio:
                 print('Recording a preview…', flush=True)
             run.preview(SimpleNamespace(config=str(config), from_beat=None, quiet=not a.no_studio))
+        except run.Interrupted:
+            # Stopped on purpose, so stop here too rather than open the studio.
+            print('Stopped. Your story is saved. Continue with: ' + continuation, flush=True)
+            raise
         except (ValueError, SystemExit) as error:
             print(f'Your story is saved. The preview needs attention: {error}', flush=True)
             code = 2

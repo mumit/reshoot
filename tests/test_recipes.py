@@ -125,6 +125,29 @@ def test_continuing_creation_does_not_apply_its_recipe_over_edits_made_while_pau
     assert 'recipe was not applied' in capsys.readouterr().out and not create.load(tmp_path)['recipe_applied']
 
 
+def test_a_creation_that_stopped_after_applying_its_recipe_does_not_apply_it_again(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
+    monkeypatch.setattr('reshoot.run.preview', lambda a: None)
+    real, saves = create.save, []
+    def save(root, state):
+        saves.append(dict(state))
+        if state.get('recipe_applied') and len(saves) == 3:
+            raise KeyboardInterrupt  # stopped just after the recipe changed the files, before that was saved
+        real(root, state)
+    monkeypatch.setattr(create, 'save', save)
+    args = SimpleNamespace(url=None, directory=str(tmp_path), recipe='walkthrough', title='Find a note',
+                           size=None, no_studio=True, no_open=True, resume=False)
+    with pytest.raises(KeyboardInterrupt):
+        create.main(args)
+    applied = (tmp_path / 'edit.toml').read_text()
+    monkeypatch.setattr(create, 'save', real)
+    monkeypatch.setattr(recipes, 'apply', lambda *a, **k: pytest.fail('the recipe must not be applied twice'))
+    args.resume, args.recipe, args.title = True, None, None
+    assert create.main(args) == 0
+    assert 'applied before creation stopped' in capsys.readouterr().out
+    assert (tmp_path / 'edit.toml').read_text() == applied and create.load(tmp_path)['recipe_applied']
+
+
 def test_a_creation_paused_before_its_demonstration_ends_once_its_files_change(tmp_path):
     from reshoot import workflow
     from reshoot.artifacts import digest

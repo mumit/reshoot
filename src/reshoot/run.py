@@ -102,17 +102,37 @@ def start_app(app, log=None):
     return proc
 
 
-def stop_app(proc):
-    if proc and proc.poll() is None:
+def stop_app(proc, leftovers=True):
+    """Stop proc's process group. With leftovers, also what it started that is still running after it ended, such as
+    a server a shell command started: the app runs in its own session, so nothing else would stop it. A step's
+    command passes False, since a reset script may start a service on purpose."""
+    if not proc or (proc.poll() is not None and not (leftovers and group_alive(proc.pid))):
+        return
+    try:
+        os.killpg(proc.pid, signal.SIGTERM)
+        proc.wait(10)
+        deadline = time.monotonic() + 10
+        while leftovers and group_alive(proc.pid):
+            if time.monotonic() > deadline:
+                raise subprocess.TimeoutExpired(proc.args, 10)
+            time.sleep(.1)
+    except (ProcessLookupError, subprocess.TimeoutExpired):
         try:
-            os.killpg(proc.pid, signal.SIGTERM)
+            os.killpg(proc.pid, signal.SIGKILL)
             proc.wait(10)
-        except (ProcessLookupError, subprocess.TimeoutExpired):
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-                proc.wait(10)
-            except ProcessLookupError:
-                pass
+        except ProcessLookupError:
+            pass
+
+
+def group_alive(pgid):
+    """Whether any process is still in the group. Its id can't be reused while one is."""
+    try:
+        os.killpg(pgid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
 
 
 def reshoot(*args):
@@ -139,6 +159,10 @@ def steps(shoot):
         if not script:
             raise ValueError("edit needs file or script")
         yield f"edit {script}", reshoot("edit", script, *edit.get("args", []))
+
+
+class Interrupted(SystemExit):
+    """A run stopped with Ctrl-C or a cancel: reported like any failed run, but a caller can tell it was asked to stop."""
 
 
 def save(report, path):
@@ -217,7 +241,7 @@ def execute(cmd, timeout, cwd=None, extra=None, out=None):
     try:
         return proc.wait(timeout)
     finally:
-        stop_app(proc)
+        stop_app(proc, leftovers=False)
 
 
 def main(a):
@@ -293,7 +317,7 @@ def main(a):
         tracked_diff = subprocess.run(['git', '-C', root, 'diff', 'HEAD', '--binary'], capture_output=True).stdout
         report['inputs']['tracked_diff_sha256'] = __import__('hashlib').sha256(tracked_diff).hexdigest()
         report['inputs'].update(commit=revision.stdout.strip(), dirty=bool(dirty), dirty_index_sha256=__import__('hashlib').sha256(dirty).hexdigest())
-    app, t0, failure = None, time.monotonic(), None
+    app, t0, failure, interrupted = None, time.monotonic(), None, False
     timeout = shoot.get('timeout', 600)
     report.update(id=shoot.get('_run_id') or __import__('uuid').uuid4().hex, exports=shoot.get('_exports', {}),
                   mode='partial-preview' if os.environ.get('RESHOOT_FROM_BEAT') else 'preview' if os.environ.get('RESHOOT_PREVIEW') else 'final')
@@ -386,12 +410,13 @@ def main(a):
     except (Exception, SystemExit, KeyboardInterrupt) as e:
         report['errors'].append(redact(str(e)) or type(e).__name__)
         failure = 'run failed: ' + report['errors'][-1]
+        interrupted = isinstance(e, KeyboardInterrupt)
     finally:
         muted.close()
         stop_app(app)
         report['seconds'] = round(time.monotonic() - t0, 1)
         from datetime import datetime, timezone
-        report['finished_at'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+        report['finished_at'] = datetime.now(timezone.utc).isoformat(timespec='microseconds')
         from reshoot.artifacts import digest
         report['files'] = [{'path': str(f.relative_to(report_path.parent)), 'sha256': digest(f)}
                            for f in report_path.parent.rglob('*')
@@ -437,7 +462,7 @@ def main(a):
             lines.append('  app output     ' + shown(root / 'app.log'))
         if quiet:
             lines.append('  details        ' + shown(root / 'output.log'))
-        raise SystemExit('\n'.join(lines))
+        raise (Interrupted if interrupted else SystemExit)('\n'.join(lines))
     from types import SimpleNamespace
     from reshoot import review
     preview = report.get('mode', 'final') != 'final'

@@ -31,6 +31,10 @@ TRANSITIONS = {
 
 
 class Job:
+    # How long applying a finished command's result may take before the job gives up on it, so a step that hangs, such
+    # as one waiting for a lock, can't hold the studio in "Saving the result" with no way out.
+    finish_timeout = 30
+
     def __init__(self):
         self.kind, self.lines, self.code, self.n, self.beat = None, [], None, 0, None
         self.lock = threading.RLock()
@@ -45,6 +49,24 @@ class Job:
     def running(self):
         with self.lock:
             return self.phase in ACTIVE
+
+    def _bounded(self, step):
+        """Run step, giving up after finish_timeout. A step that is still running carries on in the background."""
+        outcome = []
+        def run():
+            try:
+                step()
+                outcome.append(None)
+            except BaseException as error:
+                outcome.append(error)
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+        worker.join(self.finish_timeout)
+        if not outcome:
+            raise TimeoutError('The command finished, but saving its result is taking too long. Its files are kept: '
+                               'reload the studio, and check Undo before going on.')
+        if outcome[0] is not None:
+            raise outcome[0]
 
     def start(self, kind, cmd, cwd, beat=None, on_done=None, result=None, settle=None):
         """Run cmd. on_done applies its result after it succeeds. settle, for a command that may have changed files
@@ -75,7 +97,7 @@ class Job:
                 if code:
                     if settle:
                         try:
-                            settle()
+                            self._bounded(settle)
                         except Exception as error:
                             with self.lock:
                                 self.lines.append(redact(str(error)))
@@ -89,7 +111,7 @@ class Job:
                     self.cancelled = False
                     self._transition(Phase.FINISHING)
                 if on_done:
-                    on_done()
+                    self._bounded(on_done)
                 with self.lock:
                     self.code = 0
                     self._transition(Phase.SUCCEEDED)

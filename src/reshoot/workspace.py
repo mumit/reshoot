@@ -85,6 +85,17 @@ def read_lines(path):
     return lines
 
 
+# What save and save_many wrote during the History.change running on this thread, so a change that fails undoes its
+# own writes and never an edit made elsewhere meanwhile.
+_writes = threading.local()
+
+
+def _wrote(path):
+    journal = getattr(_writes, 'journal', None)
+    if journal is not None:
+        journal[Path(path).resolve()] = Path(path).read_bytes()
+
+
 def save(path, lines, check, expected_sha256=None):
     """Writes lines to path only when check passes on them, so a bad change never reaches the file."""
     path = Path(path)
@@ -107,6 +118,7 @@ def save(path, lines, check, expected_sha256=None):
         temp.unlink(missing_ok=True)
         raise
     temp.replace(path)
+    _wrote(path)
 
 
 def save_many(changes, before, guard=None):
@@ -136,6 +148,7 @@ def save_many(changes, before, guard=None):
                 raise ValueError('The project changed while saving. External edits were kept; reload and try again.')
             pending[path].replace(path)
             written.append(path)
+            _wrote(path)
             expected[path] = changes[path][0].encode()
         if guard:
             guard()
@@ -181,21 +194,41 @@ class History:
             self.expected = self.snapshot()
 
     def restore(self, snapshot):
+        # Every file is written beside itself first, so one that can't be written leaves them all as they were.
+        staged = []
+        try:
+            for path, content in snapshot.items():
+                if content is not None and (not path.is_file() or path.read_bytes() != content):
+                    temp = path.with_name('.' + path.name + '.restore')
+                    temp.write_bytes(content)
+                    staged.append((temp, path))
+        except BaseException:
+            for temp, _ in staged:
+                temp.unlink(missing_ok=True)
+            raise
+        for temp, path in staged:
+            temp.replace(path)
         for path, content in snapshot.items():
             if content is None:
                 path.unlink(missing_ok=True)
-            elif not path.is_file() or path.read_bytes() != content:
-                temp = path.with_name('.' + path.name + '.restore')
-                temp.write_bytes(content)
-                temp.replace(path)
 
     def change(self, operation):
         before = self.snapshot()
+        outer, _writes.journal = getattr(_writes, 'journal', None), {}
         try:
             operation()
         except Exception:
-            self.restore(before)
+            # An operation that saved through save or save_many undoes only those writes, and only where nobody has
+            # changed the file since, so an edit made elsewhere stays. One that wrote files itself is put back whole.
+            written = _writes.journal
+            self.restore({path: content for path, content in before.items() if path.resolve() in written
+                          and (path.read_bytes() if path.is_file() else None) == written[path.resolve()]}
+                         if written else before)
             raise
+        finally:
+            journal, _writes.journal = _writes.journal, outer
+            if outer is not None:
+                outer.update(journal)
         after = self.snapshot()
         self.remember(before, after)
 

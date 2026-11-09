@@ -2,6 +2,7 @@
 import copy
 import json
 import re
+import shutil
 import tomllib
 import uuid
 from pathlib import Path
@@ -43,6 +44,15 @@ def prepare(path):
     run_id = uuid.uuid4().hex
     folder = root / 'takes' / 'runs' / run_id
     folder.mkdir(parents=True)
+    try:
+        return _prepare(data, root, run_id, folder)
+    except BaseException:
+        # A config that fails its checks leaves no empty run behind. The folder is new, so nothing else is in it.
+        shutil.rmtree(folder, ignore_errors=True)
+        raise
+
+
+def _prepare(data, root, run_id, folder):
     def source(value):
         if value.startswith(('http://', 'https://')):
             return value

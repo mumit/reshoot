@@ -14,7 +14,8 @@ steps your app needs before it starts. On each pull request it records
 
 - **The demo still works with this change**, with its result checks. With a
   committed `demo/accepted/`, it also lists each check added or removed since
-  the accepted run, so a demo can't pass by checking less.
+  the accepted run on the base branch, so a demo can't pass by checking less,
+  and says when the pull request changes `demo/accepted/` as well.
 - **This change stops the demo**, with the step that stopped and why, such as
   `Type search notes stopped: it couldn't find the control matching #q. It's
   probably "Search notes" now`, and the suggested repair as a patch to the

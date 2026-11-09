@@ -28,6 +28,7 @@ def runs_folder(path):
 
 def runs(path):
     """Every run report under the folder, newest first, as (folder, report)."""
+    from datetime import datetime, timezone
     found = []
     for report_path in runs_folder(path).glob('*/run.json'):
         try:
@@ -37,10 +38,16 @@ def runs(path):
         # Older runs have no finish time; their event log was last written as they finished.
         events = report_path.parent / 'events.jsonl'
         mtime = (events if events.exists() else report_path).stat().st_mtime
-        from datetime import datetime, timezone
         report.setdefault('finished_at', datetime.fromtimestamp(mtime, timezone.utc).isoformat(timespec='seconds'))
-        found.append((report_path.parent, report))
-    return sorted(found, key=lambda run: run[1]['finished_at'], reverse=True)
+        try:
+            finished = datetime.fromisoformat(report['finished_at'])
+        except (TypeError, ValueError):
+            finished = datetime.fromtimestamp(mtime, timezone.utc)
+        if finished.tzinfo is None:
+            finished = finished.replace(tzinfo=timezone.utc)
+        # Older runs give their finish time to the second, so two in the same second are told apart by their files.
+        found.append(((finished, mtime), report_path.parent, report))
+    return [(root, report) for _, root, report in sorted(found, key=lambda row: row[0], reverse=True)]
 
 
 def resolve(path):
@@ -333,7 +340,8 @@ def status(root, report):
     scanned = ('no scan' if scan is None else
                f'scan: {len(load(root / "review" / "key.json", {}))} items, ' +
                (f'{groups} finding{"s" if groups > 1 else ""} in {len(flags)} of them' if flags else '0 flagged'))
-    verdict = {'completed': 'accepted', 'failed': 'rejected'}.get(report.get('review_status'), 'not accepted yet')
+    verdict = {'completed': 'accepted', 'failed': 'rejected'}.get(report.get('review_status'),
+              'accepted by merging its pull request' if report.get('accepted_by') == 'merge' else 'not accepted yet')
     return ' · '.join((checks, scanned, verdict))
 
 
@@ -475,7 +483,10 @@ def record(root, report, target, shared=()):
         if first and (picture := frame(root, first)):
             (staging / 'findings').mkdir(exist_ok=True)
             picture.save(staging / 'findings' / f'{name}.jpg', quality=88)
-    (staging / 'run.json').write_text(json.dumps({**report, 'files': keep, 'record': True}, indent=2))
+    # A record of a run nobody has accepted yet, as a refresh pull request writes, is accepted by merging it: say so, since
+    # its review_status stays as the run left it.
+    merge = {} if report.get('review_status') == 'completed' else {'accepted_by': 'merge'}
+    (staging / 'run.json').write_text(json.dumps({**report, 'files': keep, 'record': True, **merge}, indent=2))
     shutil.rmtree(target, ignore_errors=True)
     staging.rename(target)
     return target

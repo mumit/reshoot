@@ -221,6 +221,22 @@ def test_settle_reconciles_a_cancelled_or_failed_job_before_another_can_start(tm
     assert job.json()['state'] == 'failed' and 'could not record the repair in Undo' in job.json()['lines']
 
 
+def test_a_result_step_that_hangs_ends_the_job_instead_of_holding_the_studio(tmp_path):
+    import sys
+    release = threading.Event()
+    job = jobs.Job()
+    job.finish_timeout = .2
+    job.start('repair', [sys.executable, '-c', 'pass'], tmp_path, on_done=lambda: release.wait(5))
+    try:
+        wait_done(job)
+        assert job.json()['state'] == 'failed' and any('taking too long' in line for line in job.json()['lines'])
+        job.start('preview', [sys.executable, '-c', 'pass'], tmp_path)  # the studio can go on
+        wait_done(job)
+        assert job.json()['state'] == 'succeeded'
+    finally:
+        release.set()
+
+
 def test_failed_result_application_is_failed_and_allows_another_job(tmp_path):
     import sys
     def fail(): raise ValueError('Could not remember the repaired source')

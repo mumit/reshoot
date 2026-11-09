@@ -181,30 +181,26 @@ Future improvements can expose recorder mode transitions more directly, reduce
 duplicate review-verdict derivation, or correlate partial-preview playback with
 its exact producing job. These are inventory findings, not implemented changes.
 
-Found in the second audit and left open, as rarer or needing a design choice:
+Found in the second audit and resolved afterwards, each with a test that fails
+without its fix unless noted:
 
-- A job whose result step hangs cannot be cancelled and blocks later jobs.
-- `History.change` rolls back every tracked file after a failed operation,
-  which could overwrite an edit made elsewhere in that moment; a failed Undo
-  write can leave history needing recovery.
-- Ctrl-C during creation's preview opens the studio instead of exiting. A crash
-  between applying a recipe and saving the stage can apply it twice.
-- A refresh pull request's record says `review_status: pending` though merging
-  it is the acceptance. The pull-request check compares with the branch's own
-  `demo/accepted`, so a branch that also replaces the record hides removals.
-- `stop_app` stops the app's process group only while its first process runs.
-- A run folder is created before its config is checked, so a bad config leaves
-  an empty folder (no longer a stale CI comment).
-- A take is marked completed before it is encoded; the run still fails.
-- Runs are ordered by finish time to the second.
-- Legacy, unversioned projects keep scan review across runs, so a later check
-  can forget a rejection or mark review completed without acceptance.
-- Smaller page states: the still status during a job, a manual seek past a
-  step's end, a refused preset staying selected, the tour's address bar, a
-  job button clicked twice, a focus refresh racing a job start, and a failed
-  first comparison load not retried on reopening.
-Any later schema migration, cross-process job coordination or broad workflow
-change needs separate compatibility analysis and appropriate regression coverage.
+- A job's result step is limited to 30 seconds (`Job.finish_timeout`).
+- `History.change` undoes only the writes `save` and `save_many` made during
+  it, where the file still holds them; an operation that writes files itself is
+  rolled back whole, as before. `restore` stages every file before renaming
+  any, so a failed Undo changes nothing.
+- `run.Interrupted` lets creation stop on Ctrl-C. A recipe is marked as being
+  applied before it is (tested by a stop after it, not against the old code).
+- A record written before acceptance says `"accepted_by": "merge"`, and the
+  pull-request check compares with the base branch's record (checked by a run
+  in the trial repository, not a test).
+- `stop_app` stops the app's group while any process in it runs; a step's
+  command keeps the old behaviour, since a reset script may start a service.
+- `config.prepare` removes its new run folder when a check fails. A take that
+  fails after its steps ran is marked failed. Runs sort by full finish time,
+  then file time.
+- Legacy projects are described in the troubleshooting guide, not changed.
+- The smaller page states are fixed; only the tour's has its own test.
 
 See [the validation record](../validation/2026-11-08-state-machines.md) for current
 checks, evidence and limitations. The previous [product review](../reviews/2026-11-05-product-review.md)

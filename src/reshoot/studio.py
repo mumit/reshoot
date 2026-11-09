@@ -13,7 +13,7 @@ It serves on 127.0.0.1 behind a random address and takes changes only from its o
 """
 import hashlib, html, json, math, os, re, sys, tomllib
 from pathlib import Path
-from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save
+from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save, save_many
 from reshoot.sequence import outputs, check_cut
 from reshoot.expectations import without_check, update_check, explain
 from reshoot.story import step_name
@@ -244,7 +244,7 @@ def change_trial(folder, operation, board, history):
                         'beat': [{**beat, 'action': bare(beat.get('action', [])), 'expect': bare(beat.get('expect', []))}
                                  for beat in data['beat']]}
             if without_controls(story.load(board)) == without_controls(story.load(story_backup)):
-                history.change(lambda: board.write_text(story_backup.read_text()))
+                history.change(lambda: save_many({board: (story_backup.read_text(), story.load)}, {board: board.read_bytes()}))
             else:
                 message = ('The app is back. Your story has other changes since the trial began, so it was kept as it is: '
                            'its repaired step still looks for the changed search box. Update the preview to see it stop, '
@@ -1689,14 +1689,16 @@ SCRIPT = '''(() => {
     focus.tabIndex = -1; focus.focus({preventScroll:true});
     document.querySelectorAll('.section-nav a').forEach(item => { if (item.dataset.jump === link.dataset.jump) item.setAttribute('aria-current','location'); else item.removeAttribute('aria-current'); });
   });
-  let checkingState = false;
+  // starting: an update was asked for and its job is not showing yet. A second click waits, and a project check that
+  // was on its way when the job started is not applied over it.
+  let checkingState = false, starting = false;
   const refreshJourney = async () => {
     if (checkingState || document.body.dataset.jobRunning === '1') return;
     checkingState = true; const revision = document.body.dataset.revision;
     try {
       const query = new URLSearchParams({run_id:document.body.dataset.run, binding:document.body.dataset.binding, revision});
       const response = await fetch('state.json?' + query), state = await response.json();
-      if (revision !== document.body.dataset.revision) return;
+      if (revision !== document.body.dataset.revision || starting || document.body.dataset.jobRunning === '1') return;
       if (!response.ok) { error(state.error); return; }
       if (state.session_pending && !document.getElementById('session-recovery')) {
         state.external = true;
@@ -1711,6 +1713,10 @@ SCRIPT = '''(() => {
   renderJourney();
   let queue = Promise.resolve();
   const post = (what, body, requireSaved = false) => {
+    if (what === 'job') {
+      if (starting) return Promise.resolve({ok: false, error: 'An update is starting.'});
+      starting = true;
+    }
     const request = () => {
       const ownForm = what === 'sequence' && body.operation === 'range' ? document.querySelector(`.sequence-part[data-part="${body.part}"] .range-form`)
         : what === 'sequence' && body.operation === 'add' ? document.getElementById('add-clip')
@@ -1742,6 +1748,7 @@ SCRIPT = '''(() => {
           error(message); return {ok: false, error: message}; });
     };
     queue = queue.then(request);
+    if (what === 'job') queue.then(out => { if (!out.ok) starting = false; });
     return queue;
   };
   document.querySelectorAll('[data-history]').forEach(b => { b.dataset.enabled = b.disabled ? '' : '1'; b.onclick = () => post(b.dataset.history, {}).then(out => { if (out.ok) location.reload(); }); });
@@ -1800,8 +1807,10 @@ SCRIPT = '''(() => {
   if (downloadStyle) downloadStyle.onclick = event => {
     if (document.querySelector('[data-unsaved]')) { event.preventDefault(); error('Fix the unsaved field before downloading this look.'); }
   };
-  let stopAt = null;
-  const play = (from, to) => { if (!video) return; document.dispatchEvent(new CustomEvent('reshoot:show-recording')); stopAt = to; video.currentTime = from; video.play(); };
+  // stopAt ends a step's playback. A seek of your own, such as dragging the scrubber, plays on instead.
+  let stopAt = null, ownSeek = false;
+  const play = (from, to) => { if (!video) return; document.dispatchEvent(new CustomEvent('reshoot:show-recording')); stopAt = to; ownSeek = video.currentTime !== from; video.currentTime = from; video.play(); };
+  if (video) video.addEventListener('seeking', () => { if (ownSeek) ownSeek = false; else stopAt = null; });
   if (video) video.addEventListener('timeupdate', () => {
     if (stopAt != null && video.currentTime >= stopAt) { video.pause(); stopAt = null; }
     head.style.left = (100 * video.currentTime / (video.duration || 1)) + '%';
@@ -2105,9 +2114,10 @@ SCRIPT = '''(() => {
       });
     }));
     document.querySelector('.audio-controls [name=music]').addEventListener('change', e => change({music: e.target.value}, false, e.target));
-    cut.querySelectorAll('.export select[name=preset]').forEach(s => s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true)));
+    // A refused choice goes back to what is saved, so the menu never shows a setting the project doesn't have.
+    cut.querySelectorAll('.export select[name=preset]').forEach(s => { const kept = s.value; s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true).then(out => { if (!out.ok) s.value = kept; })); });
     cut.querySelectorAll('.export .remove').forEach(b => b.onclick = () => change({export: +b.closest('.export').dataset.export, remove: true}, true));
-    cut.querySelector('[name=add_export]').addEventListener('change', e => e.target.value && change({add_export: e.target.value}, true));
+    cut.querySelector('[name=add_export]').addEventListener('change', e => e.target.value && change({add_export: e.target.value}, true).then(out => { if (!out.ok) e.target.value = ''; }));
   }
   const box = document.getElementById('job'), log = document.getElementById('job-log'), title = document.getElementById('job-title'), take = document.getElementById('job-take');
   const auditionPlayer = document.getElementById('audition-player');
@@ -2125,7 +2135,7 @@ SCRIPT = '''(() => {
   const watch = () => fetch('job.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(job => {
     missed = 0;
     if (!job.kind) { if (document.body.dataset.jobRunning === '1') location.reload(); return; }  // a restarted studio
-    activeJob = job.n;
+    activeJob = job.n; starting = false;
     document.body.dataset.jobRunning = job.running ? '1' : '';
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
     document.getElementById('cancel').hidden = !job.running || !job.cancelable;

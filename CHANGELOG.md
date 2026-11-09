@@ -41,9 +41,20 @@ change project files or commands.
   the `--record` folder before copying anything, replaces each file whole and
   writes the record after the media.
 - The pull-request check says **The demo check could not run** when it stopped
-  before recording, instead of leaving an older comment up. Copy the new
-  `examples/github/check.yml`.
-- Ctrl-C while reshoot waits for the app to start now stops the app.
+  before recording, instead of leaving an older comment up. It now compares
+  with the accepted run on the base branch, so a change that also replaces
+  `demo/accepted/` can't hide a removed check, and says when it does. Copy the
+  new `examples/github/check.yml`.
+- A refresh pull request's `demo/accepted/run.json` says
+  `"accepted_by": "merge"`, since merging it is the acceptance though its
+  `review_status` stays `pending`.
+- Ctrl-C while reshoot waits for the app to start now stops the app, and
+  stopping the app also stops what it started, such as a server a shell
+  command left running. Ctrl-C during creation's first preview stops creation
+  instead of opening the studio.
+- A config that fails its checks no longer leaves an empty run folder. A take
+  whose encoding fails is marked failed, so its checks read as not verified.
+  Runs that finish in the same second are listed in the order they finished.
 - A scan cut off by the run's timeout is reported as failed, not skipped, and a
   step cut off by it is listed with its name.
 - `reshoot check --fail` with a mistyped label, or a failed `--ok`, keeps the
@@ -55,7 +66,7 @@ change project files or commands.
   - one paused before its demonstration no longer gets stuck once its files
     change: choose **Update preview** in the studio;
   - continuing no longer applies its recipe over edits made in the studio while
-    it was paused.
+    it was paused, and never applies it twice after a stop.
 - The studio:
   - recovers when one update status check fails, instead of staying locked on
     "Recording…", and Cancel update can't be sent twice;
@@ -66,7 +77,17 @@ change project files or commands.
   - keeps text you type while a save is on its way marked unsaved;
   - downloading the saved source copy no longer holds up the rest of the studio;
   - **Put the app and story back** in the notes trial keeps story edits made
-    since the trial began.
+    since the trial began;
+  - a failed edit undoes only what it wrote, keeping a change made in an
+    editor meanwhile, and an Undo or Redo that can't write every file changes
+    none of them;
+  - a job whose result step hangs ends after 30 seconds instead of holding the
+    studio;
+  - the layout still says it waits during an update, a seek of your own plays
+    past a step's end, a refused preset or export goes back to the saved one,
+    an update button clicked twice starts one update, and a failed comparison
+    loads again when you reopen it.
+- A tour's address follows the step shown, so reloading it stays there.
 - The recorder stays paused when restoring the app loads another page.
 
 ## 0.3.14 (2026-11-06)

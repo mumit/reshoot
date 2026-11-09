@@ -21,6 +21,23 @@ def run_fixture(root, name='run'):
     return root
 
 
+def test_runs_in_the_same_second_are_ordered_by_when_they_finished(tmp_path):
+    import os
+    runs = tmp_path / 'runs'
+    runs.mkdir()
+    first, second = run_fixture(runs / 'one', 'one'), run_fixture(runs / 'two', 'two')
+    for root, when, stamp in ((first, '2026-11-09T10:00:00+00:00', 100), (second, '2026-11-09T10:00:00+00:00', 200)):
+        report = json.loads((root / 'run.json').read_text())
+        (root / 'run.json').write_text(json.dumps({**report, 'finished_at': when}))
+        os.utime(root / 'run.json', (stamp, stamp))
+    assert [root.name for root, _ in review.runs(runs)] == ['two', 'one']
+    report = json.loads((first / 'run.json').read_text())
+    (first / 'run.json').write_text(json.dumps({**report, 'finished_at': '2026-11-09T10:00:00.500000+00:00'}))
+    (runs / 'three').mkdir()
+    (runs / 'three/run.json').write_text(json.dumps({'id': 'three', 'ok': True, 'finished_at': '2026-11-09T09:00:00'}))
+    assert [root.name for root, _ in review.runs(runs)] == ['one', 'two', 'three']
+
+
 def test_review_rejects_changed_files_and_foreign_decisions(tmp_path):
     root = run_fixture(tmp_path / 'one')
     report = review.read(root)[1]
@@ -371,6 +388,9 @@ def test_export_replaces_media_and_writes_records_only_over_records(tmp_path):
     with pytest.raises(ValueError, match='not a run record'):
         project.export(args)
     assert (media / 'demo-final.mp4').stat().st_mtime_ns == before  # refused before copying anything
+    written = json.loads((tmp_path / 'demo/accepted/run.json').read_text())
+    assert written['accepted_by'] == 'merge'  # nobody accepted the run: merging its pull request will
+    assert review.status(tmp_path / 'demo/accepted', written).endswith('accepted by merging its pull request')
 
 
 def test_export_and_latest_skip_runs_that_are_not_a_working_whole_task(tmp_path):
@@ -544,7 +564,7 @@ def test_the_owner_accepts_a_run_on_its_served_review_page(tmp_path, monkeypatch
     server.join(5)
     assert not server.is_alive()  # it stops once the owner decides
     assert review.read(root)[1]['review_status'] == 'completed'
-    assert (tmp_path / 'demo/accepted/run.json').exists()
+    assert 'accepted_by' not in json.loads((tmp_path / 'demo/accepted/run.json').read_text())  # accepted already
     assert '<strong>Accepted.</strong>' in (root / 'review.html').read_text()
 
 

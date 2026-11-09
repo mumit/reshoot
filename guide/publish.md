@@ -7,7 +7,10 @@ have a URL or an installed app.
 
 [Accepting a final](studio.md#review-and-accept) writes `demo/accepted/`: the
 run's report, step results and evidence frames, without the videos. Later runs
-are compared with it. It changes only when you accept another run.
+are compared with it. It changes only when you accept another run. A
+[refresh pull request](ci.md) writes one too, before anyone has accepted it, so
+its `run.json` says `"accepted_by": "merge"`: merging the pull request is the
+acceptance, though its `review_status` stays `pending`.
 
 | Path | Commit it |
 |---|---|

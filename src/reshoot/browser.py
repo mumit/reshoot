@@ -418,6 +418,7 @@ def main(a):
             e = RuntimeError(f'the take ran over its {board.get("timeout", 600)} s timeout while '
                              f'{metadata.get("stage", "starting Chrome")}; raise timeout in the storyboard if it needs longer')
         metadata['error'] = redact(str(e)) or type(e).__name__
+        metadata['status'] = 'failed'  # also when encoding or captions failed after the steps all ran: there is no take
         raise ValueError(metadata['error']) from None
     finally:
         out.with_suffix('.take.json').write_text(json.dumps(metadata, indent=2))

@@ -10,6 +10,8 @@
       else link.removeAttribute('aria-current');
     });
     status.textContent = `Step ${current + 1} of ${steps.length}`;
+    // The address names the step shown, so a reload stays on it; replacing it keeps Back leaving the tour.
+    if (location.hash !== `#step-${current + 1}`) { try { history.replaceState(null, '', `#step-${current + 1}`); } catch {} }
     if (focus) { steps[current].querySelector('h2').focus({preventScroll: true}); window.scrollTo({top: 0, behavior: 'instant'}); }
   };
   const fromHash = () => {

@@ -42,6 +42,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           OK: ${{ steps.shoot.outputs.ok }}
           SUMMARY: ${{ steps.shoot.outputs.summary }}
+          BASE: ${{ github.base_ref }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           {
@@ -58,12 +59,20 @@ jobs:
               echo
               cat "$SUMMARY"
             fi
-            if [ "$OK" = "true" ] && [ -f demo/accepted/run.json ]; then # change: your project's accepted record
-              reshoot compare demo/accepted "$(dirname "$SUMMARY")" --out "$RUNNER_TEMP/comparison.json" --markdown "$RUNNER_TEMP/comparison.md" > /dev/null
+            # Compared with the accepted run on the base branch, so a change that also replaces it can't hide a removed check.
+            ACCEPTED=demo/accepted # change: your project's accepted record
+            if [ "$OK" = "true" ] && git fetch --quiet --depth=1 origin "$BASE" && git cat-file -e "FETCH_HEAD:$ACCEPTED/run.json" 2> /dev/null; then
+              mkdir -p "$RUNNER_TEMP/base"
+              git archive FETCH_HEAD "$ACCEPTED" | tar -x -C "$RUNNER_TEMP/base"
+              reshoot compare "$RUNNER_TEMP/base/$ACCEPTED" "$(dirname "$SUMMARY")" --out "$RUNNER_TEMP/comparison.json" --markdown "$RUNNER_TEMP/comparison.md" > /dev/null
               echo
-              echo "### Compared with the accepted run"
+              echo "### Compared with the accepted run on \`$BASE\`"
               echo
               cat "$RUNNER_TEMP/comparison.md"
+              if ! git diff --quiet FETCH_HEAD -- "$ACCEPTED"; then
+                echo
+                echo "This pull request also changes \`$ACCEPTED/\`. The comparison is with the accepted run on \`$BASE\`, which merging would replace."
+              fi
             fi
             echo
             if [ -z "$SUMMARY" ]; then

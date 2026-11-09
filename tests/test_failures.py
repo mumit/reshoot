@@ -223,3 +223,27 @@ def test_a_stalled_chrome_call_fails_quickly_and_says_what_it_was(monkeypatch):
         await asyncio.sleep(10)
     with pytest.raises(RuntimeError, match='Chrome did not respond to showing the caption within 0.05 s'):
         asyncio.run(browser.bounded(stalls(), 'showing the caption', 0.05))
+
+
+def test_a_config_that_fails_its_checks_leaves_no_empty_run(tmp_path):
+    from reshoot.config import prepare
+    config = tmp_path / 'reshoot.toml'
+    config.write_text('schema_version=1\n[[take]]\nweb="missing.toml"\nout="takes/first.mp4"\n')
+    with pytest.raises(ValueError, match='storyboard file missing'):
+        prepare(config)
+    assert not list((tmp_path / 'takes/runs').glob('*'))
+
+
+def test_a_take_whose_encoding_fails_is_not_marked_completed(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from reshoot import browser
+    board = tmp_path / 'story.toml'
+    board.write_text('schema_version=1\nurl="http://localhost/"\n[[beat]]\nid="result"\n')
+    async def capture(board, a, frames, out, metadata, spoken):
+        metadata['status'] = 'completed'  # every step ran
+        raise RuntimeError('the encoder failed')
+    monkeypatch.setattr(browser, 'capture', capture)
+    out = tmp_path / 'takes/demo.mp4'
+    with pytest.raises(ValueError, match='encoder failed'):
+        browser.main(SimpleNamespace(storyboard=str(board), size=None, out=str(out)))
+    assert json.loads(out.with_suffix('.take.json').read_text())['status'] == 'failed'

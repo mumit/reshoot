@@ -38,7 +38,9 @@
     return {beat:panel.dataset.beat, draft:result};
   };
   const render = async (serial, attempt = 0) => {
-    if (serial !== generation || document.body.dataset.jobRunning === '1') return;
+    if (serial !== generation) return;
+    // An update in progress uses the recording, so the still waits; say so rather than leave "Updating…" showing.
+    if (document.body.dataset.jobRunning === '1') { status.textContent = 'The layout still waits while the update runs.'; return; }
     const revision = document.body.dataset.revision;
     let candidate;
     try {

@@ -14,12 +14,16 @@ steps your app needs before it starts. On each pull request it records
 
 - **The demo still works with this change**, with its result checks. With a
   committed `demo/accepted/`, it also lists each check added or removed since
-  the accepted run, so a demo can't pass by checking less.
+  the accepted run on the base branch, so a demo can't pass by checking less,
+  and says when the pull request changes `demo/accepted/` as well.
 - **This change stops the demo**, with the step that stopped and why, such as
   `Type search notes stopped: it couldn't find the control matching #q. It's
   probably "Search notes" now`, and the suggested repair as a patch to the
   storyboard. Look at the failure frame in the `reshoot-review` artifact, then
   apply the patch with `git apply` and push. Nothing changes until you do.
+- **The demo check could not run**, when it stopped before recording, such as
+  for a storyboard that doesn't parse or an app that didn't start. The job's
+  log says why.
 
 A stopped step or failed check also fails the job, so you can make the check
 required in your branch rules. A wrong result has no suggested repair: fix the

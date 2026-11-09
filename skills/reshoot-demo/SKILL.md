@@ -5,15 +5,24 @@ description: Create a repeatable software demo with reshoot from an app and demo
 
 # Create a demo
 
+For a versioned browser project, if `reshoot --help` lists `status`, read
+`reshoot status PROJECT --json` first. Choose only an `enabled` action; `reason`
+says why not. Do not start one with `waits_for_person` unless the owner asks.
+`ok` means inspection succeeded, not that the demo passed. Tools, live studio
+jobs and unsaved fields are not checked.
+
 ## Set up
 
 Requires reshoot CLI 0.3.14 or newer. Run `reshoot --version`. If it is older, or `reshoot doctor` says a newer release is out, upgrade with `reshoot upgrade --yes`. If the CLI is missing, use the repository's documented installation; do not invent commands for another version.
 
-Run `reshoot doctor --config CONFIG --probe` for a project. It tests encoding, a TOML browser capture and the configured text scan on temporary synthetic data; it does not test the app, face detection or final media. Fix what it reports instead of turning scans off. If `RESHOOT_CHROME` is set, it must name an executable browser. Restart reshoot after changing shell settings or its Python environment.
+Run `reshoot doctor --config CONFIG --probe`. Its synthetic encoding, browser
+and text-scan probes do not validate the app, faces or final media. Fix failures
+rather than disabling scans. `RESHOOT_CHROME` must name an executable browser;
+restart after environment changes.
 
 ## Choose the story
 
-Identify the target: app source, a running web URL, or an installed macOS app. Source is optional: inspect code and demo fixtures when you have them, otherwise the page or window itself. Choose one useful task with a visible result, an audience and a destination. Ask only for missing details that change the story.
+Identify the target: app source, a running web URL, or an installed macOS app. Inspect source and fixtures when you have them, otherwise the page or window. Choose one useful task with a visible result, an audience and a destination. Ask only for missing details that change the story.
 
 Use made-up data in a separate account, folder or database. Document its reset and run it before each take. When an app keeps data and has no reset, ask for one, or check the item the take created rather than totals earlier takes change. Log in with an isolated demo account in a fresh profile.
 
@@ -26,16 +35,14 @@ Record only a headless browser page, a VHS terminal, or one macOS window by ID. 
 3. Replace the placeholder storyboard with real actions and result checks, keeping an `end` beat if the edit uses it. Read the DOM, or run `reshoot rec URL DRAFT.toml` when there is no source. A recorder draft marks suggested checks `# suggested`: keep the ones that show the result, delete the rest, then add captions, purposes and clear beat IDs.
 4. Read `reshoot web --help` for storyboard settings and `reshoot run --help` for the configuration.
 
-If the owner wants to show the task themselves, offer `reshoot create URL --directory demo`. It records in a browser with a toolbar, makes a preview and opens the studio. It waits for a person, so do not start it during an autonomous recording. `reshoot create --resume --directory demo` continues one after setup is fixed; do not give it another URL or size. If the storyboard changed while the owner was recording, keep both versions and compare them; never overwrite those changes. Repair any `recording_issue` step it leaves; never delete one to make a recording pass.
+If the owner wants to show the task themselves, offer `reshoot create URL --directory demo`. It records in a browser with a toolbar, makes a preview and opens the studio, and waits for a person: do not start it autonomously. `reshoot create --resume --directory demo` continues one after setup is fixed; do not give it another URL or size. If the storyboard changed meanwhile, keep and compare both versions; never overwrite them. Repair any `recording_issue` step it leaves; never delete one to make a recording pass.
 
-For a useful starting presentation, `reshoot recipe list` describes feature,
-walkthrough and release recipes. Use `reshoot recipe apply feature --project demo`
-after writing the task, or offer `create --recipe feature` for a new creation.
-Recipes keep actions and checks, change pacing/look/export choices, and need a
-fresh preview. Inspect `recipe apply NAME --dry-run --project demo` first when
-the project already has custom delivery settings. Existing cut ranges and cards
-stay; [the studio guide](https://github.com/mumit/reshoot/blob/main/guide/studio.md#choose-a-starting-recipe)
-describes the choices. Never treat a recipe as a verified result or acceptance.
+`reshoot recipe list` describes the recipes. Use
+`reshoot recipe apply feature --project demo` after writing the task, or offer
+`create --recipe feature` for a new creation. Inspect `--dry-run` first when the
+project has custom delivery settings. Recipes keep actions, checks, cut ranges
+and cards, change pacing and exports, and need a fresh preview. Never treat a
+recipe as a verified result or acceptance. See [recipes](https://github.com/mumit/reshoot/blob/main/guide/studio.md#choose-a-starting-recipe).
 
 For combined web and VHS edits, give both takes the same dimensions.
 
@@ -59,7 +66,7 @@ Save a brief, a capture recipe and an edit script in a demo folder. `reshoot win
 
 ## Record and check
 
-For browser and VHS projects, run `reshoot preview CONFIG`, inspect its frames and result checks, then record the final with `reshoot run CONFIG`. Read `run.json` for detail. For a native app, inspect a test take, then capture and edit a fresh final in a new folder, and make check sheets with `reshoot check SOURCES --full --review NEW_REVIEW_DIR`.
+For browser and VHS projects, run `reshoot preview CONFIG`, inspect its frames and result checks, then record the final with `reshoot run CONFIG`. For a native app, inspect a test take, then capture and edit a fresh final in a new folder, and make check sheets with `reshoot check SOURCES --full --review NEW_REVIEW_DIR`.
 
 Inspect the actual outputs. A run that completes has not passed its scan or been reviewed. Fix failing inputs and actions rather than weakening a check. If the owner wants a quicker refresh, follow the guide's `troubleshooting.md` and say which checks you reduced. Always read agent-written terminal text.
 
@@ -70,7 +77,7 @@ End the same way each time:
 1. One sentence on the task and its result.
 2. The MP4, GIF and review page paths, opened when possible, and the run's status line.
 3. Anything the owner must look at: flagged items, reduced checks, mocked data.
-4. "Reply accept, or ask for changes such as:" with two or three that fit, such as shorter captions, a longer hold on the result or a narrower viewport for GIF text.
+4. "Reply accept, or ask for changes such as:" with two or three that fit, such as shorter captions or a longer hold on the result.
 5. The `reshoot accept` command the run printed. Mention `reshoot review RUN --serve` for deciding on a page and `reshoot studio DIR` for shaping the demo by pointing. Both wait for the owner: do not start them or click their buttons.
 
 Changes the owner makes in the studio are saved to the storyboard, `edit.toml` and `reshoot.toml`; read the files again before editing them. Run `reshoot accept RUN --yes` only when the owner replies accept or explicitly asks. Then offer `reshoot export demo/accepted --directory docs/demo` and the README Markdown it prints.

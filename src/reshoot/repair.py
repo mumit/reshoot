@@ -4,7 +4,9 @@ import hashlib
 import json
 import re
 import shlex
+import signal
 import tempfile
+import threading
 from pathlib import Path
 
 from reshoot.artifacts import digest
@@ -453,15 +455,24 @@ def main(a):
     if shoot.get('edit', {}).get('file'):
         paths.append(folder / shoot['edit']['file'])
     history = History(paths)
-    revision, app = history.revision(), None
+    revision, app, interrupt = history.revision(), None, None
     try:
         if shoot.get('app'):
             app = run.start_app({**shoot['app'], 'cwd': str(folder)}, data['root'] / 'repair-app.log')
         target, alternatives = asyncio.run(choose(data, pick=a.pick, headless=getattr(a, 'headless', False)))
         history.check(revision)
         apply(data, target, alternatives)
+        # The story is saved. Finish stopping the app and report success rather than be cut off by a late cancel,
+        # which would leave the change looking undone. Only the main thread can set this, and it is put back after,
+        # since processes started later would inherit it.
+        if threading.current_thread() is threading.main_thread():
+            interrupt = signal.signal(signal.SIGINT, signal.SIG_IGN)
     finally:
-        run.stop_app(app)
+        try:
+            run.stop_app(app)
+        finally:
+            if interrupt is not None:
+                signal.signal(signal.SIGINT, interrupt)
     print(f"Changed only which control step {failure['beat']!r} uses; its actions and result checks are as they were. "
           'Record a preview to check it:\n  reshoot preview ' + shlex.quote(run.shown(data['config'])))
     return 0

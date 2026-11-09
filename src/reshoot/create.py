@@ -45,6 +45,19 @@ def load(root):
         raise ValueError(f'Cannot resume this creation: {error}. Your files are kept; open reshoot studio instead.') from None
 
 
+def pending(root, state):
+    """Whether a saved creation still waits to be continued. One paused before its demonstration is over once the
+    project's files change: continuing would record over them, so the studio's own updates take its place."""
+    if not state or state['stage'] == 'done':
+        return False
+    if state['stage'] == 'record':
+        from reshoot.artifacts import digest
+        root = Path(root)
+        return (digest(root / 'reshoot.toml'), digest(root / 'storyboard.toml')) == (
+            state.get('config_sha256'), state.get('story_sha256'))
+    return True
+
+
 def resume_command(root):
     return 'reshoot create --resume --directory ' + shlex.quote(str(root))
 
@@ -73,7 +86,8 @@ def main(a):
             raise ValueError('The URL or size differs from the saved creation. Resume without changing them, or use a new directory.')
         if state['stage'] == 'record' and any(digest(path) != state.get(key) for path, key in (
                 (config, 'config_sha256'), (board_path, 'story_sha256'))):
-            raise ValueError('The project changed after creation paused. Your draft is kept; open reshoot studio or record to a new storyboard file.')
+            raise ValueError('The project changed after creation paused, so continuing would record over your changes. '
+                             'Your files are kept: choose Update preview in reshoot studio to record them.')
         if state['stage'] == 'record' and story.load(board_path)['url'] != state['url']:
             raise ValueError('The saved target differs from the draft URL. Your files are kept; use a new directory for another app.')
     elif existing:
@@ -130,12 +144,27 @@ def main(a):
         except BaseException:
             print(f'Your recorded task is kept in {draft}. The existing project files were kept.', flush=True)
             raise
-        draft.unlink()
+        # Saved before the draft goes, so a crash in between can't leave a demonstration that is neither kept nor used.
         state.update(stage='preview', config_sha256=digest(config), story_sha256=digest(board_path))
         save(root, state)
-    if state.get('recipe') and not state.get('recipe_applied'):
+        draft.unlink()
+    if state.get('recipe') and not state.get('recipe_applied') and (digest(config), digest(board_path)) != (
+            state.get('config_sha256'), state.get('story_sha256')):
+        if state.get('recipe_applying'):
+            # It was applied, then creation stopped before saving that: never apply it a second time.
+            state.update(recipe_applied=True, recipe_applying=False, config_sha256=digest(config),
+                         story_sha256=digest(board_path))
+            save(root, state)
+            print(f'The {state["recipe"]} recipe was applied before creation stopped.', flush=True)
+        else:
+            # Changed in the studio while creation was paused: the recipe would replace those holds, exports and style.
+            print(f'Your project changed since creation paused, so the {state["recipe"]} recipe was not applied over your '
+                  f'changes. Apply it with: reshoot recipe apply {state["recipe"]} --project {shlex.quote(str(root))}', flush=True)
+    elif state.get('recipe') and not state.get('recipe_applied'):
+        state['recipe_applying'] = True  # saved first, so a stop before the next save is not taken for a change of yours
+        save(root, state)
         result = recipes.apply(config, state['recipe'], state.get('title'))
-        state.update(recipe_applied=True, config_sha256=digest(config), story_sha256=digest(board_path))
+        state.update(recipe_applied=True, recipe_applying=False, config_sha256=digest(config), story_sha256=digest(board_path))
         save(root, state)
         print(f'Applied {result["recipe"]}.', flush=True)
     board = story.load(board_path)
@@ -149,6 +178,10 @@ def main(a):
             if not a.no_studio:
                 print('Recording a preview…', flush=True)
             run.preview(SimpleNamespace(config=str(config), from_beat=None, quiet=not a.no_studio))
+        except run.Interrupted:
+            # Stopped on purpose, so stop here too rather than open the studio.
+            print('Stopped. Your story is saved. Continue with: ' + continuation, flush=True)
+            raise
         except (ValueError, SystemExit) as error:
             print(f'Your story is saved. The preview needs attention: {error}', flush=True)
             code = 2

@@ -5,6 +5,12 @@ description: Inspect a reshoot recording and its check report for failed actions
 
 # Review a recording
 
+For a versioned browser project, if `reshoot --help` lists `status`, read
+`reshoot status PROJECT --json` first. Choose only an `enabled` action; `reason`
+says why not. Do not start one with `waits_for_person` unless the owner asks.
+`ok` means inspection succeeded, not that the demo passed. Tools, live studio
+jobs and unsaved fields are not checked.
+
 When the owner uses the studio, Compare shows paired exported videos and
 checked result frames from the run on the page beside an earlier run. Review
 and Download refer to that run too. Result frames show the captured pages

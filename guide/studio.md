@@ -15,13 +15,17 @@ reshoot studio demo        # the folder holding reshoot.toml; demo is the defaul
 
 `--no-open` prints the address; `--port 8800` picks the port.
 
+To see the saved project's next action from a terminal, use `reshoot status demo`.
+It does not see live studio jobs or unsaved fields; see [commands](commands.md).
+
 A first preview shows "Your first demo is ready", with **Download the video**,
 **Download the GIF** and **Copy readme Markdown**.
 
 In the notes app, **Change the notes app and record again** renames the search
 box, so the recording stops at the search step for you to
 [repair](#repair-a-step-that-broke). **Put the app and story back** undoes the
-trial.
+trial. If you changed the story in other ways since, it keeps your story and
+says so; the repaired step then stops again, for you to repair it back.
 
 If a tool is missing, **Recording tools** lists what to install. Choose
 **Check again**, then **Continue creation**, or run
@@ -94,6 +98,8 @@ nothing useful, open **Remove a check that is not needed** and choose
 captions, the look, the cut or audio levels. After a change to actions, result
 checks, holds, narration, the recording size or declared `inputs`, it records
 the task again. **Cancel update** keeps the previous video.
+Once an update finishes recording and starts saving its result, wait for it to
+finish; cancellation is no longer offered for that last step.
 
 **Record app again** records the whole task, for a change the studio can't
 see, such as to a database. **Record from here**, on

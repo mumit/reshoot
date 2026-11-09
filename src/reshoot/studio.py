@@ -11,30 +11,17 @@ open, and the page shows what is on disk when it loads.
 
 It serves on 127.0.0.1 behind a random address and takes changes only from its own page, like `review --serve`.
 """
-import hashlib, html, json, math, os, re, signal, subprocess, sys, threading, tomllib
+import hashlib, html, json, math, os, re, sys, tomllib
 from pathlib import Path
-from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save
+from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save, save_many
 from reshoot.sequence import outputs, check_cut
 from reshoot.expectations import without_check, update_check, explain
 from reshoot.story import step_name
+from reshoot.journey import recorded_as, update_kind
+from reshoot.workflow import project, current, failed, editable_paths, describe as workflow
+from reshoot.jobs import Job
 
 AUDIO = ('.mp3', '.m4a', '.aac', '.wav', '.ogg', '.flac')
-
-
-def project(path):
-    """The reshoot.toml for a project folder or the file itself, its folder and its first TOML web take."""
-    path = Path(path)
-    config = path if path.suffix == '.toml' else path / 'reshoot.toml'
-    if not config.is_file():
-        raise ValueError(f'no {config}: name the project folder, such as reshoot studio demo')
-    from reshoot.config import read
-    shoot, folder = read(config)
-    if not shoot.get('schema_version'):
-        raise ValueError('the studio needs a versioned project, with schema_version = 1 in reshoot.toml')
-    take = next((t for t in shoot.get('take', []) if str(t.get('web', '')).endswith('.toml')), None)
-    if not take:
-        raise ValueError('the studio needs a take with a TOML storyboard, such as web = "storyboard.toml"')
-    return config.resolve(), folder, take
 
 
 COLOUR = re.compile(r'#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})')
@@ -195,79 +182,6 @@ def sources(config, before, after, change):
         save(config, lines, read)
 
 
-class Job:
-    """A reshoot command started from the page: a re-cut or a recording, one at a time."""
-    def __init__(self):
-        self.kind, self.lines, self.code, self.lock, self.n, self.beat = None, [], None, threading.Lock(), 0, None
-        self.proc, self.cancelled = None, False
-        self.result = None
-
-    def running(self):
-        return self.kind is not None and self.code is None
-
-    def start(self, kind, cmd, cwd, beat=None, on_done=None, result=None):
-        with self.lock:
-            if self.running():
-                raise ValueError(f'a {self.kind} is still running')
-            self.kind, self.lines, self.code, self.n, self.beat = kind, [], None, self.n + 1, beat
-            self.proc, self.cancelled = None, False
-            self.result = result
-        def go():
-            from reshoot.safety import redact
-            try:
-                proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                                        start_new_session=True)
-                self.proc = proc
-                if self.cancelled:
-                    self.cancel()
-                for line in proc.stdout:
-                    self.lines.append(redact(line.rstrip()).replace(str(cwd) + '/', ''))
-                code = proc.wait()
-                if code == 0 and not self.cancelled and on_done:
-                    on_done()
-                self.code = 130 if self.cancelled else code
-            except Exception as e:
-                self.lines.append(redact(str(e)))
-                self.code = 1
-        threading.Thread(target=go, daemon=True).start()
-
-    def cancel(self):
-        self.cancelled = True
-        proc = self.proc
-        if proc and proc.poll() is None:
-            try:
-                os.killpg(proc.pid, signal.SIGINT)
-            except ProcessLookupError:
-                return
-            def stop():
-                if proc.poll() is None:
-                    try:
-                        os.killpg(proc.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-            timer = threading.Timer(12, stop)
-            timer.daemon = True
-            timer.start()
-
-    def json(self):
-        return {'n': self.n, 'kind': self.kind, 'beat': self.beat, 'running': self.running(), 'code': self.code,
-                'lines': self.lines[-400:], 'cancelled': self.cancelled,
-                **(self.result if self.code == 0 and not self.cancelled and self.result else {})}
-
-
-def current(folder, partial=False):
-    """The newest run that worked, as (root, report), or None. A partial preview, recorded from one beat on, is
-    left out unless partial asks for one only."""
-    from reshoot import review
-    for root, report in review.runs(folder):
-        if report.get('ok') and (report.get('mode') == 'partial-preview') == partial:
-            try:
-                return review.read(root)
-            except (OSError, ValueError):
-                continue
-    return None
-
-
 def place(segments, source, t):
     """Where source time t of a take is in a cut, or None when the cut leaves it out."""
     for row in segments:
@@ -275,19 +189,6 @@ def place(segments, source, t):
             scale = (row['end'] - row['start']) / (row['source_end'] - row['source_start'] or 1)
             return row['start'] + (t - row['source_start']) * scale
     return None
-
-
-def recorded_as(beat, row):
-    """Whether a storyboard beat still has the actions, checks and holds it was recorded with: its definition hash,
-    with the captions it was recorded with put back, since those are drawn again on a re-cut."""
-    probe = dict(beat)
-    if row is not None:
-        for key, value in (('caption', row.get('recorded')), ('sub', row.get('recorded_sub'))):
-            if value is None:
-                probe.pop(key, None)
-            else:
-                probe[key] = value
-    return hashlib.sha256(json.dumps(probe, sort_keys=True).encode()).hexdigest()
 
 
 def fits(limits, seconds, size):
@@ -318,6 +219,7 @@ def trial(folder):
 
 
 def change_trial(folder, operation, board, history):
+    """Change the notes app for the trial, or put it back. Returns what to tell the person, or ''."""
     page, backup = Path(folder) / 'index.html', Path(folder) / 'takes/notes-before-change.html'
     story_backup = backup.with_suffix('.toml')
     state = trial(folder)
@@ -329,62 +231,30 @@ def change_trial(folder, operation, board, history):
         for old, new in TRIAL:
             text = text.replace(old, new)
         page.write_text(text)
+        return ''
     elif operation == 'restore' and state == 'changed':
-        # The repaired step points at the changed app, so the story goes back too, as one undoable edit.
+        # The repaired step points at the changed app, so the story goes back too, as one undoable edit: but only when
+        # the repair is all that changed in it, so later edits to captions, timing or checks are never lost.
+        message = ''
         if story_backup.is_file():
-            history.change(lambda: board.write_text(story_backup.read_text()))
+            from reshoot import story
+            def without_controls(data):  # a repair changes only which control an action, check or setup step uses
+                bare = lambda entries: [{k: v for k, v in entry.items() if k not in ('target', 'fallbacks')} for entry in entries]
+                return {**data, 'setup': bare(data.get('setup', [])),
+                        'beat': [{**beat, 'action': bare(beat.get('action', [])), 'expect': bare(beat.get('expect', []))}
+                                 for beat in data['beat']]}
+            if without_controls(story.load(board)) == without_controls(story.load(story_backup)):
+                history.change(lambda: save_many({board: (story_backup.read_text(), story.load)}, {board: board.read_bytes()}))
+            else:
+                message = ('The app is back. Your story has other changes since the trial began, so it was kept as it is: '
+                           'its repaired step still looks for the changed search box. Update the preview to see it stop, '
+                           'then repair it again.')
             story_backup.unlink()
         page.write_text(backup.read_text())
         backup.unlink()
+        return message
     else:
         raise ValueError('The notes app is not in the state this button expects. Reload the studio.')
-
-
-def failed(folder, take, config):
-    """The newest failure, until a complete recording succeeds. Its media stays pinned like successful runs."""
-    from reshoot import review
-    from reshoot.artifacts import digest
-    for root, report in review.runs(folder):
-        if report.get('mode') == 'partial-preview' and report.get('ok'):
-            continue
-        if report.get('ok'):
-            return None
-        try:
-            root, report = review.read(root)
-            path = root / Path(take['out']).with_suffix('.take.json')
-            meta = json.loads(path.read_text()) if path.exists() else {}
-            failure = meta.get('failure') or {}
-            board = Path(folder) / take['web']
-            audit = root / 'repair.json'
-            repair = json.loads(audit.read_text()) if audit.exists() else {}
-            current_sha = digest(board)
-            image = meta.get('failure_screenshot')
-            check = None  # the result check that failed, said plainly, so the page can offer to remove it
-            for beat in meta.get('beats', []):
-                bad = next((i for i, x in enumerate(beat.get('expectations') or []) if x.get('status') == 'failed'), None)
-                if bad is not None:
-                    from reshoot import story
-                    beats = story.load(board)['beat']
-                    n = next((k for k, b in enumerate(beats) if b.get('id') == beat['id']), None)
-                    expects = beats[n].get('expect', []) if n is not None else []
-                    if n is not None and bad < len(expects):
-                        error = beat['expectations'][bad].get('error', '')
-                        check = {'beat': beat['id'], 'index': bad, 'expect': expects[bad], 'detail': error,
-                                 'message': explain(n + 1, beat['id'], expects[bad], error)}
-                    break
-            return {'id': report['id'], 'binding': review.binding(root, report), 'check': check,
-                    'message': meta.get('error') or '; '.join(report.get('errors', [])),
-                    'image': str(Path(take['out']).parent / image) if image else None,
-                    'repairable': failure.get('kind') in ('missing-target', 'ambiguous-target'), 'beat': failure.get('beat'),
-                    'visual_repair': not failure.get('target', {}).get('frame'),
-                    'candidates': failure.get('candidates', []),
-                    'candidate_labels': failure.get('candidate_labels', []),
-                    'repaired': repair.get('after') == current_sha,
-                    'stale': (meta.get('story_sha256') is not None and meta['story_sha256'] != current_sha) or
-                             (report.get('inputs', {}).get('config_sha256') is not None and report['inputs']['config_sha256'] != digest(config))}
-        except (OSError, ValueError):
-            continue
-    return None
 
 
 def view(folder, take, config, run=None):
@@ -411,10 +281,10 @@ def view(folder, take, config, run=None):
     except ValueError as error:
         creation = None
         data['create_error'] = str(error)
-    pending_creation = creation and creation['stage'] != 'done'
+    pending_creation = create.pending(folder, creation)
     data['setup'] = tools if not tools['ok'] or pending_creation or not run and not current(folder) else None
     data['creation_pending'] = bool(pending_creation)
-    data['needs_demonstration'] = bool(creation and creation['stage'] == 'record')
+    data['needs_demonstration'] = bool(pending_creation and creation['stage'] == 'record')
     from reshoot import demonstration
     data['demonstration'] = demonstration.latest(config)
     data['resume_command'] = create.resume_command(folder) if pending_creation else ''
@@ -564,72 +434,6 @@ def view(folder, take, config, run=None):
     return data
 
 
-def workflow(config, folder, take, run, context=None, session=None):
-    from reshoot import create, journey, setup
-    state = journey.state(config, run)
-    if context is None:
-        creation = create.load(folder)
-        creating = bool(creation and creation['stage'] != 'done')
-        context = {'creation_pending': creating,
-                   'setup': setup.current(config) if creating or not run else None,
-                   'failure': failed(folder, take, config)}
-    state = journey.workflow(state, creating=context.get('creation_pending', False), tools=context.get('setup'),
-                             failure=context.get('failure'), session=session, has_run=bool(run))
-    kind, reason = update_kind(folder, config, take, run)
-    state.update(update_kind=kind, update_detail=reason)
-    if state['phase'] == 'stopped':
-        # The stopped step says what to fix; which saved files changed would only distract from it.
-        state.update(changes=[], update_detail='')
-    return state
-
-
-def update_kind(folder, config, take, run):
-    """Caption and edit changes reuse a take; recording changes replay the app. Fail closed when unsure."""
-    from reshoot import story
-    from reshoot.artifacts import digest
-    from reshoot.config import read
-    if not run:
-        return 'preview', 'Recording the first preview.'
-    root, report = run
-    from reshoot import journey
-    if journey.capture_changes(config, run):
-        return 'preview', 'The task, timing, narration or demo data changed; recording a fresh preview.'
-    shoot, _ = read(config)
-    capture_config = {k: v for k, v in shoot.items() if k in ('app', 'take', 'inputs')}
-    if report.get('inputs', {}).get('recording_config_sha256') != hashlib.sha256(json.dumps(capture_config, sort_keys=True).encode()).hexdigest():
-        return 'preview', 'Project settings changed; recording a new preview.'
-    recorded = report.get('inputs', {}).get('fixtures', [])
-    if [r['sha256'] for r in recorded] != [digest(Path(folder) / p) for p in shoot.get('inputs', [])]:
-        return 'preview', 'Demo data changed; recording a new preview.'
-    # A multi-take project may have changes outside the first storyboard shown here.
-    if len(shoot.get('take', [])) != 1:
-        return 'preview', 'Recording all takes in this project.'
-    source = root / take['out']
-    meta_path, caps_path = source.with_suffix('.take.json'), source.with_suffix('.captions.json')
-    if not meta_path.exists() or not caps_path.exists():
-        return 'preview', 'Recording a take with editable captions.'
-    board = story.load(Path(folder) / take['web'])
-    meta, caps = json.loads(meta_path.read_text()), json.loads(caps_path.read_text())
-    rows = {r['beat']: r for r in caps['captions']}
-    beats = {b['id']: b for b in meta['beats']}
-    if list(beats) != [b['id'] for b in board['beat']] or any(
-            recorded_as(b, rows.get(b['id'])) != beats[b['id']].get('definition_sha256') for b in board['beat']):
-        return 'preview', 'Actions, checks or timing changed; recording a new preview.'
-    original = meta.get('recording_settings_sha256')
-    settings = story.recording_settings(board)
-    if original != hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest():
-        return 'preview', 'Recording settings changed; recording a new preview.'
-    words_changed = any((b.get('caption') or None, b.get('sub') or None) !=
-                        (rows[b['id']].get('text', rows[b['id']].get('recorded')),
-                         rows[b['id']].get('sub', rows[b['id']].get('recorded_sub'))) for b in board['beat'])
-    edit_changed = shoot.get('edit', {}).get('file') and report.get('inputs', {}).get('edit_sha256') != digest(Path(folder) / shoot['edit']['file'])
-    sources_changed = journey.changed(report.get('inputs', {}).get('render_state'), journey.snapshot(config)) if report.get('inputs', {}).get('render_state') else []
-    if not (words_changed or caps.get('style', {}) != board.get('caption', {}) or edit_changed or sources_changed
-            or report.get('inputs', {}).get('config_sha256') != digest(config)):
-        return 'preview', 'Recording the app again for a fresh preview.'
-    return 'recut', 'Updating captions and the edit using the existing recording.'
-
-
 def server(a):
     """The studio's server, not yet serving, its address and the take it shapes."""
     import http.server, secrets
@@ -639,11 +443,7 @@ def server(a):
     from reshoot.config import read
     from reshoot.session import Session
     shoot, _ = read(config)
-    editable = [config, *dict.fromkeys((Path(folder) / t['web']).resolve() for t in shoot.get('take', [])
-                                     if str(t.get('web', '')).endswith('.toml')), Path(folder) / 'styles.toml']
-    if shoot.get('edit', {}).get('file'):
-        editable.append(Path(folder) / shoot['edit']['file'])
-    history = Session(config, editable)
+    history = Session(config, editable_paths(config))
     token = secrets.token_urlsafe(16)
     job = Job()
     from reshoot.stills import Renderer
@@ -653,13 +453,8 @@ def server(a):
 
     def refresh_project():
         _, current_folder, current_take = project(config)
-        data, _ = read(config)
-        paths = [config, *dict.fromkeys((current_folder / item['web']).resolve() for item in data.get('take', [])
-                                       if str(item.get('web', '')).endswith('.toml')), current_folder / 'styles.toml']
-        if data.get('edit', {}).get('file'):
-            paths.append(current_folder / data['edit']['file'])
         if not job.running():
-            history.refresh(paths)
+            history.refresh(editable_paths(config))
         return current_take
 
     def edit_file():
@@ -686,7 +481,7 @@ def server(a):
                     seen = job.n - job.running()
                     data = view(folder, active_take, config, run)
                     data.update(revision=history.revision(), undo=bool(history.undo), redo=bool(history.redo),
-                                session=history.info())
+                                session=history.info(), job=job.json())
                     return review.reply(self, 200, page(data, accept, seen).encode())
             if name == 'job.json':
                 out = job.json()
@@ -731,17 +526,18 @@ def server(a):
                 from urllib.parse import parse_qs, urlsplit
                 try:
                     token = parse_qs(urlsplit(self.path).query).get('token', [''])[0]
+                    # Read under the lock and send after it, so a slow download can't hold up the studio.
                     with history.lock, history.transaction(recovery=True), history.source_copy(token) as archive:
-                        archive.seek(0, 2); length = archive.tell(); archive.seek(0)
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'application/zip')
-                        self.send_header('Content-Length', str(length))
-                        self.send_header('Content-Disposition', 'attachment; filename="reshoot-saved-sources.zip"')
-                        self.send_header('Cache-Control', 'no-store')
-                        self.end_headers()
-                        if self.command != 'HEAD':
-                            import shutil
-                            shutil.copyfileobj(archive, self.wfile)
+                        archive.seek(0)
+                        body = archive.read()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/zip')
+                    self.send_header('Content-Length', str(len(body)))
+                    self.send_header('Content-Disposition', 'attachment; filename="reshoot-saved-sources.zip"')
+                    self.send_header('Cache-Control', 'no-store')
+                    self.end_headers()
+                    if self.command != 'HEAD':
+                        self.wfile.write(body)
                     return
                 except (BrokenPipeError, ConnectionResetError):
                     return
@@ -754,7 +550,7 @@ def server(a):
                     with history.lock:
                         active_take = refresh_project()
                         run = self.displayed(query) if query.get('run_id') else None
-                        state = workflow(config, folder, active_take, run, session=history.info())
+                        state = workflow(config, folder, active_take, run, session=history.info(), job=job.json())
                         state['external'] = query.get('revision') != history.revision()
                         state['revision'] = history.revision()
                         state['session_pending'] = history.pending
@@ -848,10 +644,15 @@ def server(a):
         def mutate(self, action, body):
             try:
                 if action == 'cancel':
-                    job.cancel()
-                    return review.reply(self, 200, b'{"ok":true}', 'application/json')
-                if job.running():
-                    raise ValueError('An update is running. Wait for it or cancel before changing the project.')
+                    if job.cancel(body.get('job_n')):
+                        return review.reply(self, 200, b'{"ok":true}', 'application/json')
+                    return review.reply(self, 200, json.dumps({'ok': False, 'error': 'The update already finished or is '
+                                        'saving its result, so it can no longer be cancelled.'}).encode(), 'application/json')
+                from reshoot import journey
+                allowed = journey.permissions(session=history.info(), job=job.json())[
+                    'session' if action == 'session' else 'edit']
+                if not allowed['enabled']:
+                    raise ValueError(allowed['reason'])
                 # GET refreshes tracked paths. Mutations validate that same set
                 # without acquiring the storage lock recursively.
                 _, _, take = project(config)
@@ -863,8 +664,7 @@ def server(a):
                     history.change(lambda: edit(Path(folder) / take['web'], body))
                     out = {'ok': True}
                 elif action == 'trial':
-                    change_trial(folder, body.get('operation'), Path(folder) / take['web'], history)
-                    out = {'ok': True}
+                    out = {'ok': True, 'message': change_trial(folder, body.get('operation'), Path(folder) / take['web'], history)}
                 elif action == 'cut':
                     history.change(lambda: edit_cut(edit_file(), config, body))
                     out = {'ok': True}
@@ -964,8 +764,14 @@ def server(a):
                         creation = create.load(folder)
                     except ValueError:
                         creation = None
-                    if creation and creation['stage'] != 'done' and kind in ('update', 'preview', 'run', 'from', 'recut'):
-                        raise ValueError('Creation is paused. Use Continue creation in Recording tools to finish your saved task first.')
+                    from reshoot import journey, setup
+                    tools = setup.current(config) if kind in journey.RECORDING_ACTIONS | {'create'} else None
+                    allowed = journey.permissions(creating=create.pending(folder, creation),
+                                tools=tools, session=history.info(), job=job.json(), has_run=bool(run))
+                    if kind not in allowed:
+                        raise ValueError('unknown job')
+                    if not allowed[kind]['enabled']:
+                        raise ValueError(allowed[kind]['reason'])
                     if kind == 'update':
                         kind, reason = update_kind(folder, config, take, run)
                     commands = {'recut': [*cli, 'recut', str(run[0]) if run else '', '--config', str(config)],
@@ -976,14 +782,10 @@ def server(a):
                     elif kind == 'create':
                         from reshoot import create
                         creation = create.load(folder)
-                        if not creation or creation['stage'] == 'done':
+                        if not create.pending(folder, creation):
                             raise ValueError('No paused creation here. Use Update preview to refresh this project.')
                         commands['create'] = [*cli, 'create', '--resume', '--directory', str(folder), '--no-studio']
-                    if kind in ('preview', 'run', 'from', 'recut', 'repair', 'demonstrate'):
-                        from reshoot import setup
-                        if not setup.current(config)['ok']:
-                            raise ValueError('Recording tools need attention. Open Recording tools and choose Check again before updating.')
-                    on_done, result = None, None
+                    on_done, settle, result = None, None, None
                     if kind == 'demonstrate':
                         import uuid
                         from reshoot import demonstration, story
@@ -1017,6 +819,8 @@ def server(a):
                             raise ValueError('Choose a suggested replacement or select one in the app.')
                         before = history.snapshot()
                         def remember_repair():
+                            if not (failed_root / 'repair.json').exists():
+                                return  # stopped before it saved anything
                             with history.lock, history.transaction():
                                 audit = json.loads((failed_root / 'repair.json').read_text())
                                 after = history.snapshot()
@@ -1026,7 +830,9 @@ def server(a):
                                     audit['after'] == digest(board_path) and all(
                                         after[p] == before[p] for p in before if p != board_path)):
                                     history.remember(before, after)
-                        on_done = remember_repair
+                        # A repair can save the story and then be cancelled while it stops the app, so its change is
+                        # recorded in Undo whatever the job's outcome; remember_repair checks it on disk first.
+                        on_done = settle = remember_repair
                         commands['repair'] = [*cli, 'repair', str(failed_root), '--config', str(config), '--' + method]
                     if kind not in commands:
                         raise ValueError('unknown job')
@@ -1036,19 +842,20 @@ def server(a):
                         from reshoot import story
                         if beat not in [b['id'] for b in story.load(Path(folder) / take['web'])['beat']]:
                             raise ValueError(f'no beat {beat!r} in the storyboard')
-                    job.start(kind, commands[kind], folder, beat, on_done=on_done, result=result)
+                    job.start(kind, commands[kind], folder, beat, on_done=on_done, result=result, settle=settle)
                     out = {'ok': True, 'reason': reason}
                 else:
                     run = self.displayed(body)
-                    from reshoot import journey
-                    if journey.state(config, run)['pending']:
-                        raise ValueError('Saved edits are not in this recording yet. Update preview or make a final before accepting here.')
+                    allowed = journey.permissions(has_run=True, session=history.info(), job=job.json(),
+                                pending=journey.state(config, run)['pending'], mode=run[1].get('mode', 'final'))['accept']
+                    if not allowed['enabled']:
+                        raise ValueError(allowed['reason'])
                     code, text = review.accept_from_page(str(run[0]), body)
                     print(text.rstrip(), flush=True)
                     out = {'code': code, 'output': text}
                 run = self.displayed(body) if body.get('run_id') else None
                 out.update(revision=history.revision(), undo=bool(history.undo), redo=bool(history.redo),
-                           journey=workflow(config, folder, take, run, session=history.info()))
+                           journey=workflow(config, folder, take, run, session=history.info(), job=job.json()))
             except (ValueError, OSError) as e:
                 out = {'ok': False, 'error': str(e), 'code': 2, 'output': str(e)}
             review.reply(self, 200, json.dumps(out).encode(), 'application/json')
@@ -1089,12 +896,15 @@ def page(data, accept, seen=0):
     e = lambda v: html.escape(str(v if v is not None else ''), quote=True)
     run = data['run']
     failure = data.get('failure')
-    editing_blocked = bool(data.get('session') or data.get('needs_demonstration'))
-    locked = ' disabled' if editing_blocked else ''
     state = journey.workflow(data.get('journey', {'title': 'Shape your demo', 'detail': '', 'pending': False,
                              'phase': 'unknown', 'next': 'update', 'changes': [], 'update_detail': ''}),
                              creating=data.get('creation_pending', False), tools=data.get('setup'),
-                             failure=failure, session=data.get('session'), has_run=bool(run))
+                             failure=failure, session=data.get('session'), has_run=bool(run), job=data.get('job'),
+                             mode=run.get('mode', 'final') if run else 'final')
+    editing_blocked = bool(data.get('needs_demonstration') or not state['actions']['edit']['enabled'])
+    # A running job's lock is lifted by the page when the job ends, which may not reload it; other locks need a reload.
+    held = bool(data.get('needs_demonstration') or data.get('session'))
+    locked = (' disabled' + ('' if held else ' data-job-locked')) if editing_blocked else ''
     failure_box = ''
     if failure:
         again = state['continuation']['label']
@@ -1110,7 +920,7 @@ def page(data, accept, seen=0):
             check = failure['check']
             message = (check['message'] + ' If that is the result you meant to show, fix the app or its demo data. If '
                        f'the check is wrong, correct its expected result below, then choose {again}.')
-            correction = expectations.form(check, disabled=editing_blocked)
+            correction = expectations.form(check, locked)
             if not correction:
                 message = check['message'] + f' Fix the app or the check in the storyboard, then choose {again}.'
             buttons = (correction + '<details><summary>Remove a check that is not needed</summary>'
@@ -1563,8 +1373,8 @@ def page(data, accept, seen=0):
 <fieldset class="actions" aria-label="Recording and history"{(' disabled' if session else '')}><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
 <button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
 <button type="button" class="{'primary' if state['action']['kind'] == 'update' else ''}" data-job="update"{'' if state['actions']['update']['enabled'] else ' disabled'} title="{e(state['actions']['update']['reason'])}">Update preview</button>
-<button type="button" class="{'primary' if state['action']['kind'] == 'run' else ''}" data-job="run"{'' if state['actions']['run']['enabled'] else ' disabled'} title="{e(state['actions']['run']['reason'] or 'Record the full-size video for review')}">Make final</button>
-<button type="button" data-job="preview" title="Record the whole task again, such as after you change your app outside this project">Record app again</button>
+<button type="button" class="{'primary' if state['action']['kind'] == 'run' else ''}" data-job="run"{'' if state['actions']['run']['enabled'] else ' disabled'} title="{e(state['actions']['run']['reason'] or 'Record the full-size video for review')}" data-hint="Record the full-size video for review">Make final</button>
+<button type="button" data-job="preview" title="Record the whole task again, such as after you change your app outside this project" data-hint="Record the whole task again, such as after you change your app outside this project">Record app again</button>
 </fieldset><nav class="section-nav" aria-label="Studio sections">{navigation}</nav></header>
 {recovery}
 {tools_box}
@@ -1846,15 +1656,15 @@ SCRIPT = '''(() => {
     document.getElementById('journey-review').hidden = journeyState.next !== 'review' || pending;
     document.getElementById('review-current').hidden = !pending;
     const accept = document.getElementById('accept');
-    if (accept) accept.disabled = pending || !document.getElementById('watched')?.checked ||
+    if (accept) accept.disabled = !!document.getElementById('to-accept')?.dataset.state || pending || !document.getElementById('watched')?.checked ||
       [...document.querySelectorAll('#to-accept fieldset')].some(field => !field.querySelector('input:checked'));
     const next = !drafts && !external ? journeyState.action : null;
-    document.querySelectorAll('[data-job=update], [data-job=run], [data-job=create], [data-job=setup]').forEach(button => {
+    document.querySelectorAll('[data-job]').forEach(button => {
       button.classList.toggle('primary', !!next?.enabled && button.dataset.job === next.kind);
       const action = journeyState.actions[button.dataset.job];
       if (action && document.body.dataset.jobRunning !== '1') {
         button.disabled = !action.enabled || external;
-        if (action.reason) button.title = action.reason;
+        button.title = action.reason || button.dataset.hint || '';
       }
     });
   };
@@ -1879,14 +1689,16 @@ SCRIPT = '''(() => {
     focus.tabIndex = -1; focus.focus({preventScroll:true});
     document.querySelectorAll('.section-nav a').forEach(item => { if (item.dataset.jump === link.dataset.jump) item.setAttribute('aria-current','location'); else item.removeAttribute('aria-current'); });
   });
-  let checkingState = false;
+  // starting: an update was asked for and its job is not showing yet. A second click waits, and a project check that
+  // was on its way when the job started is not applied over it.
+  let checkingState = false, starting = false;
   const refreshJourney = async () => {
     if (checkingState || document.body.dataset.jobRunning === '1') return;
     checkingState = true; const revision = document.body.dataset.revision;
     try {
       const query = new URLSearchParams({run_id:document.body.dataset.run, binding:document.body.dataset.binding, revision});
       const response = await fetch('state.json?' + query), state = await response.json();
-      if (revision !== document.body.dataset.revision) return;
+      if (revision !== document.body.dataset.revision || starting || document.body.dataset.jobRunning === '1') return;
       if (!response.ok) { error(state.error); return; }
       if (state.session_pending && !document.getElementById('session-recovery')) {
         state.external = true;
@@ -1901,6 +1713,10 @@ SCRIPT = '''(() => {
   renderJourney();
   let queue = Promise.resolve();
   const post = (what, body, requireSaved = false) => {
+    if (what === 'job') {
+      if (starting) return Promise.resolve({ok: false, error: 'An update is starting.'});
+      starting = true;
+    }
     const request = () => {
       const ownForm = what === 'sequence' && body.operation === 'range' ? document.querySelector(`.sequence-part[data-part="${body.part}"] .range-form`)
         : what === 'sequence' && body.operation === 'add' ? document.getElementById('add-clip')
@@ -1932,6 +1748,7 @@ SCRIPT = '''(() => {
           error(message); return {ok: false, error: message}; });
     };
     queue = queue.then(request);
+    if (what === 'job') queue.then(out => { if (!out.ok) starting = false; });
     return queue;
   };
   document.querySelectorAll('[data-history]').forEach(b => { b.dataset.enabled = b.disabled ? '' : '1'; b.onclick = () => post(b.dataset.history, {}).then(out => { if (out.ok) location.reload(); }); });
@@ -1990,8 +1807,10 @@ SCRIPT = '''(() => {
   if (downloadStyle) downloadStyle.onclick = event => {
     if (document.querySelector('[data-unsaved]')) { event.preventDefault(); error('Fix the unsaved field before downloading this look.'); }
   };
-  let stopAt = null;
-  const play = (from, to) => { if (!video) return; document.dispatchEvent(new CustomEvent('reshoot:show-recording')); stopAt = to; video.currentTime = from; video.play(); };
+  // stopAt ends a step's playback. A seek of your own, such as dragging the scrubber, plays on instead.
+  let stopAt = null, ownSeek = false;
+  const play = (from, to) => { if (!video) return; document.dispatchEvent(new CustomEvent('reshoot:show-recording')); stopAt = to; ownSeek = video.currentTime !== from; video.currentTime = from; video.play(); };
+  if (video) video.addEventListener('seeking', () => { if (ownSeek) ownSeek = false; else stopAt = null; });
   if (video) video.addEventListener('timeupdate', () => {
     if (stopAt != null && video.currentTime >= stopAt) { video.pause(); stopAt = null; }
     head.style.left = (100 * video.currentTime / (video.duration || 1)) + '%';
@@ -2021,15 +1840,20 @@ SCRIPT = '''(() => {
     if (seek && video && li.dataset.start !== '') { stopAt = null; video.pause(); video.currentTime = +li.dataset.start; }
     document.dispatchEvent(new CustomEvent('reshoot:step-selected', {detail:{id:li.dataset.beat}}));
   };
-  document.addEventListener('reshoot:select-step', event => queue.then(() => {
-    const target = beat(event.detail.id);
-    if (event.detail.seek) showSide('step');
-    if (target !== selected && selected?.querySelector('[data-unsaved]')) {
+  // Every way of choosing another step waits for saves on their way, then keeps an unsaved field in view rather than
+  // hiding it behind the new step.
+  const choose = (li, then) => queue.then(() => {
+    if (li !== selected && selected?.querySelector('[data-unsaved]')) {
       error('Save or reset the unsaved step before choosing another.');
       selected.querySelector('[data-unsaved]').focus(); return;
     }
-    selectBeat(target, event.detail.seek);
-  }));
+    then();
+  });
+  document.addEventListener('reshoot:select-step', event => {
+    const target = beat(event.detail.id);
+    if (event.detail.seek) showSide('step');
+    choose(target, () => selectBeat(target, event.detail.seek));
+  });
   document.querySelectorAll('.beat').forEach(li => li.addEventListener('focusin', () => { if (selected !== li) selectBeat(li, true); }));
   selectBeat(beat(sessionStorage.getItem(selectionKey) || ''));
   document.getElementById('play-selected').onclick = () => { if (selected) play(+selected.dataset.start, +selected.dataset.end); };
@@ -2037,8 +1861,8 @@ SCRIPT = '''(() => {
     event.preventDefault(); if (!selected) return;
     showSide('step'); selected.scrollIntoView({block:'start'}); selected.querySelector('input[name=caption]').focus({preventScroll:true});
   };
-  document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); selectBeat(li); play(+li.dataset.start, +li.dataset.end); });
-  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); showSide('step'); selectBeat(li); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
+  document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); choose(li, () => { selectBeat(li); play(+li.dataset.start, +li.dataset.end); }); });
+  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); showSide('step'); choose(li, () => { selectBeat(li); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); }); });
   document.querySelectorAll('[data-part-play]').forEach(button => button.onclick = () => play(+button.dataset.start, +button.dataset.end));
   const inspector = document.getElementById('export-inspector');
   document.querySelectorAll('[data-inspect]').forEach(button => button.onclick = () => {
@@ -2141,17 +1965,20 @@ SCRIPT = '''(() => {
     document.querySelectorAll('[data-part-play]').forEach(button => button.disabled = true);
   };
   document.querySelectorAll('.seek').forEach(s => s.onclick = () => { if (video) { stopAt = null; video.currentTime = +s.dataset.t; video.pause(); } });
-  const saved = (out, where, input) => { if (!out.ok) { if (input) input.dataset.invalid = '1'; return toast(out.error); } if (input) { delete input.dataset.unsaved; delete input.dataset.invalid; }
+  // sent: the field's value when it was saved; text typed since stays unsaved.
+  const saved = (out, where, input, sent) => { if (!out.ok) { if (input) input.dataset.invalid = '1'; return toast(out.error); } if (input) { if (sent === undefined || input.value === sent) delete input.dataset.unsaved; delete input.dataset.invalid; }
     if (!document.querySelector('[data-unsaved]')) error(''); toast('Saved'); const p = where.querySelector('.pending'); if (p) p.hidden = false;
-    if (where.classList.contains('beat')) selectBeat(where); };
+    if (where.classList.contains('beat') && where === selected) selectBeat(where); };  // refresh it; never take the selection back
   document.querySelectorAll('.beat input').forEach(input => input.addEventListener('change', () => {
     const li = input.closest('.beat');
     input.dataset.unsaved = '1';
-    post('edit', {beat: li.dataset.beat, [input.name]: input.name === 'hold' ? +input.value : input.value}).then(out => saved(out, li, input));
+    const sent = input.value;
+    post('edit', {beat: li.dataset.beat, [input.name]: input.name === 'hold' ? +sent : sent}).then(out => saved(out, li, input, sent));
   }));
   document.querySelectorAll('.look input, .look select').forEach(input => input.addEventListener('change', () => {
     input.dataset.unsaved = '1';
-    post('edit', {look: {[input.name]: input.value}}).then(out => { saved(out, input.closest('.look'), input); if (out.ok) customStyle(); });
+    const sent = input.value;
+    post('edit', {look: {[input.name]: sent}}).then(out => { saved(out, input.closest('.look'), input, sent); if (out.ok) customStyle(); });
   }));
   // Changes to the edit file. One that adds or removes a card or an export reloads, to show it in the list.
   const cut = document.querySelector('.cut');
@@ -2269,7 +2096,8 @@ SCRIPT = '''(() => {
   };
   const change = (body, reload, input) => {
     if (input) input.dataset.unsaved = '1';
-    return post('cut', body, reload).then(out => { saved(out, cut, input); if (out.ok) pendingSequence(); if (out.ok && reload) setTimeout(() => location.reload(), 400); return out; });
+    const sent = input?.value;
+    return post('cut', body, reload).then(out => { saved(out, cut, input, sent); if (out.ok) pendingSequence(); if (out.ok && reload) setTimeout(() => location.reload(), 400); return out; });
   };
   if (cut) {
     cut.querySelectorAll('.card input').forEach(input => input.addEventListener('change', () =>
@@ -2286,30 +2114,45 @@ SCRIPT = '''(() => {
       });
     }));
     document.querySelector('.audio-controls [name=music]').addEventListener('change', e => change({music: e.target.value}, false, e.target));
-    cut.querySelectorAll('.export select[name=preset]').forEach(s => s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true)));
+    // A refused choice goes back to what is saved, so the menu never shows a setting the project doesn't have.
+    cut.querySelectorAll('.export select[name=preset]').forEach(s => { const kept = s.value; s.addEventListener('change', () => change({export: +s.closest('.export').dataset.export, preset: s.value}, true).then(out => { if (!out.ok) s.value = kept; })); });
     cut.querySelectorAll('.export .remove').forEach(b => b.onclick = () => change({export: +b.closest('.export').dataset.export, remove: true}, true));
-    cut.querySelector('[name=add_export]').addEventListener('change', e => e.target.value && change({add_export: e.target.value}, true));
+    cut.querySelector('[name=add_export]').addEventListener('change', e => e.target.value && change({add_export: e.target.value}, true).then(out => { if (!out.ok) e.target.value = ''; }));
   }
   const box = document.getElementById('job'), log = document.getElementById('job-log'), title = document.getElementById('job-title'), take = document.getElementById('job-take');
   const auditionPlayer = document.getElementById('audition-player');
   auditionPlayer.addEventListener('play', () => { if (video) video.pause(); });
   if (video) video.addEventListener('play', () => auditionPlayer.pause());
   const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a step', repair: 'Repairing control', audition: 'Preparing narration', setup:'Checking recording tools', create:'Continuing creation', demonstrate:'Demonstrating new actions in Chrome; choose Done to save a draft'};
-  const watch = () => fetch('job.json').then(r => r.json()).then(job => {
-    if (!job.kind) return;
+  let activeJob = null;
+  let missed = 0;
+  // One failed poll must not leave the page showing a job that may have ended, with every control locked.
+  const lost = () => {
+    if (document.body.dataset.jobRunning !== '1') return;
+    if (++missed < 5) return setTimeout(watch, 1500);
+    error('The studio stopped answering, so this page cannot tell whether the update finished. Reload the page, or start reshoot studio again.');
+  };
+  const watch = () => fetch('job.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(job => {
+    missed = 0;
+    if (!job.kind) { if (document.body.dataset.jobRunning === '1') location.reload(); return; }  // a restarted studio
+    activeJob = job.n; starting = false;
     document.body.dataset.jobRunning = job.running ? '1' : '';
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
-    document.getElementById('cancel').hidden = !job.running;
-    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .check-correction input, .check-correction textarea, .check-correction select, .check-correction button, .side-fields input, .side-fields textarea, .side-fields select, .side-fields button, [data-history]').forEach(button => {
+    document.getElementById('cancel').hidden = !job.running || !job.cancelable;
+    document.getElementById('cancel').disabled = job.state === 'cancelling';
+    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .check-correction input, .check-correction textarea, .check-correction select, .check-correction button, .side-fields input, .side-fields textarea, .side-fields select, .side-fields button, [data-history], [data-job-locked]').forEach(button => {
+      // data-job-locked: the server disabled it only because this job was running when the page loaded.
+      const own = button.disabled && !('jobLocked' in button.dataset);
       if (job.running) {
-        if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = button.disabled ? '1' : '';
+        if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = own ? '1' : '';
         button.disabled = true;
-      } else if ('jobDisabled' in button.dataset) {
-        button.disabled = button.dataset.jobDisabled === '1'; delete button.dataset.jobDisabled;
+      } else if ('jobDisabled' in button.dataset || 'jobLocked' in button.dataset) {
+        button.disabled = button.dataset.jobDisabled === '1'; delete button.dataset.jobDisabled; delete button.dataset.jobLocked;
       }
     });
+    if (!job.running) refreshJourney();
     const what = job.kind === 'from' ? `Recording from ${job.beat}` : names[job.kind];
-    if (job.running) { title.textContent = what + '...'; take.hidden = true; auditionPlayer.pause(); auditionPlayer.hidden = true; return setTimeout(watch, 700); }
+    if (job.running) { title.textContent = job.state === 'finishing' ? 'Saving the result...' : job.state === 'cancelling' ? 'Cancelling the update...' : what + '...'; take.hidden = true; auditionPlayer.pause(); auditionPlayer.hidden = true; return setTimeout(watch, 700); }
     // A finished update this page already shows needs no box; an audition or a partial take stays to play.
     if (job.n <= +document.body.dataset.seen && !['audition', 'from'].includes(job.kind)) { box.hidden = true; return; }
     if (job.kind === 'audition') {
@@ -2323,7 +2166,7 @@ SCRIPT = '''(() => {
       return;
     }
     if (job.kind === 'from') {
-      title.textContent = job.code === 0 ? `${what} worked. Here is the take, from ${job.beat} on; when it looks right, record the run.` : what + ' failed.';
+      title.textContent = job.cancelled ? what + ' cancelled.' : job.code === 0 ? `${what} worked. Here is the take, from ${job.beat} on; when it looks right, record the run.` : what + ' failed.';
       if (job.take && take.getAttribute('src') !== job.take) { take.src = job.take; take.hidden = false; }
       return;
     }
@@ -2337,16 +2180,20 @@ SCRIPT = '''(() => {
       if (job.n > +document.body.dataset.seen) setTimeout(() => { location.hash = 'demonstration-panel'; location.reload(); }, 600);
       return;
     }
-    title.textContent = job.cancelled ? 'Update cancelled. Your previous recording is kept.' : job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed. Loading the step that needs attention...';
+    title.textContent = job.cancelled ? 'Update cancelled. ' + (video ? 'Your previous recording is kept.' : 'Your saved story is kept.') : job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed. Loading the step that needs attention...';
     if (!job.cancelled && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
-  });
-  document.getElementById('cancel').onclick = () => post('cancel', {}).then(watch);
+  }).catch(lost);
+  // Disabled until the next poll shows the job cancelling, so a second click can't report a false error.
+  document.getElementById('cancel').onclick = event => { event.target.disabled = true; post('cancel', {job_n: activeJob}).then(watch); };
   document.querySelectorAll('[data-audition]').forEach(button => button.onclick = () => post('job', {kind: 'audition', beat: button.dataset.audition}).then(out => {
     if (out.ok) { box.scrollIntoView({behavior: 'smooth'}); watch(); }
   }));
+  // Said after the reload that shows the restored app.
+  const noticeKey = location.pathname + ':notice';
+  if (sessionStorage.getItem(noticeKey)) { error(sessionStorage.getItem(noticeKey)); sessionStorage.removeItem(noticeKey); }
   document.querySelectorAll('[data-trial]').forEach(b => b.onclick = () => post('trial', {operation: b.dataset.trial}).then(out => {
     if (!out.ok) return;
-    if (b.dataset.trial === 'restore') return location.reload();
+    if (b.dataset.trial === 'restore') { if (out.message) sessionStorage.setItem(noticeKey, out.message); return location.reload(); }
     post('job', {kind: 'preview'}).then(job => { if (job.ok) watch(); });
   }));
   document.querySelectorAll('[data-job]').forEach(b => b.onclick = () => post('job', {kind: b.dataset.job}).then(out => { if (out.ok) { if (out.reason) toast(out.reason); watch(); } }));

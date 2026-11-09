@@ -4,6 +4,92 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Added
+
+- `reshoot status PROJECT` shows the saved browser project's next action,
+  last successful recording, latest failure and saved-history recovery without
+  recording or changing files. `--json` lists available actions and reasons.
+  Recording tools, live studio jobs and unsaved fields are not checked. An
+  action is offered only where it applies, such as Repair control only for a
+  stopped step with a missing control, and `waits_for_person` marks the ones
+  that open a page or browser for someone to use.
+
+### Changed
+
+- The studio checks the recording tools even after a successful recording.
+  If one is missing, its headline says so, though you can still review and
+  download earlier recordings.
+
+### Fixed
+
+- Cancelling an update from an older page no longer stops a newer job. A
+  finished or finishing job is no longer reported as cancelled after it saved
+  its result. The studio and server use the same rules for available actions,
+  including creation, tool setup, history recovery and an update in progress.
+- Cancelling an update that has already finished now says so, instead of
+  appearing to work. Cancelling a repair while it stops the app no longer
+  leaves the repaired story out of Undo, and work that finishes despite a late
+  cancel is reported as done.
+- `reshoot review RUN --import-decisions FILE` with every item accepted now
+  checks and records what `reshoot accept` does: it refuses a preview and a run
+  with rejected scan items, marks the scan items checked and writes
+  `demo/accepted`.
+- `demo/latest` no longer picks a preview recorded from one step on.
+  `reshoot export` refuses a failed run or one recorded from one step, checks
+  the `--record` folder before copying anything, replaces each file whole and
+  writes the record after the media.
+- The pull-request check says **The demo check could not run** when it stopped
+  before recording, instead of leaving an older comment up. It now compares
+  with the accepted run on the base branch, so a change that also replaces
+  `demo/accepted/` can't hide a removed check, and says when it does. Copy the
+  new `examples/github/check.yml`.
+- A refresh pull request's `demo/accepted/run.json` says
+  `"accepted_by": "merge"`, since merging it is the acceptance though its
+  `review_status` stays `pending`.
+- Ctrl-C while reshoot waits for the app to start now stops the app, and
+  stopping the app also stops what it started, such as a server a shell
+  command left running. Ctrl-C during creation's first preview stops creation
+  instead of opening the studio.
+- A config that fails its checks no longer leaves an empty run folder. A take
+  whose encoding fails is marked failed, so its checks read as not verified.
+  Runs that finish in the same second are listed in the order they finished.
+- A scan cut off by the run's timeout is reported as failed, not skipped, and a
+  step cut off by it is listed with its name.
+- `reshoot check --fail` with a mistyped label, or a failed `--ok`, keeps the
+  scan's report.
+- Accepting writes `run.json` and `decisions.json` whole, so a crash can't make
+  a run disappear from `reshoot runs`.
+- A saved tool check is redone after reshoot or Playwright is upgraded.
+- Creation:
+  - one paused before its demonstration no longer gets stuck once its files
+    change: choose **Update preview** in the studio;
+  - continuing no longer applies its recipe over edits made in the studio while
+    it was paused, and never applies it twice after a stop.
+- The studio:
+  - recovers when one update status check fails, instead of staying locked on
+    "Recording…", and Cancel update can't be sent twice;
+  - sends Accept once, and says so when the page can't reach reshoot;
+  - keeps a step with an unsaved field in view when you choose another step in
+    the timeline or its Play button, and a save that finishes no longer jumps
+    back to the step it saved;
+  - keeps text you type while a save is on its way marked unsaved;
+  - downloading the saved source copy no longer holds up the rest of the studio;
+  - **Put the app and story back** in the notes trial keeps story edits made
+    since the trial began;
+  - a failed edit undoes only what it wrote, keeping a change made in an
+    editor meanwhile, and an Undo or Redo that can't write every file changes
+    none of them;
+  - a job whose result step hangs ends after 30 seconds instead of holding the
+    studio;
+  - the layout still says it waits during an update, a seek of your own plays
+    past a step's end, a refused preset or export goes back to the saved one,
+    an update button clicked twice starts one update, and a failed comparison
+    loads again when you reopen it.
+- A tour's address follows the step shown, so reloading it stays there.
+- The recorder stays paused when restoring the app loads another page.
+
 ## 0.3.14 (2026-11-06)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

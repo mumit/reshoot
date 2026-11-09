@@ -97,10 +97,17 @@ state, login and visibility. Fix the data or target; don't weaken the check.
 
 ## Review still says pending
 
-`reshoot accept RUN` records both the recording and the scan;
-`reshoot check --review RUN/review --ok` and `--import-decisions` record only
-one. An open `review.html` may be out of date: rebuild it with
-`reshoot review RUN`. Don't rescan an accepted run.
+`reshoot accept RUN` records both the recording and the scan, and so does
+`--import-decisions` when every decision in the file is accepted;
+`reshoot check --review RUN/review --ok` records only the scan. An open
+`review.html` may be out of date: rebuild it with `reshoot review RUN`. Don't
+rescan an accepted run.
+
+A project without `schema_version = 1` keeps one review folder for every run.
+An item checked in an earlier run counts as checked again, a rejected one is
+forgotten when the sheets are made again, and the review can read as completed
+before anyone looked at this run. Look at its sheets each time, or start a
+versioned project with `reshoot init`, where each run is reviewed on its own.
 
 ## Accept or import says the decision does not match
 

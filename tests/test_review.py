@@ -21,6 +21,23 @@ def run_fixture(root, name='run'):
     return root
 
 
+def test_runs_in_the_same_second_are_ordered_by_when_they_finished(tmp_path):
+    import os
+    runs = tmp_path / 'runs'
+    runs.mkdir()
+    first, second = run_fixture(runs / 'one', 'one'), run_fixture(runs / 'two', 'two')
+    for root, when, stamp in ((first, '2026-11-09T10:00:00+00:00', 100), (second, '2026-11-09T10:00:00+00:00', 200)):
+        report = json.loads((root / 'run.json').read_text())
+        (root / 'run.json').write_text(json.dumps({**report, 'finished_at': when}))
+        os.utime(root / 'run.json', (stamp, stamp))
+    assert [root.name for root, _ in review.runs(runs)] == ['two', 'one']
+    report = json.loads((first / 'run.json').read_text())
+    (first / 'run.json').write_text(json.dumps({**report, 'finished_at': '2026-11-09T10:00:00.500000+00:00'}))
+    (runs / 'three').mkdir()
+    (runs / 'three/run.json').write_text(json.dumps({'id': 'three', 'ok': True, 'finished_at': '2026-11-09T09:00:00'}))
+    assert [root.name for root, _ in review.runs(runs)] == ['one', 'two', 'three']
+
+
 def test_review_rejects_changed_files_and_foreign_decisions(tmp_path):
     root = run_fixture(tmp_path / 'one')
     report = review.read(root)[1]
@@ -166,6 +183,20 @@ def test_review_requires_decisions_for_each_finding(tmp_path):
     assert review.read(root)[1]['review_status'] == 'completed'
 
 
+def test_a_mistyped_label_or_failed_mark_keeps_the_scan_report(tmp_path):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root)
+    report = root / 'review/report.json'
+    before = report.read_text()
+    with pytest.raises(SystemExit, match='not on the current sheets'):
+        main(['check', '--review', str(root / 'review'), '--fail', '9-9'])
+    assert report.read_text() == before
+    (root / 'review/key.json').unlink()
+    with pytest.raises(SystemExit) as stopped:
+        main(['check', '--review', str(root / 'review'), '--ok'])
+    assert stopped.value.code == 2 and report.read_text() == before
+
+
 def test_subtitles_are_scanned_as_exact_text_without_exposing_words(tmp_path):
     path = tmp_path / 'final.srt'
     path.write_text('1\n00:00:01,000 --> 00:00:02,000\nprivate.person@gmail.com\n')
@@ -199,6 +230,44 @@ def test_accept_records_every_decision_and_scan_item_in_one_step(tmp_path):
     assert decisions['binding'] == review.binding(root, review.read(root)[1])
     args = SimpleNamespace(run_path=str(root), previous=None, import_decisions=str(root / 'decisions.json'))
     assert review.main(args) == 0
+
+
+def test_importing_every_decision_accepted_needs_and_records_what_accept_does(tmp_path):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root)
+    report = review.read(root)[1]
+    path = tmp_path / 'decisions.json'
+    path.write_text(json.dumps({'run_id': report['id'], 'binding': review.binding(root, report),
+                                'decisions': {'video': 'accepted'}}))
+    args = SimpleNamespace(run_path=str(root), previous=None, import_decisions=str(path))
+    assert review.main(args) == 0
+    assert review.read(root)[1]['review_status'] == 'completed'
+    assert set(json.loads((root / 'review/checked.json').read_text())) == {'aaaa', 'bbbb'}
+    assert json.loads((root / 'review/report.json').read_text())['review'] == 'completed'
+
+
+def test_importing_decisions_cannot_accept_a_preview_or_a_rejected_run(tmp_path):
+    root = run_fixture(tmp_path / 'run')
+    sheets_fixture(root)
+    report = review.read(root)[1]
+    path = tmp_path / 'decisions.json'
+    args = SimpleNamespace(run_path=str(root), previous=None, import_decisions=str(path))
+    def decisions():
+        report = review.read(root)[1]
+        path.write_text(json.dumps({'run_id': report['id'], 'binding': review.binding(root, report),
+                                    'decisions': {'video': 'accepted'}}))
+    report['mode'] = 'preview'
+    (root / 'run.json').write_text(json.dumps(report))
+    decisions()
+    with pytest.raises(ValueError, match='accept RUN --preview'):
+        review.main(args)
+    report['mode'] = 'final'
+    (root / 'run.json').write_text(json.dumps(report))
+    assert review.accept(accept_args(root, reject=['1-2'])) == 1
+    decisions()  # an old download, made before the rejection, still matches the files
+    with pytest.raises(ValueError, match='rejected'):
+        review.main(args)
+    assert review.read(root)[1]['review_status'] == 'failed'
 
 
 def test_accept_requires_each_flagged_item_by_name(tmp_path, capsys):
@@ -315,8 +384,29 @@ def test_export_replaces_media_and_writes_records_only_over_records(tmp_path):
     args.replace = True
     assert project.export(args) == 0 and (media / 'demo-final.mp4').exists()
     args.record = str(media)
+    before = (media / 'demo-final.mp4').stat().st_mtime_ns
     with pytest.raises(ValueError, match='not a run record'):
         project.export(args)
+    assert (media / 'demo-final.mp4').stat().st_mtime_ns == before  # refused before copying anything
+    written = json.loads((tmp_path / 'demo/accepted/run.json').read_text())
+    assert written['accepted_by'] == 'merge'  # nobody accepted the run: merging its pull request will
+    assert review.status(tmp_path / 'demo/accepted', written).endswith('accepted by merging its pull request')
+
+
+def test_export_and_latest_skip_runs_that_are_not_a_working_whole_task(tmp_path):
+    from reshoot import project
+    root = project_run(tmp_path)
+    report = json.loads((root / 'run.json').read_text())
+    args = SimpleNamespace(run_path=str(root), directory=str(tmp_path / 'docs/demo'), file=None, replace=True,
+                           record=str(tmp_path / 'demo/accepted'))
+    for change, words in (({'ok': False}, 'did not finish'), ({'mode': 'partial-preview'}, 'one step on')):
+        (root / 'run.json').write_text(json.dumps({**report, **change}))
+        with pytest.raises(ValueError, match=words):
+            project.export(args)
+        assert not (tmp_path / 'docs/demo').exists() and not (tmp_path / 'demo/accepted').exists()
+    (root / 'run.json').write_text(json.dumps({**report, 'mode': 'partial-preview'}))
+    with pytest.raises(ValueError, match='no successful run'):
+        review.resolve(root.parent / 'latest')
 
 
 def test_run_writes_a_github_job_summary_with_the_failed_beat(tmp_path, monkeypatch):
@@ -474,7 +564,7 @@ def test_the_owner_accepts_a_run_on_its_served_review_page(tmp_path, monkeypatch
     server.join(5)
     assert not server.is_alive()  # it stops once the owner decides
     assert review.read(root)[1]['review_status'] == 'completed'
-    assert (tmp_path / 'demo/accepted/run.json').exists()
+    assert 'accepted_by' not in json.loads((tmp_path / 'demo/accepted/run.json').read_text())  # accepted already
     assert '<strong>Accepted.</strong>' in (root / 'review.html').read_text()
 
 

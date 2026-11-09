@@ -108,6 +108,63 @@ def test_create_applies_recipe_once_then_preserves_edits_after_failure(tmp_path,
     assert len(tomllib.loads((tmp_path / 'edit.toml').read_text())['part']) == 3
 
 
+def test_continuing_creation_does_not_apply_its_recipe_over_edits_made_while_paused(tmp_path, monkeypatch, capsys):
+    ready = {'ok': False}
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: ready)
+    monkeypatch.setattr('reshoot.run.preview', lambda a: None)
+    args = SimpleNamespace(url=None, directory=str(tmp_path), recipe='walkthrough', title='Find a note',
+                           size=None, no_studio=True, no_open=True, resume=False)
+    assert create.main(args) == 2  # the tools need fixing, so it pauses before the recipe
+    board = tmp_path / 'storyboard.toml'
+    studio.edit(board, {'beat': 'search', 'caption': 'Keep these words', 'hold': 3.2})
+    ready['ok'] = True
+    args.resume, args.recipe, args.title = True, None, None
+    assert create.main(args) == 0
+    saved = story.load(board)['beat'][2]
+    assert saved['caption'] == 'Keep these words' and saved['hold'] == 3.2
+    assert 'recipe was not applied' in capsys.readouterr().out and not create.load(tmp_path)['recipe_applied']
+
+
+def test_a_creation_that_stopped_after_applying_its_recipe_does_not_apply_it_again(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
+    monkeypatch.setattr('reshoot.run.preview', lambda a: None)
+    real, saves = create.save, []
+    def save(root, state):
+        saves.append(dict(state))
+        if state.get('recipe_applied') and len(saves) == 3:
+            raise KeyboardInterrupt  # stopped just after the recipe changed the files, before that was saved
+        real(root, state)
+    monkeypatch.setattr(create, 'save', save)
+    args = SimpleNamespace(url=None, directory=str(tmp_path), recipe='walkthrough', title='Find a note',
+                           size=None, no_studio=True, no_open=True, resume=False)
+    with pytest.raises(KeyboardInterrupt):
+        create.main(args)
+    applied = (tmp_path / 'edit.toml').read_text()
+    monkeypatch.setattr(create, 'save', real)
+    monkeypatch.setattr(recipes, 'apply', lambda *a, **k: pytest.fail('the recipe must not be applied twice'))
+    args.resume, args.recipe, args.title = True, None, None
+    assert create.main(args) == 0
+    assert 'applied before creation stopped' in capsys.readouterr().out
+    assert (tmp_path / 'edit.toml').read_text() == applied and create.load(tmp_path)['recipe_applied']
+
+
+def test_a_creation_paused_before_its_demonstration_ends_once_its_files_change(tmp_path):
+    from reshoot import workflow
+    from reshoot.artifacts import digest
+    project.init(SimpleNamespace(directory=str(tmp_path), url='http://127.0.0.1:9/', quiet=True, size='960x540@1.5'))
+    config, board = tmp_path / 'reshoot.toml', tmp_path / 'storyboard.toml'
+    create.save(tmp_path, {'schema_version': 1, 'url': 'http://127.0.0.1:9/', 'size': '960x540@1.5', 'stage': 'record',
+                           'config_sha256': digest(config), 'story_sha256': digest(board)})
+    assert create.pending(tmp_path, create.load(tmp_path))
+    assert not workflow.inspect(tmp_path)['workflow']['actions']['update']['enabled']
+    board.write_text(board.read_text() + '\n# written by hand while creation was paused\n')
+    assert not create.pending(tmp_path, create.load(tmp_path))  # continuing would record over the change
+    assert workflow.inspect(tmp_path)['workflow']['actions']['update']['enabled']
+    with pytest.raises(ValueError, match='Update preview'):
+        create.main(SimpleNamespace(url=None, directory=str(tmp_path), recipe=None, title=None, size=None,
+                                    no_studio=True, no_open=True, resume=True))
+
+
 @pytest.mark.browser
 def test_create_with_recipe_then_apply_undo_and_record_another_in_the_studio(tmp_path, monkeypatch):
     from playwright.sync_api import sync_playwright, expect

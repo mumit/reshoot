@@ -86,7 +86,8 @@
       }
       status.textContent = data.beats.length ? `Compared ${data.beats.length} result-check steps.` : 'No checked browser result frames are available in these recordings.';
     } catch (error) {
-      if (sequence === request) { results.replaceChildren(); status.textContent = error.message; }
+      // Not loaded after all, so opening the panel again tries again.
+      if (sequence === request) { results.replaceChildren(); status.textContent = error.message; loaded = false; }
     } finally {
       if (sequence === request) results.setAttribute('aria-busy', 'false');
     }

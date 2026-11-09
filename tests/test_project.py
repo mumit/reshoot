@@ -67,6 +67,51 @@ def test_the_app_log_stays_out_of_the_output_and_shows_when_the_app_stops(tmp_pa
     assert 'favicon' in log.read_text()
 
 
+def test_ctrl_c_while_waiting_for_the_app_stops_it(tmp_path, monkeypatch):
+    import os, signal
+    from reshoot import run
+    started = []
+    def answers(url, ready=False):
+        if ready and started:
+            raise KeyboardInterrupt  # Ctrl-C while reshoot waits for the app to answer
+        return False
+    monkeypatch.setattr(run, 'answers', answers)
+    real = run.subprocess.Popen
+    monkeypatch.setattr(run.subprocess, 'Popen', lambda *a, **k: started.append(real(*a, **k)) or started[-1])
+    with pytest.raises(KeyboardInterrupt):
+        run.start_app({'url': 'http://127.0.0.1:9/', 'run': 'sleep 30'}, tmp_path / 'app.log')
+    proc = started[0]
+    try:
+        assert proc.wait(15) is not None  # the app was stopped, not left running in its own session
+    finally:
+        if proc.poll() is None:
+            os.killpg(proc.pid, signal.SIGKILL)
+
+
+def test_stopping_the_app_also_stops_what_it_left_running(tmp_path):
+    import os, signal, time
+    from reshoot import run
+    def alive(group):
+        try:
+            os.killpg(group, 0)
+            return True
+        except ProcessLookupError:
+            return False
+    proc = run.start_app({'run': 'sleep 30 & echo started; wait'}, tmp_path / 'app.log')
+    try:
+        deadline = time.monotonic() + 5
+        while 'started' not in (tmp_path / 'app.log').read_text() and time.monotonic() < deadline:
+            time.sleep(.05)
+        os.kill(proc.pid, signal.SIGKILL)  # the shell ends; the server it started does not
+        proc.wait(5)
+        assert alive(proc.pid)
+        run.stop_app(proc)
+        assert not alive(proc.pid)
+    finally:
+        if alive(proc.pid):
+            os.killpg(proc.pid, signal.SIGKILL)
+
+
 def test_doctor_says_when_a_newer_release_is_out(monkeypatch, capsys):
     monkeypatch.setattr(project, 'latest_release', lambda: '99.0.0')
     project.doctor(SimpleNamespace(config=None, json=False))

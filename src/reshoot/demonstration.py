@@ -12,14 +12,11 @@ from reshoot.workspace import History, put, quote, save_many, tables
 
 
 def context(project):
-    from reshoot import studio
+    from reshoot import workflow
     from reshoot.config import read
-    config, folder, take = studio.project(project)
+    config, folder, take = workflow.project(project)
     shoot, _ = read(config)
-    paths = [config, *dict.fromkeys((folder / item['web']).resolve() for item in shoot.get('take', [])
-                                   if str(item.get('web', '')).endswith('.toml')), folder / 'styles.toml']
-    if shoot.get('edit', {}).get('file'):
-        paths.append((folder / shoot['edit']['file']).resolve())
+    paths = workflow.editable_paths(config)
     return {'config':config, 'folder':folder, 'take':take, 'paths':paths, 'shoot':shoot,
             'board_path':(folder / take['web']).resolve()}
 

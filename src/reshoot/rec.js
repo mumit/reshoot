@@ -3,7 +3,10 @@
 (() => {
   if (window.__reshootRecording) return;
   window.__reshootRecording = true;
-  let paused = false, picking = null, toolbarHost = null, toolbarRoot = null;
+  // Pause lasts until Resume, even when restoring the app loads another page, which runs this script again.
+  const remembered = () => { try { return sessionStorage.getItem('__reshootRecPaused') === '1'; } catch { return false; } };
+  const remember = value => { try { sessionStorage.setItem('__reshootRecPaused', value ? '1' : ''); } catch {} };
+  let paused = remembered(), picking = null, toolbarHost = null, toolbarRoot = null;
   const own = ev => toolbarHost && ev.composedPath().includes(toolbarHost);
   const ignore = ev => own(ev) || paused || picking;
   const report = ev => { try { window.__reshootRec(JSON.stringify(ev)); } catch {} };
@@ -213,11 +216,13 @@
       toolbarRoot.querySelector('[data-do=undo]').textContent = 'Remove last action';
       status('Show the new actions using demo data. Done saves a separate draft for review. Existing result checks stay.');
     }
+    const pausedText = 'Paused. Restore the app to the state replay should start from before resuming.';
+    if (paused) { toolbarRoot.querySelector('[data-do=pause]').textContent = 'Resume'; status(pausedText); }
     toolbarRoot.addEventListener('click', ev => {
       const button = ev.target.closest('[data-do]');
       if (!button) return;
       const kind = button.dataset.do;
-      if (kind === 'pause') { flush(); paused = !paused; button.textContent = paused ? 'Resume' : 'Pause'; status(paused ? 'Paused. Restore the app to the state replay should start from before resuming.' : 'Recording your task.'); }
+      if (kind === 'pause') { flush(); paused = !paused; remember(paused); button.textContent = paused ? 'Resume' : 'Pause'; status(paused ? pausedText : 'Recording your task.'); }
       if (kind === 'caption') { const form = toolbarRoot.querySelector('form'); form.hidden = !form.hidden; if (!form.hidden) form.querySelector('input').focus(); }
       if (kind === 'check' || kind === 'blur') { flush(); picking = kind; status(kind === 'check' ? 'Click the result to check. Press Escape to cancel.' : 'Click what should be blurred in every take. Press Escape to cancel.'); }
       if (kind === 'undo') { flush(); report({kind: 'undo'}); status('Last recorded step removed. Restore the app state before repeating that step.'); }

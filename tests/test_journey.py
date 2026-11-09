@@ -134,11 +134,15 @@ def test_tool_and_history_blocks_take_precedence_over_recording_actions():
     base = {'next': 'update', 'phase': 'empty', 'title': 'Preview', 'detail': '', 'pending': False}
     stopped = journey.workflow(base, creating=True, tools={'ok': False}, failure={'stale': True})
     assert stopped['action']['kind'] == 'setup'
-    assert all(not action['enabled'] and action['reason'] for action in stopped['actions'].values())
+    assert all(not stopped['actions'][kind]['enabled'] and stopped['actions'][kind]['reason']
+               for kind in ('update', 'run', 'create'))
+    assert stopped['actions']['setup']['enabled']
     recovery = journey.workflow(base, creating=True, tools={'ok': True},
                                 session={'title': 'Changed files', 'detail': 'Compare the files.'})
     assert recovery['action']['kind'] == 'session' and recovery['title'] == 'Changed files'
-    assert all(not action['enabled'] and action['reason'] for action in recovery['actions'].values())
+    assert all(not recovery['actions'][kind]['enabled'] and recovery['actions'][kind]['reason']
+               for kind in ('update', 'run', 'create'))
+    assert recovery['actions']['session']['enabled']
 
 
 def test_bundle_contains_only_exports_and_hashes_the_actual_archived_bytes(tmp_path):
@@ -332,3 +336,18 @@ def test_the_notes_trial_changes_the_app_and_puts_the_app_and_story_back(tmp_pat
     assert page.read_text() == original and board.read_text() == story_before and studio.trial(tmp_path) == 'original'
     page.write_text(original + '<!-- your own app -->')
     assert studio.trial(tmp_path) is None
+
+
+def test_putting_the_notes_trial_back_keeps_story_edits_made_since_it_began(tmp_path):
+    config, board, edit = setup(tmp_path)
+    page, original = tmp_path / 'index.html', (tmp_path / 'index.html').read_text()
+    history = History([config, board, edit])
+    assert studio.change_trial(tmp_path, 'apply', board, history) == ''
+    repaired = board.read_text().replace('"#q"', '"#note-search"')
+    studio.edit(board, {'beat': 'search', 'caption': 'A caption written during the trial'})
+    board.write_text(board.read_text().replace('"#q"', '"#note-search"'))
+    edited = board.read_text()
+    assert edited != repaired
+    message = studio.change_trial(tmp_path, 'restore', board, history)
+    assert page.read_text() == original and studio.trial(tmp_path) == 'original'
+    assert board.read_text() == edited and 'kept as it is' in message

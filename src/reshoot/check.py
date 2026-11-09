@@ -298,16 +298,21 @@ def main(a):
     report = {"schema_version": 1, "id": str(uuid.uuid4()), "status": "running",
               "scan": {"status": "pending"}, "review": "pending", "samples": 0,
               "unchecked": None, "flagged": None, "errors": []}
-    if not (a.ok or a.fail):
+    # Marking items checked or failed only updates the scan's report, and only once it worked: a mistyped label must not
+    # replace what the scan found.
+    marking = bool(a.ok or a.fail)
+    write = not marking
+    if not marking:
         (review / 'report.json').write_text(json.dumps(report, indent=2))
     try:
         code = perform(a, report)
         report['status'] = 'completed'
-        if a.ok or a.fail:
+        if marking:
             previous = load(review / 'report.json', {})
             if previous:
                 report = previous
                 report['review'] = 'failed' if load(review / 'failed.json', []) else 'completed'
+            write = True
         return code
     except (OSError, ValueError, subprocess.SubprocessError, RuntimeError, KeyboardInterrupt) as e:
         from reshoot.safety import redact
@@ -317,7 +322,8 @@ def main(a):
         print('check failed: ' + message)
         return 2
     finally:
-        (review / 'report.json').write_text(json.dumps(report, indent=2))
+        if write:
+            (review / 'report.json').write_text(json.dumps(report, indent=2))
 
 
 def video_frames(source):

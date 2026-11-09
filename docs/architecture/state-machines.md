@@ -130,6 +130,10 @@ CLI processes. Existing source checks and editing-session locks remain necessary
 - `creation`, `demonstration` and `unresolved_steps`: durable work still to finish.
 - `workflow`: the shared projection, independent state dimensions, update choice
   and action capabilities. Suggested commands are data; status never runs them.
+  Status also turns off actions with nothing to act on in this project (repair
+  without a stopped missing control, re-cut when the update must record,
+  audition without narration), and `waits_for_person` marks commands that open
+  a page or browser and wait for someone.
 - `observation`: tools not checked, live jobs not observed, unsaved fields not
   observed. Unknown must not be treated as ready or idle.
 

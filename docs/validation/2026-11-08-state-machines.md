@@ -77,6 +77,24 @@ was checked in that regression: before any successful recording, cancellation
 preserves the saved story rather than referring to a previous video. Partial
 preview cancellation is also described as cancelled rather than failed.
 
+## Review corrections, November 9
+
+A review of this branch found problems the checks above missed, now fixed:
+
+- Opening the studio during an update and then cancelling it left the editing
+  panel disabled until a reload, because the server sent the panel locked and
+  the page never unlocked it. The browser regression now checks the panel.
+- `status` offered actions with nothing to act on, such as Repair control with
+  no stopped step, and suggested commands that open a page for a person without
+  saying so. Actions now apply only where they can, `waits_for_person` marks
+  interactive ones, and step actions show their command with `STEP`.
+- Enabled buttons lost their explanations; they keep them again.
+- A cancel that arrived after the update finished replied as if it worked.
+- The demo skill had dropped the rule that a recipe is not a verified result.
+
+`uvx --python 3.11 python -m compileall -q src tests` passed, which the syntax
+check above did not cover.
+
 ## Artifacts and limits
 
 Local generated script/status evidence is under ignored

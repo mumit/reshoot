@@ -11,7 +11,19 @@ change project files or commands.
 - `reshoot status PROJECT` shows the saved browser project's next action,
   last successful recording, latest failure and saved-history recovery without
   recording or changing files. `--json` lists available actions and reasons.
-  Recording tools, live studio jobs and unsaved fields are not checked.
+  Recording tools, live studio jobs and unsaved fields are not checked. An
+  action is offered only where it applies, such as Repair control only for a
+  stopped step with a missing control, and `waits_for_person` marks the ones
+  that open a page or browser for someone to use.
+
+### Changed
+
+- While the studio asks whether to resume saved editing history, it refuses
+  every other change until you choose, including Check again, auditions,
+  the notes trial and accepting a run.
+- The studio checks the recording tools even after a successful recording.
+  If one is missing, its headline says so, though you can still review and
+  download earlier recordings.
 
 ### Fixed
 
@@ -19,6 +31,8 @@ change project files or commands.
   finished or finishing job is no longer reported as cancelled after it saved
   its result. The studio and server use the same rules for available actions,
   including creation, tool setup, history recovery and an update in progress.
+- Cancelling an update that has already finished now says so, instead of
+  appearing to work.
 
 ## 0.3.14 (2026-11-06)
 

@@ -6,10 +6,10 @@ description: Update an existing reshoot demo after an app or release changes. Us
 # Refresh a demo
 
 For a versioned browser project, if `reshoot --help` lists `status`, read
-`reshoot status PROJECT --json` before choosing the next action. Check each
-action's `enabled` and `reason`; `ok` means inspection succeeded, not that the
-demo passed or was accepted. It does not check tools, live studio jobs or
-unsaved fields. See the [command reference](https://github.com/mumit/reshoot/blob/main/guide/commands.md).
+`reshoot status PROJECT --json` first. Choose only an `enabled` action; `reason`
+says why not. Do not start one with `waits_for_person` unless the owner asks.
+`ok` means inspection succeeded, not that the demo passed. Tools, live studio
+jobs and unsaved fields are not checked.
 
 The owner may shape the demo in the studio, which saves to the project files:
 read them again before editing. Its comparison and downloads show the run on

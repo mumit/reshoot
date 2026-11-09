@@ -58,6 +58,13 @@ def test_status_is_read_only_and_does_not_probe_or_render(tmp_path, monkeypatch,
     assert run[0].name in data['workflow']['action']['command']
     assert data['workflow']['states']['tools'] == 'unknown'
     assert data['observation']['live_jobs'] == 'not_observed'
+    actions = data['workflow']['actions']
+    # Only actions with something to act on are offered, and those that wait for a person say so.
+    assert not actions['repair']['enabled'] and 'No stopped step' in actions['repair']['reason']
+    assert not actions['audition']['enabled'] and 'narration' in actions['audition']['reason']
+    assert not actions['recut']['enabled'] and actions['recut']['reason'].startswith('A re-cut only applies')
+    assert actions['review']['waits_for_person'] and actions['download']['waits_for_person']
+    assert not actions['run']['waits_for_person'] and actions['from']['command'].endswith('--from STEP')
     assert tree(tmp_path) == original
     assert not (tmp_path / 'takes/studio').exists()
 
@@ -206,6 +213,20 @@ def test_latest_failure_does_not_replace_the_last_successful_run(tmp_path):
     assert result['run']['id'] == root.name and result['run']['execution'] == 'succeeded'
     assert result['failure']['id'] == failure.name
     assert result['workflow']['phase'] == 'stopped' and result['workflow']['next'] == 'update'
+    # A stop without a missing control is not something a locator repair can fix.
+    assert not result['workflow']['actions']['repair']['enabled']
+
+
+def test_status_offers_repair_only_for_a_stopped_step_with_a_missing_control(tmp_path, monkeypatch):
+    config, board, edit = setup(tmp_path)
+    recording(tmp_path, config, board, edit, mode='final')
+    stopped = {'id': 'c' * 32, 'beat': 'search', 'repairable': True, 'repaired': False, 'stale': False}
+    monkeypatch.setattr('reshoot.workflow.failed', lambda *args: stopped)
+    repair = workflow.inspect(config)['workflow']['actions']['repair']
+    assert repair['enabled'] and repair['command'].endswith('takes/runs/' + 'c' * 32)
+    assert not repair['waits_for_person']
+    stopped['repaired'] = True  # the control was updated; the next step is recording again, not another repair
+    assert not workflow.inspect(config)['workflow']['actions']['repair']['enabled']
 
 
 def test_http_status_guards_jobs_and_stale_cancellation_with_the_same_capabilities(tmp_path, monkeypatch):
@@ -236,6 +257,8 @@ def test_http_status_guards_jobs_and_stale_cancellation_with_the_same_capabiliti
         assert post('cancel', {'job_n': job.n})['ok']
         wait_done(job)
         assert job.json()['state'] == 'cancelled'
+        late = post('cancel', {'job_n': job.n})
+        assert not late['ok'] and 'no longer be cancelled' in late['error']
     finally:
         job.cancel()
         server.shutdown()
@@ -268,7 +291,9 @@ def test_reopening_during_a_job_then_cancelling_restores_controls_and_explanatio
             expect(page.locator('#job-title')).to_contain_text('cancelled')
             expect(page.locator('#job-title')).to_contain_text('Your saved story is kept.')
             expect(final).to_be_enabled()
-            expect(final).to_have_attribute('title', '')
+            expect(final).to_have_attribute('title', 'Record the full-size video for review')
+            # The editing panel the server sent locked for the job is usable again without a reload.
+            page.wait_for_function("() => !document.querySelector('fieldset.side-fields').disabled", timeout=5000)
             assert not errors and job.json()['state'] == 'cancelled'
             page.screenshot(path=str(tmp_path / 'job-cancelled.png'))
             browser.close()

@@ -1,5 +1,4 @@
 """Shared project observations for the studio, CLI and coding agents. No page rendering."""
-import hashlib
 import json
 from pathlib import Path
 
@@ -141,15 +140,33 @@ def inspect(path):
                 'create': create.resume_command(shown(folder)),
                 'setup': 'reshoot doctor --probe --config ' + config_arg,
                 'session': 'reshoot studio ' + target}
+    failure = context['failure']
+    board = story.load(folder / take['web'])
+    narrated = [beat for beat, text in board.get('voice', {}).items() if text]
+    # STEP stands for a step id from the storyboard.
+    commands.update({'from': 'reshoot preview ' + config_arg + ' --from STEP',
+                     'demonstrate': 'reshoot step record STEP --project ' + config_arg,
+                     'audition': 'reshoot audio audition STEP --project ' + config_arg})
     if run:
         commands['review'] = 'reshoot review ' + shlex.quote(shown(run[0])) + ' --serve'
         commands['download'] = 'reshoot studio ' + target
-    for kind, command in commands.items():
-        state['actions'][kind]['command'] = command
-    # action and continuation reference these same capability rows.
-    failure = context['failure']
+    if failure:
+        commands['repair'] = 'reshoot repair ' + shlex.quote(shown(folder / 'takes' / 'runs' / failure['id']))
+    # These open a page or a browser and wait for a person to choose, so an agent should not start them unattended.
+    waits = {'session', 'review', 'download', 'demonstrate'} | ({'create'} if creation and creation['stage'] == 'record' else set())
+    # Status is read by agents: offer an action only where it has something to act on here.
+    not_here = {'repair': None if failure and failure.get('repairable') and not failure.get('repaired') else
+                          'No stopped step has a missing control to repair.',
+                'recut': None if state['update_kind'] == 'recut' else
+                         'A re-cut only applies caption and edit changes. ' + (state['update_detail'] or ''),
+                'audition': None if narrated else 'No step has a saved narration line.'}
+    for kind, row in state['actions'].items():
+        # action and continuation reference these same capability rows.
+        row.update(command=commands.get(kind), waits_for_person=kind in waits)
+        if row['enabled'] and not_here.get(kind):
+            row.update(enabled=False, reason=not_here[kind].strip())
     draft = demonstration.latest(config)
-    unresolved = [beat['id'] for beat in story.load(folder / take['web'])['beat'] if beat.get('recording_issue')]
+    unresolved = [beat['id'] for beat in board['beat'] if beat.get('recording_issue')]
     result = {'schema_version': 1, 'ok': True, 'project': shown(folder), 'revision': revision,
               'run': None if not run else {'id': run[1]['id'], 'path': shown(run[0]),
                     'binding': review.binding(*run), 'mode': run[1].get('mode', 'final'),
@@ -181,7 +198,8 @@ def main(args):
         print(state['title'] + '\n' + state['detail'])
         print('Run: ' + (result['run']['id'] if result['run'] else 'none'))
         action = state['action']
-        print('Next: ' + action['label'] + ('\n  ' + action['command'] if action.get('command') else ''))
+        print('Next: ' + action['label'] + (' (opens a page for a person)' if action['waits_for_person'] else '') +
+              ('\n  ' + action['command'] if action.get('command') else ''))
         if result['unresolved_steps']:
             print('Unresolved steps: ' + ', '.join(result['unresolved_steps']))
         if result['demonstration']:

@@ -6,10 +6,10 @@ description: Inspect a reshoot recording and its check report for failed actions
 # Review a recording
 
 For a versioned browser project, if `reshoot --help` lists `status`, read
-`reshoot status PROJECT --json` before choosing the next action. Check each
-action's `enabled` and `reason`; `ok` means inspection succeeded, not that the
-demo passed or was accepted. It does not check tools, live studio jobs or
-unsaved fields. See the [command reference](https://github.com/mumit/reshoot/blob/main/guide/commands.md).
+`reshoot status PROJECT --json` first. Choose only an `enabled` action; `reason`
+says why not. Do not start one with `waits_for_person` unless the owner asks.
+`ok` means inspection succeeded, not that the demo passed. Tools, live studio
+jobs and unsaved fields are not checked.
 
 When the owner uses the studio, Compare shows paired exported videos and
 checked result frames from the run on the page beside an earlier run. Review

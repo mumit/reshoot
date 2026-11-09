@@ -11,7 +11,7 @@ open, and the page shows what is on disk when it loads.
 
 It serves on 127.0.0.1 behind a random address and takes changes only from its own page, like `review --serve`.
 """
-import hashlib, html, json, math, os, re, signal, subprocess, sys, threading, tomllib
+import hashlib, html, json, math, os, re, sys, tomllib
 from pathlib import Path
 from reshoot.workspace import quote, tables, block, first_header, put, drop, read_lines, save
 from reshoot.sequence import outputs, check_cut
@@ -627,8 +627,10 @@ def server(a):
         def mutate(self, action, body):
             try:
                 if action == 'cancel':
-                    job.cancel(body.get('job_n'))
-                    return review.reply(self, 200, b'{"ok":true}', 'application/json')
+                    if job.cancel(body.get('job_n')):
+                        return review.reply(self, 200, b'{"ok":true}', 'application/json')
+                    return review.reply(self, 200, json.dumps({'ok': False, 'error': 'The update already finished or is '
+                                        'saving its result, so it can no longer be cancelled.'}).encode(), 'application/json')
                 from reshoot import journey
                 allowed = journey.permissions(session=history.info(), job=job.json())[
                     'session' if action == 'session' else 'edit']
@@ -880,7 +882,9 @@ def page(data, accept, seen=0):
                              failure=failure, session=data.get('session'), has_run=bool(run), job=data.get('job'),
                              mode=run.get('mode', 'final') if run else 'final')
     editing_blocked = bool(data.get('needs_demonstration') or not state['actions']['edit']['enabled'])
-    locked = ' disabled' if editing_blocked else ''
+    # A running job's lock is lifted by the page when the job ends, which may not reload it; other locks need a reload.
+    held = bool(data.get('needs_demonstration') or data.get('session'))
+    locked = (' disabled' + ('' if held else ' data-job-locked')) if editing_blocked else ''
     failure_box = ''
     if failure:
         again = state['continuation']['label']
@@ -896,7 +900,7 @@ def page(data, accept, seen=0):
             check = failure['check']
             message = (check['message'] + ' If that is the result you meant to show, fix the app or its demo data. If '
                        f'the check is wrong, correct its expected result below, then choose {again}.')
-            correction = expectations.form(check, disabled=editing_blocked)
+            correction = expectations.form(check, locked)
             if not correction:
                 message = check['message'] + f' Fix the app or the check in the storyboard, then choose {again}.'
             buttons = (correction + '<details><summary>Remove a check that is not needed</summary>'
@@ -1349,8 +1353,8 @@ def page(data, accept, seen=0):
 <fieldset class="actions" aria-label="Recording and history"{(' disabled' if session else '')}><button type="button" data-history="undo"{'' if data.get('undo') else ' disabled'}>Undo</button>
 <button type="button" data-history="redo"{'' if data.get('redo') else ' disabled'}>Redo</button>
 <button type="button" class="{'primary' if state['action']['kind'] == 'update' else ''}" data-job="update"{'' if state['actions']['update']['enabled'] else ' disabled'} title="{e(state['actions']['update']['reason'])}">Update preview</button>
-<button type="button" class="{'primary' if state['action']['kind'] == 'run' else ''}" data-job="run"{'' if state['actions']['run']['enabled'] else ' disabled'} title="{e(state['actions']['run']['reason'] or 'Record the full-size video for review')}">Make final</button>
-<button type="button" data-job="preview" title="Record the whole task again, such as after you change your app outside this project">Record app again</button>
+<button type="button" class="{'primary' if state['action']['kind'] == 'run' else ''}" data-job="run"{'' if state['actions']['run']['enabled'] else ' disabled'} title="{e(state['actions']['run']['reason'] or 'Record the full-size video for review')}" data-hint="Record the full-size video for review">Make final</button>
+<button type="button" data-job="preview" title="Record the whole task again, such as after you change your app outside this project" data-hint="Record the whole task again, such as after you change your app outside this project">Record app again</button>
 </fieldset><nav class="section-nav" aria-label="Studio sections">{navigation}</nav></header>
 {recovery}
 {tools_box}
@@ -1640,7 +1644,7 @@ SCRIPT = '''(() => {
       const action = journeyState.actions[button.dataset.job];
       if (action && document.body.dataset.jobRunning !== '1') {
         button.disabled = !action.enabled || external;
-        button.title = action.reason || '';
+        button.title = action.reason || button.dataset.hint || '';
       }
     });
   };
@@ -2088,12 +2092,14 @@ SCRIPT = '''(() => {
     document.body.dataset.jobRunning = job.running ? '1' : '';
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
     document.getElementById('cancel').hidden = !job.running || !job.cancelable;
-    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .check-correction input, .check-correction textarea, .check-correction select, .check-correction button, .side-fields input, .side-fields textarea, .side-fields select, .side-fields button, [data-history]').forEach(button => {
+    document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .check-correction input, .check-correction textarea, .check-correction select, .check-correction button, .side-fields input, .side-fields textarea, .side-fields select, .side-fields button, [data-history], [data-job-locked]').forEach(button => {
+      // data-job-locked: the server disabled it only because this job was running when the page loaded.
+      const own = button.disabled && !('jobLocked' in button.dataset);
       if (job.running) {
-        if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = button.disabled ? '1' : '';
+        if (!('jobDisabled' in button.dataset)) button.dataset.jobDisabled = own ? '1' : '';
         button.disabled = true;
-      } else if ('jobDisabled' in button.dataset) {
-        button.disabled = button.dataset.jobDisabled === '1'; delete button.dataset.jobDisabled;
+      } else if ('jobDisabled' in button.dataset || 'jobLocked' in button.dataset) {
+        button.disabled = button.dataset.jobDisabled === '1'; delete button.dataset.jobDisabled; delete button.dataset.jobLocked;
       }
     });
     if (!job.running) refreshJourney();

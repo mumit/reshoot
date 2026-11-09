@@ -32,6 +32,9 @@ Commands that edit a project take `--project demo`.
 `status` reads versioned browser projects without writing files or starting tools.
 Its JSON lists the next action, whether each action is available and why, the
 last successful recording, the latest failure and any saved-history recovery.
+An action is offered only where it applies here. `waits_for_person` marks the
+commands that open a page or browser for someone to use; `STEP` in a command
+stands for a step id.
 `ok` means the inspection succeeded. It does not mean the demo passed or is
 accepted. Live studio jobs and unsaved browser fields are not visible from disk;
 recording tools are not checked. Use `doctor` to check tools and the studio to

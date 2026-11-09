@@ -88,13 +88,17 @@ def start_app(app, log=None):
             out.close()
     if url:
         deadline = time.time() + app.get("timeout", 60)
-        while not answers(url, ready=True):
-            if proc.poll() is not None:
-                raise SystemExit(f"the app stopped before it answered at {url} (exit {proc.returncode})" + tail(log))
-            if time.time() > deadline:
-                stop_app(proc)
-                raise SystemExit(f"the app didn't answer at {url} within {app.get('timeout', 60)} s" + tail(log))
-            time.sleep(0.5)
+        try:
+            while not answers(url, ready=True):
+                if proc.poll() is not None:
+                    raise SystemExit(f"the app stopped before it answered at {url} (exit {proc.returncode})" + tail(log))
+                if time.time() > deadline:
+                    raise SystemExit(f"the app didn't answer at {url} within {app.get('timeout', 60)} s" + tail(log))
+                time.sleep(0.5)
+        except BaseException:
+            # The caller never gets proc, so stop the app here, including on Ctrl-C: it runs in its own session.
+            stop_app(proc)
+            raise
     return proc
 
 
@@ -324,7 +328,11 @@ def main(a):
             remaining = timeout - (t - t0)
             if remaining <= 0:
                 raise TimeoutError('run exceeded its timeout')
-            code = execute(cmd, remaining, shoot.get('_root'), before, log)
+            try:
+                code = execute(cmd, remaining, shoot.get('_root'), before, log)
+            except subprocess.TimeoutExpired:
+                report['steps'].append({'step': redact(name), 'ok': False, 'seconds': round(time.monotonic() - t, 1)})
+                raise TimeoutError(f'{redact(name)} ran past the run\'s {timeout} s timeout') from None
             report['steps'].append({'step': redact(name), 'ok': code == 0,
                                     'seconds': round(time.monotonic() - t, 1)})
             event('step_end', index=len(report['steps'])-1, exit=code)
@@ -357,7 +365,12 @@ def main(a):
             if (report_path.parent / 'tours.json').is_file():
                 text_paths.append(str(report_path.parent / 'tours.json'))
             cmd += [arg for p in text_paths for arg in ('--text-file', p)]
-            code = execute(cmd, max(0.01, timeout - (time.monotonic() - t0)), shoot.get('_root'), out=log)
+            # Failed until the scan reports otherwise, so a scan cut off by the timeout never reads as skipped.
+            report['scan_status'] = 'failed'
+            try:
+                code = execute(cmd, max(0.01, timeout - (time.monotonic() - t0)), shoot.get('_root'), out=log)
+            except subprocess.TimeoutExpired:
+                raise TimeoutError(f'the scan ran past the run\'s {timeout} s timeout') from None
             result = json.loads(check_path.read_text()) if check_path.exists() else {}
             report.update(review=str(review), scan_status=result.get('scan', {}).get('status', 'failed'),
                           review_status=result.get('review', 'pending'), unchecked=result.get('unchecked'),

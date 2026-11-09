@@ -97,9 +97,9 @@ state, login and visibility. Fix the data or target; don't weaken the check.
 
 ## Review still says pending
 
-`reshoot accept RUN` records both the recording and the scan;
-`reshoot check --review RUN/review --ok` and `--import-decisions` record only
-one. An open `review.html` may be out of date: rebuild it with
+`reshoot accept RUN` records both the recording and the scan, and so does
+`--import-decisions` when every decision in the file is accepted;
+`reshoot check --review RUN/review --ok` records only the scan. An open `review.html` may be out of date: rebuild it with
 `reshoot review RUN`. Don't rescan an accepted run.
 
 ## Accept or import says the decision does not match

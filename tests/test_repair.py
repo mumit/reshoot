@@ -244,7 +244,10 @@ def test_failed_run_suggests_repair_and_new_preview_keeps_original_checks(tmp_pa
     data = repair.load(root)
     assert data['failure']['candidates'] == [{'css': "input[placeholder='Search notes']"}]
     assert '+target = {css = "input[placeholder=\'Search notes\']"}' in repair.suggestion(root)
+    import signal
+    interrupt = signal.getsignal(signal.SIGINT)
     repair.main(SimpleNamespace(run_path=str(root), config=None, apply=True, pick=False))
+    assert signal.getsignal(signal.SIGINT) is interrupt  # Ctrl-C works again, here and in what starts later
     after = story.load(board)
     assert [b.get('expect') for b in before['beat']] == [b.get('expect') for b in after['beat']]
     assert review.read(root)[1]['ok'] is False

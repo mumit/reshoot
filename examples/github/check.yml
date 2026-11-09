@@ -34,7 +34,8 @@ jobs:
           config: demo/reshoot.toml # change: your project
 
       - name: Comment on the pull request
-        if: always() && steps.shoot.outputs.summary
+        # Also when the run stopped before recording, or an earlier step failed, so an old comment can't stay up.
+        if: always()
         continue-on-error: true # a fork's pull request can't be commented on
         env:
           GH_TOKEN: ${{ github.token }}
@@ -46,13 +47,17 @@ jobs:
           {
             echo "<!-- reshoot check -->"
             # GitHub keeps each line break in a comment, so each paragraph is one echo.
-            if [ "$OK" = "true" ]; then
+            if [ -z "$SUMMARY" ]; then
+              echo "**The demo check could not run**, so this change is not checked yet. It stopped before recording anything: the log of [this run]($RUN_URL) says why."
+            elif [ "$OK" = "true" ]; then
               echo "**The demo still works with this change.**"
             else
               echo "**This change stops the demo.** The run stopped on the step below instead of recording the wrong thing."
             fi
-            echo
-            cat "$SUMMARY"
+            if [ -n "$SUMMARY" ]; then
+              echo
+              cat "$SUMMARY"
+            fi
             if [ "$OK" = "true" ] && [ -f demo/accepted/run.json ]; then # change: your project's accepted record
               reshoot compare demo/accepted "$(dirname "$SUMMARY")" --out "$RUNNER_TEMP/comparison.json" --markdown "$RUNNER_TEMP/comparison.md" > /dev/null
               echo
@@ -61,7 +66,9 @@ jobs:
               cat "$RUNNER_TEMP/comparison.md"
             fi
             echo
-            if [ "$OK" = "true" ]; then
+            if [ -z "$SUMMARY" ]; then
+              :
+            elif [ "$OK" = "true" ]; then
               echo "The video and scan sheets are in the \`reshoot-review\` artifact of [this run]($RUN_URL)."
             else
               echo "The failure frame is in the \`reshoot-review\` artifact of [this run]($RUN_URL)."

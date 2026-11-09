@@ -67,6 +67,27 @@ def test_the_app_log_stays_out_of_the_output_and_shows_when_the_app_stops(tmp_pa
     assert 'favicon' in log.read_text()
 
 
+def test_ctrl_c_while_waiting_for_the_app_stops_it(tmp_path, monkeypatch):
+    import os, signal
+    from reshoot import run
+    started = []
+    def answers(url, ready=False):
+        if ready and started:
+            raise KeyboardInterrupt  # Ctrl-C while reshoot waits for the app to answer
+        return False
+    monkeypatch.setattr(run, 'answers', answers)
+    real = run.subprocess.Popen
+    monkeypatch.setattr(run.subprocess, 'Popen', lambda *a, **k: started.append(real(*a, **k)) or started[-1])
+    with pytest.raises(KeyboardInterrupt):
+        run.start_app({'url': 'http://127.0.0.1:9/', 'run': 'sleep 30'}, tmp_path / 'app.log')
+    proc = started[0]
+    try:
+        assert proc.wait(15) is not None  # the app was stopped, not left running in its own session
+    finally:
+        if proc.poll() is None:
+            os.killpg(proc.pid, signal.SIGKILL)
+
+
 def test_doctor_says_when_a_newer_release_is_out(monkeypatch, capsys):
     monkeypatch.setattr(project, 'latest_release', lambda: '99.0.0')
     project.doctor(SimpleNamespace(config=None, json=False))

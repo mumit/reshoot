@@ -205,3 +205,13 @@ def test_setup_panel_rechecks_and_continues_the_saved_notes_creation(tmp_path, m
     finally:
         httpd.reshoot_job.cancel()
         httpd.shutdown(); httpd.server_close()
+
+
+def test_an_upgrade_makes_the_saved_tool_check_out_of_date(tmp_path, monkeypatch):
+    config = tmp_path / 'reshoot.toml'
+    config.write_text('schema_version = 1\n')
+    report = {'tools': {'ffmpeg': None}, 'ocr_backend': 'tesseract', 'detectors': [], 'text_reader': None}
+    monkeypatch.setattr(setup, 'installed', lambda package: {'reshoot': '0.3.14', 'playwright': '1.50.0'}[package])
+    before = setup.fingerprint(config, report)
+    monkeypatch.setattr(setup, 'installed', lambda package: {'reshoot': '0.3.15', 'playwright': '1.50.0'}[package])
+    assert setup.fingerprint(config, report) != before

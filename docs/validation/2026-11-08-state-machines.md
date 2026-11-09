@@ -95,6 +95,23 @@ A review of this branch found problems the checks above missed, now fixed:
 `uvx --python 3.11 python -m compileall -q src tests` passed, which the syntax
 check above did not cover.
 
+## Second audit, November 9
+
+Three read-only passes covered the browser scripts, the recording and review
+pipeline, and the studio's editing flows. Each lead was read in the code before
+changing anything; two were wrong and are not fixed: pending history recovery
+already refused every change on `main`, and the first Cancel cannot skip the
+job check because the button is hidden until the job is known. Eighteen defects
+were fixed, as listed in the [architecture record](../architecture/state-machines.md#second-audit-november-9).
+Twelve have a new or extended test that failed against the code before the
+fix and passes after it. The pull-request comment was checked by running the
+workflow step's script with `gh` stubbed, once for each outcome. The other five
+were checked by reading and by the existing suites only, with no test of their
+own: the page recovering from a failed
+status check, Accept and Cancel sent once, newer text staying marked unsaved,
+the saved-source download outside the lock, and `run.json` and
+`decisions.json` replaced whole.
+
 ## Artifacts and limits
 
 Local generated script/status evidence is under ignored

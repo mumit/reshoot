@@ -263,6 +263,15 @@ def test_the_studio_edits_a_caption_and_recuts_the_run(tmp_path):
             page.locator('.look input[name=background]').press('Tab')
             page.wait_for_function("!document.querySelector('[data-unsaved]')")
             page.click('#step-tab')
+            before = board.read_bytes()
+            search.locator('input[name=hold]').fill('-1')  # refused, so it stays unsaved
+            page.locator('.seg:not([data-beat=search])').first.click()  # the timeline keeps the unsaved step in view too
+            page.wait_for_function("document.getElementById('save-error').textContent.includes('Save or reset the unsaved step')")
+            assert search.get_attribute('aria-current') == 'step' and search.is_visible()
+            with page.expect_navigation():
+                page.locator('[data-reset-drafts]').click()
+            assert board.read_bytes() == before
+            page.click('#step-tab')
             search.locator('.play').click()  # plays the beat, from its place in the video
             page.wait_for_function("!document.getElementById('video').paused")
             start = float(search.get_attribute('data-start'))

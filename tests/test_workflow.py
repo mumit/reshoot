@@ -167,7 +167,7 @@ def test_stale_cancel_cannot_stop_a_new_job_and_cancel_before_spawn_is_retained(
     class Process:
         stdout = ()
         def poll(self): return None
-        def wait(self): return 0
+        def wait(self): return -2  # ended by the cancel's SIGINT, as a real command is
     def spawn(*a, **k):
         entered.set()
         assert release.wait(5)
@@ -188,6 +188,37 @@ def test_stale_cancel_cannot_stop_a_new_job_and_cancel_before_spawn_is_retained(
     wait_done(job)
     assert killed and not applied
     assert job.code == 130 and job.json()['state'] == 'cancelled' and 'saved' not in job.json()
+
+
+def test_work_that_finishes_despite_a_late_cancel_succeeds_and_applies_its_result(tmp_path):
+    import sys
+    applied = []
+    job = jobs.Job()
+    # Ignores the cancel's SIGINT, as a repair does once it has saved the story, then finishes normally.
+    script = 'import signal, time; signal.signal(signal.SIGINT, signal.SIG_IGN); print("saved", flush=True); time.sleep(1)'
+    job.start('repair', [sys.executable, '-c', script], tmp_path, on_done=lambda: applied.append(True))
+    deadline = __import__('time').monotonic() + 5
+    while not job.json()['lines'] and __import__('time').monotonic() < deadline:
+        threading.Event().wait(.01)
+    assert job.cancel(job.n)
+    wait_done(job)
+    assert job.json()['state'] == 'succeeded' and applied and not job.cancelled
+
+
+def test_settle_reconciles_a_cancelled_or_failed_job_before_another_can_start(tmp_path):
+    import sys
+    settled = []
+    job = jobs.Job()
+    def settle():
+        settled.append(job.running())  # still counts as running, so no other job can start in between
+    job.start('repair', [sys.executable, '-c', 'raise SystemExit(3)'], tmp_path, on_done=lambda: settled.append('done'),
+              settle=settle)
+    wait_done(job)
+    assert settled == [True] and job.json()['state'] == 'failed' and job.code == 3
+    def broken(): raise ValueError('could not record the repair in Undo')
+    job.start('repair', [sys.executable, '-c', 'raise SystemExit(4)'], tmp_path, settle=broken)
+    wait_done(job)
+    assert job.json()['state'] == 'failed' and 'could not record the repair in Undo' in job.json()['lines']
 
 
 def test_failed_result_application_is_failed_and_allows_another_job(tmp_path):

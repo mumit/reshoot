@@ -18,9 +18,6 @@ change project files or commands.
 
 ### Changed
 
-- While the studio asks whether to resume saved editing history, it refuses
-  every other change until you choose, including Check again, auditions,
-  the notes trial and accepting a run.
 - The studio checks the recording tools even after a successful recording.
   If one is missing, its headline says so, though you can still review and
   download earlier recordings.
@@ -32,7 +29,45 @@ change project files or commands.
   its result. The studio and server use the same rules for available actions,
   including creation, tool setup, history recovery and an update in progress.
 - Cancelling an update that has already finished now says so, instead of
-  appearing to work.
+  appearing to work. Cancelling a repair while it stops the app no longer
+  leaves the repaired story out of Undo, and work that finishes despite a late
+  cancel is reported as done.
+- `reshoot review RUN --import-decisions FILE` with every item accepted now
+  checks and records what `reshoot accept` does: it refuses a preview and a run
+  with rejected scan items, marks the scan items checked and writes
+  `demo/accepted`.
+- `demo/latest` no longer picks a preview recorded from one step on.
+  `reshoot export` refuses a failed run or one recorded from one step, checks
+  the `--record` folder before copying anything, replaces each file whole and
+  writes the record after the media.
+- The pull-request check says **The demo check could not run** when it stopped
+  before recording, instead of leaving an older comment up. Copy the new
+  `examples/github/check.yml`.
+- Ctrl-C while reshoot waits for the app to start now stops the app.
+- A scan cut off by the run's timeout is reported as failed, not skipped, and a
+  step cut off by it is listed with its name.
+- `reshoot check --fail` with a mistyped label, or a failed `--ok`, keeps the
+  scan's report.
+- Accepting writes `run.json` and `decisions.json` whole, so a crash can't make
+  a run disappear from `reshoot runs`.
+- A saved tool check is redone after reshoot or Playwright is upgraded.
+- Creation:
+  - one paused before its demonstration no longer gets stuck once its files
+    change: choose **Update preview** in the studio;
+  - continuing no longer applies its recipe over edits made in the studio while
+    it was paused.
+- The studio:
+  - recovers when one update status check fails, instead of staying locked on
+    "Recording…", and Cancel update can't be sent twice;
+  - sends Accept once, and says so when the page can't reach reshoot;
+  - keeps a step with an unsaved field in view when you choose another step in
+    the timeline or its Play button, and a save that finishes no longer jumps
+    back to the step it saved;
+  - keeps text you type while a save is on its way marked unsaved;
+  - downloading the saved source copy no longer holds up the rest of the studio;
+  - **Put the app and story back** in the notes trial keeps story edits made
+    since the trial began.
+- The recorder stays paused when restoring the app loads another page.
 
 ## 0.3.14 (2026-11-06)
 

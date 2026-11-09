@@ -87,8 +87,7 @@ def describe(config, folder, take, run, context=None, session=None, job=None):
     state = journey.state(config, run)
     if context is None:
         creation = create.load(folder)
-        creating = bool(creation and creation['stage'] != 'done')
-        context = {'creation_pending': creating,
+        context = {'creation_pending': create.pending(folder, creation),
                    'setup': setup.current(config),
                    'failure': failed(folder, take, config)}
     state = journey.workflow(state, creating=context.get('creation_pending', False), tools=context.get('setup'),
@@ -129,7 +128,7 @@ def inspect(path):
     revision = history.revision()
     run = current(folder)
     creation = create.load(folder)
-    context = {'creation_pending': bool(creation and creation['stage'] != 'done'),
+    context = {'creation_pending': create.pending(folder, creation),
                'setup': None, 'failure': failed(folder, take, config)}
     state = describe(config, folder, take, run, context=context, session=history.info())
     target = shlex.quote(shown(folder))
@@ -153,7 +152,7 @@ def inspect(path):
     if failure:
         commands['repair'] = 'reshoot repair ' + shlex.quote(shown(folder / 'takes' / 'runs' / failure['id']))
     # These open a page or a browser and wait for a person to choose, so an agent should not start them unattended.
-    waits = {'session', 'review', 'download', 'demonstrate'} | ({'create'} if creation and creation['stage'] == 'record' else set())
+    waits = {'session', 'review', 'download', 'demonstrate'} | ({'create'} if create.pending(folder, creation) and creation['stage'] == 'record' else set())
     # Status is read by agents: offer an action only where it has something to act on here.
     not_here = {'repair': None if failure and failure.get('repairable') and not failure.get('repaired') else
                           'No stopped step has a missing control to repair.',

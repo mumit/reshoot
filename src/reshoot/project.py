@@ -188,8 +188,14 @@ def task(root):
 
 
 def export(a):
-    from reshoot.review import read, record
+    from reshoot.review import read, record, replaceable_record
     root, report = read(a.run_path)
+    # Exported files and records become what others watch and what CI compares with, so they come from a recording of
+    # the whole task that worked.
+    if not report.get('ok'):
+        raise ValueError(f'run {report["id"]} did not finish, so its files are not a working demo: export a run that worked')
+    if report.get('mode') == 'partial-preview':
+        raise ValueError(f'run {report["id"]} was recorded from one step on, so it is not the whole task: export a full run')
     from reshoot.review import exports
     selected = a.file or []
     if not selected and a.directory:  # the run's videos and GIFs, with the videos' subtitles
@@ -220,12 +226,24 @@ def export(a):
     if any(p.suffix not in ('.mp4', '.gif', '.srt', '.mov', '.png', '.html') for p in targets):
         raise ValueError('export accepts final media and subtitle files')
     if getattr(a, 'record', None):
-        print(record(root, report, a.record, shared=selected))
+        replaceable_record(a.record)
     destination.mkdir(parents=True, exist_ok=True)
     from reshoot.run import shown
-    for source, target in zip(selected, targets):
-        shutil.copyfile(root / source, target)
+    # Copy everything beside its target first and rename after, so a failed copy leaves the old files whole, and write
+    # the record last, so it never describes media that did not arrive.
+    staged = [target.with_name('.' + target.name + '.partial') for target in targets]
+    try:
+        for source, temporary in zip(selected, staged):
+            shutil.copyfile(root / source, temporary)
+    except BaseException:
+        for temporary in staged:
+            temporary.unlink(missing_ok=True)
+        raise
+    for temporary, target in zip(staged, targets):
+        temporary.replace(target)
         print(shown(target))
+    if getattr(a, 'record', None):
+        print(record(root, report, a.record, shared=selected))
     print('Copied locally; nothing is published.')
     if getattr(a, 'markdown', None):
         from reshoot.review import shared

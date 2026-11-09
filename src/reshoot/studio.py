@@ -219,6 +219,7 @@ def trial(folder):
 
 
 def change_trial(folder, operation, board, history):
+    """Change the notes app for the trial, or put it back. Returns what to tell the person, or ''."""
     page, backup = Path(folder) / 'index.html', Path(folder) / 'takes/notes-before-change.html'
     story_backup = backup.with_suffix('.toml')
     state = trial(folder)
@@ -230,13 +231,28 @@ def change_trial(folder, operation, board, history):
         for old, new in TRIAL:
             text = text.replace(old, new)
         page.write_text(text)
+        return ''
     elif operation == 'restore' and state == 'changed':
-        # The repaired step points at the changed app, so the story goes back too, as one undoable edit.
+        # The repaired step points at the changed app, so the story goes back too, as one undoable edit: but only when
+        # the repair is all that changed in it, so later edits to captions, timing or checks are never lost.
+        message = ''
         if story_backup.is_file():
-            history.change(lambda: board.write_text(story_backup.read_text()))
+            from reshoot import story
+            def without_controls(data):  # a repair changes only which control an action, check or setup step uses
+                bare = lambda entries: [{k: v for k, v in entry.items() if k not in ('target', 'fallbacks')} for entry in entries]
+                return {**data, 'setup': bare(data.get('setup', [])),
+                        'beat': [{**beat, 'action': bare(beat.get('action', [])), 'expect': bare(beat.get('expect', []))}
+                                 for beat in data['beat']]}
+            if without_controls(story.load(board)) == without_controls(story.load(story_backup)):
+                history.change(lambda: board.write_text(story_backup.read_text()))
+            else:
+                message = ('The app is back. Your story has other changes since the trial began, so it was kept as it is: '
+                           'its repaired step still looks for the changed search box. Update the preview to see it stop, '
+                           'then repair it again.')
             story_backup.unlink()
         page.write_text(backup.read_text())
         backup.unlink()
+        return message
     else:
         raise ValueError('The notes app is not in the state this button expects. Reload the studio.')
 
@@ -265,10 +281,10 @@ def view(folder, take, config, run=None):
     except ValueError as error:
         creation = None
         data['create_error'] = str(error)
-    pending_creation = creation and creation['stage'] != 'done'
+    pending_creation = create.pending(folder, creation)
     data['setup'] = tools if not tools['ok'] or pending_creation or not run and not current(folder) else None
     data['creation_pending'] = bool(pending_creation)
-    data['needs_demonstration'] = bool(creation and creation['stage'] == 'record')
+    data['needs_demonstration'] = bool(pending_creation and creation['stage'] == 'record')
     from reshoot import demonstration
     data['demonstration'] = demonstration.latest(config)
     data['resume_command'] = create.resume_command(folder) if pending_creation else ''
@@ -510,17 +526,18 @@ def server(a):
                 from urllib.parse import parse_qs, urlsplit
                 try:
                     token = parse_qs(urlsplit(self.path).query).get('token', [''])[0]
+                    # Read under the lock and send after it, so a slow download can't hold up the studio.
                     with history.lock, history.transaction(recovery=True), history.source_copy(token) as archive:
-                        archive.seek(0, 2); length = archive.tell(); archive.seek(0)
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'application/zip')
-                        self.send_header('Content-Length', str(length))
-                        self.send_header('Content-Disposition', 'attachment; filename="reshoot-saved-sources.zip"')
-                        self.send_header('Cache-Control', 'no-store')
-                        self.end_headers()
-                        if self.command != 'HEAD':
-                            import shutil
-                            shutil.copyfileobj(archive, self.wfile)
+                        archive.seek(0)
+                        body = archive.read()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/zip')
+                    self.send_header('Content-Length', str(len(body)))
+                    self.send_header('Content-Disposition', 'attachment; filename="reshoot-saved-sources.zip"')
+                    self.send_header('Cache-Control', 'no-store')
+                    self.end_headers()
+                    if self.command != 'HEAD':
+                        self.wfile.write(body)
                     return
                 except (BrokenPipeError, ConnectionResetError):
                     return
@@ -647,8 +664,7 @@ def server(a):
                     history.change(lambda: edit(Path(folder) / take['web'], body))
                     out = {'ok': True}
                 elif action == 'trial':
-                    change_trial(folder, body.get('operation'), Path(folder) / take['web'], history)
-                    out = {'ok': True}
+                    out = {'ok': True, 'message': change_trial(folder, body.get('operation'), Path(folder) / take['web'], history)}
                 elif action == 'cut':
                     history.change(lambda: edit_cut(edit_file(), config, body))
                     out = {'ok': True}
@@ -750,7 +766,7 @@ def server(a):
                         creation = None
                     from reshoot import journey, setup
                     tools = setup.current(config) if kind in journey.RECORDING_ACTIONS | {'create'} else None
-                    allowed = journey.permissions(creating=bool(creation and creation['stage'] != 'done'),
+                    allowed = journey.permissions(creating=create.pending(folder, creation),
                                 tools=tools, session=history.info(), job=job.json(), has_run=bool(run))
                     if kind not in allowed:
                         raise ValueError('unknown job')
@@ -766,10 +782,10 @@ def server(a):
                     elif kind == 'create':
                         from reshoot import create
                         creation = create.load(folder)
-                        if not creation or creation['stage'] == 'done':
+                        if not create.pending(folder, creation):
                             raise ValueError('No paused creation here. Use Update preview to refresh this project.')
                         commands['create'] = [*cli, 'create', '--resume', '--directory', str(folder), '--no-studio']
-                    on_done, result = None, None
+                    on_done, settle, result = None, None, None
                     if kind == 'demonstrate':
                         import uuid
                         from reshoot import demonstration, story
@@ -803,6 +819,8 @@ def server(a):
                             raise ValueError('Choose a suggested replacement or select one in the app.')
                         before = history.snapshot()
                         def remember_repair():
+                            if not (failed_root / 'repair.json').exists():
+                                return  # stopped before it saved anything
                             with history.lock, history.transaction():
                                 audit = json.loads((failed_root / 'repair.json').read_text())
                                 after = history.snapshot()
@@ -812,7 +830,9 @@ def server(a):
                                     audit['after'] == digest(board_path) and all(
                                         after[p] == before[p] for p in before if p != board_path)):
                                     history.remember(before, after)
-                        on_done = remember_repair
+                        # A repair can save the story and then be cancelled while it stops the app, so its change is
+                        # recorded in Undo whatever the job's outcome; remember_repair checks it on disk first.
+                        on_done = settle = remember_repair
                         commands['repair'] = [*cli, 'repair', str(failed_root), '--config', str(config), '--' + method]
                     if kind not in commands:
                         raise ValueError('unknown job')
@@ -822,7 +842,7 @@ def server(a):
                         from reshoot import story
                         if beat not in [b['id'] for b in story.load(Path(folder) / take['web'])['beat']]:
                             raise ValueError(f'no beat {beat!r} in the storyboard')
-                    job.start(kind, commands[kind], folder, beat, on_done=on_done, result=result)
+                    job.start(kind, commands[kind], folder, beat, on_done=on_done, result=result, settle=settle)
                     out = {'ok': True, 'reason': reason}
                 else:
                     run = self.displayed(body)
@@ -1636,7 +1656,7 @@ SCRIPT = '''(() => {
     document.getElementById('journey-review').hidden = journeyState.next !== 'review' || pending;
     document.getElementById('review-current').hidden = !pending;
     const accept = document.getElementById('accept');
-    if (accept) accept.disabled = pending || !document.getElementById('watched')?.checked ||
+    if (accept) accept.disabled = !!document.getElementById('to-accept')?.dataset.state || pending || !document.getElementById('watched')?.checked ||
       [...document.querySelectorAll('#to-accept fieldset')].some(field => !field.querySelector('input:checked'));
     const next = !drafts && !external ? journeyState.action : null;
     document.querySelectorAll('[data-job]').forEach(button => {
@@ -1811,15 +1831,20 @@ SCRIPT = '''(() => {
     if (seek && video && li.dataset.start !== '') { stopAt = null; video.pause(); video.currentTime = +li.dataset.start; }
     document.dispatchEvent(new CustomEvent('reshoot:step-selected', {detail:{id:li.dataset.beat}}));
   };
-  document.addEventListener('reshoot:select-step', event => queue.then(() => {
-    const target = beat(event.detail.id);
-    if (event.detail.seek) showSide('step');
-    if (target !== selected && selected?.querySelector('[data-unsaved]')) {
+  // Every way of choosing another step waits for saves on their way, then keeps an unsaved field in view rather than
+  // hiding it behind the new step.
+  const choose = (li, then) => queue.then(() => {
+    if (li !== selected && selected?.querySelector('[data-unsaved]')) {
       error('Save or reset the unsaved step before choosing another.');
       selected.querySelector('[data-unsaved]').focus(); return;
     }
-    selectBeat(target, event.detail.seek);
-  }));
+    then();
+  });
+  document.addEventListener('reshoot:select-step', event => {
+    const target = beat(event.detail.id);
+    if (event.detail.seek) showSide('step');
+    choose(target, () => selectBeat(target, event.detail.seek));
+  });
   document.querySelectorAll('.beat').forEach(li => li.addEventListener('focusin', () => { if (selected !== li) selectBeat(li, true); }));
   selectBeat(beat(sessionStorage.getItem(selectionKey) || ''));
   document.getElementById('play-selected').onclick = () => { if (selected) play(+selected.dataset.start, +selected.dataset.end); };
@@ -1827,8 +1852,8 @@ SCRIPT = '''(() => {
     event.preventDefault(); if (!selected) return;
     showSide('step'); selected.scrollIntoView({block:'start'}); selected.querySelector('input[name=caption]').focus({preventScroll:true});
   };
-  document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); selectBeat(li); play(+li.dataset.start, +li.dataset.end); });
-  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); showSide('step'); selectBeat(li); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
+  document.querySelectorAll('.beat .play').forEach(b => b.onclick = () => { const li = b.closest('.beat'); choose(li, () => { selectBeat(li); play(+li.dataset.start, +li.dataset.end); }); });
+  document.querySelectorAll('.seg').forEach(s => s.onclick = () => { const li = beat(s.dataset.beat); showSide('step'); choose(li, () => { selectBeat(li); play(+s.dataset.start, +s.dataset.end); li.scrollIntoView({block: 'nearest', behavior: 'smooth'}); }); });
   document.querySelectorAll('[data-part-play]').forEach(button => button.onclick = () => play(+button.dataset.start, +button.dataset.end));
   const inspector = document.getElementById('export-inspector');
   document.querySelectorAll('[data-inspect]').forEach(button => button.onclick = () => {
@@ -1931,17 +1956,20 @@ SCRIPT = '''(() => {
     document.querySelectorAll('[data-part-play]').forEach(button => button.disabled = true);
   };
   document.querySelectorAll('.seek').forEach(s => s.onclick = () => { if (video) { stopAt = null; video.currentTime = +s.dataset.t; video.pause(); } });
-  const saved = (out, where, input) => { if (!out.ok) { if (input) input.dataset.invalid = '1'; return toast(out.error); } if (input) { delete input.dataset.unsaved; delete input.dataset.invalid; }
+  // sent: the field's value when it was saved; text typed since stays unsaved.
+  const saved = (out, where, input, sent) => { if (!out.ok) { if (input) input.dataset.invalid = '1'; return toast(out.error); } if (input) { if (sent === undefined || input.value === sent) delete input.dataset.unsaved; delete input.dataset.invalid; }
     if (!document.querySelector('[data-unsaved]')) error(''); toast('Saved'); const p = where.querySelector('.pending'); if (p) p.hidden = false;
-    if (where.classList.contains('beat')) selectBeat(where); };
+    if (where.classList.contains('beat') && where === selected) selectBeat(where); };  // refresh it; never take the selection back
   document.querySelectorAll('.beat input').forEach(input => input.addEventListener('change', () => {
     const li = input.closest('.beat');
     input.dataset.unsaved = '1';
-    post('edit', {beat: li.dataset.beat, [input.name]: input.name === 'hold' ? +input.value : input.value}).then(out => saved(out, li, input));
+    const sent = input.value;
+    post('edit', {beat: li.dataset.beat, [input.name]: input.name === 'hold' ? +sent : sent}).then(out => saved(out, li, input, sent));
   }));
   document.querySelectorAll('.look input, .look select').forEach(input => input.addEventListener('change', () => {
     input.dataset.unsaved = '1';
-    post('edit', {look: {[input.name]: input.value}}).then(out => { saved(out, input.closest('.look'), input); if (out.ok) customStyle(); });
+    const sent = input.value;
+    post('edit', {look: {[input.name]: sent}}).then(out => { saved(out, input.closest('.look'), input, sent); if (out.ok) customStyle(); });
   }));
   // Changes to the edit file. One that adds or removes a card or an export reloads, to show it in the list.
   const cut = document.querySelector('.cut');
@@ -2059,7 +2087,8 @@ SCRIPT = '''(() => {
   };
   const change = (body, reload, input) => {
     if (input) input.dataset.unsaved = '1';
-    return post('cut', body, reload).then(out => { saved(out, cut, input); if (out.ok) pendingSequence(); if (out.ok && reload) setTimeout(() => location.reload(), 400); return out; });
+    const sent = input?.value;
+    return post('cut', body, reload).then(out => { saved(out, cut, input, sent); if (out.ok) pendingSequence(); if (out.ok && reload) setTimeout(() => location.reload(), 400); return out; });
   };
   if (cut) {
     cut.querySelectorAll('.card input').forEach(input => input.addEventListener('change', () =>
@@ -2086,12 +2115,21 @@ SCRIPT = '''(() => {
   if (video) video.addEventListener('play', () => auditionPlayer.pause());
   const names = {recut: 'Re-cutting', preview: 'Recording a preview', run: 'Recording', from: 'Recording from a step', repair: 'Repairing control', audition: 'Preparing narration', setup:'Checking recording tools', create:'Continuing creation', demonstrate:'Demonstrating new actions in Chrome; choose Done to save a draft'};
   let activeJob = null;
-  const watch = () => fetch('job.json').then(r => r.json()).then(job => {
-    if (!job.kind) return;
+  let missed = 0;
+  // One failed poll must not leave the page showing a job that may have ended, with every control locked.
+  const lost = () => {
+    if (document.body.dataset.jobRunning !== '1') return;
+    if (++missed < 5) return setTimeout(watch, 1500);
+    error('The studio stopped answering, so this page cannot tell whether the update finished. Reload the page, or start reshoot studio again.');
+  };
+  const watch = () => fetch('job.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(job => {
+    missed = 0;
+    if (!job.kind) { if (document.body.dataset.jobRunning === '1') location.reload(); return; }  // a restarted studio
     activeJob = job.n;
     document.body.dataset.jobRunning = job.running ? '1' : '';
     box.hidden = false; log.textContent = job.lines.join('\\n'); log.scrollTop = log.scrollHeight;
     document.getElementById('cancel').hidden = !job.running || !job.cancelable;
+    document.getElementById('cancel').disabled = job.state === 'cancelling';
     document.querySelectorAll('[data-job], [data-from], [data-repair], [data-remove-check], .check-correction input, .check-correction textarea, .check-correction select, .check-correction button, .side-fields input, .side-fields textarea, .side-fields select, .side-fields button, [data-history], [data-job-locked]').forEach(button => {
       // data-job-locked: the server disabled it only because this job was running when the page loaded.
       const own = button.disabled && !('jobLocked' in button.dataset);
@@ -2134,14 +2172,18 @@ SCRIPT = '''(() => {
     }
     title.textContent = job.cancelled ? 'Update cancelled. ' + (video ? 'Your previous recording is kept.' : 'Your saved story is kept.') : job.code === 0 ? what + ' worked. Loading the new run...' : what + ' failed. Loading the step that needs attention...';
     if (!job.cancelled && job.n > +document.body.dataset.seen) setTimeout(() => location.reload(), 600);
-  });
-  document.getElementById('cancel').onclick = () => post('cancel', {job_n: activeJob}).then(watch);
+  }).catch(lost);
+  // Disabled until the next poll shows the job cancelling, so a second click can't report a false error.
+  document.getElementById('cancel').onclick = event => { event.target.disabled = true; post('cancel', {job_n: activeJob}).then(watch); };
   document.querySelectorAll('[data-audition]').forEach(button => button.onclick = () => post('job', {kind: 'audition', beat: button.dataset.audition}).then(out => {
     if (out.ok) { box.scrollIntoView({behavior: 'smooth'}); watch(); }
   }));
+  // Said after the reload that shows the restored app.
+  const noticeKey = location.pathname + ':notice';
+  if (sessionStorage.getItem(noticeKey)) { error(sessionStorage.getItem(noticeKey)); sessionStorage.removeItem(noticeKey); }
   document.querySelectorAll('[data-trial]').forEach(b => b.onclick = () => post('trial', {operation: b.dataset.trial}).then(out => {
     if (!out.ok) return;
-    if (b.dataset.trial === 'restore') return location.reload();
+    if (b.dataset.trial === 'restore') { if (out.message) sessionStorage.setItem(noticeKey, out.message); return location.reload(); }
     post('job', {kind: 'preview'}).then(job => { if (job.ok) watch(); });
   }));
   document.querySelectorAll('[data-job]').forEach(b => b.onclick = () => post('job', {kind: b.dataset.job}).then(out => { if (out.ok) { if (out.reason) toast(out.reason); watch(); } }));

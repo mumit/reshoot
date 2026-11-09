@@ -12,8 +12,9 @@ from reshoot.artifacts import digest
 
 ACCEPTED = '<div id="to-accept"><p><strong>Accepted.</strong> Publishing is still up to you.</p></div>'
 
-# Run aliases: the last part of a run path picks the newest run that matches.
-ALIASES = {'latest': lambda report: bool(report.get('ok')),
+# Run aliases: the last part of a run path picks the newest run that matches. A preview recorded from one step on
+# is not the whole task, so it is never the latest run.
+ALIASES = {'latest': lambda report: bool(report.get('ok')) and report.get('mode') != 'partial-preview',
            'accepted': lambda report: report.get('review_status') == 'completed'}
 
 
@@ -86,6 +87,15 @@ def read(path):
         if not p.is_relative_to(root) or not p.is_file() or digest(p) != item['sha256']:
             raise ValueError('missing, changed, or out-of-run artifact')
     return root, report
+
+
+def write_json(path, data):
+    """Write beside the file and rename, so a crash leaves the old file or the new one, never half of one: a run whose
+    run.json can't be read disappears from every listing."""
+    path = Path(path)
+    temp = path.with_name('.' + path.name + '.partial')
+    temp.write_text(json.dumps(data, indent=2))
+    temp.replace(path)
 
 
 def policy(root):
@@ -330,17 +340,10 @@ def status(root, report):
 def accept(a):
     """Record the owner's verdict in one step: the exports, every beat and every scan item, bound to the exact run."""
     import sys
-    from datetime import datetime, timezone
     from reshoot.check import load
     root, report = read(a.run_path)
-    if report.get('record'):
-        raise ValueError('this is a run record without its media; accept the run itself')
+    acceptable(root, report, a.preview)
     sheets = root / 'review'
-    if not report.get('ok') or policy(root).get('status') == 'error':
-        raise ValueError('cannot accept a failed run or failed check')
-    if report.get('mode', 'final') != 'final' and not a.preview:
-        raise ValueError(f'run {report["id"]} is a {report["mode"]}, made smaller and quicker than a final: record '
-                         'one with `reshoot run`, or pass --preview to accept this one anyway')
     key, flags = load(sheets / 'key.json', {}), load(sheets / 'flags.json', {})
     failed = set(load(sheets / 'failed.json', []))
     from reshoot.check import findings, span
@@ -360,8 +363,7 @@ def accept(a):
         decide(root, report, {name: 'rejected' if name in {'finding/' + label for label in a.reject} else 'pending'
                               for name in decision_names(root)}, 'failed')
         return 1
-    if failed & {h for _, h in key.values()}:
-        raise ValueError('items on these sheets were rejected; record a new run')
+    rejected(root)
     if unnamed := [label for label in flags if label not in named]:
         print('The scan found these. Inspect each at full size first:')
         for name, (found, members) in groups.items():
@@ -389,6 +391,35 @@ def accept(a):
         if answer.strip().lower() not in ('y', 'yes'):
             print('Nothing recorded.')
             return 1
+    return accepted(root, report, {name: 'accepted' for name in decision_names(root)}, getattr(a, 'export', None))
+
+
+def acceptable(root, report, preview=False):
+    """Refuse what no one can accept: a record, a failed run or scan, or a preview unless asked for."""
+    if report.get('record'):
+        raise ValueError('this is a run record without its media; accept the run itself')
+    if not report.get('ok') or policy(root).get('status') == 'error':
+        raise ValueError('cannot accept a failed run or failed check')
+    if report.get('mode', 'final') != 'final' and not preview:
+        raise ValueError(f'run {report["id"]} is a {report["mode"]}, made smaller and quicker than a final: record '
+                         'one with `reshoot run`, or pass --preview to accept this one anyway')
+
+
+def rejected(root):
+    """Refuse to accept a run whose scan items were rejected: the rejection stands until a new run."""
+    from reshoot.check import load
+    sheets = root / 'review'
+    if set(load(sheets / 'failed.json', [])) & {h for _, h in load(sheets / 'key.json', {}).values()}:
+        raise ValueError('items on these sheets were rejected; record a new run')
+
+
+def accepted(root, report, choices, export=None):
+    """Record acceptance everywhere it is read: the scan items, the scan report, the decisions, the page and the
+    accepted record beside the demo source."""
+    from datetime import datetime, timezone
+    from reshoot.check import load
+    sheets = root / 'review'
+    key = load(sheets / 'key.json', {})
     if key:
         checked = load(sheets / 'checked.json', {})
         scan_report = load(sheets / 'report.json', {})
@@ -398,7 +429,7 @@ def accept(a):
         if scan_report:
             scan_report['review'] = 'completed'
             (sheets / 'report.json').write_text(json.dumps(scan_report, indent=2))
-    decide(root, report, {name: 'accepted' for name in decision_names(root)}, 'completed')
+    decide(root, report, choices, 'completed')
     print('Accepted. Publishing is still up to you.')
     if (page := root / 'review.html').exists():  # so the page says so too, keeping any comparison on it
         page.write_text(re.sub(r'<div id="to-accept">.*?</div>', lambda m: ACCEPTED, page.read_text(), count=1, flags=re.S))
@@ -406,13 +437,13 @@ def accept(a):
         target = record(root, report, root.parent.parent.parent / 'accepted')
         from reshoot.run import shown
         print(f'Wrote {shown(target)}: commit it with the demo source, so CI and fresh checkouts compare against this run.')
-        if not getattr(a, 'export', None):
+        if not export:
             print(f'To copy the video and GIF for a README: reshoot export {shlex.quote(shown(target))} --directory docs/demo')
-    if getattr(a, 'export', None):
+    if export:
         from types import SimpleNamespace
-        from reshoot.project import export
-        return export(SimpleNamespace(run_path=str(root), directory=a.export, file=None, replace=True, record=None,
-                                      markdown=None))
+        from reshoot.project import export as copy_out
+        return copy_out(SimpleNamespace(run_path=str(root), directory=export, file=None, replace=True, record=None,
+                                        markdown=None))
     return 0
 
 
@@ -421,11 +452,7 @@ def record(root, report, target, shared=()):
     the demo source, it lets a fresh checkout, such as CI, compare a new run with this one. For the files in shared,
     which are being copied out with it, it also keeps the first frame of each finding in them, as findings/F1.jpg,
     so a pull request can show it: those frames are already in the shared files."""
-    target = Path(target).resolve()
-    if target.exists():
-        marker = target / 'run.json'
-        if not (marker.exists() and json.loads(marker.read_text()).get('record')):
-            raise ValueError(f'{target} exists and is not a run record; choose another folder')
+    target = replaceable_record(target)
     from reshoot.screenshots import listing
     from reshoot.tours import listing as tour_listing
     screenshots = {row['path'] for row in listing(root, report)}
@@ -454,14 +481,24 @@ def record(root, report, target, shared=()):
     return target
 
 
+def replaceable_record(target):
+    """The folder a record may be written to: new, or a record already, never some other folder."""
+    target = Path(target).resolve()
+    if target.exists():
+        marker = target / 'run.json'
+        if not (marker.exists() and json.loads(marker.read_text()).get('record')):
+            raise ValueError(f'{target} exists and is not a run record; choose another folder')
+    return target
+
+
 def decide(root, report, choices, status):
     from datetime import datetime, timezone
     decisions = {'schema_version': 1, 'run_id': report['id'], 'binding': binding(root, report),
                  'decisions': dict(sorted(choices.items())), 'recorded_by': 'reshoot accept',
                  'recorded_at': datetime.now(timezone.utc).isoformat(timespec='seconds')}
-    (root / 'decisions.json').write_text(json.dumps(decisions, indent=2))
+    write_json(root / 'decisions.json', decisions)
     report['review_status'] = status
-    (root / 'run.json').write_text(json.dumps(report, indent=2))
+    write_json(root / 'run.json', report)
 
 
 KEPT = {'matched': 'kept'}
@@ -545,10 +582,19 @@ def main(a):
         allowed = decision_names(root)
         if not choices or set(choices) - allowed or any(v not in ('accepted', 'rejected', 'pending') for v in choices.values()):
             raise ValueError('invalid review decisions')
-        (root / 'decisions.json').write_text(json.dumps(decisions, indent=2))
-        report['review_status'] = ('failed' if 'rejected' in choices.values() else
-                                   'completed' if all(choices.get(name) == 'accepted' for name in allowed) else 'pending')
-        (root / 'run.json').write_text(json.dumps(report, indent=2))
+        if 'rejected' not in choices.values() and all(choices.get(name) == 'accepted' for name in allowed):
+            # Every item accepted is acceptance, so it needs what reshoot accept needs and records what it records.
+            if report.get('mode', 'final') != 'final':
+                raise ValueError(f'run {report["id"]} is a {report["mode"]}: record a final with `reshoot run`, or '
+                                 'accept this one with `reshoot accept RUN --preview`')
+            acceptable(root, report, preview=True)
+            rejected(root)
+            accepted(root, report, choices)
+            print('Saved decisions for run', report['id'])
+            return 0
+        write_json(root / 'decisions.json', decisions)
+        report['review_status'] = 'failed' if 'rejected' in choices.values() else 'pending'
+        write_json(root / 'run.json', report)
         print('Saved decisions for run', report['id'])
         return 0
     # The page reads top to bottom as the review goes: the exports, what the scan found, the scan sheets, then each
@@ -740,7 +786,8 @@ PANEL_SCRIPT = '''<script>(() => {
   box.addEventListener('change', () => {
     const c = choices();
     button.textContent = c.some(([, v]) => v === 'reject') ? 'Reject the run' : 'Accept the run';
-    button.disabled = document.body.dataset.studioPending === '1' || !document.getElementById('watched').checked || c.some(([, v]) => !v);
+    // data-state: sending while the decision is on its way, decided once it is recorded, so it is sent once.
+    button.disabled = !!box.dataset.state || document.body.dataset.studioPending === '1' || !document.getElementById('watched').checked || c.some(([, v]) => !v);
   });
   button.onclick = async () => {
     if (document.body.dataset.studioPending === '1') {
@@ -751,16 +798,24 @@ PANEL_SCRIPT = '''<script>(() => {
       document.getElementById('outcome').textContent = 'Fix the unsaved field before accepting.';
       return;
     }
-    button.disabled = true;
+    if (box.dataset.state) return;
+    box.dataset.state = 'sending'; button.disabled = true;
     const c = choices();
     const body = {run_id: box.dataset.run, binding: box.dataset.binding, revision: document.body.dataset.revision,
                   flagged: c.filter(([, v]) => v === 'flagged').map(([n]) => n),
                   reject: c.filter(([, v]) => v === 'reject').map(([n]) => n)};
-    const r = await fetch('accept', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-    const out = await r.json();
+    let out, reached = true;
+    try {
+      const r = await fetch('accept', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+      out = await r.json();
+    } catch (e) {
+      reached = false;
+      out = {code: 2, output: 'The page could not reach reshoot, so nothing was recorded. Check that it is still running, then try again.'};
+    }
     document.getElementById('outcome').textContent = out.output;
-    if (out.code === 0 || body.reject.length) box.querySelectorAll('input').forEach(i => i.disabled = true);
-    else button.disabled = false;
+    if (reached && (out.code === 0 || body.reject.length)) {
+      box.dataset.state = 'decided'; box.querySelectorAll('input').forEach(i => i.disabled = true);
+    } else { delete box.dataset.state; button.disabled = false; }
     if (out.code === 0 && !body.reject.length) document.dispatchEvent(new CustomEvent('reshoot:accepted'));
   };
 })();</script>'''

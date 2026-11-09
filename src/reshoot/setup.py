@@ -158,6 +158,14 @@ def text_probe(engine):
         raise RuntimeError('OCR ran but did not recognize the synthetic test word.')
 
 
+def installed(package):
+    from importlib.metadata import PackageNotFoundError, version
+    try:
+        return version(package)
+    except PackageNotFoundError:
+        return None
+
+
 def fingerprint(config, report):
     stats = {}
     for name, path in report['tools'].items():
@@ -171,7 +179,8 @@ def fingerprint(config, report):
             stats[name] = None
     values = {'config': Path(config).read_text(), 'tools': stats, 'python': sys.executable,
               'env': {name: os.environ.get(name) for name in ('PATH', 'RESHOOT_CHROME', 'RESHOOT_CHROME_FLAGS', 'RESHOOT_OCR')},
-              'ocr': report['ocr_backend'], 'detectors': report['detectors'], 'text_reader': report.get('text_reader')}
+              'ocr': report['ocr_backend'], 'detectors': report['detectors'], 'text_reader': report.get('text_reader'),
+              'reshoot': installed('reshoot'), 'playwright': installed('playwright')}  # an upgrade checks again
     return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
 

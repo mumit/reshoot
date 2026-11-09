@@ -257,6 +257,50 @@ def test_create_from_demonstration_replays_toolbar_captions_and_checks(tmp_path,
     assert max(ImageStat.Stat(Image.open(first).convert('RGB')).stddev) > 5  # an app, not a blank opening
 
 
+@pytest.mark.browser
+def test_the_recorder_stays_paused_when_the_page_loads_again(tmp_path):
+    import http.server
+    from functools import partial
+    from test_reshoot import ROOT
+    import person
+    app = tmp_path / 'app'
+    app.mkdir()
+    (app / 'index.html').write_text((ROOT / 'src/reshoot/templates/index.html').read_text())
+    httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 0), partial(http.server.SimpleHTTPRequestHandler, directory=str(app)))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    async def ready(page):
+        for _ in range(50):
+            if await page.run('return !!document.querySelector("reshoot-recorder")'):
+                return
+            await asyncio.sleep(.1)
+    async def toolbar(page, selector):
+        coords = await page.run('const r = document.querySelector("reshoot-recorder").shadowRoot.querySelector('
+                                + json.dumps(selector) + ').getBoundingClientRect(); return [r.x+r.width/2,r.y+r.height/2]')
+        await person.click_at(page, *coords)
+    labels = []
+    async def tour(page):
+        await ready(page)
+        await toolbar(page, '[data-do=pause]')
+        await page.run('location.reload()')  # restoring the app loads the page again while paused
+        await asyncio.sleep(.5)
+        await ready(page)
+        labels.append(await page.run('return document.querySelector("reshoot-recorder").shadowRoot'
+                                     '.querySelector("[data-do=pause]").textContent'))
+        await person.click(page, '#text')  # still paused, so not a step
+        await toolbar(page, '[data-do=pause]')
+        await person.click(page, '#q')
+    calls = []
+    try:
+        asyncio.run(rec.session(f'http://127.0.0.1:{httpd.server_port}/', 960, 540, calls, headless=True, toolbar=True,
+                                drive=tour))
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    clicks = [ev['where'] for _, ev in calls if ev.get('kind') == 'click']
+    assert labels == ['Resume']
+    assert clicks == [['css', '#q']]  # the click while paused is not a step; the one after Resume is
+
+
 def test_create_opens_an_existing_project_without_recording_or_overwriting(tmp_path, monkeypatch):
     monkeypatch.setattr('reshoot.setup.check_project', lambda config, **_: {'ok': True})
     monkeypatch.setattr(rec, 'main', lambda a: pytest.fail('an existing story must not be recorded over'))

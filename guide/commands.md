@@ -4,7 +4,7 @@
 [project reference](projects.md).
 
 `RUN` is a run folder such as `demo/takes/runs/ID`, its `run.json`,
-`demo/latest` (the newest successful run) or `demo/accepted`. `CONFIG` is a
+`demo/latest` (the newest successful run of the whole task, not one recorded from a step) or `demo/accepted`. `CONFIG` is a
 `reshoot.toml`. Numbers for parts, takes, exports and steps start at 1.
 Commands that edit a project take `--project demo`.
 

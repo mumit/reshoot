@@ -22,7 +22,7 @@ TRANSITIONS = {
     Phase.IDLE: {Phase.STARTING},
     Phase.STARTING: {Phase.RUNNING, Phase.CANCELLING, Phase.FAILED},
     Phase.RUNNING: {Phase.CANCELLING, Phase.FINISHING, Phase.FAILED},
-    Phase.CANCELLING: {Phase.CANCELLED},
+    Phase.CANCELLING: {Phase.CANCELLED, Phase.FINISHING},
     Phase.FINISHING: {Phase.SUCCEEDED, Phase.FAILED},
     Phase.SUCCEEDED: {Phase.STARTING},
     Phase.FAILED: {Phase.STARTING},
@@ -46,7 +46,9 @@ class Job:
         with self.lock:
             return self.phase in ACTIVE
 
-    def start(self, kind, cmd, cwd, beat=None, on_done=None, result=None):
+    def start(self, kind, cmd, cwd, beat=None, on_done=None, result=None, settle=None):
+        """Run cmd. on_done applies its result after it succeeds. settle, for a command that may have changed files
+        before it was cancelled or failed, reconciles what it left; it runs while the job still counts as running."""
         with self.lock:
             if self.running():
                 raise ValueError(f'a {self.kind} is still running')
@@ -70,17 +72,21 @@ class Job:
                     with self.lock:
                         self.lines.append(redact(line.rstrip()).replace(str(cwd) + '/', ''))
                 code = proc.wait()
+                if code:
+                    if settle:
+                        try:
+                            settle()
+                        except Exception as error:
+                            with self.lock:
+                                self.lines.append(redact(str(error)))
+                    with self.lock:
+                        self.code = 130 if self.cancelled else code
+                        self._transition(Phase.CANCELLED if self.cancelled else Phase.FAILED)
+                    return
                 with self.lock:
-                    if self.cancelled:
-                        self.code = 130
-                        self._transition(Phase.CANCELLED)
-                        return
-                    if code:
-                        self.code = code
-                        self._transition(Phase.FAILED)
-                        return
-                    # The process completed. Applying its result is an indivisible
-                    # finishing step: a late cancel must not label a saved repair cancelled.
+                    # The process completed its work, so a cancel that came too late does not undo it. Applying its
+                    # result is an indivisible finishing step: a saved repair is not labelled cancelled.
+                    self.cancelled = False
                     self._transition(Phase.FINISHING)
                 if on_done:
                     on_done()

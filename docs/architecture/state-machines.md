@@ -147,6 +147,29 @@ Status is advisory about saved state. Before acting, an agent must honor existin
 authorization, check `enabled` and `reason`, check tools when needed, and handle
 request validation or concurrent edits. Review still requires the owner's verdict.
 
+## Second audit, November 9
+
+A second pass read each lifecycle's code end to end for wrong transitions, not
+just for an owner. The decision above held: the defects were at the edges of
+single lifecycles, where an interruption, a late response or a second path
+skipped a guard the main path had. Each was fixed where its state lives, with a
+test that fails without the fix. See the changelog's Unreleased section.
+
+| Lifecycle | Defect fixed |
+|---|---|
+| Recording acceptance | Importing all-accepted decisions skipped accept's checks and records. Both now share `acceptable`, `rejected` and `accepted`; `run.json` and `decisions.json` are replaced whole. |
+| Run selection and aliases | `latest` could pick a partial preview. Export refused nothing; it now needs a whole working run, checks the record folder first and writes the record after the media. |
+| Pull-request check | A run that stopped before recording left the previous comment up. |
+| Project execution | Ctrl-C during the app's readiness wait left the app running; a timed-out step went unlisted and a timed-out scan read as skipped. |
+| Scan-item review | A failed `check --ok`/`--fail` replaced the scan report. |
+| Studio job | A repair cancelled after saving was missing from Undo. Exit 0 now means the work finished, whatever arrived late; `settle` reconciles a cancelled or failed repair from its audit. |
+| First creation | A creation paused before demonstration became permanently pending once its files changed; `create.pending` now ends it. Continuing no longer applies a recipe over edits made while paused, and saves its stage before deleting the draft. |
+| Tool readiness | The saved check survived a reshoot or Playwright upgrade. |
+| Persistent editing session | The saved-source download held the studio lock while streaming. |
+| Notes teaching trial | Putting it back replaced later story edits; it now restores the story only when the repair is the only change. |
+| Demonstration recorder | Pause was lost when the page loaded again; it is kept for the tab. |
+| Browser job watch, acceptance, step selection, save queue | A failed poll froze the page; Accept and Cancel could be sent twice; timeline and Play clicks bypassed the unsaved-step guard; a late save took the selection back or cleared the marker on newer text. |
+
 ## Remaining boundaries
 
 This change makes the shared action policy and live job lifecycle explicit. It
@@ -157,6 +180,29 @@ contracts. A new shared mechanism should follow a concrete cross-boundary failur
 Future improvements can expose recorder mode transitions more directly, reduce
 duplicate review-verdict derivation, or correlate partial-preview playback with
 its exact producing job. These are inventory findings, not implemented changes.
+
+Found in the second audit and left open, as rarer or needing a design choice:
+
+- A job whose result step hangs cannot be cancelled and blocks later jobs.
+- `History.change` rolls back every tracked file after a failed operation,
+  which could overwrite an edit made elsewhere in that moment; a failed Undo
+  write can leave history needing recovery.
+- Ctrl-C during creation's preview opens the studio instead of exiting. A crash
+  between applying a recipe and saving the stage can apply it twice.
+- A refresh pull request's record says `review_status: pending` though merging
+  it is the acceptance. The pull-request check compares with the branch's own
+  `demo/accepted`, so a branch that also replaces the record hides removals.
+- `stop_app` stops the app's process group only while its first process runs.
+- A run folder is created before its config is checked, so a bad config leaves
+  an empty folder (no longer a stale CI comment).
+- A take is marked completed before it is encoded; the run still fails.
+- Runs are ordered by finish time to the second.
+- Legacy, unversioned projects keep scan review across runs, so a later check
+  can forget a rejection or mark review completed without acceptance.
+- Smaller page states: the still status during a job, a manual seek past a
+  step's end, a refused preset staying selected, the tour's address bar, a
+  job button clicked twice, a focus refresh racing a job start, and a failed
+  first comparison load not retried on reopening.
 Any later schema migration, cross-process job coordination or broad workflow
 change needs separate compatibility analysis and appropriate regression coverage.
 

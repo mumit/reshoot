@@ -64,6 +64,34 @@ def test_run_does_not_reuse_a_previous_check_report(tmp_path):
     assert report['ok'] is False and report['unchecked'] is None
 
 
+def test_a_scan_cut_off_by_the_timeout_is_failed_not_skipped(tmp_path, monkeypatch):
+    import subprocess
+    from reshoot import run
+    def execute(cmd, timeout, *args, **_):
+        raise subprocess.TimeoutExpired(cmd, timeout)
+    monkeypatch.setattr(run, 'execute', execute)
+    config = tmp_path / 'reshoot.toml'
+    config.write_text(f'report="{tmp_path}/run.json"\ntimeout=5\n[check]\nsources=["{tmp_path}/a.png"]\n'
+                      f'review="{tmp_path}/review"\n')
+    assert 'ran past' in invoke('run', str(config))
+    report = json.loads((tmp_path / 'run.json').read_text())
+    assert report['ok'] is False and report['scan_status'] == 'failed'
+
+
+def test_a_step_cut_off_by_the_timeout_is_listed_with_its_name(tmp_path, monkeypatch):
+    import subprocess
+    from reshoot import run
+    def execute(cmd, timeout, *args, **_):
+        raise subprocess.TimeoutExpired(cmd, timeout)
+    monkeypatch.setattr(run, 'execute', execute)
+    (tmp_path / 'story.toml').write_text('schema_version=1\nurl="http://localhost/"\n[[beat]]\nid="result"\n')
+    config = tmp_path / 'reshoot.toml'
+    config.write_text('schema_version=1\ntimeout=5\n[[take]]\nweb="story.toml"\nout="takes/first.mp4"\n')
+    assert 'ran past' in invoke('run', str(config))
+    report = json.loads(next((tmp_path / 'takes/runs').glob('*/run.json')).read_text())
+    assert report['steps'] and report['steps'][-1]['ok'] is False and report['steps'][-1]['step'].startswith('web ')
+
+
 @pytest.mark.parametrize('failure', ['action', 'assertion', 'missing-metadata', None])
 def test_run_expectations_cannot_pass_from_only_an_earlier_result(tmp_path, monkeypatch, failure):
     from reshoot import run

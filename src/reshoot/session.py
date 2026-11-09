@@ -16,7 +16,8 @@ MAX_BYTES = 32 * 1024 * 1024
 
 
 class Session(History):
-    def __init__(self, config, paths):
+    def __init__(self, config, paths, *, read_only=False):
+        self.read_only = read_only
         self.config = Path(config).resolve()
         self.root = self.config.parent
         key = hashlib.sha256(self.config.name.encode()).hexdigest()[:12]
@@ -32,6 +33,9 @@ class Session(History):
     def storage(self):
         # The project supports macOS and Linux. A per-operation OS lock also
         # serializes different studio servers; no stale lock survives a crash.
+        if self.read_only:
+            yield
+            return
         import fcntl
         self.file.parent.mkdir(parents=True, exist_ok=True)
         with self.file.with_suffix('.lock').open('a+b') as lock:
@@ -166,6 +170,8 @@ class Session(History):
 
     @contextmanager
     def transaction(self, recovery=False):
+        if self.read_only:
+            raise ValueError('This editing session is read-only.')
         with self.storage():
             if self.version() != self.token:
                 raise ValueError('The editing session changed in another studio. Reload before continuing.')
@@ -174,6 +180,8 @@ class Session(History):
             yield
 
     def checkpoint(self):
+        if self.read_only:
+            raise ValueError('This editing session is read-only.')
         raw = self.encode()
         if len(raw) > MAX_BYTES:
             self.checkpoint_failed('Project files are saved, but editing history exceeds 32 MB.')
@@ -198,6 +206,16 @@ class Session(History):
                 temp.unlink(missing_ok=True)
         self.token = hashlib.sha256(raw).hexdigest()
 
+    def change(self, operation):
+        if self.read_only:
+            raise ValueError('This editing session is read-only.')
+        return super().change(operation)
+
+    def restore(self, snapshot):
+        if self.read_only:
+            raise ValueError('This editing session is read-only.')
+        return super().restore(snapshot)
+
     def checkpoint_failed(self, message):
         try:
             self.load()
@@ -206,6 +224,8 @@ class Session(History):
         self.pending, self.problem = True, message
 
     def recover(self, choice, token):
+        if self.read_only:
+            raise ValueError('This editing session is read-only.')
         if not self.pending or (token or None) != self.token:
             raise ValueError('The saved session changed. Reload before choosing recovery.')
         if choice == 'resume':
@@ -236,11 +256,15 @@ class Session(History):
             self.expected = current
 
     def remember(self, before, after):
+        if self.read_only:
+            raise ValueError('This editing session is read-only.')
         super().remember(before, after)
         if before != after:
             self.checkpoint()
 
     def move(self, direction):
+        if self.read_only:
+            raise ValueError('This editing session is read-only.')
         super().move(direction)
         self.checkpoint()
 

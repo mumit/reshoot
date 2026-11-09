@@ -4,6 +4,22 @@ Each release names what changed for people making demos. Versions follow
 [semantic versioning](https://semver.org/); before 1.0, a minor version may
 change project files or commands.
 
+## Unreleased
+
+### Added
+
+- `reshoot status PROJECT` shows the saved browser project's next action,
+  last successful recording, latest failure and saved-history recovery without
+  recording or changing files. `--json` lists available actions and reasons.
+  Recording tools, live studio jobs and unsaved fields are not checked.
+
+### Fixed
+
+- Cancelling an update from an older page no longer stops a newer job. A
+  finished or finishing job is no longer reported as cancelled after it saved
+  its result. The studio and server use the same rules for available actions,
+  including creation, tool setup, history recovery and an update in progress.
+
 ## 0.3.14 (2026-11-06)
 
 Upgrade the project skills with `reshoot skills claude --directory . --replace`

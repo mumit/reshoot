@@ -38,6 +38,7 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `src/reshoot/captions.py` | TOML storyboard captions, drawn on a take after recording and again on a re-cut |
 | `src/reshoot/studio.py` | `reshoot studio`: a local page for the latest run: its beats, captions, edit, exports and acceptance |
 | `src/reshoot/journey.py`, `delivery.py` | Saved/rendered/captured source state and exact-run local export bundles |
+| `src/reshoot/workflow.py`, `jobs.py` | Shared project observations, read-only CLI status and explicit studio job transitions |
 | `src/reshoot/comparison.py`, `comparison.js` | Read-only studio comparison of checked frames and evidence from two exact runs |
 | `src/reshoot/playback.py`, `playback.js` | Paired export videos and per-cut step seeking for those same two runs |
 | `src/reshoot/voice.py` | The voiceover: each line spoken before recording, so beats can wait for it |
@@ -50,6 +51,9 @@ Read [README.md](README.md) for what reshoot does and [CONTRIBUTING.md](CONTRIBU
 | `examples/notes/` | A made-up app, its storyboards, a tape, an edit script and a reshoot.toml |
 | `examples/github/` | The workflow a project copies to reshoot in CI |
 | `tests/` | pytest; `tests/boards/` has pages and storyboards for the browser tests, and `tests/person.py` stands in for someone using Chrome |
+
+The [state-machine inventory](docs/architecture/state-machines.md) maps lifecycle
+ownership, transitions and the shared studio/CLI/agent contract.
 
 ## Commands
 

@@ -21,12 +21,22 @@ Commands that edit a project take `--project demo`.
 | `reshoot create --resume --directory demo` | Continues a paused creation or retries its preview |
 | `reshoot init demo` | Writes the notes project; never overwrites |
 | `reshoot init demo --url URL` | Writes a draft for your app |
+| `reshoot status demo` | Shows saved project state and the next action without recording; `--json` for structured output |
 | `reshoot doctor --config CONFIG` | Checks tools and detectors |
 | `reshoot doctor --config CONFIG --probe` | Also tries encoding, browser capture and OCR on made-up input; `--json` for structured output |
 | `reshoot upgrade` | Installs the newest release the way reshoot was installed, keeping its extras; asks first, `--yes` doesn't |
 | `reshoot upgrade 0.3.11` | Installs that exact version, such as to go back |
 | `reshoot recipe list` | Lists [starting recipes](studio.md#choose-a-starting-recipe) |
 | `reshoot recipe apply feature` | Applies one; `--title 'Words'` names new cards, `--dry-run` only describes it |
+
+`status` reads versioned browser projects without writing files or starting tools.
+Its JSON lists the next action, whether each action is available and why, the
+last successful recording, the latest failure and any saved-history recovery.
+`ok` means the inspection succeeded. It does not mean the demo passed or is
+accepted. Live studio jobs and unsaved browser fields are not visible from disk;
+recording tools are not checked. Use `doctor` to check tools and the studio to
+inspect work in progress. See [the state model](../docs/architecture/state-machines.md)
+for the developer and agent contract.
 
 ### Record
 

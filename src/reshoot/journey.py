@@ -87,7 +87,6 @@ def capture_inputs(before, current):
 def capture_changes(project, run, current=None):
     """A re-cut may use new words/assets while retaining an older captured task and demo data."""
     from reshoot import story
-    from reshoot.studio import recorded_as
     path = (Path(project) if Path(project).suffix == '.toml' else Path(project) / 'reshoot.toml').resolve()
     data = tomllib.loads(path.read_text())
     root, report = run
@@ -175,30 +174,74 @@ def state(project, run):
             'changes': [], 'next': 'download' if accepted else 'run' if mode != 'final' else 'review'}
 
 
-def workflow(saved, *, creating=False, tools=None, failure=None, session=None, has_run=False):
-    """One next action for status, recovery instructions and recording controls."""
+ACTION_LABELS = {
+    'update': 'Update preview', 'run': 'Make final', 'create': 'Continue creation',
+    'setup': 'Check again', 'session': 'Review saved history', 'review': 'Review this final',
+    'download': 'Get your files', 'preview': 'Record app again', 'from': 'Record from here',
+    'recut': 'Re-cut', 'repair': 'Repair control', 'demonstrate': 'Show changed actions',
+    'audition': 'Audition saved line', 'edit': 'Edit the project', 'accept': 'Accept this recording',
+    'cancel': 'Cancel update',
+}
+RECORDING_ACTIONS = {'update', 'run', 'preview', 'from', 'recut', 'repair', 'demonstrate'}
+CREATION_BLOCKS = {'update', 'run', 'preview', 'from', 'recut'}
+
+
+def permissions(*, creating=False, tools=None, session=None, job=None, has_run=False,
+                pending=False, mode='final'):
+    """Capabilities shared by page controls, HTTP guards and status output.
+
+    Tool readiness may be unknown for read-only inspection. Execution checks the
+    actual tools. Browsing/downloading earlier evidence never needs recording tools.
+    """
+    busy = bool(job and job.get('running'))
+    actions = {}
+    for kind, label in ACTION_LABELS.items():
+        reason = ''
+        if kind == 'cancel':
+            if job is None:
+                reason = 'Live jobs are not observed here. Use the studio to cancel an update.'
+            elif not (busy and job.get('cancelable', True)):
+                reason = 'No cancellable job is running.'
+        elif kind in ('review', 'download'):
+            if not has_run:
+                reason = 'Record a complete preview or final first.'
+        elif busy:
+            reason = 'An update is running. Wait for it or cancel before changing the project.'
+        elif kind == 'session':
+            if not session:
+                reason = 'No saved history needs recovery.'
+        elif session:
+            reason = 'Resolve the saved editing history first.'
+        elif kind in RECORDING_ACTIONS | {'create'} and tools is not None and not tools['ok']:
+            reason = 'Fix the recording tools, then choose Check again.'
+        elif creating and kind in CREATION_BLOCKS:
+            reason = 'Finish the first preview with Continue creation.'
+        elif kind == 'create' and not creating:
+            reason = 'No paused creation here. Use Update preview to refresh this project.'
+        elif kind in ('recut', 'accept') and not has_run:
+            reason = 'Record a complete preview or final first.'
+        elif kind == 'accept' and pending:
+            reason = 'Saved edits are not in this recording yet. Update preview or make a final before accepting here.'
+        elif kind == 'accept' and mode != 'final':
+            reason = 'This is a preview. Make a final before accepting here.'
+        actions[kind] = {'kind': kind, 'label': label, 'enabled': not reason, 'reason': reason}
+    return actions
+
+
+def workflow(saved, *, creating=False, tools=None, failure=None, session=None, has_run=False,
+             job=None, mode='final'):
+    """Compose independent lifecycles; never persist this derived display state."""
     out = dict(saved)
     continuation = 'create' if creating else 'update'
-    labels = {'create': 'Continue creation', 'update': 'Update preview', 'run': 'Make final',
-              'setup': 'Check again', 'session': 'Review saved history',
-              'review': 'Review this final', 'download': 'Get your files'}
     tools_missing = tools is not None and not tools['ok']
-    block = ('Resolve the saved editing history first.' if session else
-             'Fix the recording tools, then choose Check again.' if tools_missing else
-             'Finish the first preview with Continue creation.' if creating else '')
-    out['actions'] = {kind: {'kind': kind, 'label': labels[kind], 'enabled': not block, 'reason': block}
-                      for kind in ('update', 'run')}
-    out['actions']['create'] = {'kind': 'create', 'label': labels['create'],
-                               'enabled': creating and not session and not tools_missing,
-                               'reason': block if session or tools_missing else ''}
-    out['continuation'] = {'kind': continuation, 'label': labels[continuation],
-                           'enabled': out['actions'][continuation]['enabled'],
-                           'reason': out['actions'][continuation]['reason']}
+    out['actions'] = permissions(creating=creating, tools=tools, session=session, job=job,
+                                has_run=has_run, pending=saved.get('pending', False), mode=mode)
+    out['continuation'] = out['actions'][continuation]
     if creating:
         out.update(phase='creation', next='create', title='Continue your first demo',
                    detail='Your story is saved. Choose Continue creation to make its preview.')
     if failure:
-        again = labels[continuation]
+        again = ACTION_LABELS[continuation]
         if failure.get('repaired'):
             detail = f'Control updated. Choose {again} to verify the original task and result checks.'
         elif failure.get('stale'):
@@ -209,11 +252,86 @@ def workflow(saved, *, creating=False, tools=None, failure=None, session=None, h
                    phase='stopped', next=continuation,
                    detail=detail + (' The video is the last recording that worked.' if has_run else ''))
     if tools_missing:
-        out.update(phase='setup', next='setup', title='Recording tools need attention', detail=block)
+        out.update(phase='setup', next='setup', title='Recording tools need attention',
+                   detail='Fix the recording tools, then choose Check again.')
     if session:
         out.update(phase='recovery', next='session', title=session['title'], detail=session['detail'])
-    if creating or failure or tools_missing or session:
+    busy = bool(job and job.get('running'))
+    if busy:
+        cancelling = job.get('state') == 'cancelling'
+        kept = 'Your previous recording is kept.' if has_run else 'Your saved story is kept.'
+        out.update(phase='busy', next='cancel', title='Cancelling the update' if cancelling else 'An update is running',
+                   detail=('Wait for it to finish. ' if not job.get('cancelable', True) else
+                           'Wait for it to finish, or cancel the update. ') + kept)
+    if creating or failure or tools_missing or session or busy:
         out.pop('first', None)
-    kind = out['next']
-    out['action'] = out['actions'].get(kind, {'kind': kind, 'label': labels[kind], 'enabled': True, 'reason': ''})
+    out['action'] = out['actions'][out['next']]
+    out['states'] = {
+        'source': saved.get('states', {}).get('source', saved.get('phase', 'unknown')),
+        'creation': 'pending' if creating else 'inactive',
+        'tools': 'unknown' if tools is None else 'blocked' if tools_missing else 'ready',
+        'history': 'recovery' if session else 'ready',
+        'failure': 'none' if not failure else 'repaired' if failure.get('repaired') else
+                   'stale' if failure.get('stale') else 'active',
+        'job': job.get('state', 'running' if busy else 'idle') if job else 'unobserved',
+    }
     return out
+
+
+def recorded_as(beat, row):
+    """Whether a storyboard beat still has the actions, checks and holds it was recorded with: its definition hash,
+    with the captions it was recorded with put back, since those are drawn again on a re-cut."""
+    probe = dict(beat)
+    if row is not None:
+        for key, value in (('caption', row.get('recorded')), ('sub', row.get('recorded_sub'))):
+            if value is None:
+                probe.pop(key, None)
+            else:
+                probe[key] = value
+    return hashlib.sha256(json.dumps(probe, sort_keys=True).encode()).hexdigest()
+
+
+def update_kind(folder, config, take, run):
+    """Caption and edit changes reuse a take; recording changes replay the app. Fail closed when unsure."""
+    from reshoot import story
+    from reshoot.artifacts import digest
+    from reshoot.config import read
+    if not run:
+        return 'preview', 'Recording the first preview.'
+    root, report = run
+    if capture_changes(config, run):
+        return 'preview', 'The task, timing, narration or demo data changed; recording a fresh preview.'
+    shoot, _ = read(config)
+    capture_config = {k: v for k, v in shoot.items() if k in ('app', 'take', 'inputs')}
+    if report.get('inputs', {}).get('recording_config_sha256') != hashlib.sha256(json.dumps(capture_config, sort_keys=True).encode()).hexdigest():
+        return 'preview', 'Project settings changed; recording a new preview.'
+    recorded = report.get('inputs', {}).get('fixtures', [])
+    if [r['sha256'] for r in recorded] != [digest(Path(folder) / p) for p in shoot.get('inputs', [])]:
+        return 'preview', 'Demo data changed; recording a new preview.'
+    # A multi-take project may have changes outside the first storyboard shown here.
+    if len(shoot.get('take', [])) != 1:
+        return 'preview', 'Recording all takes in this project.'
+    source = root / take['out']
+    meta_path, caps_path = source.with_suffix('.take.json'), source.with_suffix('.captions.json')
+    if not meta_path.exists() or not caps_path.exists():
+        return 'preview', 'Recording a take with editable captions.'
+    board = story.load(Path(folder) / take['web'])
+    meta, caps = json.loads(meta_path.read_text()), json.loads(caps_path.read_text())
+    rows = {r['beat']: r for r in caps['captions']}
+    beats = {b['id']: b for b in meta['beats']}
+    if list(beats) != [b['id'] for b in board['beat']] or any(
+            recorded_as(b, rows.get(b['id'])) != beats[b['id']].get('definition_sha256') for b in board['beat']):
+        return 'preview', 'Actions, checks or timing changed; recording a new preview.'
+    original = meta.get('recording_settings_sha256')
+    settings = story.recording_settings(board)
+    if original != hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest():
+        return 'preview', 'Recording settings changed; recording a new preview.'
+    words_changed = any((b.get('caption') or None, b.get('sub') or None) !=
+                        (rows[b['id']].get('text', rows[b['id']].get('recorded')),
+                         rows[b['id']].get('sub', rows[b['id']].get('recorded_sub'))) for b in board['beat'])
+    edit_changed = shoot.get('edit', {}).get('file') and report.get('inputs', {}).get('edit_sha256') != digest(Path(folder) / shoot['edit']['file'])
+    sources_changed = changed(report.get('inputs', {}).get('render_state'), snapshot(config)) if report.get('inputs', {}).get('render_state') else []
+    if not (words_changed or caps.get('style', {}) != board.get('caption', {}) or edit_changed or sources_changed
+            or report.get('inputs', {}).get('config_sha256') != digest(config)):
+        return 'preview', 'Recording the app again for a fresh preview.'
+    return 'recut', 'Updating captions and the edit using the existing recording.'

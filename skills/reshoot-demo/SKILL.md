@@ -5,11 +5,20 @@ description: Create a repeatable software demo with reshoot from an app and demo
 
 # Create a demo
 
+For a versioned browser project, if `reshoot --help` lists `status`, read
+`reshoot status PROJECT --json` before choosing the next action. Check each
+action's `enabled` and `reason`; `ok` means inspection succeeded, not that the
+demo passed or was accepted. It does not check tools, live studio jobs or
+unsaved fields. See the [command reference](https://github.com/mumit/reshoot/blob/main/guide/commands.md).
+
 ## Set up
 
 Requires reshoot CLI 0.3.14 or newer. Run `reshoot --version`. If it is older, or `reshoot doctor` says a newer release is out, upgrade with `reshoot upgrade --yes`. If the CLI is missing, use the repository's documented installation; do not invent commands for another version.
 
-Run `reshoot doctor --config CONFIG --probe` for a project. It tests encoding, a TOML browser capture and the configured text scan on temporary synthetic data; it does not test the app, face detection or final media. Fix what it reports instead of turning scans off. If `RESHOOT_CHROME` is set, it must name an executable browser. Restart reshoot after changing shell settings or its Python environment.
+Run `reshoot doctor --config CONFIG --probe`. Its synthetic encoding, browser
+and text-scan probes do not validate the app, faces or final media. Fix failures
+rather than disabling scans. `RESHOOT_CHROME` must name an executable browser;
+restart after environment changes.
 
 ## Choose the story
 
@@ -28,14 +37,10 @@ Record only a headless browser page, a VHS terminal, or one macOS window by ID. 
 
 If the owner wants to show the task themselves, offer `reshoot create URL --directory demo`. It records in a browser with a toolbar, makes a preview and opens the studio. It waits for a person, so do not start it during an autonomous recording. `reshoot create --resume --directory demo` continues one after setup is fixed; do not give it another URL or size. If the storyboard changed while the owner was recording, keep both versions and compare them; never overwrite those changes. Repair any `recording_issue` step it leaves; never delete one to make a recording pass.
 
-For a useful starting presentation, `reshoot recipe list` describes feature,
-walkthrough and release recipes. Use `reshoot recipe apply feature --project demo`
-after writing the task, or offer `create --recipe feature` for a new creation.
-Recipes keep actions and checks, change pacing/look/export choices, and need a
-fresh preview. Inspect `recipe apply NAME --dry-run --project demo` first when
-the project already has custom delivery settings. Existing cut ranges and cards
-stay; [the studio guide](https://github.com/mumit/reshoot/blob/main/guide/studio.md#choose-a-starting-recipe)
-describes the choices. Never treat a recipe as a verified result or acceptance.
+Use `reshoot recipe list` for feature, walkthrough and release starting looks.
+Inspect `recipe apply NAME --dry-run --project demo` before applying one to
+custom delivery settings. Recipes retain actions, checks, cut ranges and cards;
+pacing and exports change. Record a fresh preview. See [recipes](https://github.com/mumit/reshoot/blob/main/guide/studio.md#choose-a-starting-recipe).
 
 For combined web and VHS edits, give both takes the same dimensions.
 

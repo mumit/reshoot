@@ -134,11 +134,15 @@ def test_tool_and_history_blocks_take_precedence_over_recording_actions():
     base = {'next': 'update', 'phase': 'empty', 'title': 'Preview', 'detail': '', 'pending': False}
     stopped = journey.workflow(base, creating=True, tools={'ok': False}, failure={'stale': True})
     assert stopped['action']['kind'] == 'setup'
-    assert all(not action['enabled'] and action['reason'] for action in stopped['actions'].values())
+    assert all(not stopped['actions'][kind]['enabled'] and stopped['actions'][kind]['reason']
+               for kind in ('update', 'run', 'create'))
+    assert stopped['actions']['setup']['enabled']
     recovery = journey.workflow(base, creating=True, tools={'ok': True},
                                 session={'title': 'Changed files', 'detail': 'Compare the files.'})
     assert recovery['action']['kind'] == 'session' and recovery['title'] == 'Changed files'
-    assert all(not action['enabled'] and action['reason'] for action in recovery['actions'].values())
+    assert all(not recovery['actions'][kind]['enabled'] and recovery['actions'][kind]['reason']
+               for kind in ('update', 'run', 'create'))
+    assert recovery['actions']['session']['enabled']
 
 
 def test_bundle_contains_only_exports_and_hashes_the_actual_archived_bytes(tmp_path):

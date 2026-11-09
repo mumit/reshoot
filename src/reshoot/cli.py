@@ -10,7 +10,7 @@ class Examples(argparse.HelpFormatter):
 
 
 # The order a newcomer meets the commands in; reshoot --help lists them this way.
-GROUPS = [('Start here', ['create', 'studio', 'doctor', 'upgrade']),
+GROUPS = [('Start here', ['create', 'studio', 'status', 'doctor', 'upgrade']),
           ('Record and review', ['preview', 'run', 'recut', 'runs', 'review', 'accept', 'export', 'compare', 'repair']),
           ('Shape the video', ['step', 'recipe', 'style', 'frame', 'audio', 'sequence', 'screenshot', 'tour']),
           ('Lower level', ['init', 'rec', 'web', 'window', 'edit', 'check', 'gif', 'last-change', 'skills'])]
@@ -225,6 +225,15 @@ def main(argv=None):
     p.add_argument('--replace', action='store_true',
                    help='replace skills already there, such as after an upgrade; changes made to them are lost')
     p.set_defaults(run=skills.install)
+    from reshoot import workflow
+    p = sub.add_parser('status', help='show saved project state and the next action, without recording',
+                       description='Read a versioned browser project and show the next action, source freshness, '
+                       'last successful run, latest failure and saved-history recovery. --json exposes the same '
+                       'workflow capabilities as the studio. It starts no server, probes no tools and writes no files. '
+                       'Live studio jobs and unsaved browser fields cannot be observed from disk.', formatter_class=Examples)
+    p.add_argument('project', nargs='?', default='demo', help='project folder or reshoot.toml (default: demo)')
+    p.add_argument('--json', action='store_true', help='print schema version 1 JSON; ok means inspection succeeded')
+    p.set_defaults(run=workflow.main)
     from reshoot import review
     runs = ('A run is its folder, such as demo/takes/runs/ID. End the path with `latest` for the newest successful '
             'run or `accepted` for the newest accepted one, such as demo/latest.')
